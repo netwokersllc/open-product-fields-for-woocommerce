@@ -151,23 +151,29 @@ final class Importer {
 		}
 
 		// 2. Local groups: product meta (host product becomes the placement rule).
-		$meta_rows = $wpdb->get_results(
-			"SELECT post_id, meta_value FROM {$wpdb->postmeta} WHERE meta_key = '_wapf_fieldgroup' AND meta_value <> ''"
+		// Values are read through the metadata API — raw SQL reads can differ
+		// under object-cache/storage transformations.
+		$meta_ids = $wpdb->get_col(
+			"SELECT DISTINCT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wapf_fieldgroup' AND meta_value <> ''"
 		);
-		foreach ( $meta_rows as $row ) {
-			$product = get_post( (int) $row->post_id );
+		foreach ( $meta_ids as $post_id ) {
+			$product = get_post( (int) $post_id );
 			if ( ! $product || 'product' !== $product->post_type ) {
 				continue;
 			}
-			$strict = @unserialize( $row->meta_value, [ 'allowed_classes' => false ] );
-			$wapf   = is_array( $strict ) ? $strict : WapfParser::parse( $row->meta_value );
+			$meta_value = (string) get_post_meta( (int) $post_id, '_wapf_fieldgroup', true );
+			if ( '' === $meta_value ) {
+				continue;
+			}
+			$strict   = @unserialize( $meta_value, [ 'allowed_classes' => false ] );
+			$wapf     = is_array( $strict ) ? $strict : WapfParser::parse( $meta_value );
 			$repaired = ! is_array( $strict ) && is_array( $wapf );
 			if ( $repaired ) {
 				$report['repaired']++;
 			}
 			if ( ! is_array( $wapf ) || empty( $wapf['fields'] ) ) {
 				$report['skipped']++;
-				$report['groups'][] = [ 'source' => 'meta:' . $row->post_id, 'result' => 'unparseable-or-empty' ];
+				$report['groups'][] = [ 'source' => 'meta:' . $post_id, 'result' => 'unparseable-or-empty' ];
 				continue;
 			}
 
