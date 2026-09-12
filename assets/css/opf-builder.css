@@ -1,0 +1,70 @@
+/* Open Product Fields — builder screen. */
+
+.opf-b-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+.opf-b-status {
+	margin-left: auto;
+	color: #2271b1;
+}
+
+.opf-b-fields {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.opf-b-field {
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 12px;
+	background: #fff;
+}
+
+.opf-b-field-head {
+	display: grid;
+	grid-template-columns: 2fr 140px 2fr auto auto;
+	gap: 8px;
+	align-items: center;
+}
+
+.opf-b-input {
+	width: 100%;
+}
+
+.opf-b-choices-header {
+	margin: 10px 0 6px;
+	color: #50575e;
+}
+
+.opf-b-choices {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.opf-b-choice {
+	display: grid;
+	grid-template-columns: 32px 130px 1fr 130px 1fr 32px;
+	gap: 6px;
+	align-items: center;
+}
+
+.opf-b-remove {
+	color: #b32d2e;
+	font-size: 18px;
+	line-height: 1;
+	text-decoration: none;
+}
+
+.opf-b-preview {
+	border: 1px dashed #c3c4c7;
+	border-radius: 4px;
+	padding: 16px;
+	background: #fff;
+	min-height: 48px;
+}

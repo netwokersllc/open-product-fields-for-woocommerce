@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Open Product Fields for WooCommerce
- * Plugin URI: https://github.com/ssthormess/open-product-fields-for-woocommerce
- * Description: Build custom product fields and add-ons for WooCommerce products — conditional logic, pricing, and a modern form builder. Free and open source.
+ * Plugin URI: https://github.com/netwokersllc/open-product-fields-for-woocommerce
+ * Description: Build custom product fields and add-ons for WooCommerce — conditional logic, server-side pricing, and first-class block checkout support. Free and open source.
  * Version: 0.1.0
  * Author: ssthormess
  * Author URI: https://github.com/ssthormess
@@ -37,15 +37,60 @@ define( 'OPF_FILE', __FILE__ );
 define( 'OPF_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OPF_URL', plugin_dir_url( __FILE__ ) );
 
-require_once OPF_DIR . 'includes/class-opf-plugin.php';
+require_once OPF_DIR . 'includes/Autoloader.php';
+
+use OPF\Service\Admin\Builder;
+use OPF\Service\Admin\ImportPage;
+use OPF\Service\Assets;
+use OPF\Service\CartIntegration;
+use OPF\Service\Cli;
+use OPF\Service\FieldGroups;
+use OPF\Service\Importer;
+use OPF\Service\Renderer;
+use OPF\Service\Rest;
 
 /**
- * Global plugin instance accessor.
- *
- * @return OPF_Plugin
+ * Wire the plugin up. Rendering and cart logic are only hooked when
+ * WooCommerce is active.
  */
-function opf() {
-	return OPF_Plugin::instance();
-}
+function opf_boot(): void {
+	FieldGroups::init();
 
-opf();
+	if ( ! class_exists( 'WooCommerce' ) ) {
+		add_action( 'admin_notices', 'opf_wc_missing_notice' );
+		return;
+	}
+
+	Renderer::init();
+	CartIntegration::init();
+	Assets::init();
+	Rest::init();
+	Importer::init();
+	Builder::init();
+	ImportPage::init();
+
+	if ( defined( 'WP_CLI' ) && WP_CLI ) {
+		Cli::init();
+	}
+
+	// Declare compatibility with WooCommerce feature sets.
+	add_action(
+		'before_woocommerce_init',
+		static function () {
+			if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+				\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+				\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', __FILE__, true );
+			}
+		}
+	);
+}
+opf_boot();
+
+/**
+ * WooCommerce missing notice.
+ */
+function opf_wc_missing_notice(): void {
+	echo '<div class="notice notice-error"><p>';
+	echo esc_html__( 'Open Product Fields requires WooCommerce to be installed and active.', 'opf' );
+	echo '</p></div>';
+}

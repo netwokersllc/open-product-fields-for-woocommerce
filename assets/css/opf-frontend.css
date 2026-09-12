@@ -1,0 +1,98 @@
+/* Open Product Fields — frontend. Small, theme-agnostic, CSS-variable driven. */
+
+.opf-fields {
+	display: block;
+	margin: 1.25em 0;
+}
+
+.opf-group {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 0.75em 1em;
+	margin-bottom: 1em;
+}
+
+.opf-group__title {
+	grid-column: 1 / -1;
+	margin: 0 0 0.25em;
+	font-size: 1em;
+}
+
+.opf-field {
+	grid-column: span 4;
+}
+
+.opf-col-25 { grid-column: span 1; }
+.opf-col-50 { grid-column: span 2; }
+.opf-col-75 { grid-column: span 3; }
+
+.opf-field--hidden { display: none; }
+
+.opf-field__label {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15em;
+	margin-bottom: 0.35em;
+	font-weight: 600;
+}
+
+.opf-field__description {
+	font-weight: 400;
+	font-size: 0.85em;
+	opacity: 0.75;
+}
+
+.opf-field__control input[type="text"],
+.opf-field__control input[type="url"],
+.opf-field__control input[type="number"],
+.opf-field__control textarea,
+.opf-field__control select {
+	width: 100%;
+}
+
+.opf-choices {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4em;
+}
+
+.opf-choice {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 0.4em;
+	padding: 0.35em 0.7em;
+	border: 1px solid rgb(0 0 0 / 0.18);
+	border-radius: 6px;
+	cursor: pointer;
+	background: rgb(0 0 0 / 0.02);
+	transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.opf-choice:hover {
+	border-color: rgb(0 0 0 / 0.35);
+}
+
+.opf-choice:has(input:checked) {
+	border-color: currentColor;
+	background: rgb(0 0 0 / 0.06);
+	font-weight: 600;
+}
+
+.opf-choice input {
+	margin: 0;
+}
+
+.opf-choice__hint {
+	font-size: 0.82em;
+	opacity: 0.7;
+	font-weight: 400;
+}
+
+.opf-choices--swatch .opf-choice {
+	border-radius: 999px;
+}
+
+@media (max-width: 782px) {
+	.opf-group { grid-template-columns: 1fr; }
+	.opf-field, .opf-col-25, .opf-col-50, .opf-col-75 { grid-column: span 1; }
+}

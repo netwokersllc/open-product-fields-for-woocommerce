@@ -1,0 +1,187 @@
+<?php
+/**
+ * Field group repository: CRUD over the opf_field_group CPT.
+ *
+ * Group data lives as JSON in post_content (schema-versioned by
+ * FieldGroup::SCHEMA), keeping the data inspectable, exportable and
+ * portable. Placement matching is delegated to the engine evaluator.
+ *
+ * @package open-product-fields-for-woocommerce
+ */
+
+namespace OPF\Service;
+
+use OPF\Engine\Evaluator;
+use OPF\Engine\FieldGroup;
+
+defined( 'ABSPATH' ) || exit;
+
+final class FieldGroups {
+
+	/**
+	 * Cache of all published groups for this request.
+	 *
+	 * @var array<int,array{id:int,title:string,group:FieldGroup}>|null
+	 */
+	private static $all = null;
+
+	/**
+	 * Register hooks.
+	 */
+	public static function init(): void {
+		add_action( 'init', [ __CLASS__, 'register_cpt' ] );
+	}
+
+	/**
+	 * Register the CPT.
+	 */
+	public static function register_cpt(): void {
+		register_post_type(
+			'opf_field_group',
+			[
+				'labels'              => [
+					'name'          => __( 'Field Groups', 'opf' ),
+					'singular_name' => __( 'Field Group', 'opf' ),
+					'edit_item'     => __( 'Edit Field Group', 'opf' ),
+					'new_item'      => __( 'New Field Group', 'opf' ),
+					'search_items'  => __( 'Search Field Groups', 'opf' ),
+				],
+				'public'              => false,
+				'show_ui'             => true,
+				'show_in_menu'        => 'woocommerce',
+				'show_in_rest'        => false,
+				'capability_type'     => 'product',
+				'map_meta_cap'        => true,
+				'hierarchical'        => false,
+				'supports'            => [ 'title' ],
+				'has_archive'         => false,
+				'rewrite'             => false,
+				'query_var'           => false,
+				'delete_with_user'    => false,
+			]
+		);
+	}
+
+	/**
+	 * All published groups with at least one field.
+	 *
+	 * @return array<int,array{id:int,title:string,group:FieldGroup}>
+	 */
+	public static function all(): array {
+		if ( null !== self::$all ) {
+			return self::$all;
+		}
+
+		self::$all = [];
+
+		$posts = get_posts(
+			[
+				'post_type'                => 'opf_field_group',
+				'post_status'              => 'publish',
+				'posts_per_page'           => -1,
+				'no_found_rows'            => true,
+				'update_post_term_cache'   => false,
+				'update_post_meta_cache'   => false,
+				'order'                    => 'ASC',
+				'orderby'                  => 'menu_order title',
+				'suppress_filters'         => false,
+			]
+		);
+
+		foreach ( $posts as $post ) {
+			$group = self::group_from_post( $post );
+			if ( $group && ! empty( $group->data['fields'] ) ) {
+				self::$all[] = [
+					'id'    => $post->ID,
+					'title' => $post->post_title,
+					'group' => $group,
+				];
+			}
+		}
+
+		return self::$all;
+	}
+
+	/**
+	 * Groups matching a product.
+	 *
+	 * @param \WC_Product $product Product.
+	 * @return array<int,array{id:int,title:string,group:FieldGroup}>
+	 */
+	public static function for_product( \WC_Product $product ): array {
+		$product_id = $product->get_parent_id() ? $product->get_parent_id() : $product->get_id();
+		$cached     = wp_cache_get( $product_id, 'opf_groups_for_product' );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+
+		$has_terms = [
+			'product_cat' => wc_get_product_term_ids( $product_id, 'product_cat' ),
+			'product_tag' => wc_get_product_term_ids( $product_id, 'product_tag' ),
+		];
+
+		$matching = [];
+		foreach ( self::all() as $entry ) {
+			if ( Evaluator::group_matches( $entry['group']->data, $has_terms, $product_id ) ) {
+				$matching[] = $entry;
+			}
+		}
+
+		wp_cache_set( $product_id, $matching, 'opf_groups_for_product' );
+		return $matching;
+	}
+
+	/**
+	 * Hydrate a FieldGroup from a post (JSON in post_content).
+	 */
+	public static function group_from_post( \WP_Post $post ): ?FieldGroup {
+		$raw = json_decode( (string) $post->post_content, true );
+		if ( ! is_array( $raw ) ) {
+			return null;
+		}
+		return new FieldGroup( $raw );
+	}
+
+	/**
+	 * Persist a group's data to a post.
+	 *
+	 * @param int                  $post_id Post id (0 = create).
+	 * @param FieldGroup|array     $group   Group data.
+	 * @param array<string,mixed>  $args    title, status.
+	 */
+	public static function save( int $post_id, $group, array $args = [] ): int {
+		$data    = $group instanceof FieldGroup ? $group->data : FieldGroup::normalize( $group );
+		$title   = (string) ( $args['title'] ?? '' );
+		$status  = (string) ( $args['status'] ?? 'publish' );
+
+		$fields = [
+			'ID'           => $post_id > 0 ? $post_id : 0,
+			'post_content' => wp_json_encode( $data, JSON_UNESCAPED_UNICODE ),
+			'post_type'    => 'opf_field_group',
+			'post_status'  => $status,
+		];
+		if ( '' !== $title ) {
+			$fields['post_title'] = $title;
+		}
+
+		$has_title = $post_id > 0 ? (string) get_post_field( 'post_title', $post_id ) : '';
+		if ( $post_id > 0 && '' === $title && '' === $has_title ) {
+			$fields['post_title'] = __( 'Field Group', 'opf' );
+		}
+
+		$id = wp_insert_post( wp_slash( $fields ), true );
+		if ( is_wp_error( $id ) ) {
+			return 0;
+		}
+		self::flush_cache();
+		return $id;
+	}
+
+	/**
+	 * Flush request + object caches.
+	 */
+	public static function flush_cache(): void {
+		self::$all = null;
+		wp_cache_flush_group( 'opf_groups_for_product' );
+	}
+}
