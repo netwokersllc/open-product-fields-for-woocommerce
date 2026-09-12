@@ -161,12 +161,18 @@ final class Importer {
 			if ( ! $product || 'product' !== $product->post_type ) {
 				continue;
 			}
-			$meta_value = (string) get_post_meta( (int) $post_id, '_wapf_fieldgroup', true );
-			if ( '' === $meta_value ) {
+			// get_post_meta already unserializes clean payloads into arrays;
+			// corrupted ones stay strings and go through the repair parser.
+			$meta_value = get_post_meta( (int) $post_id, '_wapf_fieldgroup', true );
+			if ( is_array( $meta_value ) ) {
+				$wapf   = $meta_value;
+				$strict = $wapf;
+			} elseif ( is_string( $meta_value ) && '' !== $meta_value ) {
+				$strict = @unserialize( $meta_value, [ 'allowed_classes' => false ] );
+				$wapf   = is_array( $strict ) ? $strict : WapfParser::parse( $meta_value );
+			} else {
 				continue;
 			}
-			$strict   = @unserialize( $meta_value, [ 'allowed_classes' => false ] );
-			$wapf     = is_array( $strict ) ? $strict : WapfParser::parse( $meta_value );
 			$repaired = ! is_array( $strict ) && is_array( $wapf );
 			if ( $repaired ) {
 				$report['repaired']++;
