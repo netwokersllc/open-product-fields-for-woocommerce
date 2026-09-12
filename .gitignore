@@ -1,0 +1,11 @@
+# Hidden files and OS junk
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build artifacts
+*.zip
+dist/
