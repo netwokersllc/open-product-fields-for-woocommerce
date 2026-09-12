@@ -10,9 +10,18 @@ use PHPUnit\Framework\TestCase;
 
 final class CalculatorTest extends TestCase {
 
-	public function test_fixed_pricing_per_unit(): void {
-		$pricing = [ 'type' => 'fixed', 'amount' => 5.0, 'formula' => '' ];
-		$this->assertSame( 5.0, Calculator::choice_addon( $pricing, 100.0, 3, 0.0 ) );
+	public function test_fixed_pricing_flat_per_line_wapf_parity(): void {
+		$pricing = [ 'type' => 'fixed', 'amount' => 5.0, 'formula' => '', 'per_unit' => false ];
+		// Flat fee: per-unit contribution shrinks with qty so the LINE total
+		// adds exactly the fee (WAPF parity).
+		$this->assertSame( 5.0, Calculator::choice_addon( $pricing, 100.0, 1, 0.0 ) );
+		$this->assertEqualsWithDelta( 5.0 / 3, Calculator::choice_addon( $pricing, 100.0, 3, 0.0 ), 0.000001 );
+	}
+
+	public function test_fixed_pricing_per_unit_opt_in(): void {
+		$pricing = [ 'type' => 'fixed', 'amount' => 5.0, 'formula' => '', 'per_unit' => true ];
+		$this->assertSame( 5.0, Calculator::choice_addon( $pricing, 100.0, 1, 0.0 ) );
+		$this->assertSame( 5.0, Calculator::choice_addon( $pricing, 100.0, 3, 0.0 ), 'per-unit fixed does not shrink' );
 	}
 
 	public function test_percent_of_unit_price(): void {

@@ -56,6 +56,8 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( 'none', $field['choices'][0]['pricing']['type'] );
 		$this->assertSame( 'fixed', $field['choices'][1]['pricing']['type'] );
 		$this->assertSame( 180.0, $field['choices'][1]['pricing']['amount'] );
+		// WAPF fixed = flat per line; qty-scaled fixed only for qt type.
+		$this->assertFalse( $field['choices'][1]['pricing']['per_unit'] );
 
 		// fx formula: qty compensation stripped, [options_total] → [addons].
 		$this->assertSame( 'formula', $field['choices'][2]['pricing']['type'] );

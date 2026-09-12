@@ -148,9 +148,12 @@ final class WapfMapper {
 
 			switch ( $ptype ) {
 				case 'fixed':
+					// WAPF fixed = flat fee per line (qty_based is an opt-in).
+					$pricing = [ 'type' => 'fixed', 'amount' => (float) $amt, 'formula' => '', 'per_unit' => false ];
+					break;
 				case 'qt':
 					// qt: amount*qty total → per-unit fixed.
-					$pricing = [ 'type' => 'fixed', 'amount' => (float) $amt, 'formula' => '' ];
+					$pricing = [ 'type' => 'fixed', 'amount' => (float) $amt, 'formula' => '', 'per_unit' => true ];
 					break;
 				case 'percent':
 				case 'p':

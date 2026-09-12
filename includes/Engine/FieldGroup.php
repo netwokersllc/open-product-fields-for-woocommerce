@@ -155,6 +155,12 @@ final class FieldGroup {
 	/**
 	 * Normalize a pricing block.
 	 *
+	 * Semantics (WAPF-parity, verified against the legacy engine and theme):
+	 *  - percent : per-unit — scales with line quantity.
+	 *  - formula : per-unit — scales with line quantity (imported WAPF
+	 *              formulas have their qty-compensation factor stripped).
+	 *  - fixed   : FLAT per line by default (`per_unit` opt-in to scale).
+	 *
 	 * @param array<string,mixed> $pricing Raw pricing.
 	 * @return array<string,mixed>
 	 */
@@ -165,14 +171,18 @@ final class FieldGroup {
 			$amount = 0.0;
 		}
 		if ( ! in_array( $type, self::PRICING_TYPES, true ) ) {
-			$type = 'none';
+			$type   = 'none';
 			$amount = 0.0;
 		}
+		$per_unit = 'fixed' === $type
+			? (bool) ( $pricing['per_unit'] ?? false )
+			: true;
+
 		return [
 			'type'     => $type,
 			'amount'   => $amount,
 			'formula'  => (string) ( $pricing['formula'] ?? '' ),
-			'per_unit' => true,
+			'per_unit' => $per_unit,
 		];
 	}
 

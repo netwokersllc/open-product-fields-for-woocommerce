@@ -62,14 +62,18 @@ final class Calculator {
 	}
 
 	/**
-	 * Addon for a single choice.
+	 * Addon for a single choice — expressed as the PER-UNIT contribution to
+	 * the line price. Flat (per_unit=false) amounts are divided by quantity
+	 * so the line total adds exactly the flat fee (WAPF parity).
 	 *
 	 * @param array<string,mixed> $pricing Normalized choice pricing.
 	 */
 	public static function choice_addon( array $pricing, float $price, int $qty, float $addons ): float {
+		$qty = max( 1, $qty );
 		switch ( $pricing['type'] ) {
 			case 'fixed':
-				return (float) $pricing['amount'];
+				$amount = (float) $pricing['amount'];
+				return empty( $pricing['per_unit'] ) ? $amount / $qty : $amount;
 			case 'percent':
 				return $price * ( (float) $pricing['amount'] / 100 );
 			case 'formula':
@@ -80,7 +84,8 @@ final class Calculator {
 	}
 
 	/**
-	 * Field-level pricing for text-like input.
+	 * Field-level pricing for text-like input — per-unit contribution
+	 * (see normalize_pricing for the semantics table).
 	 *
 	 * @param array<string,mixed> $pricing Normalized field pricing.
 	 */
@@ -88,9 +93,11 @@ final class Calculator {
 		if ( '' === trim( $value ) ) {
 			return 0.0;
 		}
+		$qty = max( 1, $qty );
 		switch ( $pricing['type'] ) {
 			case 'fixed':
-				return (float) $pricing['amount'];
+				$amount = (float) $pricing['amount'];
+				return empty( $pricing['per_unit'] ) ? $amount / $qty : $amount;
 			case 'percent':
 				return $price * ( (float) $pricing['amount'] / 100 );
 			case 'formula':

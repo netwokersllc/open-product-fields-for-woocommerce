@@ -96,6 +96,20 @@ for i in $(seq 1 "$ITERATIONS"); do
 		&& echo "  suite ok: jsdom ($(grep -cE '^  ok' /tmp/opf-jsdom.out) checks)" \
 		|| { echo "  SUITE FAIL: jsdom"; tail -5 /tmp/opf-jsdom.out; FAIL=$((FAIL+1)); }
 
+	# 5b. Theme quantity.js compat (verbatim legacy math over OPF markup)
+	( cd "$JSDOM_DIR" && node "$PLUGIN_DIR/bin/e2e-theme-compat-test.mjs" > /tmp/opf-themecompat.out 2>&1 ) \
+		&& echo "  suite ok: theme-compat ($(grep -cE '^  ok' /tmp/opf-themecompat.out) checks)" \
+		|| { echo "  SUITE FAIL: theme-compat"; tail -5 /tmp/opf-themecompat.out; FAIL=$((FAIL+1)); }
+
+	# 5c. Full browser UI flow (optional — requires playwright + chromium)
+	if [ -d "$JSDOM_DIR/node_modules/playwright" ]; then
+		( cd "$JSDOM_DIR" && OPF_BASE_URL="$HTTP" node "$PLUGIN_DIR/bin/e2e-browser-test.mjs" > /tmp/opf-browser.out 2>&1 ) \
+			&& echo "  suite ok: browser-ui ($(grep -cE '^  ok' /tmp/opf-browser.out) checks)" \
+			|| { echo "  SUITE FAIL: browser-ui"; tail -5 /tmp/opf-browser.out; FAIL=$((FAIL+1)); }
+	else
+		echo "  suite skip: browser-ui (playwright not installed in $JSDOM_DIR)"
+	fi
+
 	# 6. Import verification — reset OPF groups for a clean-state import each time
 	wp eval 'foreach (get_posts(["post_type"=>"opf_field_group","post_status"=>"any","posts_per_page"=>-1,"fields"=>"ids"]) as $id) { wp_delete_post($id, true); } OPF\Service\FieldGroups::flush_cache();' --path="$SITE_DIR" > /dev/null 2>&1
 	run "import-verify" 9 wp eval-file "$PLUGIN_DIR/bin/e2e-import-test.php" "$EXPORT" --path="$SITE_DIR"

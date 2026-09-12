@@ -334,6 +334,16 @@ $line4 = $cart->get_cart_item( $key4 );
 check( 'types: non-numeric number input dropped', ! isset( $line4['opf_fields'][ (string) $type_gid ]['quantity_extra'] ) );
 check( 'types: price reflects remaining checkbox only', isset( $line4 ) && abs( (float) $line4['data']->get_price() - 103.0 ) < 0.001 );
 
+// -------------------------------------- flat-fixed fee does not scale by qty.
+$_POST['opf'] = [ (string) $gid => [ 'delivery' => 'boost' ] ];
+$cart->empty_cart();
+$key5 = $cart->add_to_cart( $matched_id, 3 );
+unset( $_POST['opf'] );
+$cart->calculate_totals();
+$line5 = $cart->get_cart_item( $key5 );
+// boost fixed 5 is a flat fee: (100 + 5/3) per unit × 3 = 305 total.
+check( 'flat-fee: fixed addon does not multiply by qty (line = 305)', isset( $line5 ) && abs( (float) $line5['data']->get_price() * 3 - 305.0 ) < 0.001 );
+
 // --------------------------------------- Store API checkout → real order.
 $cart->empty_cart();
 wc_clear_notices();
