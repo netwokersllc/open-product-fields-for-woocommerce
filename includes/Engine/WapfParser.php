@@ -85,18 +85,18 @@ final class WapfParser {
 				$pos += 2; // "a:"
 				$count = self::read_int( $s, $pos ); // count + ":"
 				$pos++; // "{"
-				$array  = [];
-				$is_map = true;
+				$array     = [];
+				$has_string_key = false;
 				for ( $i = 0; $i < $count; $i++ ) {
 					$key = self::read_value( $s, $pos );
 					$val = self::read_value( $s, $pos );
 					if ( ! is_int( $key ) ) {
-						$is_map = false;
+						$has_string_key = true;
 					}
 					$array[ $key ] = $val;
 				}
 				$pos++; // "}"
-				if ( ! $is_map ) {
+				if ( ! $has_string_key ) {
 					$array = array_values( $array );
 				}
 				return $array;
@@ -107,6 +107,11 @@ final class WapfParser {
 			case 'i':
 				$pos += 2;
 				$int  = self::read_int( $s, $pos );
+				// Integers are terminated by ';' (read_int only consumes the
+				// ':' used by the s:/a: length contexts).
+				if ( ';' === ( $s[ $pos ] ?? '' ) ) {
+					$pos++;
+				}
 				return $int;
 
 			case 'd':
@@ -170,7 +175,9 @@ final class WapfParser {
 			if ( 0 === $slashes % 2 ) {
 				$value = substr( $s, $pos, $idx - $pos );
 				$pos   = $idx + 2;
-				return $value;
+				// The strict decoder would have unescaped \" and \\; mirror
+				// that for repaired strings.
+				return preg_replace( '/\\\\(.)/s', '$1', $value );
 			}
 			$search = $idx + 2;
 		}

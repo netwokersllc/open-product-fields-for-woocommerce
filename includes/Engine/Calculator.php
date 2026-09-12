@@ -124,7 +124,9 @@ final class Calculator {
 		if ( null === $value || $pos < count( $tokens ) ) {
 			return 0.0;
 		}
-		return is_finite( $value ) ? max( 0.0, $value ) : 0.0;
+		// Negatives allowed here (formulas may offset other addons); the
+		// final addon total is clamped at the field_addon boundary.
+		return is_finite( $value ) ? (float) $value : 0.0;
 	}
 
 	/**

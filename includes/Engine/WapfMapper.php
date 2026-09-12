@@ -391,12 +391,9 @@ final class WapfMapper {
 	 * @param array<string,bool> $seen     Already-used ids.
 	 */
 	private static function field_id( string $label, string $fallback, array $seen ): string {
-		$slug = sanitize_title( $label );
+		$slug = self::slugify( $label );
 		if ( '' === $slug ) {
 			$slug = 'field';
-		}
-		if ( strlen( $slug ) > 40 ) {
-			$slug = substr( $slug, 0, 40 );
 		}
 		$candidate = $slug;
 		$i         = 2;
@@ -405,5 +402,21 @@ final class WapfMapper {
 			$i++;
 		}
 		return $candidate;
+	}
+
+	/**
+	 * WP-independent slugify (mirrors sanitize_title for latin/extended-latin).
+	 *
+	 * @param string $text Text to slugify.
+	 */
+	public static function slugify( string $text ): string {
+		$text = mb_strtolower( $text, 'UTF-8' );
+		$translit = @iconv( 'UTF-8', 'ASCII//TRANSLIT//IGNORE', $text );
+		if ( false !== $translit && '' !== trim( $translit ) ) {
+			$text = strtolower( $translit );
+		}
+		$text = preg_replace( '/[^a-z0-9]+/', '-', $text );
+		$text = trim( (string) $text, '-' );
+		return substr( $text, 0, 40 );
 	}
 }
