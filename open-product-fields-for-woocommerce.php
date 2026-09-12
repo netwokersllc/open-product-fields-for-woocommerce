@@ -50,9 +50,13 @@ use OPF\Service\Renderer;
 use OPF\Service\Rest;
 
 /**
- * Wire the plugin up. Rendering and cart logic are only hooked when
- * WooCommerce is active.
+ * Wire the plugin up on plugins_loaded (priority 20 — after WooCommerce has
+ * booted at 10). Registering hooks on the plugin file's own load order is a
+ * trap: "open-product-fields…" sorts before "woocommerce", so class_exists()
+ * would always be false there.
  */
+add_action( 'plugins_loaded', 'opf_boot', 20 );
+
 function opf_boot(): void {
 	FieldGroups::init();
 
@@ -84,7 +88,6 @@ function opf_boot(): void {
 		}
 	);
 }
-opf_boot();
 
 /**
  * WooCommerce missing notice.

@@ -60,8 +60,16 @@ final class CartIntegration {
 			}
 		}
 		if ( is_array( $submitted ) ) {
-			self::$store_api_raw                                 = $submitted;
+			// Validation runs after attach on the Store API path, so both need
+			// the payload; neither consumes it. Cleared on shutdown.
+			self::$store_api_raw = $submitted;
 			$add_to_cart_data['cart_item_data']['opf_fields_raw'] = $submitted;
+			add_action(
+				'shutdown',
+				static function () {
+					CartIntegration::$store_api_raw = null;
+				}
+			);
 		}
 		return $add_to_cart_data;
 	}
@@ -115,13 +123,11 @@ final class CartIntegration {
 		}
 
 		$raw = null;
-		if ( null !== self::$store_api_raw ) {
-			$raw = self::$store_api_raw;
-			self::$store_api_raw = null;
-		}
-		if ( null === $raw && isset( $cart_item_data['opf_fields_raw'] ) && is_array( $cart_item_data['opf_fields_raw'] ) ) {
+		if ( isset( $cart_item_data['opf_fields_raw'] ) && is_array( $cart_item_data['opf_fields_raw'] ) ) {
 			$raw = $cart_item_data['opf_fields_raw'];
 			unset( $cart_item_data['opf_fields_raw'] );
+		} else {
+			$raw = self::$store_api_raw;
 		}
 
 		$values = self::collect_submitted( $product, $raw );
@@ -346,11 +352,11 @@ final class CartIntegration {
 	/**
 	 * Restore selections on "order again".
 	 *
-	 * @param array $cart_item_data Cart item data being built.
-	 * @param array $order_item     Order item.
-	 * @param \WC_Order $order      Order.
+	 * @param array                 $cart_item_data Cart item data being built.
+	 * @param \WC_Order_Item_Product $order_item    Order item.
+	 * @param \WC_Order             $order          Order.
 	 */
-	public static function restore_order_again( array $cart_item_data, array $order_item, \WC_Order $order ): array {
+	public static function restore_order_again( array $cart_item_data, \WC_Order_Item_Product $order_item, \WC_Order $order ): array {
 		$stored = $order_item->get_meta( '_opf_fields', true );
 		if ( is_string( $stored ) && '' !== $stored ) {
 			$decoded = json_decode( $stored, true );
@@ -442,16 +448,16 @@ final class CartIntegration {
 
 		switch ( $field['type'] ) {
 			case 'number':
-				return is_numeric( $value ) ? (string) ( $value + 0 ) : '';
+				return is_numeric( $value ) ? (string) ( $value + 0 ) : null;
 			case 'url':
 				$url = esc_url_raw( trim( (string) $value ) );
-				return '' === $url ? '' : $url;
+				return '' === $url ? null : $url;
 			case 'textarea':
 				$text = sanitize_textarea_field( (string) $value );
-				return '' === trim( $text ) ? '' : $text;
+				return '' === trim( $text ) ? null : $text;
 			default:
 				$text = sanitize_text_field( (string) $value );
-				return '' === trim( $text ) ? '' : $text;
+				return '' === trim( $text ) ? null : $text;
 		}
 	}
 
