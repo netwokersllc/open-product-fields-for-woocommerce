@@ -55,19 +55,18 @@ final class Assets {
 		} else {
 			wp_enqueue_script( 'opf-frontend' );
 		}
+		// Script modules bypass wp_scripts, so wp_add_inline_script() is a
+		// no-op here. Classic inline scripts execute immediately — before the
+		// deferred module — which is exactly the ordering the registry needs.
 		if ( $registry ) {
-			wp_add_inline_script(
-				'opf-frontend',
-				'window.OPF_FIELDS = ' . wp_json_encode( $registry, JSON_UNESCAPED_UNICODE ) . ';',
-				'before'
+			wp_print_inline_script_tag(
+				'window.OPF_FIELDS = ' . wp_json_encode( $registry, JSON_UNESCAPED_UNICODE ) . ';'
 			);
 		}
 		if ( Renderer::compat() ) {
 			// Legacy theme integration reads this global for price formatting.
-			wp_add_inline_script(
-				'opf-frontend',
-				'window.wapf_config = ' . wp_json_encode( self::compat_config() ) . ';',
-				'before'
+			wp_print_inline_script_tag(
+				'window.wapf_config = ' . wp_json_encode( self::compat_config() ) . ';'
 			);
 		}
 		wp_enqueue_style( 'opf-frontend' );

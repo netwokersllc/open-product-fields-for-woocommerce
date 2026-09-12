@@ -156,7 +156,7 @@ final class Renderer {
 			}
 		}
 
-		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '"' . ( $hidden ? ' hidden' : '' ) . '>';
+		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-opf-field="' . esc_attr( $fid ) . '"' . ( $hidden ? ' hidden' : '' ) . '>';
 
 		$label_id = 'opf-input-' . esc_attr( $gid . '-' . $fid );
 		$compat   = self::compat();
