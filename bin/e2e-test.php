@@ -385,6 +385,23 @@ if ( ! $gateway ) {
 	}
 }
 
+// ------------------------------------------------- meta display prettifier.
+$probe_item = array_values( $order->get_items() )[0] ?? null;
+if ( $probe_item ) {
+	$pretty_key = apply_filters( 'woocommerce_order_item_display_meta_key', 'duracion', null, $probe_item );
+	check( 'prettifier: legacy key humanized with accents', 'Duración' === $pretty_key );
+	$pretty_key2 = apply_filters( 'woocommerce_order_item_display_meta_key', 'source_link', null, $probe_item );
+	check( 'prettifier: lowercase key humanized', 'Source link' === $pretty_key2 );
+	$pretty_key3 = apply_filters( 'woocommerce_order_item_display_meta_key', 'Delivery speed', null, $probe_item );
+	check( 'prettifier: already-clean key untouched', 'Delivery speed' === $pretty_key3 );
+	$pretty_val = apply_filters( 'woocommerce_order_item_display_meta_value', 'https://example.com/target', null, $probe_item );
+	check( 'prettifier: URL value rendered as safe link', is_string( $pretty_val ) && false !== strpos( $pretty_val, '<a href="https://example.com/target"' ) && false !== strpos( $pretty_val, 'rel="noopener noreferrer"' ) );
+	$pretty_val2 = apply_filters( 'woocommerce_order_item_display_meta_value', 'Boost', null, $probe_item );
+	check( 'prettifier: plain value untouched', 'Boost' === $pretty_val2 );
+	$pretty_val3 = apply_filters( 'woocommerce_order_item_display_meta_value', 'javascript:alert(1)', null, $probe_item );
+	check( 'prettifier: javascript: URL not linked', 'javascript:alert(1)' === $pretty_val3 );
+}
+
 // ------------------------------------------------------------------ wrapup.
 $cart->empty_cart();
 wc_clear_notices();

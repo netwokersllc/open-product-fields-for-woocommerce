@@ -46,6 +46,7 @@ use OPF\Service\CartIntegration;
 use OPF\Service\Cli;
 use OPF\Service\FieldGroups;
 use OPF\Service\Importer;
+use OPF\Service\MetaPrettifier;
 use OPF\Service\Renderer;
 use OPF\Service\Rest;
 
@@ -72,6 +73,7 @@ function opf_boot(): void {
 	Importer::init();
 	Builder::init();
 	ImportPage::init();
+	MetaPrettifier::init();
 
 	if ( defined( 'WP_CLI' ) && WP_CLI ) {
 		Cli::init();
