@@ -239,6 +239,16 @@ check( 'order: display meta persisted', '' !== $first_item->get_meta( 'Delivery 
 $again = apply_filters( 'woocommerce_order_again_cart_item_data', [], $first_item, $order );
 check( 'order again: selections restored', ( $again['opf_fields'][ (string) $gid ]['delivery'] ?? '' ) === 'formula' );
 
+// ------------------------------------------------------ theme compat layer.
+$GLOBALS['product'] = $matched_product;
+ob_start();
+do_action( 'woocommerce_before_add_to_cart_button' );
+$compat_html = ob_get_clean();
+check( 'compat: wapf container classes rendered', false !== strpos( $compat_html, 'wapf-field-container' ) && false !== strpos( $compat_html, 'wapf-field-text-swatch' ) );
+check( 'compat: data-wapf-price attributes rendered', false !== strpos( $compat_html, 'data-wapf-price' ) );
+check( 'compat: selected swatch has wapf-checked', false !== strpos( $compat_html, 'wapf-checked' ) );
+$GLOBALS['product'] = null;
+
 // ------------------------------------------------------------------ wrapup.
 $cart->empty_cart();
 wc_clear_notices();

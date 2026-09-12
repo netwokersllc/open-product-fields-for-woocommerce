@@ -95,6 +95,12 @@ final class CartIntegration {
 			return false;
 		}
 
+		// Escape hatch for automated E2E traffic (parity with the legacy
+		// wapf/skip_cart_validation filters).
+		if ( apply_filters( 'opf_skip_validation', false ) ) {
+			return true;
+		}
+
 		$product = wc_get_product( $product_id );
 		if ( ! $product ) {
 			return $passed;

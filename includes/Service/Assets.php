@@ -62,7 +62,32 @@ final class Assets {
 				'before'
 			);
 		}
+		if ( Renderer::compat() ) {
+			// Legacy theme integration reads this global for price formatting.
+			wp_add_inline_script(
+				'opf-frontend',
+				'window.wapf_config = ' . wp_json_encode( self::compat_config() ) . ';',
+				'before'
+			);
+		}
 		wp_enqueue_style( 'opf-frontend' );
+	}
+
+	/**
+	 * Subset of the legacy pricing-format config the theme integration reads.
+	 */
+	private static function compat_config(): array {
+		return [
+			'ajax'            => admin_url( 'admin-ajax.php' ),
+			'currency'        => get_woocommerce_currency(),
+			'display_options' => [
+				'symbol'      => get_woocommerce_currency_symbol(),
+				'thousand'    => wc_get_price_thousand_separator(),
+				'decimal'     => wc_get_price_decimal_separator(),
+				'decimals'    => wc_get_price_decimals(),
+				'price_format' => str_replace( array( '%1$s', '%2$s' ), array( 'symbol', 'price' ), get_woocommerce_price_format() ),
+			],
+		];
 	}
 
 	/**

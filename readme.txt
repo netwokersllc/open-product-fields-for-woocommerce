@@ -20,22 +20,23 @@ Open Product Fields lets you add custom fields and add-ons to your WooCommerce p
 
 This plugin is 100% free and open source (GPLv2 or later). No license keys, no nags, no crippled Lite version, no upsell walls. Every feature is in every copy.
 
-**Features planned for the 1.0 release:**
+**Features:**
 
-* Field builder with a live product page preview
-* Field types: text, textarea, number, select, radio, checkbox, file upload, date, color, heading, separator
+* Field types: text, textarea, URL, number, select, radio, checkbox, text swatch
 * Conditional logic (show/hide fields based on other values)
-* Pricing: flat fee, percentage, per-character, quantity multipliers, and tiered pricing
-* Cart and checkout display of chosen options, with edit links
-* Order meta persistence and export
-* Translation-ready and RTL-friendly
-* Developer API: `opf_field_types` filter and documented template overrides
+* Pricing per choice: fixed, percentage of product price, and math formulas — always computed server-side
+* Works on classic product pages AND block-based cart/checkout (Store API)
+* Per-field order item meta: queryable, exportable, HPOS-friendly
+* Migration tool: one-command import from Advanced Product Fields (WAPF), including recovery of corrupted legacy payloads (`wp opf import-wapf`)
+* Theme compatibility mode for themes built around legacy field plugins
+* REST API (`opf/v1`) and dependency-free JavaScript builder
+* Zero asset weight on pages without fields; no jQuery
 
 == Installation ==
 
 1. Install and activate WooCommerce.
 2. Upload the `open-product-fields-for-woocommerce` folder to `/wp-content/plugins/`, or install from the Plugins screen.
-3. Activate "Open Product Fields for WooCommerce" and open the field builder from a product's edit screen.
+3. Activate "Open Product Fields for WooCommerce" and open the field builder from a product's edit screen (Field Groups, under the WooCommerce menu).
 
 == Frequently Asked Questions ==
 
@@ -45,13 +46,15 @@ Yes. GPLv2 or later — use it on any number of sites, for any purpose, at no co
 
 = Does it work with my theme? =
 
-It renders fields through standard WooCommerce hooks, so any theme that follows WooCommerce template standards works out of the box.
+It renders fields through standard WooCommerce hooks, so any theme that follows WooCommerce template standards works out of the box. A theme compatibility mode (on by default) helps themes built around legacy field plugins.
 
-= Where are my customers' choices stored? =
+= Migrating from Advanced Product Fields (WAPF)? =
 
-Choices are attached to the cart item, the order, and (optionally) displayed in order emails and the admin order screen.
+Run `wp opf import-wapf` (dry run first, then `--commit`). Placement rules, choices and pricing are mapped automatically; anything needing a human decision is flagged. See docs/MIGRATION.md.
 
 == Changelog ==
 
 = 0.1.0 =
-* Initial development scaffold.
+* Field groups with conditional logic and server-side pricing.
+* Classic and block cart/checkout support, order persistence, order-again restore.
+* WAPF import tool with corruption repair and WP-CLI command.

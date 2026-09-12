@@ -100,7 +100,23 @@ const init = () => {
 				const def = fieldDefs[ fid ] || {};
 				const visible = isVisible( def, values );
 				fieldEl.classList.toggle( 'opf-field--hidden', ! visible );
+				fieldEl.classList.toggle( 'wapf-hide', ! visible );
 				fieldEl.toggleAttribute( 'hidden', ! visible );
+			} );
+		};
+
+		const syncChecked = () => {
+			// Legacy theme integration keys swatch styling off `wapf-checked`.
+			groupEl.querySelectorAll( '.opf-choice' ).forEach( ( label ) => {
+				const input = label.querySelector( 'input' );
+				if ( ! input ) {
+					return;
+				}
+				if ( input.type === 'checkbox' ) {
+					label.classList.toggle( 'wapf-checked', input.checked );
+				} else {
+					label.classList.toggle( 'wapf-checked', input.checked );
+				}
 			} );
 		};
 
@@ -120,10 +136,14 @@ const init = () => {
 			} else {
 				values[ fid ] = input.value;
 			}
+			if ( input.type === 'radio' || input.type === 'checkbox' ) {
+				syncChecked();
+			}
 			refresh();
 		} );
 
 		refresh();
+		syncChecked();
 	} );
 };
 

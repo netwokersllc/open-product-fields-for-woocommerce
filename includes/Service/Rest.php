@@ -124,7 +124,6 @@ final class Rest {
 		$group   = new FieldGroup( $data );
 		$render  = new \ReflectionClass( Renderer::class );
 		$method  = $render->getMethod( 'render_group' );
-		$method->setAccessible( true );
 
 		ob_start();
 		$method->invoke( null, 0, (string) ( $data['title'] ?? '' ), $group, (float) $product->get_price( 'edit' ) );
