@@ -151,15 +151,26 @@ final class CartIntegration {
 	}
 
 	/**
-	 * Re-price items loaded from session (base price is authoritative).
+	 * Re-price items loaded from session. The base price is re-derived from
+	 * the CURRENT product price so catalog price changes (sales ending, price
+	 * updates) apply to existing cart lines; the stored value is only a
+	 * fallback if the product no longer resolves a price.
 	 *
 	 * @param array $cart_item Cart item.
 	 * @param array $values    Session values.
 	 */
 	public static function restore_from_session( array $cart_item, array $values ): array {
-		if ( ! empty( $values[ self::ITEM_KEY ] ) && isset( $values['opf_base_price'] ) ) {
-			$cart_item['opf_base_price'] = (float) $values['opf_base_price'];
+		if ( empty( $values[ self::ITEM_KEY ] ) ) {
+			return $cart_item;
 		}
+
+		$product = $cart_item['data'] ?? null;
+		$current = $product instanceof \WC_Product ? (float) $product->get_price( 'edit' ) : 0.0;
+
+		$cart_item['opf_base_price'] = $current > 0
+			? $current
+			: (float) ( $values['opf_base_price'] ?? $current );
+
 		return $cart_item;
 	}
 

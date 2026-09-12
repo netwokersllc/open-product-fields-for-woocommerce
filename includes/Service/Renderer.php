@@ -161,7 +161,7 @@ final class Renderer {
 		$label_id = 'opf-input-' . esc_attr( $gid . '-' . $fid );
 		$compat   = self::compat();
 
-		echo '<label class="opf-field__label" for="' . esc_attr( $label_id ) . '">';
+		echo '<label class="opf-field__label" id="opf-label-' . esc_attr( $gid . '-' . $fid ) . '" for="' . esc_attr( $label_id ) . '">';
 		echo '<span class="opf-field__label-text' . ( $compat ? ' wapf-field-label' : '' ) . '">' . esc_html( $field['label'] );
 		if ( $field['required'] ) {
 			echo ' <abbr class="required" title="' . esc_attr__( 'required', 'opf' ) . '">*</abbr>';
@@ -270,12 +270,14 @@ final class Renderer {
 	 * @param float               $base_price Base unit price.
 	 */
 	private static function compat_price_amount( array $pricing, float $base_price ): float {
-		return match ( $pricing['type'] ) {
-			'fixed'   => (float) $pricing['amount'],
-			'percent' => (float) $pricing['amount'],
-			'formula' => Calculator::evaluate_formula( $pricing['formula'], $base_price, 1, 0.0 ),
-			default   => 0.0,
-		};
+		switch ( $pricing['type'] ) {
+			case 'percent':
+				return (float) $pricing['amount'];
+			case 'formula':
+				return Calculator::evaluate_formula( $pricing['formula'], $base_price, 1, 0.0 );
+			default:
+				return (float) $pricing['amount'];
+		}
 	}
 
 	/**
@@ -284,11 +286,12 @@ final class Renderer {
 	 * @param array<string,mixed> $pricing Pricing block.
 	 */
 	private static function compat_price_type( array $pricing ): string {
-		return match ( $pricing['type'] ) {
-			'percent' => 'percent',
-			'formula' => 'fixed',
-			default   => 'fixed',
-		};
+		switch ( $pricing['type'] ) {
+			case 'percent':
+				return 'percent';
+			default:
+				return 'fixed';
+		}
 	}
 
 	/**

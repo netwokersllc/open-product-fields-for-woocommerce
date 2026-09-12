@@ -70,6 +70,19 @@ final class WapfParser {
 	}
 
 	/**
+	 * Recursion depth cap for the recovering decoder (corrupt payloads must
+	 * never be able to blow the stack).
+	 */
+	private const MAX_DEPTH = 256;
+
+	/**
+	 * Recursion depth tracker.
+	 *
+	 * @var int
+	 */
+	private static $depth = 0;
+
+	/**
 	 * Read one value at $pos (by reference).
 	 *
 	 * @param string $s   Payload.
@@ -77,6 +90,25 @@ final class WapfParser {
 	 * @return mixed
 	 */
 	private static function read_value( string $s, int &$pos ) {
+		if ( self::$depth >= self::MAX_DEPTH ) {
+			throw new \RuntimeException( 'Max nesting depth exceeded' );
+		}
+		self::$depth++;
+		try {
+			return self::read_value_inner( $s, $pos );
+		} finally {
+			self::$depth--;
+		}
+	}
+
+	/**
+	 * Dispatch after the depth guard.
+	 *
+	 * @param string $s   Payload.
+	 * @param int    $pos Cursor.
+	 * @return mixed
+	 */
+	private static function read_value_inner( string $s, int &$pos ) {
 		self::skip_ws( $s, $pos );
 		$type = $s[ $pos ] ?? '';
 

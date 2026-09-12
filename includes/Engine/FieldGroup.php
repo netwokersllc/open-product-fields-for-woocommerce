@@ -139,8 +139,16 @@ final class FieldGroup {
 
 		$pricing = self::normalize_pricing( is_array( $field['pricing'] ?? null ) ? $field['pricing'] : [] );
 
+		// Field ids become input name fragments and DOM hooks: restrict to a
+		// conservative slug charset regardless of the source.
+		$field_id = (string) ( $field['id'] ?? '' );
+		$field_id = strtolower( preg_replace( '/[^a-zA-Z0-9_\-]/', '', $field_id ) );
+		if ( '' === $field_id ) {
+			$field_id = 'field';
+		}
+
 		return [
-			'id'           => (string) ( $field['id'] ?? '' ),
+			'id'           => $field_id,
 			'label'        => (string) ( $field['label'] ?? '' ),
 			'description'  => (string) ( $field['description'] ?? '' ),
 			'type'         => $type,
