@@ -11,8 +11,11 @@
  * Text Domain: opf
  * Domain Path: /languages
  * Requires at least: 6.5
+ * Tested up to: 7.1
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
+ * WC requires at least: 9.0
+ * WC tested up to: 11.1
  *
  * Copyright (C) 2026 ssthormess
  *

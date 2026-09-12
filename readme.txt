@@ -2,8 +2,10 @@
 Contributors: ssthormess
 Tags: woocommerce, product fields, product addons, custom fields, conditional logic
 Requires at least: 6.5
-Tested up to: 6.8
+Tested up to: 7.1
 Requires PHP: 7.4
+WC requires at least: 9.0
+WC tested up to: 11.1
 Stable tag: 0.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
