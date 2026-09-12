@@ -1,4 +1,5 @@
-import { JSDOM } from 'jsdom';
+import { createRequire } from 'node:module';
+const { JSDOM } = createRequire(process.cwd() + '/index.js')('jsdom');
 import { readFileSync } from 'node:fs';
 
 const html = readFileSync('/tmp/page.html', 'utf8');

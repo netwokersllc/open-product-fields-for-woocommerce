@@ -28,6 +28,10 @@ function check( $label, $condition ): void {
 
 WP_CLI::log( '== OPF E2E ==' );
 
+// Enable a payment gateway for the Store API checkout leg.
+update_option( 'woocommerce_bacs_settings', [ 'enabled' => 'yes', 'title' => 'Bank transfer' ] );
+WC()->payment_gateways()->init();
+
 // ---------------------------------------------------------------- fixtures.
 $existing_cat = get_term_by( 'name', 'E2E Premium', 'product_cat' );
 $cat_id       = $existing_cat ? (int) $existing_cat->term_id : (int) ( wp_insert_term( 'E2E Premium', 'product_cat' )['term_id'] ?? 0 );
@@ -72,6 +76,12 @@ if ( ! $unmatched_id ) {
 	$unmatched->set_status( 'publish' );
 	$unmatched_id = $unmatched->save();
 }
+
+// Remove stale types groups from previous runs BEFORE placement assertions.
+foreach ( get_posts( [ 'post_type' => 'opf_field_group', 'post_status' => 'any', 'posts_per_page' => -1, 'title' => 'E2E Types Group' ] ) as $stale ) {
+	wp_delete_post( (int) $stale->ID, true );
+}
+OPF\Service\FieldGroups::flush_cache();
 
 check( 'fixtures: products created', $matched_id > 0 && $unmatched_id > 0 );
 
@@ -121,8 +131,12 @@ check( 'group data round-trips', OPF\Service\FieldGroups::group_from_post( get_p
 // ------------------------------------------------------ placement matching.
 $matched_product   = wc_get_product( $matched_id );
 $unmatched_product = wc_get_product( $unmatched_id );
-check( 'placement: tag product matches', count( OPF\Service\FieldGroups::for_product( $matched_product ) ) === 1 );
-check( 'placement: untagged product does not match', count( OPF\Service\FieldGroups::for_product( $unmatched_product ) ) === 0 );
+$matched_titles    = wp_list_pluck( OPF\Service\FieldGroups::for_product( $matched_product ), 'title' );
+$unmatched_titles  = wp_list_pluck( OPF\Service\FieldGroups::for_product( $unmatched_product ), 'title' );
+// The types group is created later in this script; at this point only the
+// tag-scoped E2E Group should match.
+check( 'placement: tagged product matches the E2E group', in_array( 'E2E Group', $matched_titles, true ) );
+check( 'placement: untagged product matches nothing yet', empty( $unmatched_titles ) );
 
 // ------------------------------------------------- classic add-to-cart path.
 $_POST['opf'] = [
@@ -248,6 +262,118 @@ check( 'compat: wapf container classes rendered', false !== strpos( $compat_html
 check( 'compat: data-wapf-price attributes rendered', false !== strpos( $compat_html, 'data-wapf-price' ) );
 check( 'compat: selected swatch has wapf-checked', false !== strpos( $compat_html, 'wapf-checked' ) );
 $GLOBALS['product'] = null;
+
+// ------------------------------------- extra field types + multi-checkbox.
+$type_group_data = [
+	'fields'  => [
+		[
+			'id' => 'addons', 'label' => 'Extras', 'description' => '', 'type' => 'checkbox', 'required' => false,
+			'width' => 100,
+			'choices' => [
+				[ 'slug' => 'gift', 'label' => 'Gift wrap', 'selected' => false, 'disabled' => false, 'pricing' => [ 'type' => 'fixed', 'amount' => 3.0, 'formula' => '' ] ],
+				[ 'slug' => 'priority', 'label' => 'Priority queue', 'selected' => false, 'disabled' => false, 'pricing' => [ 'type' => 'fixed', 'amount' => 4.0, 'formula' => '' ] ],
+			],
+			'pricing' => [ 'type' => 'none', 'amount' => 0.0, 'formula' => '' ],
+			'conditionals' => [],
+		],
+		[
+			'id' => 'quantity_extra', 'label' => 'Extra units', 'description' => '', 'type' => 'number', 'required' => false,
+			'width' => 100, 'choices' => [],
+			'pricing' => [ 'type' => 'none', 'amount' => 0.0, 'formula' => '' ],
+			'conditionals' => [],
+		],
+		[
+			'id' => 'source_url', 'label' => 'Source link', 'description' => '', 'type' => 'url', 'required' => false,
+			'width' => 100, 'choices' => [],
+			'pricing' => [ 'type' => 'none', 'amount' => 0.0, 'formula' => '' ],
+			'conditionals' => [],
+		],
+	],
+	'rule_groups' => [],
+	'mark_required' => false,
+	'labels_position' => 'above',
+];
+$type_gid = OPF\Service\FieldGroups::save( 0, new OPF\Engine\FieldGroup( $type_group_data ), [ 'title' => 'E2E Types Group' ] );
+check( 'types: group saved', $type_gid > 0 );
+
+// Global group (empty placement) now matches BOTH products.
+check( 'types: global placement matches tagged product', count( OPF\Service\FieldGroups::for_product( $matched_product ) ) >= 1 );
+check( 'types: global placement matches untagged product', count( OPF\Service\FieldGroups::for_product( $unmatched_product ) ) === 1 );
+
+// Checkbox: both choices selected → both priced (3 + 4 = 7 per unit).
+// The required `delivery` field from the first group must be satisfied too.
+$_POST['opf'] = [
+	(string) $gid => [ 'delivery' => 'normal' ],
+	(string) $type_gid => [
+		'addons'         => [ 'gift', 'priority' ],
+		'quantity_extra' => '2.5',
+		'source_url'     => 'https://example.com/page?x=1',
+	],
+];
+$cart->empty_cart();
+$key3 = $cart->add_to_cart( $matched_id, 1 );
+unset( $_POST['opf'] );
+$cart->calculate_totals();
+$line3 = $cart->get_cart_item( $key3 );
+check( 'types: multi-checkbox both priced (3+4)', isset( $line3 ) && abs( (float) $line3['data']->get_price() - 107.0 ) < 0.001 );
+$display3 = apply_filters( 'woocommerce_get_item_data', [], $line3 );
+$labels3  = wp_list_pluck( $display3, 'value' );
+check( 'types: checkbox display lists both labels', in_array( 'Gift wrap, Priority queue', $labels3, true ) );
+check( 'types: number value sanitized', '2.5' === ( $line3['opf_fields'][ (string) $type_gid ]['quantity_extra'] ?? '' ) );
+check( 'types: url value sanitized', 'https://example.com/page?x=1' === ( $line3['opf_fields'][ (string) $type_gid ]['source_url'] ?? '' ) );
+
+// Number: non-numeric input sanitizes to empty (never prices, never stores garbage).
+$_POST['opf'] = [
+	(string) $gid => [ 'delivery' => 'normal' ],
+	(string) $type_gid => [ 'addons' => [ 'gift' ], 'quantity_extra' => 'abc' ],
+];
+$cart->empty_cart();
+$key4 = $cart->add_to_cart( $matched_id, 1 );
+unset( $_POST['opf'] );
+$line4 = $cart->get_cart_item( $key4 );
+check( 'types: non-numeric number input dropped', ! isset( $line4['opf_fields'][ (string) $type_gid ]['quantity_extra'] ) );
+check( 'types: price reflects remaining checkbox only', isset( $line4 ) && abs( (float) $line4['data']->get_price() - 103.0 ) < 0.001 );
+
+// --------------------------------------- Store API checkout → real order.
+$cart->empty_cart();
+wc_clear_notices();
+$request = new WP_REST_Request( 'POST', '/wc/store/v1/cart/add-item' );
+$request->set_header( 'Nonce', wp_create_nonce( 'wc_store_api' ) );
+$request->set_param( 'id', $matched_id );
+$request->set_param( 'quantity', 2 );
+$request->set_param( 'opf_fields', [ (string) $gid => [ 'delivery' => 'plus' ] ] );
+$response = rest_get_server()->dispatch( $request );
+check( 'checkout: item in cart', in_array( $response->get_status(), [ 200, 201 ], true ) );
+
+$gateway = WC()->payment_gateways()->get_available_payment_gateways()['bacs'] ?? null;
+if ( ! $gateway ) {
+	check( 'checkout: bacs gateway available', false );
+} else {
+	$checkout_request = new WP_REST_Request( 'POST', '/wc/store/v1/checkout' );
+	$checkout_request->set_header( 'Nonce', wp_create_nonce( 'wc_store_api' ) );
+	$checkout_request->set_param( 'payment_method', 'bacs' );
+	$checkout_request->set_param( 'billing_address', [
+		'first_name' => 'Test', 'last_name' => 'Buyer', 'email' => 'buyer@example.com',
+		'address_1'  => '1 Test St', 'city' => 'Testville', 'postcode' => '12345',
+		'country'    => 'US', 'state'    => 'CA',
+	] );
+	$checkout_request->set_param( 'customer_note', 'E2E order' );
+	$checkout_response = rest_get_server()->dispatch( $checkout_request );
+	check( 'checkout: Store API checkout accepted', in_array( $checkout_response->get_status(), [ 200, 201 ], true ) );
+	if ( ! in_array( $checkout_response->get_status(), [ 200, 201 ], true ) ) {
+		WP_CLI::log( '        checkout error: ' . wp_json_encode( $checkout_response->get_data() ) );
+	} else {
+		$order_id = $checkout_response->get_data()['order_id'] ?? 0;
+		$checkout_order = wc_get_order( $order_id );
+		check( 'checkout: order created', $checkout_order instanceof WC_Order );
+		$co_item = array_values( $checkout_order->get_items() )[0] ?? null;
+		$co_meta = $co_item ? $co_item->get_meta( '_opf_fields', true ) : '';
+		check( 'checkout: order item carries structured fields', is_string( $co_meta ) && false !== strpos( (string) $co_meta, 'plus' ) );
+		check( 'checkout: order item display meta', '' !== ( $co_item ? $co_item->get_meta( 'Delivery speed', true ) : '' ) );
+		$expected_line = 2 * ( 100.0 + 20.0 ); // plus: 20% per unit, qty 2.
+		check( 'checkout: order line totals priced server-side', abs( (float) $co_item->get_total() - $expected_line ) < 0.001 );
+	}
+}
 
 // ------------------------------------------------------------------ wrapup.
 $cart->empty_cart();

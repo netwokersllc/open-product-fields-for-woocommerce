@@ -107,6 +107,7 @@ final class CartIntegration {
 		}
 
 		$values = self::collect_submitted( $product, self::$store_api_raw );
+		self::$store_api_raw = null; // Consumed: never leak into the next add.
 		$errors = self::validate_values( $product, $values );
 
 		foreach ( $errors as $error ) {
@@ -128,12 +129,14 @@ final class CartIntegration {
 			return $cart_item_data;
 		}
 
+		// Capture always places the Store API payload in cart_item_data;
+		// classic submissions come through $_POST. The static is validation-
+		// only (consumed and cleared there) — reading it here could leak a
+		// previous submission into this cart item.
 		$raw = null;
 		if ( isset( $cart_item_data['opf_fields_raw'] ) && is_array( $cart_item_data['opf_fields_raw'] ) ) {
 			$raw = $cart_item_data['opf_fields_raw'];
 			unset( $cart_item_data['opf_fields_raw'] );
-		} else {
-			$raw = self::$store_api_raw;
 		}
 
 		$values = self::collect_submitted( $product, $raw );
