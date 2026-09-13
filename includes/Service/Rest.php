@@ -121,12 +121,15 @@ final class Rest {
 			return new \WP_Error( 'opf_no_product', __( 'Create a product first to see a preview.', 'open-product-fields-for-woocommerce' ), [ 'status' => 404 ] );
 		}
 
-		$group   = new FieldGroup( $data );
-		$render  = new \ReflectionClass( Renderer::class );
-		$method  = $render->getMethod( 'render_group' );
+		$group = new FieldGroup( $data );
 
 		ob_start();
-		$method->invoke( null, 0, (string) ( $data['title'] ?? '' ), $group, (float) $product->get_price( 'edit' ) );
+		Renderer::render_group(
+			0,
+			(string) ( $data['title'] ?? '' ),
+			$group,
+			(float) $product->get_price( 'edit' )
+		);
 		$html = ob_get_clean();
 
 		return rest_ensure_response( [ 'html' => $html ] );

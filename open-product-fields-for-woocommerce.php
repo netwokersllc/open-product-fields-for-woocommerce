@@ -57,9 +57,23 @@ use OPF\Service\Rest;
  * would always be false there.
  */
 add_action( 'plugins_loaded', 'opf_boot', 20 );
+register_activation_hook( __FILE__, 'opf_activate' );
+
+/**
+ * Activation defaults.
+ */
+function opf_activate(): void {
+	add_option( 'opf_version', OPF_VERSION );
+	add_option( 'opf_theme_compat', 'yes' );
+}
 
 function opf_boot(): void {
 	FieldGroups::init();
+
+	// Keep the stored version in sync (upgrade path for future migrations).
+	if ( get_option( 'opf_version' ) !== OPF_VERSION ) {
+		update_option( 'opf_version', OPF_VERSION );
+	}
 
 	if ( ! class_exists( 'WooCommerce' ) ) {
 		add_action( 'admin_notices', 'opf_wc_missing_notice' );
