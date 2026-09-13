@@ -149,3 +149,171 @@ if ( document.readyState === 'loading' ) {
 } else {
 	init();
 }
+
+// ---------------------------------------------------------------------------
+// Totals block writer (replaces the legacy plugin's own totals JS).
+// Reads the server-rendered data-product-price + the per-choice/field
+// data-opf-price attributes and writes the three legacy totals spans, using
+// the same display_options contract the theme's currency converter expects.
+
+const fmtMoney = (amount) => {
+  const o = (window.opf_config || {}).display_options || {};
+  const symbol = o.symbol || '$';
+  const decimals = typeof o.decimals === 'number' ? o.decimals : 2;
+  const thousand = o.thousand || ',';
+  const decimal = o.decimal || '.';
+  const neg = amount < 0 ? '-' : '';
+  const fixed = Math.abs(amount).toFixed(decimals);
+  const [intPart, fracPart] = fixed.split('.');
+  const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, thousand);
+  return `${neg}${symbol}${grouped}${decimals > 0 ? decimal + fracPart.slice(0, decimals) : ''}`;
+};
+
+const evalFormula = (formula, price, qty, addons, val) => {
+  // Safe mirror of the server-side evaluator (per-unit formulas; the qty
+  // factor was stripped at import and is re-applied by the caller).
+  const expr = String(formula)
+    .replace(/\[price\]/gi, ' P ')
+    .replace(/\[qty\]/gi, ' Q ')
+    .replace(/\[addons\]|\[options_total\]/gi, ' A ')
+    .replace(/\[val\]/gi, ' V ');
+  const vars = { P: price, Q: qty, A: addons, V: parseFloat(val) || 0 };
+  let i = 0;
+  const s = expr;
+  const skipWs = () => { while (i < s.length && /\s/.test(s[i])) i++; };
+  const parseExpr = () => {
+    let v = parseTerm();
+    while (true) {
+      skipWs();
+      if (s[i] === '+') { i++; v += parseTerm(); }
+      else if (s[i] === '-') { i++; v -= parseTerm(); }
+      else break;
+    }
+    return v;
+  };
+  const parseTerm = () => {
+    let v = parseFactor();
+    while (true) {
+      skipWs();
+      if (s[i] === '*') { i++; v *= parseFactor(); }
+      else if (s[i] === '/') { i++; const r = parseFactor(); v = r === 0 ? NaN : v / r; }
+      else break;
+    }
+    return v;
+  };
+  const parseFactor = () => {
+    skipWs();
+    if (s[i] === '(') { i++; const v = parseExpr(); skipWs(); if (s[i] === ')') i++; return v; }
+    if (s[i] === '-') { i++; return -parseFactor(); }
+    const m = /^\d+(?:\.\d+)?/.exec(s.slice(i));
+    if (m) { i += m[0].length; return parseFloat(m[0]); }
+    i++; // force failure on unknown token
+    return NaN;
+  };
+  skipWs();
+  const out = parseExpr();
+  return isFinite(out) ? out : 0;
+};
+
+const choiceAddonDisplay = (pricing, base, qty, addons, val) => {
+  const t = pricing.type;
+  if (t === 'fixed') return parseFloat(pricing.amount) || 0;
+  if (t === 'percent') return base * ((parseFloat(pricing.amount) || 0) / 100);
+  if (t === 'formula') return evalFormula(pricing.formula_raw || pricing.formula, base, qty, addons, val);
+  return 0;
+};
+
+const choiceOrFieldAddon = (def, value, base, qty, addons, val) => {
+  if (def.type === 'swatch' || def.type === 'select' || def.type === 'radio' || def.type === 'checkbox') {
+    const slugs = Array.isArray(value) ? value : [value];
+    let sum = 0;
+    (def.choices || []).forEach((c) => {
+      if (!slugs.includes(c.slug) || c.disabled) return;
+      const p = c.pricing || {};
+      if (p.type === 'fixed') sum += parseFloat(p.amount) || 0;
+      else if (p.type === 'percent') sum += base * ((parseFloat(p.amount) || 0) / 100);
+      else if (p.type === 'formula') sum += evalFormula(p.formula_raw || p.formula, base, qty, addons, val);
+    });
+    return sum;
+  }
+  const p = def.pricing || {};
+  if (!String(value || '').trim()) return 0;
+  if (p.type === 'fixed') return parseFloat(p.amount) || 0;
+  if (p.type === 'percent') return base * ((parseFloat(p.amount) || 0) / 100);
+  if (p.type === 'formula') return evalFormula(p.formula_raw || p.formula, base, qty, addons, val);
+  return 0;
+};
+
+
+const writeTotals = () => {
+  const totalsEl = document.querySelector('.opf-product-totals, .wapf-product-totals');
+  if (!totalsEl) return;
+  const base = parseFloat(totalsEl.getAttribute('data-product-price'));
+  if (!isFinite(base)) return;
+  const qtyInput = document.querySelector('form.cart input[name="quantity"], form.cart .qty');
+  const qty = Math.max(1, parseInt(qtyInput && qtyInput.value, 10) || 1);
+
+  let optionsTotal = 0;
+  document.querySelectorAll('[data-opf-group]').forEach((groupEl) => {
+    const gid = groupEl.getAttribute('data-opf-group');
+    const values = {};
+    const fields = groupEl.querySelectorAll('[data-opf-field]');
+    fields.forEach((fieldEl) => {
+      const fid = fieldEl.getAttribute('data-opf-field');
+      const checked = groupEl.querySelector(`[data-opf-field="${fid}"] input:checked`);
+      const anyInput = fieldEl.querySelector('input:not([type=checkbox]):not([type=radio]):not([type=hidden]), textarea, select');
+      if (checked && checked.type === 'checkbox') {
+        values[fid] = Array.from(
+          groupEl.querySelectorAll(`[data-opf-field="${fid}"] input:checked`)
+        ).map((c) => c.value);
+      } else if (checked) {
+        values[fid] = checked.value;
+      } else if (anyInput) {
+        values[fid] = anyInput.value;
+      } else {
+        values[fid] = '';
+      }
+    });
+    fields.forEach((fieldEl) => {
+      const fid = fieldEl.getAttribute('data-opf-field');
+      const def = (window.OPF_FIELDS || {})[gid]?.[fid];
+      if (!def) return;
+      // conditional visibility: hidden fields contribute nothing
+      const container = fieldEl;
+      if (container.hasAttribute('hidden')) return;
+      const addon = choiceOrFieldAddon(def, values[fid], base, qty, optionsTotal, values[fid] && typeof values[fid] === 'string' ? values[fid] : '');
+      optionsTotal += addon;
+    });
+  });
+
+  const productTotal = base * qty;
+  const grand = productTotal + optionsTotal;
+  const fmtEl = (el, amount) => {
+    if (!el) return;
+    el.innerHTML = fmtMoney(amount);
+  };
+  fmtEl(totalsEl.querySelector('.opf-product-total, .wapf-product-total'), productTotal);
+  fmtEl(totalsEl.querySelector('.opf-options-total, .wapf-options-total'), optionsTotal);
+  fmtEl(totalsEl.querySelector('.opf-grand-total, .wapf-grand-total'), grand);
+};
+
+const initTotals = () => {
+  const container = document.querySelector('[data-opf-fields]');
+  if (!container) return;
+  let timer = null;
+  container.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(writeTotals, 50);
+  });
+  container.addEventListener('change', () => {
+    clearTimeout(timer);
+    timer = setTimeout(writeTotals, 50);
+  });
+  writeTotals();
+};
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initTotals);
+} else {
+  initTotals();
+}

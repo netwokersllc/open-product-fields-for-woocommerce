@@ -100,7 +100,7 @@ final class Renderer {
 		$base_price = (float) $product->get_price( 'edit' );
 		$gids       = [];
 
-		echo '<div class="opf" id="opf_' . esc_attr( (string) $product->get_id() ) . '"><div class="opf-wrapper">';
+		echo '<div class="opf-fields" data-opf-fields="' . esc_attr( (string) count( $groups ) ) . '"><div class="opf" id="opf_' . esc_attr( (string) $product->get_id() ) . '"><div class="opf-wrapper">';
 
 		foreach ( $groups as $entry ) {
 			$gids[] = (string) $entry['id'];
@@ -108,7 +108,7 @@ final class Renderer {
 		}
 
 		echo '<input type="hidden" value="' . esc_attr( implode( ',', $gids ) ) . '" name="opf_field_groups"/>';
-		echo '</div></div>';
+		echo '</div></div></div>';
 
 		self::render_totals( $product );
 	}
@@ -126,6 +126,22 @@ final class Renderer {
 				$registry[ $gid ][ $field['id'] ] = [
 					'type'         => $field['type'],
 					'conditionals' => $field['conditionals'],
+					'choices'      => array_map( static function ( $c ) {
+						return [
+							'slug'     => $c['slug'],
+							'pricing'  => [
+								'type'       => $c['pricing']['type'],
+								'amount'     => (float) $c['pricing']['amount'],
+								'formula'    => (string) $c['pricing']['formula'],
+								'formula_raw' => (string) ( $c['pricing']['formula_raw'] ?? '' ),
+							],
+						];
+					}, (array) ( $field['choices'] ?? [] ) ),
+					'pricing'      => [
+						'type'    => $field['pricing']['type'],
+						'amount'  => (float) $field['pricing']['amount'],
+						'formula' => (string) ( $field['pricing']['formula'] ?? '' ),
+					],
 				];
 			}
 		}
