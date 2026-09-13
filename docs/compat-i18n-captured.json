@@ -1,0 +1,122 @@
+{
+ "ko": {
+  "product_total": "Product total",
+  "options_total": "Options total",
+  "grand_total": "Grand total",
+  "required_title": "필수"
+ },
+ "ja": {
+  "product_total": "Product total",
+  "options_total": "Options total",
+  "grand_total": "Grand total",
+  "required_title": "必須"
+ },
+ "ar": {
+  "product_total": "Product total",
+  "options_total": "Options total",
+  "grand_total": "Grand total",
+  "required_title": "مطلوب"
+ },
+ "sv": {
+  "product_total": "Totala produkter",
+  "options_total": "Totala alternativ",
+  "grand_total": "Totalsumma",
+  "required_title": "obligatoriskt"
+ },
+ "fi": {
+  "product_total": "Tuotteen perushinta",
+  "options_total": "Lisävalintojen hinta",
+  "grand_total": "Yhteensä",
+  "required_title": "vaaditaan"
+ },
+ "nb": {
+  "product_total": "Produkt total",
+  "options_total": "Valg total",
+  "grand_total": "Sum total",
+  "required_title": "påkrevd"
+ },
+ "is": {
+  "product_total": "Product total",
+  "options_total": "Options total",
+  "grand_total": "Grand total",
+  "required_title": "required"
+ },
+ "da": {
+  "product_total": "Produkt i alt",
+  "options_total": "Tilvalg i alt",
+  "grand_total": "Samlet i alt",
+  "required_title": "påkrævet"
+ },
+ "hr": {
+  "product_total": "Product total",
+  "options_total": "Options total",
+  "grand_total": "Grand total",
+  "required_title": "Obavezno"
+ },
+ "ca": {
+  "product_total": "Product total",
+  "options_total": "Options total",
+  "grand_total": "Grand total",
+  "required_title": "obligatori"
+ },
+ "ms": {
+  "product_total": "Product total",
+  "options_total": "Options total",
+  "grand_total": "Grand total",
+  "required_title": "required"
+ },
+ "tr": {
+  "product_total": "Product total",
+  "options_total": "Options total",
+  "grand_total": "Grand total",
+  "required_title": "gerekli"
+ },
+ "pt": {
+  "product_total": "Total produto",
+  "options_total": "Total opções",
+  "grand_total": "Total",
+  "required_title": "obrigatório"
+ },
+ "pl": {
+  "product_total": "Cena Produktu",
+  "options_total": "Opcje dodatkowe",
+  "grand_total": "Suma całkowita",
+  "required_title": "wymagane"
+ },
+ "nl": {
+  "product_total": "Product totaal",
+  "options_total": "Opties totaal",
+  "grand_total": "Totaal",
+  "required_title": "vereist"
+ },
+ "it": {
+  "product_total": "Totale prodotto",
+  "options_total": "Totale opzioni",
+  "grand_total": "Totale",
+  "required_title": "obbligatorio"
+ },
+ "fr": {
+  "product_total": "Total du produit",
+  "options_total": "Total des options",
+  "grand_total": "Total",
+  "required_title": "obligatoire"
+ },
+ "de": {
+  "product_total": "Produkt Gesamtpreis",
+  "options_total": "Optionen Gesamtpreis",
+  "grand_total": "Gesamtpreis",
+  "required_title": "erforderlich"
+ },
+ "en": {
+  "product_total": "Product total",
+  "options_total": "Options total",
+  "grand_total": "Grand total",
+  "required_title": "required"
+ },
+ "es": {
+  "product_total": "Total del producto",
+  "options_total": "Total de las opciones",
+  "grand_total": "Total",
+  "required_title": "obligatorio"
+ }
+}

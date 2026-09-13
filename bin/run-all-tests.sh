@@ -101,6 +101,8 @@ for i in $(seq 1 "$ITERATIONS"); do
 		&& echo "  suite ok: theme-compat ($(grep -cE '^  ok' /tmp/opf-themecompat.out) checks)" \
 		|| { echo "  SUITE FAIL: theme-compat"; tail -5 /tmp/opf-themecompat.out; FAIL=$((FAIL+1)); }
 
+	echo "  [trace] groups before browser-ui: $(wp post list --post_type=opf_field_group --post_status=any --format=count --path="$SITE_DIR" 2>/dev/null)"
+
 	# 5c. Full browser UI flow (optional — requires playwright + chromium)
 	if [ -d "$JSDOM_DIR/node_modules/playwright" ]; then
 		( cd "$JSDOM_DIR" && OPF_BASE_URL="$HTTP" node "$PLUGIN_DIR/bin/e2e-browser-test.mjs" > /tmp/opf-browser.out 2>&1 ) \

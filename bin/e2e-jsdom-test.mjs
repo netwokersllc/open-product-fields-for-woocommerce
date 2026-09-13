@@ -25,7 +25,7 @@ const boostNote = doc.querySelector('[data-opf-field="boost_note"]');
 const delivery  = doc.querySelector('[data-opf-field="delivery"]');
 check('conditional field exists on page', !!boostNote && !!delivery);
 check('boost_note initially HIDDEN (default choice = Normal)', boostNote.hasAttribute('hidden') && boostNote.classList.contains('opf-field--hidden') && boostNote.classList.contains('wapf-hide'));
-check('default swatch has wapf-checked (Normal preselected)', !!delivery.querySelector('input[value="normal"]')?.closest('label')?.classList.contains('wapf-checked'));
+check('default swatch has wapf-checked (Normal preselected)', !!delivery.querySelector('input[value="normal"]')?.closest('.wapf-swatch')?.classList.contains('wapf-checked'));
 
 // Click the Boost radio and fire input event (module listens on the group).
 const boostInput = delivery.querySelector('input[value="boost"]');
@@ -33,8 +33,8 @@ boostInput.checked = true;
 boostInput.dispatchEvent(new window.Event('input', { bubbles: true }));
 
 check('boost_note becomes VISIBLE after choosing Boost', !boostNote.hasAttribute('hidden'));
-check('boost radio label got wapf-checked', !!boostInput.closest('label')?.classList.contains('wapf-checked'));
-check('normal radio label lost wapf-checked', !delivery.querySelector('input[value="normal"]')?.closest('label')?.classList.contains('wapf-checked'));
+check('boost radio swatch got wapf-checked', !!boostInput.closest('.wapf-swatch')?.classList.contains('wapf-checked'));
+check('normal radio swatch lost wapf-checked', !delivery.querySelector('input[value="normal"]')?.closest('.wapf-swatch')?.classList.contains('wapf-checked'));
 
 // Switch back to Normal: boost_note must hide again.
 const normalInput = delivery.querySelector('input[value="normal"]');

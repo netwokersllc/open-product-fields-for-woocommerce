@@ -157,7 +157,7 @@ final class FieldGroups {
 	 *
 	 * @param int                  $post_id Post id (0 = create).
 	 * @param FieldGroup|array     $group   Group data.
-	 * @param array<string,mixed>  $args    title, status.
+	 * @param array<string,mixed>  $args    title, status, menu_order.
 	 */
 	public static function save( int $post_id, $group, array $args = [] ): int {
 		$data    = $group instanceof FieldGroup ? $group->data : FieldGroup::normalize( $group );
@@ -169,6 +169,7 @@ final class FieldGroups {
 			'post_content' => wp_json_encode( $data, JSON_UNESCAPED_UNICODE ),
 			'post_type'    => 'opf_field_group',
 			'post_status'  => $status,
+			'menu_order'   => (int) ( $args['menu_order'] ?? 0 ),
 		];
 		if ( '' !== $title ) {
 			$fields['post_title'] = $title;

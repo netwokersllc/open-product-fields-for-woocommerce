@@ -1,24 +1,20 @@
 <?php
 /**
- * Renders field groups on the product page (classic + block product pages,
- * via the classic hook bridge).
+ * Renders field groups on the product page.
  *
- * Markup contract with the frontend module:
- *  - wrapper  [data-opf-fields]
- *  - group    [data-opf-group="gid"]
- *  - field    [data-opf-field="fid"], hidden state = class + hidden attribute
- *  - inputs   name="opf[gid][fid]" (multi-choice: name="opf[gid][fid][]")
+ * Compat mode emits the legacy WAPF DOM contract 1:1 (classes, ids, data
+ * attributes, totals block) so the production theme's CSS and JS behave
+ * identically to the legacy plugin. Functional inputs keep OPF names
+ * (`opf[gid][fid]`) and the `data-opf-*` hooks for the frontend module.
  *
- * Field metadata (type + conditionals) is embedded as window.OPF_FIELDS so
- * the client can mirror server-side visibility rules instantly. The server
- * remains the source of truth: everything is re-validated on add-to-cart.
+ * Reference markup: legacy plugin's product-page output for url / textarea /
+ * text / text-swatch fields (captured from production, 2026-09).
  *
  * @package open-product-fields-for-woocommerce
  */
 
 namespace OPF\Service;
 
-use OPF\Engine\Calculator;
 use OPF\Engine\Evaluator;
 use OPF\Engine\FieldGroup;
 
@@ -27,7 +23,7 @@ defined( 'ABSPATH' ) || exit;
 final class Renderer {
 
 	/**
-	 * WAPF field-type names emitted in compat mode (theme CSS hooks).
+	 * Legacy field-type names emitted in compat mode (theme CSS hooks).
 	 */
 	private const COMPAT_TYPE_NAMES = [
 		'text'     => 'text',
@@ -48,15 +44,14 @@ final class Renderer {
 	}
 
 	/**
-	 * Theme compat mode: emit the legacy wapf-* class skeleton and data
-	 * attributes so existing theme CSS/JS keeps working after cutover.
+	 * Theme compat mode: emit the legacy wapf-* skeleton.
 	 */
 	public static function compat(): bool {
 		return (bool) apply_filters( 'opf_theme_compat', get_option( 'opf_theme_compat', 'yes' ) === 'yes' );
 	}
 
 	/**
-	 * Transition mode: when `opf_admin_only` is "yes", fields render — and the
+	 * Transition gate: when `opf_admin_only` is "yes", fields render — and the
 	 * whole OPF cart layer engages — only for shop admins and E2E traffic.
 	 * Customers keep seeing the legacy plugin's fields until cutover.
 	 */
@@ -103,20 +98,25 @@ final class Renderer {
 		Assets::enqueue_frontend( self::registry( $groups ) );
 
 		$base_price = (float) $product->get_price( 'edit' );
+		$gids       = [];
 
-		echo '<div class="opf-fields' . ( self::compat() ? ' wapf' : '' ) . '" data-opf-fields="' . esc_attr( (string) count( $groups ) ) . '">';
+		echo '<div class="wapf" id="wapf_' . esc_attr( (string) $product->get_id() ) . '"><div class="wapf-wrapper">';
 
 		foreach ( $groups as $entry ) {
+			$gids[] = (string) $entry['id'];
 			self::render_group( $entry['id'], $entry['title'], $entry['group'], $base_price );
 		}
 
-		echo '</div>';
+		echo '<input type="hidden" value="' . esc_attr( implode( ',', $gids ) ) . '" name="wapf_field_groups"/>';
+		echo '</div></div>';
+
+		self::render_totals( $product );
 	}
 
 	/**
 	 * Client registry: gid => fid => {type, conditionals}.
 	 *
-	 * @param array<int,array{id:int,title:string,group:FieldGroup}> $groups Groups.
+	 * @param array<int,array{id:int,title:string,lang:string,group:FieldGroup}> $groups Groups.
 	 */
 	private static function registry( array $groups ): array {
 		$registry = [];
@@ -138,7 +138,7 @@ final class Renderer {
 	 * @param int|string $gid        Group post id.
 	 * @param string     $title      Group title.
 	 * @param FieldGroup $group      Group data.
-	 * @param float      $base_price Product base unit price.
+	 * @param float      $base_price Base unit price.
 	 */
 	public static function render_group( $gid, string $title, FieldGroup $group, float $base_price ): void {
 		// Seed conditionals with default selections.
@@ -147,11 +147,7 @@ final class Renderer {
 			$values[ $field['id'] ] = self::default_value( $field );
 		}
 
-		echo '<div class="opf-group" data-opf-group="' . esc_attr( (string) $gid ) . '">';
-
-		if ( '' !== $title && apply_filters( 'opf_show_group_title', false, $gid ) ) {
-			echo '<h3 class="opf-group__title">' . esc_html( $title ) . '</h3>';
-		}
+		echo '<div class="wapf-field-group label-' . esc_attr( 'above' === $group->data['labels_position'] ? 'above' : 'below' ) . '" data-group="' . esc_attr( (string) $gid ) . '" data-variables="[]" data-opf-group="' . esc_attr( (string) $gid ) . '">';
 
 		foreach ( $group->data['fields'] as $field ) {
 			self::render_field( $gid, $field, $values, $base_price );
@@ -161,7 +157,7 @@ final class Renderer {
 	}
 
 	/**
-	 * Render a single field.
+	 * Render a single field — legacy DOM contract.
 	 *
 	 * @param string              $gid        Group id.
 	 * @param array<string,mixed> $field      Normalized field.
@@ -172,43 +168,41 @@ final class Renderer {
 		$fid      = $field['id'];
 		$name     = sprintf( 'opf[%s][%s]', $gid, $fid );
 		$hidden   = ! Evaluator::is_visible( $field, $values );
-		$width    = 'opf-col-' . (string) $field['width'];
-		$compat   = self::compat();
+		$compat_t = self::COMPAT_TYPE_NAMES[ $field['type'] ] ?? 'text';
 
-		$classes = [ 'opf-field', $width ];
-		if ( $compat ) {
-			$classes[] = 'wapf-field-container';
-			$classes[] = 'wapf-field-' . ( self::COMPAT_TYPE_NAMES[ $field['type'] ] ?? 'text' );
+		$classes = [ 'wapf-field-container', 'wapf-field-' . $compat_t, 'field-' . $fid ];
+		if ( '' !== $field['css_class'] ) {
+			$classes[] = $field['css_class'];
+		}
+		if ( $field['required'] ) {
+			$classes[] = 'wapf-required';
 		}
 		if ( $hidden ) {
-			$classes[] = 'opf-field--hidden';
-			if ( $compat ) {
-				$classes[] = 'wapf-hide';
-			}
+			$classes[] = 'wapf-hide';
 		}
 
-		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-opf-field="' . esc_attr( $fid ) . '"' . ( $hidden ? ' hidden' : '' ) . '>';
+		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-opf-field="' . esc_attr( $fid ) . '" style="width:' . esc_attr( (string) $field['width'] ) . '%;" for="' . esc_attr( $fid ) . '">';
 
-		$label_id = 'opf-input-' . esc_attr( $gid . '-' . $fid );
-		$compat   = self::compat();
-
-		echo '<label class="opf-field__label" id="opf-label-' . esc_attr( $gid . '-' . $fid ) . '" for="' . esc_attr( $label_id ) . '">';
-		echo '<span class="opf-field__label-text' . ( $compat ? ' wapf-field-label' : '' ) . '">' . esc_html( $field['label'] );
+		echo '<div class="wapf-field-label"><label';
+		if ( ! in_array( $field['type'], [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {
+			echo ' for="wapf-' . esc_attr( $gid . '-' . $fid ) . '"';
+		}
+		echo '><span>' . esc_html( $field['label'] ) . '</span> ';
 		if ( $field['required'] ) {
-			echo ' <abbr class="required" title="' . esc_attr__( 'required', 'open-product-fields-for-woocommerce' ) . '">*</abbr>';
+			echo '<abbr class="required" title="' . esc_attr( self::required_title() ) . '">*</abbr>';
 		}
-		echo '</span>';
-		if ( '' !== $field['description'] ) {
-			echo '<span class="opf-field__description' . ( $compat ? ' wapf-field-description' : '' ) . '">' . esc_html( $field['description'] ) . '</span>';
-		}
-		echo '</label>';
+		echo '</label></div>';
 
-		echo '<div class="opf-field__control' . ( $compat ? ' wapf-field-input' : '' ) . '">';
+		if ( '' !== $field['description'] ) {
+			echo '<div class="wapf-field-description">' . esc_html( $field['description'] ) . '</div>';
+		}
+
+		echo '<div class="wapf-field-input">';
 
 		if ( in_array( $field['type'], [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {
-			self::render_choices( $gid, $name, $label_id, $field, $base_price );
+			self::render_choices( $gid, $name, $field, $base_price );
 		} else {
-			self::render_input( $name, $label_id, $field );
+			self::render_input( $name, $gid, $field );
 		}
 
 		echo '</div>';
@@ -216,23 +210,21 @@ final class Renderer {
 	}
 
 	/**
-	 * Choice-based controls.
+	 * Choice-based controls (swatch / select / radio / checkbox).
 	 *
 	 * @param string              $gid        Group id.
 	 * @param string              $name       Input base name.
-	 * @param string              $label_id   Label target id.
 	 * @param array<string,mixed> $field      Field data.
 	 * @param float               $base_price Base unit price.
 	 */
-	private static function render_choices( string $gid, string $name, string $label_id, array $field, float $base_price ): void {
-		$fid    = $field['id'];
-		$compat = self::compat();
+	private static function render_choices( string $gid, string $name, array $field, float $base_price ): void {
+		$fid = $field['id'];
 
 		if ( 'select' === $field['type'] ) {
-			echo '<select name="' . esc_attr( $name ) . '" id="' . esc_attr( $label_id ) . '" class="opf-select">';
+			echo '<select name="' . esc_attr( $name ) . '" id="wapf-' . esc_attr( $gid . '-' . $fid ) . '" class="wapf-input input-' . esc_attr( $fid ) . '" autocomplete="off">';
 			foreach ( $field['choices'] as $choice ) {
 				echo '<option value="' . esc_attr( $choice['slug'] ) . '"' . selected( $choice['selected'], true, false ) . '>'
-					. esc_html( $choice['label'] . self::price_suffix( $choice['pricing'], $base_price ) )
+					. esc_html( $choice['label'] )
 					. '</option>';
 			}
 			echo '</select>';
@@ -240,110 +232,90 @@ final class Renderer {
 		}
 
 		$multi = 'checkbox' === $field['type'];
-		$swatch = 'swatch' === $field['type'];
-		$classes = 'opf-choices' . ( $swatch ? ' opf-choices--swatch' : '' );
-		if ( $compat ) {
-			$classes .= ' wapf-field-input';
-		}
 
-		echo '<div class="' . esc_attr( $classes ) . '" role="' . ( $multi ? 'group' : 'radiogroup' ) . '" aria-labelledby="' . esc_attr( 'opf-label-' . $gid . '-' . $fid ) . '">';
+		echo '<div class="wapf-swatch-wrapper">';
+		echo '<input type="hidden" class="wapf-tf-h" data-fid="' . esc_attr( $fid ) . '" value="0" name="' . esc_attr( $name ) . '" />';
 
-		foreach ( $field['choices'] as $index => $choice ) {
-			$input_id = sprintf( 'opf-%s-%s-%d', $gid, $fid, $index );
-			$hint     = self::price_hint( $choice['pricing'] );
-
-			$choice_classes = [ 'opf-choice' ];
-			if ( $compat && $swatch ) {
-				$choice_classes[] = 'wapf-swatch';
-				$choice_classes[] = 'wapf-swatch--text';
+		foreach ( $field['choices'] as $choice ) {
+			$swatch_classes = [ 'wapf-swatch', 'wapf-swatch--text' ];
+			if ( ! $multi ) {
+				$swatch_classes[] = 'wapf-single-select';
 			}
-			if ( $compat && $choice['selected'] ) {
-				$choice_classes[] = 'wapf-checked';
+			if ( $choice['selected'] ) {
+				$swatch_classes[] = 'wapf-checked';
 			}
-
-			$data_attrs = '';
-			if ( $compat && 'none' !== $choice['pricing']['type'] ) {
-				$data_attrs = sprintf(
-					' data-wapf-price="%s" data-wapf-pricetype="%s"',
-					esc_attr( (string) self::compat_price_amount( $choice['pricing'], $base_price ) ),
-					esc_attr( self::compat_price_type( $choice['pricing'] ) )
-				);
+			if ( 'none' !== $choice['pricing']['type'] ) {
+				$swatch_classes[] = 'has-pricing';
 			}
 
 			$attrs = sprintf(
-				'name="%1$s" id="%2$s" value="%3$s"%4$s%5$s%6$s',
-				esc_attr( $name . ( $multi ? '[]' : '' ) ),
-				esc_attr( $input_id ),
+				'autocomplete="off" id="wapf-%1$s-%2$s-%3$s" name="%4$s" class="wapf-input input-%2$s" data-field-id="%2$s" value="%5$s" data-wapf-label="%6$s"%7$s%8$s%9$s',
+				esc_attr( $gid ),
+				esc_attr( $fid ),
 				esc_attr( $choice['slug'] ),
-				$choice['selected'] ? ' checked="checked"' : '',
-				$choice['disabled'] ? ' disabled="disabled"' : '',
-				$data_attrs
+				esc_attr( $name . ( $multi ? '[]' : '' ) ),
+				esc_attr( $choice['slug'] ),
+				esc_attr( $choice['label'] ),
+				$field['required'] ? ' required' : '',
+				$choice['selected'] ? ' checked' : '',
+				self::pricing_attrs( $choice['pricing'] )
 			);
 
-			echo '<label class="' . esc_attr( implode( ' ', $choice_classes ) ) . '" for="' . esc_attr( $input_id ) . '">';
+			echo '<div class="' . esc_attr( implode( ' ', $swatch_classes ) ) . '">';
+			echo '<label><span>' . esc_html( $choice['label'] ) . ' </span>';
 			echo '<input type="' . ( $multi ? 'checkbox' : 'radio' ) . '" ' . $attrs . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput -- pre-escaped.
-			echo '<span class="opf-choice__label' . ( $compat ? ' wapf-label' : '' ) . '">' . esc_html( $choice['label'] ) . '</span>';
-			if ( '' !== $hint ) {
-				echo '<span class="opf-choice__hint">' . wp_kses_post( $hint ) . '</span>';
-			}
 			echo '</label>';
+			echo '</div>';
 		}
 
 		echo '</div>';
 	}
 
 	/**
-	 * Per-unit numeric amount for the compat data attribute. Formulas are
-	 * pre-resolved against the current product price with fixed semantics —
-	 * the theme's live total keeps working for qty-independent formulas.
-	 *
-	 * @param array<string,mixed> $pricing    Pricing block.
-	 * @param float               $base_price Base unit price.
-	 */
-	private static function compat_price_amount( array $pricing, float $base_price ): float {
-		switch ( $pricing['type'] ) {
-			case 'percent':
-				return (float) $pricing['amount'];
-			case 'formula':
-				return Calculator::evaluate_formula( $pricing['formula'], $base_price, 1, 0.0 );
-			default:
-				return (float) $pricing['amount'];
-		}
-	}
-
-	/**
-	 * Price type name for the compat data attribute.
+	 * Legacy data attributes for the theme's live-total math, verbatim:
+	 *  - percent : data-wapf-price = percent amount
+	 *  - fixed   : data-wapf-price = amount
+	 *  - formula : data-wapf-price = raw legacy expression (theme evaluates it)
 	 *
 	 * @param array<string,mixed> $pricing Pricing block.
 	 */
-	private static function compat_price_type( array $pricing ): string {
-		switch ( $pricing['type'] ) {
-			case 'percent':
-				return 'percent';
-			default:
-				return 'fixed';
+	private static function pricing_attrs( array $pricing ): string {
+		if ( 'none' === $pricing['type'] ) {
+			return '';
 		}
+		$price = 'formula' === $pricing['type']
+			? (string) ( $pricing['formula_raw'] ?? $pricing['formula'] )
+			: (string) (float) $pricing['amount'];
+		$type  = 'formula' === $pricing['type'] ? 'fx' : $pricing['type'];
+		return sprintf( ' data-wapf-pricetype="%s" data-wapf-price="%s"', esc_attr( $type ), esc_attr( $price ) );
 	}
 
 	/**
 	 * Text-like inputs.
 	 *
-	 * @param string              $name     Input name.
-	 * @param string              $label_id Label target id.
-	 * @param array<string,mixed> $field    Field data.
+	 * @param string              $name  Input name.
+	 * @param string              $gid   Group id.
+	 * @param array<string,mixed> $field Field data.
 	 */
-	private static function render_input( string $name, string $label_id, array $field ): void {
-		$shared = sprintf( 'name="%s" id="%s"', esc_attr( $name ), esc_attr( $label_id ) );
+	private static function render_input( string $name, string $gid, array $field ): void {
+		$fid = $field['id'];
+		$shared = sprintf(
+			'data-field-id="%1$s" id="wapf-%2$s-%1$s"%3$s name="opf[%2$s][%1$s]" class="wapf-input input-%1$s" placeholder="%4$s" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"',
+			esc_attr( $fid ),
+			esc_attr( $gid ),
+			$field['required'] ? ' required' : '',
+			esc_attr( $field['placeholder'] )
+		);
 
 		switch ( $field['type'] ) {
 			case 'textarea':
-				echo '<textarea rows="3" ' . $shared . '></textarea>'; // phpcs:ignore WordPress.Security.EscapeOutput
+				echo '<textarea ' . $shared . '></textarea>'; // phpcs:ignore WordPress.Security.EscapeOutput -- pre-escaped.
 				break;
 			case 'url':
-				echo '<input type="url" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
+				echo '<input type="url" value="" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
 				break;
 			case 'number':
-				echo '<input type="number" step="any" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
+				echo '<input type="number" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
 				break;
 			default:
 				echo '<input type="text" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
@@ -352,37 +324,56 @@ final class Renderer {
 	}
 
 	/**
-	 * Human-readable hint for a choice pricing block.
+	 * Localized totals labels for the legacy totals block.
 	 *
-	 * @param array<string,mixed> $pricing Pricing block.
+	 * @return array{product_total:string,options_total:string,grand_total:string,required_title:string}
 	 */
-	private static function price_hint( array $pricing ): string {
-		if ( ! function_exists( 'wc_price' ) || 'none' === $pricing['type'] ) {
-			return '';
+	private static function i18n(): array {
+		$default = [
+			'product_total'  => __( 'Product total', 'open-product-fields-for-woocommerce' ),
+			'options_total'  => __( 'Options total', 'open-product-fields-for-woocommerce' ),
+			'grand_total'    => __( 'Grand total', 'open-product-fields-for-woocommerce' ),
+			'required_title' => __( 'required', 'open-product-fields-for-woocommerce' ),
+		];
+		$map = get_option( 'opf_compat_i18n', [] );
+		if ( ! is_array( $map ) ) {
+			return $default;
 		}
-		if ( 'fixed' === $pricing['type'] ) {
-			$amount = apply_filters( 'opf_fixed_price', (float) $pricing['amount'], $pricing );
-			return wc_price( $amount );
-		}
-		if ( 'percent' === $pricing['type'] ) {
-			return esc_html( (string) (float) $pricing['amount'] ) . '%';
-		}
-		return '';
+		$lang = function_exists( 'pll_current_language' ) ? pll_current_language( 'slug' ) : '';
+		return isset( $map[ $lang ] ) && is_array( $map[ $lang ] ) ? array_merge( $default, $map[ $lang ] ) : $default;
 	}
 
 	/**
-	 * Option-label suffix for selects.
-	 *
-	 * @param array<string,mixed> $pricing    Pricing block.
-	 * @param float               $base_price Base unit price.
+	 * Required-marker tooltip text for the current locale.
 	 */
-	private static function price_suffix( array $pricing, float $base_price ): string {
-		$hint = self::price_hint( $pricing );
-		if ( '' === $hint ) {
-			return '';
+	private static function required_title(): string {
+		$i18n = self::i18n();
+		return '' !== $i18n['required_title'] ? $i18n['required_title'] : __( 'required', 'open-product-fields-for-woocommerce' );
+	}
+
+	/**
+	 * The legacy totals block the theme's quantity module reads.
+	 *
+	 * @param \WC_Product $product Product.
+	 */
+	private static function render_totals( \WC_Product $product ): void {
+		if ( ! self::compat() ) {
+			return;
 		}
-		$plain = wp_strip_all_tags( $hint );
-		return ' (+' . $plain . ')';
+		$i18n = self::i18n();
+		$data_tax = 1;
+		if (
+			function_exists( 'wc_prices_include_tax' )
+			&& ! wc_prices_include_tax()
+			&& get_option( 'woocommerce_tax_display_shop' ) === 'excl'
+		) {
+			$data_tax = 1;
+		}
+		echo '<div class="wapf-product-totals" data-product-id="' . esc_attr( (string) $product->get_id() ) . '" data-product-type="' . esc_attr( $product->get_type() ) . '" data-product-price="' . esc_attr( (string) $product->get_price() ) . '" data-tax="' . esc_attr( (string) $data_tax ) . '"><div class="wapf--inner">';
+		echo '<div><span>' . esc_html( $i18n['product_total'] ) . '</span><span class="wapf-total wapf-product-total price amount"></span></div>';
+		echo '<div><span>' . esc_html( $i18n['options_total'] ) . '</span><span class="wapf-total wapf-options-total price amount"></span></div>';
+		echo '<div><span>' . esc_html( $i18n['grand_total'] ) . '</span><span class="wapf-total wapf-grand-total price amount"></span></div>';
+		echo '</div></div>';
 	}
 
 	/**

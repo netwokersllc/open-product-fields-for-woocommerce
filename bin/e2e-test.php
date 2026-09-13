@@ -28,6 +28,9 @@ function check( $label, $condition ): void {
 
 WP_CLI::log( '== OPF E2E ==' );
 
+// The transition gate (admin/e2e-only) must be off for the behavioral suite.
+update_option( 'opf_admin_only', 'no' );
+
 // Enable a payment gateway for the Store API checkout leg.
 update_option( 'woocommerce_bacs_settings', [ 'enabled' => 'yes', 'title' => 'Bank transfer' ] );
 WC()->payment_gateways()->init();

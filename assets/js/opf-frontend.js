@@ -106,17 +106,14 @@ const init = () => {
 		};
 
 		const syncChecked = () => {
-			// Legacy theme integration keys swatch styling off `wapf-checked`.
-			groupEl.querySelectorAll( '.opf-choice' ).forEach( ( label ) => {
-				const input = label.querySelector( 'input' );
+			// Legacy theme integration keys swatch styling off `wapf-checked`
+			// on the .wapf-swatch wrapper, exactly as the legacy JS did.
+			groupEl.querySelectorAll( '.wapf-swatch' ).forEach( ( swatch ) => {
+				const input = swatch.querySelector( 'input' );
 				if ( ! input ) {
 					return;
 				}
-				if ( input.type === 'checkbox' ) {
-					label.classList.toggle( 'wapf-checked', input.checked );
-				} else {
-					label.classList.toggle( 'wapf-checked', input.checked );
-				}
+				swatch.classList.toggle( 'wapf-checked', !! input.checked );
 			} );
 		};
 

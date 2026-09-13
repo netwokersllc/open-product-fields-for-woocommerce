@@ -154,6 +154,8 @@ final class FieldGroup {
 			'type'         => $type,
 			'required'     => (bool) ( $field['required'] ?? false ),
 			'width'        => max( 25, min( 100, (int) ( $field['width'] ?? 100 ) ) ),
+			'css_class'    => (string) ( $field['css_class'] ?? '' ),
+			'placeholder'  => (string) ( $field['placeholder'] ?? '' ),
 			'choices'      => $choices,
 			'pricing'      => $pricing,
 			'conditionals' => $conditionals,
@@ -187,10 +189,11 @@ final class FieldGroup {
 			: true;
 
 		return [
-			'type'     => $type,
-			'amount'   => $amount,
-			'formula'  => (string) ( $pricing['formula'] ?? '' ),
-			'per_unit' => $per_unit,
+			'type'        => $type,
+			'amount'      => $amount,
+			'formula'     => (string) ( $pricing['formula'] ?? '' ),
+			'formula_raw' => (string) ( $pricing['formula_raw'] ?? '' ),
+			'per_unit'    => $per_unit,
 		];
 	}
 

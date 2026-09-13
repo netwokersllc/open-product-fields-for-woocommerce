@@ -90,6 +90,8 @@ final class WapfMapper {
 					'type'         => self::TYPE_MAP[ $wapf_type ],
 					'required'     => (bool) ( $wapf_field['required'] ?? false ),
 					'width'        => (int) ( $wapf_field['width'] ?? 100 ),
+					'css_class'    => (string) ( $wapf_field['class'] ?? '' ),
+					'placeholder'  => (string) ( $wapf_field['options']['placeholder'] ?? '' ),
 					'choices'      => $has_choices ? self::map_choices( $wapf_field, $notes ) : [],
 					'pricing'      => self::map_field_pricing( $wapf_field ),
 					'conditionals' => self::map_conditionals( $wapf_field, $notes, $seen_ids ),
@@ -165,7 +167,9 @@ final class WapfMapper {
 						$notes[] = sprintf( 'choice "%s" formula could not be translated: %s', $choice['label'] ?? $slug, (string) $amt );
 						$pricing = [ 'type' => 'none', 'amount' => 0.0, 'formula' => '' ];
 					} else {
-						$pricing = [ 'type' => 'formula', 'amount' => 0.0, 'formula' => $formula ];
+						// formula_raw keeps the legacy expression (incl. its qty
+						// factor) for the theme's live-total display math.
+						$pricing = [ 'type' => 'formula', 'amount' => 0.0, 'formula' => $formula, 'formula_raw' => (string) $amt, 'per_unit' => true ];
 					}
 					break;
 				case 'none':

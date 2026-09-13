@@ -120,11 +120,14 @@ final class Importer {
 		$post_status = [ 'publish' ];
 
 		// 1. Global groups: published wapf_product posts with serialized content.
+		// Ordered date-DESC — the same sequence the legacy plugin rendered in.
 		$rows = $wpdb->get_results(
 			"SELECT ID, post_title, post_status, post_content FROM {$wpdb->posts}
-			 WHERE post_type = 'wapf_product' AND post_status = 'publish' AND post_content <> ''"
+			 WHERE post_type = 'wapf_product' AND post_status = 'publish' AND post_content <> ''
+			 ORDER BY post_date DESC, ID DESC"
 		);
 
+		$seq = 0;
 		foreach ( $rows as $row ) {
 			$strict = @unserialize( $row->post_content, [ 'allowed_classes' => false ] );
 			$wapf   = is_array( $strict ) ? $strict : WapfParser::parse( $row->post_content );
@@ -138,7 +141,8 @@ final class Importer {
 				continue;
 			}
 
-			$result = self::import_group( $wapf, $row->post_title, $row->ID, $commit );
+			$result = self::import_group( $wapf, $row->post_title, $row->ID, $commit, [], $seq );
+			$seq++;
 			$report['groups'][] = $result;
 			if ( 'imported' === $result['result'] ) {
 				$report['imported']++;
@@ -214,7 +218,7 @@ final class Importer {
 	 * @param array<string,mixed> $overrides Mapper overrides.
 	 * @return array<string,mixed>
 	 */
-	private static function import_group( array $wapf, string $title, $source_id, bool $commit, array $overrides = [] ): array {
+	private static function import_group( array $wapf, string $title, $source_id, bool $commit, array $overrides = [], int $menu_order = 0 ): array {
 		$source_key = (string) $source_id;
 
 		// Idempotency: skip if this source was already imported.
@@ -240,7 +244,7 @@ final class Importer {
 		$mapped = WapfMapper::map( $wapf, $overrides );
 
 		if ( $commit ) {
-			$opf_id = FieldGroups::save( 0, new FieldGroup( $mapped['group'] ), [ 'title' => $title ] );
+			$opf_id = FieldGroups::save( 0, new FieldGroup( $mapped['group'] ), [ 'title' => $title, 'menu_order' => $menu_order ] );
 			if ( ! $opf_id ) {
 				return [ 'source' => $source_key, 'result' => 'save-failed' ];
 			}
