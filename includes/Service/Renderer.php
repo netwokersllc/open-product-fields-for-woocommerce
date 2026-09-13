@@ -51,6 +51,15 @@ final class Renderer {
 	}
 
 	/**
+	 * Totals block: hidden by default (the legacy setup also hid it). The
+	 * data attributes stay in the DOM for the theme's currency converter;
+	 * flip `opf_show_totals` to display the visible totals rows.
+	 */
+	public static function show_totals(): bool {
+		return (bool) apply_filters( 'opf_show_totals', get_option( 'opf_show_totals', 'no' ) === 'yes' );
+	}
+
+	/**
 	 * Transition gate: when `opf_admin_only` is "yes", fields render — and the
 	 * whole OPF cart layer engages — only for shop admins and E2E traffic.
 	 * Customers keep seeing the legacy plugin's fields until cutover.
@@ -376,6 +385,7 @@ final class Renderer {
 		if ( ! self::compat() ) {
 			return;
 		}
+		$hidden = self::show_totals() ? '' : ' opf-totals-hidden';
 		$i18n = self::i18n();
 		$data_tax = 1;
 		if (
@@ -385,7 +395,7 @@ final class Renderer {
 		) {
 			$data_tax = 1;
 		}
-		echo '<div class="opf-product-totals" data-product-id="' . esc_attr( (string) $product->get_id() ) . '" data-product-type="' . esc_attr( $product->get_type() ) . '" data-product-price="' . esc_attr( (string) $product->get_price() ) . '" data-tax="' . esc_attr( (string) $data_tax ) . '"><div class="opf--inner">';
+		echo '<div class="opf-product-totals' . esc_attr( $hidden ) . '" style="' . ( self::show_totals() ? '' : 'display:none;' ) . '" data-product-id="' . esc_attr( (string) $product->get_id() ) . '" data-product-type="' . esc_attr( $product->get_type() ) . '" data-product-price="' . esc_attr( (string) $product->get_price() ) . '" data-tax="' . esc_attr( (string) $data_tax ) . '"><div class="opf--inner">';
 		echo '<div><span>' . esc_html( $i18n['product_total'] ) . '</span><span class="opf-total opf-product-total price amount"></span></div>';
 		echo '<div><span>' . esc_html( $i18n['options_total'] ) . '</span><span class="opf-total opf-options-total price amount"></span></div>';
 		echo '<div><span>' . esc_html( $i18n['grand_total'] ) . '</span><span class="opf-total opf-grand-total price amount"></span></div>';
