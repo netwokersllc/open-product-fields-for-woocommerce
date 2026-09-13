@@ -101,6 +101,12 @@ final class CartIntegration {
 			return true;
 		}
 
+		// Transition gate: when OPF is admin/e2e-only, customers' carts carry
+		// no OPF data and validation stays out of their way entirely.
+		if ( ! Renderer::visible_to_viewer() ) {
+			return $passed;
+		}
+
 		$product = wc_get_product( $product_id );
 		if ( ! $product ) {
 			return $passed;
@@ -124,6 +130,10 @@ final class CartIntegration {
 	 * @param int   $product_id     Product id.
 	 */
 	public static function attach( array $cart_item_data, int $product_id ): array {
+		if ( ! Renderer::visible_to_viewer() ) {
+			return $cart_item_data;
+		}
+
 		$product = wc_get_product( $product_id );
 		if ( ! $product ) {
 			return $cart_item_data;

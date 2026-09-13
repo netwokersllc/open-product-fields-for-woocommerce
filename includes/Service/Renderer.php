@@ -56,10 +56,41 @@ final class Renderer {
 	}
 
 	/**
+	 * Transition mode: when `opf_admin_only` is "yes", fields render — and the
+	 * whole OPF cart layer engages — only for shop admins and E2E traffic.
+	 * Customers keep seeing the legacy plugin's fields until cutover.
+	 */
+	public static function visible_to_viewer(): bool {
+		if ( 'yes' !== get_option( 'opf_admin_only', 'no' ) ) {
+			return true;
+		}
+		return self::viewer_bypasses_gate();
+	}
+
+	/**
+	 * Admins and E2E tooling (matching OPF_E2E_TOKEN) bypass the gate.
+	 */
+	public static function viewer_bypasses_gate(): bool {
+		if ( current_user_can( 'manage_woocommerce' ) ) {
+			return true;
+		}
+		$token = defined( 'OPF_E2E_TOKEN' ) ? (string) OPF_E2E_TOKEN : '';
+		if ( '' === $token ) {
+			return false;
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$given = isset( $_GET['opf_e2e'] ) ? (string) $_GET['opf_e2e'] : (string) ( $_SERVER['HTTP_X_OPF_E2E'] ?? '' );
+		return '' !== $given && hash_equals( $token, $given );
+	}
+
+	/**
 	 * Render all matching groups for the current product.
 	 */
 	public static function render(): void {
 		global $product;
+		if ( ! self::visible_to_viewer() ) {
+			return;
+		}
 		if ( ! $product instanceof \WC_Product ) {
 			return;
 		}

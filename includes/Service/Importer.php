@@ -245,6 +245,16 @@ final class Importer {
 				return [ 'source' => $source_key, 'result' => 'save-failed' ];
 			}
 			update_post_meta( $opf_id, '_opf_imported_from', $source_key );
+
+			// Preserve the source group's Polylang language so locale
+			// targeting keeps working after migration.
+			$src_pid = is_numeric( $source_key ) ? (int) $source_key : 0;
+			if ( $src_pid > 0 && function_exists( 'pll_get_post_language' ) && function_exists( 'pll_set_post_language' ) ) {
+				$lang = pll_get_post_language( $src_pid, 'slug' );
+				if ( $lang ) {
+					pll_set_post_language( $opf_id, $lang );
+				}
+			}
 			if ( $mapped['needs_review'] ) {
 				update_post_meta( $opf_id, '_opf_needs_review', array_slice( $mapped['notes'], 0, 20 ) );
 			}

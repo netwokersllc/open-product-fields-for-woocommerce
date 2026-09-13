@@ -21,7 +21,7 @@ final class FieldGroups {
 	/**
 	 * Cache of all published groups for this request.
 	 *
-	 * @var array<int,array{id:int,title:string,group:FieldGroup}>|null
+	 * @var array<int,array{id:int,title:string,lang:string,group:FieldGroup}>|null
 	 */
 	private static $all = null;
 
@@ -65,7 +65,7 @@ final class FieldGroups {
 	/**
 	 * All published groups with at least one field.
 	 *
-	 * @return array<int,array{id:int,title:string,group:FieldGroup}>
+	 * @return array<int,array{id:int,title:string,lang:string,group:FieldGroup}>
 	 */
 	public static function all(): array {
 		if ( null !== self::$all ) {
@@ -94,6 +94,7 @@ final class FieldGroups {
 				self::$all[] = [
 					'id'    => $post->ID,
 					'title' => $post->post_title,
+					'lang'  => function_exists( 'pll_get_post_language' ) ? (string) pll_get_post_language( $post->ID, 'slug' ) : '',
 					'group' => $group,
 				];
 			}
@@ -105,8 +106,12 @@ final class FieldGroups {
 	/**
 	 * Groups matching a product.
 	 *
+	 * Locale targeting (Polylang): groups with an assigned language render
+	 * only for that language; language-less groups render everywhere. This
+	 * mirrors the behaviour the legacy theme integration provided for WAPF.
+	 *
 	 * @param \WC_Product $product Product.
-	 * @return array<int,array{id:int,title:string,group:FieldGroup}>
+	 * @return array<int,array{id:int,title:string,lang:string,group:FieldGroup}>
 	 */
 	public static function for_product( \WC_Product $product ): array {
 		$product_id = $product->get_parent_id() ? $product->get_parent_id() : $product->get_id();
@@ -120,8 +125,13 @@ final class FieldGroups {
 			'product_tag' => wc_get_product_term_ids( $product_id, 'product_tag' ),
 		];
 
+		$current_lang = function_exists( 'pll_current_language' ) ? pll_current_language( 'slug' ) : '';
+
 		$matching = [];
 		foreach ( self::all() as $entry ) {
+			if ( $current_lang && ! empty( $entry['lang'] ) && $entry['lang'] !== $current_lang ) {
+				continue;
+			}
 			if ( Evaluator::group_matches( $entry['group']->data, $has_terms, $product_id ) ) {
 				$matching[] = $entry;
 			}
