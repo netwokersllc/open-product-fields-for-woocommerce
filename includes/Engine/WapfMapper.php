@@ -214,7 +214,7 @@ final class WapfMapper {
 				$changed = true;
 			}
 		}
-		if ( '' === $formula || null === $formula ) {
+		if ( '' === $formula ) {
 			return null;
 		}
 		// Validate by round-tripping through the safe evaluator with sample vars.
@@ -343,7 +343,7 @@ final class WapfMapper {
 					continue;
 				}
 
-				$negate = '!' === $condition[0] ?? false;
+				$negate = isset( $condition[0] ) && '!' === $condition[0];
 				$cond   = ltrim( $condition, '!' );
 
 				$map = [

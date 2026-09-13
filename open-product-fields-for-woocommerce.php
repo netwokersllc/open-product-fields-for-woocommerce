@@ -8,7 +8,7 @@
  * Author URI: https://github.com/ssthormess
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: opf
+ * Text Domain: open-product-fields-for-woocommerce
  * Domain Path: /languages
  * Requires at least: 6.5
  * Tested up to: 7.1
@@ -96,6 +96,6 @@ function opf_boot(): void {
  */
 function opf_wc_missing_notice(): void {
 	echo '<div class="notice notice-error"><p>';
-	echo esc_html__( 'Open Product Fields requires WooCommerce to be installed and active.', 'opf' );
+	echo esc_html__( 'Open Product Fields requires WooCommerce to be installed and active.', 'open-product-fields-for-woocommerce' );
 	echo '</p></div>';
 }

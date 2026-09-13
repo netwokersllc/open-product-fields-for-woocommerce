@@ -36,8 +36,8 @@ final class Importer {
 	 */
 	public static function register_page(): void {
 		add_management_page(
-			__( 'Import WAPF Fields', 'opf' ),
-			__( 'Import WAPF Fields', 'opf' ),
+			__( 'Import WAPF Fields', 'open-product-fields-for-woocommerce' ),
+			__( 'Import WAPF Fields', 'open-product-fields-for-woocommerce' ),
 			'manage_woocommerce',
 			'opf-import',
 			[ __CLASS__, 'render_page' ]
@@ -49,20 +49,20 @@ final class Importer {
 	 */
 	public static function render_page(): void {
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
-			wp_die( esc_html__( 'You are not allowed to run imports.', 'opf' ) );
+			wp_die( esc_html__( 'You are not allowed to run imports.', 'open-product-fields-for-woocommerce' ) );
 		}
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Import WAPF field groups', 'opf' ); ?></h1>
-			<p><?php esc_html_e( 'Converts Advanced Product Fields (WAPF) groups into Open Product Fields groups. Placement, choices and pricing are mapped automatically; anything that needs a human decision is flagged for review.', 'opf' ); ?></p>
+			<h1><?php esc_html_e( 'Import WAPF field groups', 'open-product-fields-for-woocommerce' ); ?></h1>
+			<p><?php esc_html_e( 'Converts Advanced Product Fields (WAPF) groups into Open Product Fields groups. Placement, choices and pricing are mapped automatically; anything that needs a human decision is flagged for review.', 'open-product-fields-for-woocommerce' ); ?></p>
 			<p>
 				<button type="button" class="button button-primary" id="opf-import-run"
 					data-nonce="<?php echo esc_attr( wp_create_nonce( 'opf_import' ) ); ?>">
-					<?php esc_html_e( 'Run import (dry run)', 'opf' ); ?>
+					<?php esc_html_e( 'Run import (dry run)', 'open-product-fields-for-woocommerce' ); ?>
 				</button>
 				<label style="margin-left:12px;">
 					<input type="checkbox" id="opf-import-commit" value="1" />
-					<?php esc_html_e( 'Write imported groups (uncheck = dry run)', 'opf' ); ?>
+					<?php esc_html_e( 'Write imported groups (uncheck = dry run)', 'open-product-fields-for-woocommerce' ); ?>
 				</label>
 			</p>
 			<pre id="opf-import-output" style="background:#fff;border:1px solid #ccd0d4;padding:12px;max-height:480px;overflow:auto;"></pre>
@@ -185,10 +185,10 @@ final class Importer {
 
 			$result = self::import_group(
 				$wapf,
-				$product->post_title . ' — ' . ( $wapf['fields'][0]['label'] ?? __( 'Fields', 'opf' ) ),
-				'meta:' . $row->post_id,
+				$product->post_title . ' — ' . ( $wapf['fields'][0]['label'] ?? __( 'Fields', 'open-product-fields-for-woocommerce' ) ),
+				'meta:' . $post_id,
 				$commit,
-				[ 'attach_product_ids' => [ (int) $row->post_id ] ]
+				[ 'attach_product_ids' => [ (int) $post_id ] ]
 			);
 			$report['groups'][] = $result;
 			if ( 'imported' === $result['result'] ) {

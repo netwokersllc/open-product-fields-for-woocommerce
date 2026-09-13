@@ -100,7 +100,7 @@ final class Evaluator {
 	 * empty-condition fall-through-to-false footgun is deliberately not replicated).
 	 *
 	 * @param array<string,mixed> $group       Normalized group data.
-	 * @param array<int,bool>     $has_terms   subject => set of term ids the product belongs to, e.g. ['product_cat' => [1,2]].
+	 * @param array<string, array<int|string>> $has_terms subject => term ids the product belongs to, e.g. ['product_cat' => [1,2]].
 	 * @param int                 $product_id  Current product id.
 	 */
 	public static function group_matches( array $group, array $has_terms, int $product_id ): bool {

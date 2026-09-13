@@ -31,8 +31,8 @@ final class CartIntegration {
 	 * Register hooks.
 	 */
 	public static function init(): void {
-		add_filter( 'woocommerce_add_to_cart_validation', [ __CLASS__, 'validate_add_to_cart' ], 10, 5 );
-		add_filter( 'woocommerce_add_cart_item_data', [ __CLASS__, 'attach' ], 10, 3 );
+		add_filter( 'woocommerce_add_to_cart_validation', [ __CLASS__, 'validate_add_to_cart' ], 10, 3 );
+		add_filter( 'woocommerce_add_cart_item_data', [ __CLASS__, 'attach' ], 10, 2 );
 		add_filter( 'woocommerce_get_cart_item_from_session', [ __CLASS__, 'restore_from_session' ], 10, 2 );
 		add_action( 'woocommerce_before_calculate_totals', [ __CLASS__, 'apply_prices' ], 20, 1 );
 		add_filter( 'woocommerce_get_item_data', [ __CLASS__, 'display_item_data' ], 10, 2 );
@@ -114,7 +114,7 @@ final class CartIntegration {
 			wc_add_notice( $error, 'error' );
 		}
 
-		return $passed && empty( $errors );
+		return empty( $errors );
 	}
 
 	/**
@@ -202,7 +202,7 @@ final class CartIntegration {
 
 			if ( abs( (float) $product->get_price( 'edit' ) - $target ) > 0.000001 ) {
 				$recursing = true;
-				$product->set_price( $target );
+				$product->set_price( (string) $target );
 				$recursing = false;
 			}
 		}
@@ -212,7 +212,7 @@ final class CartIntegration {
 	 * Compute total per-unit addons for a cart line.
 	 *
 	 * @param \WC_Product           $product  Product.
-	 * @param array<string,mixed>   $values   gid => fid => value(s).
+	 * @param array<int|string, array<string, mixed>> $values gid => fid => value(s).
 	 * @param float                 $base     Base unit price.
 	 * @param int                   $quantity Line quantity.
 	 */
@@ -283,7 +283,7 @@ final class CartIntegration {
 	 * Visible label/value pairs for a cart item's selections.
 	 *
 	 * @param \WC_Product         $product Product.
-	 * @param array<string,mixed> $values  Stored values.
+	 * @param array<int|string, array<string, mixed>> $values Stored values.
 	 * @return array<int,array{label:string,value:string}>
 	 */
 	public static function visible_selections( \WC_Product $product, array $values ): array {
@@ -326,7 +326,7 @@ final class CartIntegration {
 	 * @param array<string,mixed> $field Field data.
 	 * @param string|array        $raw   Stored value.
 	 */
-	private static function display_value( array $field, $raw ): string {
+	private static function display_value( array $field, $raw ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- called from visible_selections().
 		if ( in_array( $field['type'], [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {
 			$slugs = is_array( $raw ) ? $raw : [ $raw ];
 			$map   = [];
@@ -412,7 +412,7 @@ final class CartIntegration {
 	 *
 	 * @param \WC_Product $product Product.
 	 * @param array       $raw     Raw submitted array.
-	 * @return array<string,mixed>
+	 * @return array<int|string, array<string, mixed>>
 	 */
 	private static function sanitize_submitted( \WC_Product $product, array $raw ): array {
 		$values = [];
@@ -485,7 +485,7 @@ final class CartIntegration {
 	 * Validation errors for a product's submitted values.
 	 *
 	 * @param \WC_Product         $product Product.
-	 * @param array<string,mixed> $values  Sanitized values.
+	 * @param array<int|string, array<string, mixed>> $values Sanitized values.
 	 * @return string[]
 	 */
 	private static function validate_values( \WC_Product $product, array $values ): array {
@@ -494,14 +494,13 @@ final class CartIntegration {
 		foreach ( FieldGroups::for_product( $product ) as $entry ) {
 			$gid   = (string) $entry['id'];
 			$group = $entry['group'];
-			$given = (array) ( $values[ $gid ] ?? [] );
+			$given = $values[ $gid ] ?? [];
 
 			foreach ( $group->data['fields'] as $field ) {
 				if ( ! Evaluator::is_visible( $field, $given ) ) {
 					continue;
 				}
-				$value = $given[ $field['id'] ] ?? null;
-				$empty = null === $value || '' === $value || [] === $value;
+				$empty = ! array_key_exists( $field['id'], $given );
 
 				if ( $field['required'] && $empty ) {
 					$errors[] = sprintf( '"%s" is a required field.', $field['label'] );

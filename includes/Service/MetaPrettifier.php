@@ -77,15 +77,14 @@ final class MetaPrettifier {
 	 * @param string|array        $display_value Value WC is about to display.
 	 * @param object              $meta          Meta object.
 	 * @param \WC_Order_Item|null $item          Order item.
-	 * @return string|array
+	 * @return string
 	 */
 	public static function pretty_value( $display_value, $meta = null, $item = null ) {
-		$value = is_array( $display_value ) ? implode( ', ', $display_value ) : $display_value;
-
-		if ( ! is_string( $value ) || ! $item instanceof \WC_Order_Item_Product ) {
-			return $value;
+		if ( ! is_string( $display_value ) || ! $item instanceof \WC_Order_Item_Product ) {
+			return $display_value;
 		}
 
+		$value   = $display_value;
 		$trimmed = trim( $value );
 		if ( preg_match( '#^https?://\S+$#i', $trimmed ) ) {
 			$url = esc_url_raw( $trimmed );

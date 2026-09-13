@@ -40,11 +40,11 @@ final class FieldGroups {
 			'opf_field_group',
 			[
 				'labels'              => [
-					'name'          => __( 'Field Groups', 'opf' ),
-					'singular_name' => __( 'Field Group', 'opf' ),
-					'edit_item'     => __( 'Edit Field Group', 'opf' ),
-					'new_item'      => __( 'New Field Group', 'opf' ),
-					'search_items'  => __( 'Search Field Groups', 'opf' ),
+					'name'          => __( 'Field Groups', 'open-product-fields-for-woocommerce' ),
+					'singular_name' => __( 'Field Group', 'open-product-fields-for-woocommerce' ),
+					'edit_item'     => __( 'Edit Field Group', 'open-product-fields-for-woocommerce' ),
+					'new_item'      => __( 'New Field Group', 'open-product-fields-for-woocommerce' ),
+					'search_items'  => __( 'Search Field Groups', 'open-product-fields-for-woocommerce' ),
 				],
 				'public'              => false,
 				'show_ui'             => true,
@@ -166,7 +166,7 @@ final class FieldGroups {
 
 		$has_title = $post_id > 0 ? (string) get_post_field( 'post_title', $post_id ) : '';
 		if ( $post_id > 0 && '' === $title && '' === $has_title ) {
-			$fields['post_title'] = __( 'Field Group', 'opf' );
+			$fields['post_title'] = __( 'Field Group', 'open-product-fields-for-woocommerce' );
 		}
 
 		$id = wp_insert_post( wp_slash( $fields ), true );

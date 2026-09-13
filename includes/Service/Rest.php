@@ -87,14 +87,14 @@ final class Rest {
 	 *
 	 * @param \WP_REST_Request $request Request.
 	 */
-	public static function save_group( \WP_REST_Request $request ): \WP_REST_Response {
+	public static function save_group( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
 		$id    = (int) $request->get_param( 'id' );
 		$title = sanitize_text_field( (string) $request->get_param( 'title' ) );
 		$data  = (array) $request->get_param( 'data' );
 
 		$saved = FieldGroups::save( $id, new FieldGroup( $data ), [ 'title' => $title ] );
 		if ( ! $saved ) {
-			return new \WP_Error( 'opf_save_failed', __( 'Could not save the field group.', 'opf' ), [ 'status' => 500 ] );
+			return new \WP_Error( 'opf_save_failed', __( 'Could not save the field group.', 'open-product-fields-for-woocommerce' ), [ 'status' => 500 ] );
 		}
 
 		return rest_ensure_response(
@@ -112,13 +112,13 @@ final class Rest {
 	 *
 	 * @param \WP_REST_Request $request Request.
 	 */
-	public static function preview( \WP_REST_Request $request ): \WP_REST_Response {
+	public static function preview( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
 		$data       = (array) $request->get_param( 'data' );
 		$product_id = (int) $request->get_param( 'product_id' );
 		$product    = $product_id ? wc_get_product( $product_id ) : wc_get_product( wc_get_products( [ 'limit' => 1, 'return' => 'ids', 'status' => 'publish' ] )[0] ?? 0 );
 
 		if ( ! $product ) {
-			return new \WP_Error( 'opf_no_product', __( 'Create a product first to see a preview.', 'opf' ), [ 'status' => 404 ] );
+			return new \WP_Error( 'opf_no_product', __( 'Create a product first to see a preview.', 'open-product-fields-for-woocommerce' ), [ 'status' => 404 ] );
 		}
 
 		$group   = new FieldGroup( $data );

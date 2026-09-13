@@ -91,7 +91,7 @@ final class WapfParser {
 	 */
 	private static function read_value( string $s, int &$pos ) {
 		if ( self::$depth >= self::MAX_DEPTH ) {
-			throw new \RuntimeException( 'Max nesting depth exceeded' );
+			throw new \RuntimeException( 'Max nesting depth exceeded in payload' );
 		}
 		self::$depth++;
 		try {
@@ -167,7 +167,7 @@ final class WapfParser {
 				return null;
 
 			default:
-				throw new \RuntimeException( 'Unknown type at ' . $pos );
+				throw new \RuntimeException( 'Unexpected token in payload' );
 		}
 	}
 
@@ -214,7 +214,7 @@ final class WapfParser {
 			$search = $idx + 2;
 		}
 
-		throw new \RuntimeException( 'Unterminated string at ' . $pos );
+		throw new \RuntimeException( 'Unterminated string in payload' );
 	}
 
 	/**
@@ -230,7 +230,7 @@ final class WapfParser {
 			$pos++;
 		}
 		if ( '' === $num ) {
-			throw new \RuntimeException( 'Expected int at ' . $pos );
+			throw new \RuntimeException( 'Malformed length prefix in payload' );
 		}
 		if ( ':' === ( $s[ $pos ] ?? '' ) ) {
 			$pos++;

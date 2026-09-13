@@ -27,7 +27,7 @@ final class ImportPage {
 	 */
 	public static function action_links( array $links ): array {
 		$url = admin_url( 'tools.php?page=opf-import' );
-		array_unshift( $links, '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Import WAPF', 'opf' ) . '</a>' );
+		array_unshift( $links, '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Import WAPF', 'open-product-fields-for-woocommerce' ) . '</a>' );
 		return $links;
 	}
 }

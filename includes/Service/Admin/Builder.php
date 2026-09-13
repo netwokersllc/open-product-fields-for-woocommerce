@@ -37,8 +37,8 @@ final class Builder {
 	 * Add metaboxes.
 	 */
 	public static function add_meta_boxes(): void {
-		add_meta_box( 'opf-builder', __( 'Fields', 'opf' ), [ __CLASS__, 'render_builder' ], 'opf_field_group', 'normal', 'high' );
-		add_meta_box( 'opf-placement', __( 'Placement', 'opf' ), [ __CLASS__, 'render_placement' ], 'opf_field_group', 'side', 'high' );
+		add_meta_box( 'opf-builder', __( 'Fields', 'open-product-fields-for-woocommerce' ), [ __CLASS__, 'render_builder' ], 'opf_field_group', 'normal', 'high' );
+		add_meta_box( 'opf-placement', __( 'Placement', 'open-product-fields-for-woocommerce' ), [ __CLASS__, 'render_placement' ], 'opf_field_group', 'side', 'high' );
 	}
 
 	/**
@@ -56,7 +56,7 @@ final class Builder {
 			data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
 			data-rest="<?php echo esc_url( esc_url_raw( rest_url( 'opf/v1/groups' ) ) ); ?>"
 			data-preview-rest="<?php echo esc_url( esc_url_raw( rest_url( 'opf/v1/preview' ) ) ); ?>">
-			<noscript><?php esc_html_e( 'The field builder requires JavaScript.', 'opf' ); ?></noscript>
+			<noscript><?php esc_html_e( 'The field builder requires JavaScript.', 'open-product-fields-for-woocommerce' ); ?></noscript>
 		</div>
 		<?php
 	}
@@ -83,8 +83,8 @@ final class Builder {
 			}
 		}
 		?>
-		<p class="description"><?php esc_html_e( 'Leave both empty to show this group on every product.', 'opf' ); ?></p>
-		<p><strong><?php esc_html_e( 'Product categories', 'opf' ); ?></strong></p>
+		<p class="description"><?php esc_html_e( 'Leave both empty to show this group on every product.', 'open-product-fields-for-woocommerce' ); ?></p>
+		<p><strong><?php esc_html_e( 'Product categories', 'open-product-fields-for-woocommerce' ); ?></strong></p>
 		<select multiple size="8" id="opf-placement-cats" style="width:100%">
 			<?php foreach ( (array) $cat_terms as $term ) : ?>
 				<option value="<?php echo esc_attr( (string) $term->term_id ); ?>" <?php selected( in_array( (string) $term->term_id, $selected['product_cat'], true ) ); ?>>
@@ -92,7 +92,7 @@ final class Builder {
 				</option>
 			<?php endforeach; ?>
 		</select>
-		<p><strong><?php esc_html_e( 'Product tags', 'opf' ); ?></strong></p>
+		<p><strong><?php esc_html_e( 'Product tags', 'open-product-fields-for-woocommerce' ); ?></strong></p>
 		<select multiple size="8" id="opf-placement-tags" style="width:100%">
 			<?php foreach ( (array) $tag_terms as $term ) : ?>
 				<option value="<?php echo esc_attr( (string) $term->term_id ); ?>" <?php selected( in_array( (string) $term->term_id, $selected['product_tag'], true ) ); ?>>
@@ -100,7 +100,7 @@ final class Builder {
 				</option>
 			<?php endforeach; ?>
 		</select>
-		<p class="description"><?php esc_html_e( 'Placement changes are saved together with the fields.', 'opf' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Placement changes are saved together with the fields.', 'open-product-fields-for-woocommerce' ); ?></p>
 		<?php
 	}
 }

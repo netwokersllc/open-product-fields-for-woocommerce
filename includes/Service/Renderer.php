@@ -164,7 +164,7 @@ final class Renderer {
 		echo '<label class="opf-field__label" id="opf-label-' . esc_attr( $gid . '-' . $fid ) . '" for="' . esc_attr( $label_id ) . '">';
 		echo '<span class="opf-field__label-text' . ( $compat ? ' wapf-field-label' : '' ) . '">' . esc_html( $field['label'] );
 		if ( $field['required'] ) {
-			echo ' <abbr class="required" title="' . esc_attr__( 'required', 'opf' ) . '">*</abbr>';
+			echo ' <abbr class="required" title="' . esc_attr__( 'required', 'open-product-fields-for-woocommerce' ) . '">*</abbr>';
 		}
 		echo '</span>';
 		if ( '' !== $field['description'] ) {
@@ -334,7 +334,7 @@ final class Renderer {
 			return wc_price( $amount );
 		}
 		if ( 'percent' === $pricing['type'] ) {
-			return esc_html( (float) $pricing['amount'] ) . '%';
+			return esc_html( (string) (float) $pricing['amount'] ) . '%';
 		}
 		return '';
 	}
