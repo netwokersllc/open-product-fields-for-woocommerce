@@ -26,7 +26,8 @@
 .opf-col-50 { grid-column: span 2; }
 .opf-col-75 { grid-column: span 3; }
 
-.opf-field--hidden { display: none; }
+.opf-field--hidden,
+.opf-hide { display: none; }
 
 .opf-field__label {
 	display: flex;

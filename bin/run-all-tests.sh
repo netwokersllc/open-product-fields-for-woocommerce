@@ -76,7 +76,7 @@ for i in $(seq 1 "$ITERATIONS"); do
 	JAR=$(mktemp)
 	curl -s "$HTTP/product/e2e-matched-product/" -o /tmp/opf-http-page.html
 	PAGE_OK=1
-	for m in opf-field wapf-field-container data-wapf-price OPF_FIELDS wapf_config; do
+	for m in opf-field-container opf-field-url data-opf-price OPF_FIELDS opf_config; do
 		grep -q "$m" /tmp/opf-http-page.html || { PAGE_OK=0; echo "  HTTP FAIL: missing $m"; }
 	done
 	[ "$PAGE_OK" -eq 1 ] && echo "  suite ok: http-page"

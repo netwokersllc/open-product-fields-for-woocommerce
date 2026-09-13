@@ -100,20 +100,20 @@ const init = () => {
 				const def = fieldDefs[ fid ] || {};
 				const visible = isVisible( def, values );
 				fieldEl.classList.toggle( 'opf-field--hidden', ! visible );
-				fieldEl.classList.toggle( 'wapf-hide', ! visible );
+				fieldEl.classList.toggle( 'opf-hide', ! visible );
 				fieldEl.toggleAttribute( 'hidden', ! visible );
 			} );
 		};
 
 		const syncChecked = () => {
-			// Legacy theme integration keys swatch styling off `wapf-checked`
-			// on the .wapf-swatch wrapper, exactly as the legacy JS did.
-			groupEl.querySelectorAll( '.wapf-swatch' ).forEach( ( swatch ) => {
+			// Legacy theme integration keys swatch styling off `opf-checked`
+			// on the .opf-swatch wrapper, exactly as the legacy JS did.
+			groupEl.querySelectorAll( '.opf-swatch' ).forEach( ( swatch ) => {
 				const input = swatch.querySelector( 'input' );
 				if ( ! input ) {
 					return;
 				}
-				swatch.classList.toggle( 'wapf-checked', !! input.checked );
+				swatch.classList.toggle( 'opf-checked', !! input.checked );
 			} );
 		};
 

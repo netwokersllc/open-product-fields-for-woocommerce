@@ -100,14 +100,14 @@ final class Renderer {
 		$base_price = (float) $product->get_price( 'edit' );
 		$gids       = [];
 
-		echo '<div class="wapf" id="wapf_' . esc_attr( (string) $product->get_id() ) . '"><div class="wapf-wrapper">';
+		echo '<div class="opf" id="opf_' . esc_attr( (string) $product->get_id() ) . '"><div class="opf-wrapper">';
 
 		foreach ( $groups as $entry ) {
 			$gids[] = (string) $entry['id'];
 			self::render_group( $entry['id'], $entry['title'], $entry['group'], $base_price );
 		}
 
-		echo '<input type="hidden" value="' . esc_attr( implode( ',', $gids ) ) . '" name="wapf_field_groups"/>';
+		echo '<input type="hidden" value="' . esc_attr( implode( ',', $gids ) ) . '" name="opf_field_groups"/>';
 		echo '</div></div>';
 
 		self::render_totals( $product );
@@ -147,7 +147,7 @@ final class Renderer {
 			$values[ $field['id'] ] = self::default_value( $field );
 		}
 
-		echo '<div class="wapf-field-group label-' . esc_attr( 'above' === $group->data['labels_position'] ? 'above' : 'below' ) . '" data-group="' . esc_attr( (string) $gid ) . '" data-variables="[]" data-opf-group="' . esc_attr( (string) $gid ) . '">';
+		echo '<div class="opf-field-group label-' . esc_attr( 'above' === $group->data['labels_position'] ? 'above' : 'below' ) . '" data-group="' . esc_attr( (string) $gid ) . '" data-variables="[]" data-opf-group="' . esc_attr( (string) $gid ) . '">';
 
 		foreach ( $group->data['fields'] as $field ) {
 			self::render_field( $gid, $field, $values, $base_price );
@@ -170,22 +170,22 @@ final class Renderer {
 		$hidden   = ! Evaluator::is_visible( $field, $values );
 		$compat_t = self::COMPAT_TYPE_NAMES[ $field['type'] ] ?? 'text';
 
-		$classes = [ 'wapf-field-container', 'wapf-field-' . $compat_t, 'field-' . $fid ];
+		$classes = [ 'opf-field-container', 'opf-field-' . $compat_t, 'field-' . $fid ];
 		if ( '' !== $field['css_class'] ) {
 			$classes[] = $field['css_class'];
 		}
 		if ( $field['required'] ) {
-			$classes[] = 'wapf-required';
+			$classes[] = 'opf-required';
 		}
 		if ( $hidden ) {
-			$classes[] = 'wapf-hide';
+			$classes[] = 'opf-hide';
 		}
 
 		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-opf-field="' . esc_attr( $fid ) . '" style="width:' . esc_attr( (string) $field['width'] ) . '%;" for="' . esc_attr( $fid ) . '">';
 
-		echo '<div class="wapf-field-label"><label';
+		echo '<div class="opf-field-label"><label';
 		if ( ! in_array( $field['type'], [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {
-			echo ' for="wapf-' . esc_attr( $gid . '-' . $fid ) . '"';
+			echo ' for="opf-' . esc_attr( $gid . '-' . $fid ) . '"';
 		}
 		echo '><span>' . esc_html( $field['label'] ) . '</span> ';
 		if ( $field['required'] ) {
@@ -194,10 +194,10 @@ final class Renderer {
 		echo '</label></div>';
 
 		if ( '' !== $field['description'] ) {
-			echo '<div class="wapf-field-description">' . esc_html( $field['description'] ) . '</div>';
+			echo '<div class="opf-field-description">' . esc_html( $field['description'] ) . '</div>';
 		}
 
-		echo '<div class="wapf-field-input">';
+		echo '<div class="opf-field-input">';
 
 		if ( in_array( $field['type'], [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {
 			self::render_choices( $gid, $name, $field, $base_price );
@@ -221,7 +221,7 @@ final class Renderer {
 		$fid = $field['id'];
 
 		if ( 'select' === $field['type'] ) {
-			echo '<select name="' . esc_attr( $name ) . '" id="wapf-' . esc_attr( $gid . '-' . $fid ) . '" class="wapf-input input-' . esc_attr( $fid ) . '" autocomplete="off">';
+			echo '<select name="' . esc_attr( $name ) . '" id="opf-' . esc_attr( $gid . '-' . $fid ) . '" class="opf-input input-' . esc_attr( $fid ) . '" autocomplete="off">';
 			foreach ( $field['choices'] as $choice ) {
 				echo '<option value="' . esc_attr( $choice['slug'] ) . '"' . selected( $choice['selected'], true, false ) . '>'
 					. esc_html( $choice['label'] )
@@ -233,23 +233,23 @@ final class Renderer {
 
 		$multi = 'checkbox' === $field['type'];
 
-		echo '<div class="wapf-swatch-wrapper">';
-		echo '<input type="hidden" class="wapf-tf-h" data-fid="' . esc_attr( $fid ) . '" value="0" name="' . esc_attr( $name ) . '" />';
+		echo '<div class="opf-swatch-wrapper">';
+		echo '<input type="hidden" class="opf-tf-h" data-fid="' . esc_attr( $fid ) . '" value="0" name="' . esc_attr( $name ) . '" />';
 
 		foreach ( $field['choices'] as $choice ) {
-			$swatch_classes = [ 'wapf-swatch', 'wapf-swatch--text' ];
+			$swatch_classes = [ 'opf-swatch', 'opf-swatch--text' ];
 			if ( ! $multi ) {
-				$swatch_classes[] = 'wapf-single-select';
+				$swatch_classes[] = 'opf-single-select';
 			}
 			if ( $choice['selected'] ) {
-				$swatch_classes[] = 'wapf-checked';
+				$swatch_classes[] = 'opf-checked';
 			}
 			if ( 'none' !== $choice['pricing']['type'] ) {
 				$swatch_classes[] = 'has-pricing';
 			}
 
 			$attrs = sprintf(
-				'autocomplete="off" id="wapf-%1$s-%2$s-%3$s" name="%4$s" class="wapf-input input-%2$s" data-field-id="%2$s" value="%5$s" data-wapf-label="%6$s"%7$s%8$s%9$s',
+				'autocomplete="off" id="opf-%1$s-%2$s-%3$s" name="%4$s" class="opf-input input-%2$s" data-field-id="%2$s" value="%5$s" data-opf-label="%6$s"%7$s%8$s%9$s',
 				esc_attr( $gid ),
 				esc_attr( $fid ),
 				esc_attr( $choice['slug'] ),
@@ -273,9 +273,9 @@ final class Renderer {
 
 	/**
 	 * Legacy data attributes for the theme's live-total math, verbatim:
-	 *  - percent : data-wapf-price = percent amount
-	 *  - fixed   : data-wapf-price = amount
-	 *  - formula : data-wapf-price = raw legacy expression (theme evaluates it)
+	 *  - percent : data-opf-price = percent amount
+	 *  - fixed   : data-opf-price = amount
+	 *  - formula : data-opf-price = raw legacy expression (theme evaluates it)
 	 *
 	 * @param array<string,mixed> $pricing Pricing block.
 	 */
@@ -287,7 +287,7 @@ final class Renderer {
 			? (string) ( $pricing['formula_raw'] ?? $pricing['formula'] )
 			: (string) (float) $pricing['amount'];
 		$type  = 'formula' === $pricing['type'] ? 'fx' : $pricing['type'];
-		return sprintf( ' data-wapf-pricetype="%s" data-wapf-price="%s"', esc_attr( $type ), esc_attr( $price ) );
+		return sprintf( ' data-opf-pricetype="%s" data-opf-price="%s"', esc_attr( $type ), esc_attr( $price ) );
 	}
 
 	/**
@@ -300,7 +300,7 @@ final class Renderer {
 	private static function render_input( string $name, string $gid, array $field ): void {
 		$fid = $field['id'];
 		$shared = sprintf(
-			'data-field-id="%1$s" id="wapf-%2$s-%1$s"%3$s name="opf[%2$s][%1$s]" class="wapf-input input-%1$s" placeholder="%4$s" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"',
+			'data-field-id="%1$s" id="opf-%2$s-%1$s"%3$s name="opf[%2$s][%1$s]" class="opf-input input-%1$s" placeholder="%4$s" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"',
 			esc_attr( $fid ),
 			esc_attr( $gid ),
 			$field['required'] ? ' required' : '',
@@ -369,10 +369,10 @@ final class Renderer {
 		) {
 			$data_tax = 1;
 		}
-		echo '<div class="wapf-product-totals" data-product-id="' . esc_attr( (string) $product->get_id() ) . '" data-product-type="' . esc_attr( $product->get_type() ) . '" data-product-price="' . esc_attr( (string) $product->get_price() ) . '" data-tax="' . esc_attr( (string) $data_tax ) . '"><div class="wapf--inner">';
-		echo '<div><span>' . esc_html( $i18n['product_total'] ) . '</span><span class="wapf-total wapf-product-total price amount"></span></div>';
-		echo '<div><span>' . esc_html( $i18n['options_total'] ) . '</span><span class="wapf-total wapf-options-total price amount"></span></div>';
-		echo '<div><span>' . esc_html( $i18n['grand_total'] ) . '</span><span class="wapf-total wapf-grand-total price amount"></span></div>';
+		echo '<div class="opf-product-totals" data-product-id="' . esc_attr( (string) $product->get_id() ) . '" data-product-type="' . esc_attr( $product->get_type() ) . '" data-product-price="' . esc_attr( (string) $product->get_price() ) . '" data-tax="' . esc_attr( (string) $data_tax ) . '"><div class="opf--inner">';
+		echo '<div><span>' . esc_html( $i18n['product_total'] ) . '</span><span class="opf-total opf-product-total price amount"></span></div>';
+		echo '<div><span>' . esc_html( $i18n['options_total'] ) . '</span><span class="opf-total opf-options-total price amount"></span></div>';
+		echo '<div><span>' . esc_html( $i18n['grand_total'] ) . '</span><span class="opf-total opf-grand-total price amount"></span></div>';
 		echo '</div></div>';
 	}
 

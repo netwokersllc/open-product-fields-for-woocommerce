@@ -64,9 +64,9 @@ final class Assets {
 			);
 		}
 		if ( Renderer::compat() ) {
-			// Legacy theme integration reads this global for price formatting.
+			// Theme integration reads this global for price formatting (opf_config; wapf_config fallback lives in the theme JS).
 			wp_print_inline_script_tag(
-				'window.wapf_config = ' . wp_json_encode( self::compat_config() ) . ';'
+				'window.opf_config = ' . wp_json_encode( self::compat_config() ) . ';'
 			);
 		}
 		wp_enqueue_style( 'opf-frontend' );

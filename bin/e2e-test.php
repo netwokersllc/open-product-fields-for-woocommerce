@@ -261,9 +261,9 @@ $GLOBALS['product'] = $matched_product;
 ob_start();
 do_action( 'woocommerce_before_add_to_cart_button' );
 $compat_html = ob_get_clean();
-check( 'compat: wapf container classes rendered', false !== strpos( $compat_html, 'wapf-field-container' ) && false !== strpos( $compat_html, 'wapf-field-text-swatch' ) );
-check( 'compat: data-wapf-price attributes rendered', false !== strpos( $compat_html, 'data-wapf-price' ) );
-check( 'compat: selected swatch has wapf-checked', false !== strpos( $compat_html, 'wapf-checked' ) );
+check( 'compat: opf container classes rendered', false !== strpos( $compat_html, 'opf-field-container' ) && false !== strpos( $compat_html, 'opf-field-text-swatch' ) );
+check( 'compat: data-opf-price attributes rendered', false !== strpos( $compat_html, 'data-opf-price' ) );
+check( 'compat: selected swatch has opf-checked', false !== strpos( $compat_html, 'opf-checked' ) );
 $GLOBALS['product'] = null;
 
 // ------------------------------------- extra field types + multi-checkbox.
