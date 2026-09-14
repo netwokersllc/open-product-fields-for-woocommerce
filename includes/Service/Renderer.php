@@ -135,10 +135,11 @@ final class Renderer {
 				$registry[ $gid ][ $field['id'] ] = [
 					'type'         => $field['type'],
 					'conditionals' => $field['conditionals'],
-					'choices'      => array_map( static function ( $c ) {
-						return [
-							'slug'     => $c['slug'],
-							'pricing'  => [
+				'choices'      => array_map( static function ( $c ) {
+					return [
+						'slug'     => $c['slug'],
+						'label'    => $c['label'],
+						'pricing'  => [
 								'type'       => $c['pricing']['type'],
 								'amount'     => (float) $c['pricing']['amount'],
 								'formula'    => (string) $c['pricing']['formula'],
@@ -274,7 +275,7 @@ final class Renderer {
 			}
 
 			$attrs = sprintf(
-				'autocomplete="off" id="opf-%1$s-%2$s-%3$s" name="%4$s" class="opf-input input-%2$s" data-field-id="%2$s" value="%5$s" data-opf-label="%6$s"%7$s%8$s%9$s',
+				'autocomplete="off" id="opf-%1$s-%2$s-%3$s" name="%4$s" class="opf-input input-%2$s" data-field-id="%2$s" value="%5$s" data-opf-label="%6$s" data-wapf-label="%6$s"%7$s%8$s%9$s',
 				esc_attr( $gid ),
 				esc_attr( $fid ),
 				esc_attr( $choice['slug'] ),

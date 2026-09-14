@@ -38,6 +38,8 @@ final class CartIntegration {
 		add_filter( 'woocommerce_get_item_data', [ __CLASS__, 'display_item_data' ], 10, 2 );
 		add_action( 'woocommerce_checkout_create_order_line_item', [ __CLASS__, 'persist_order_item' ], 10, 4 );
 		add_filter( 'woocommerce_order_again_cart_item_data', [ __CLASS__, 'restore_order_again' ], 10, 3 );
+		// Hide internal OPF meta from admin/customer order item display.
+		add_filter( 'woocommerce_hidden_order_itemmeta', [ __CLASS__, 'hidden_order_meta' ] );
 		add_filter( 'woocommerce_store_api_add_to_cart_data', [ __CLASS__, 'capture_store_api' ], 10, 2 );
 	}
 
@@ -377,6 +379,18 @@ final class CartIntegration {
 			$item->add_meta_data( $selection['label'], $selection['value'] );
 		}
 		$item->add_meta_data( '_opf_fields', wp_json_encode( $values, JSON_UNESCAPED_UNICODE ), true );
+	}
+
+	/**
+	 * Restore selections on "order again".
+	 *
+	 * @param array                 $cart_item_data Cart item data being built.
+	 * @param \WC_Order_Item_Product $order_item    Order item.
+	 * @param \WC_Order             $order          Order.
+	 */
+	public static function hidden_order_meta( array $keys ): array {
+		$keys[] = '_opf_fields';
+		return array_unique( $keys );
 	}
 
 	/**

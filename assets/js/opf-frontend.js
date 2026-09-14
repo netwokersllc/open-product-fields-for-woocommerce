@@ -102,6 +102,20 @@ const init = () => {
 				fieldEl.classList.toggle( 'opf-field--hidden', ! visible );
 				fieldEl.classList.toggle( 'opf-hide', ! visible );
 				fieldEl.toggleAttribute( 'hidden', ! visible );
+
+				// Accordion header: mostrar la elección actual
+				const accValue = fieldEl.querySelector( '.acc-value' );
+				if ( accValue ) {
+					const v = values[ fid ];
+					const choices = def.choices || [];
+					if ( choices.length ) {
+						const slugs = Array.isArray( v ) ? v : [ v ];
+						const chosen = choices.find( ( c ) => slugs.includes( c.slug ) );
+						if ( chosen ) accValue.textContent = chosen.label;
+					} else if ( typeof v === 'string' && v.trim() ) {
+						accValue.textContent = v;
+					}
+				}
 			} );
 		};
 
