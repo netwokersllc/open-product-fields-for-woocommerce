@@ -390,6 +390,19 @@ final class CartIntegration {
 	 */
 	public static function hidden_order_meta( array $keys ): array {
 		$keys[] = '_opf_fields';
+		// Otros plugins que ensucian el display de órdenes
+		$keys = array_merge( $keys, [
+			'_nova_start_url',
+			'_nova_start_type',
+			'_nova_start_at',
+			'_nova_start_metric',
+			'_nova_start_count',
+			'_nova_start_label',
+			'_nova_start_name',
+			'_nova_start_snapshot',
+			'_wc_cog_item_cost',
+			'_wc_cog_item_total_cost',
+		] );
 		return array_unique( $keys );
 	}
 
