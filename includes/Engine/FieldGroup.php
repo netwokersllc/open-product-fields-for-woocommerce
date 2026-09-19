@@ -44,12 +44,51 @@ final class FieldGroup {
 	}
 
 	/**
+	 * Upgrade a persisted group to the current schema before normalization.
+	 *
+	 * Schema 0 represents groups written before OPF stored an explicit schema
+	 * number. Keeping this migration separate from normalize() gives later
+	 * schema changes one deterministic place to preserve old records.
+	 *
+	 * @param array<string,mixed> $data Persisted group data.
+	 * @return array<string,mixed>
+	 */
+	public static function migrate( array $data ): array {
+		$raw_schema = $data['schema'] ?? 0;
+		if ( ! is_int( $raw_schema ) && ! ( is_string( $raw_schema ) && ctype_digit( $raw_schema ) ) ) {
+			throw new \InvalidArgumentException( 'OPF field group schema must be a non-negative integer.' );
+		}
+
+		$schema = (int) $raw_schema;
+		if ( $schema > self::SCHEMA ) {
+			throw new \InvalidArgumentException( 'OPF field group schema is newer than this plugin version.' );
+		}
+
+		while ( $schema < self::SCHEMA ) {
+			switch ( $schema ) {
+				case 0:
+					// Legacy OPF groups had no explicit schema value.
+					$data['schema'] = 1;
+					$schema         = 1;
+					break;
+
+				default:
+					throw new \InvalidArgumentException( 'No OPF field group migration exists for schema ' . $schema . '.' );
+			}
+		}
+
+		return $data;
+	}
+
+	/**
 	 * Normalize raw data to the canonical shape.
 	 *
 	 * @param array<string,mixed> $data Raw data.
 	 * @return array<string,mixed>
 	 */
 	public static function normalize( array $data ): array {
+		$data = self::migrate( $data );
+
 		$fields = [];
 		foreach ( ( $data['fields'] ?? [] ) as $field ) {
 			if ( ! is_array( $field ) ) {
