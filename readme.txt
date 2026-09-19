@@ -14,7 +14,7 @@ Build custom product fields and add-ons for WooCommerce — free, open source, w
 
 == Description ==
 
-Open Product Fields lets you add custom fields and add-ons to your WooCommerce product pages: text inputs, choices, files, dates, and more, with conditional logic and per-option pricing.
+Open Product Fields lets you add custom fields and add-ons to WooCommerce product pages. Version 0.1.0 supports text inputs and choice controls, conditional visibility, and per-option pricing. See the [supported capabilities](https://github.com/netwokersllc/open-product-fields-for-woocommerce/blob/master/docs/CAPABILITIES.md) for the complete current scope and limitations.
 
 = Why "Open"? =
 
@@ -22,13 +22,13 @@ This plugin is 100% free and open source (GPLv2 or later). No license keys, no n
 
 **Features:**
 
-* Field types: text, textarea, URL, number, select, radio, checkbox, text swatch
+* Field types: text, textarea, URL, number, select, radio, checkbox, and text-only swatches
 * Conditional logic (show/hide fields based on other values)
 * Pricing per choice: fixed, percentage of product price, and math formulas — always computed server-side
 * Works on classic product pages AND block-based cart/checkout (Store API)
-* Per-field order item meta: queryable, exportable, HPOS-friendly
-* Migration tool: one-command import from Advanced Product Fields (WAPF), including recovery of corrupted legacy payloads (`wp opf import-wapf`)
-* Theme compatibility mode for themes built around legacy field plugins
+* Per-field order-item metadata stored through WooCommerce's order-item API; compatible with declared HPOS support
+* Migration tool: imports the supported WAPF field types and flags unsupported fields or repeaters for review; it can recover corrupted legacy payloads (`wp opf import-wapf`)
+* Optional legacy-markup compatibility mode for migrations from themes that expect WAPF-style classes and attributes
 * REST API (`opf/v1`) and dependency-free JavaScript builder
 * Zero asset weight on pages without fields; no jQuery
 
@@ -46,11 +46,11 @@ Yes. GPLv2 or later — use it on any number of sites, for any purpose, at no co
 
 = Does it work with my theme? =
 
-It renders fields through standard WooCommerce hooks, so any theme that follows WooCommerce template standards works out of the box. A theme compatibility mode (on by default) helps themes built around legacy field plugins.
+OPF renders fields through standard WooCommerce product hooks. Validate it with your theme before launch. Its optional compatibility mode emits the legacy WAPF-style markup used by followersya's migration; it is not a general compatibility guarantee for third-party themes or field plugins.
 
 = Migrating from Advanced Product Fields (WAPF)? =
 
-Run `wp opf import-wapf` (dry run first, then `--commit`). Placement rules, choices and pricing are mapped automatically; anything needing a human decision is flagged. See docs/MIGRATION.md.
+Run `wp opf import-wapf` (dry run first, then `--commit`). Supported placement rules, field types, choices, and pricing are mapped; unsupported field types, repeaters, and pricing are flagged for review. See docs/MIGRATION.md and docs/CAPABILITIES.md.
 
 == Changelog ==
 

@@ -38,7 +38,7 @@ through ~300 CSS rules and several JS modules.
 | File | Coupling | Action |
 | --- | --- | --- |
 | `wapf-ajax-fix.php` | Patches WAPF's admin-ajax endpoint | Delete with WAPF. |
-| `nova-wapf-multilingual-fix.php` | Locale-targeting via `wapf/product_field_groups` | Port behaviour to `opf/product_field_groups` (equivalent filter exists in OPF's repository layer), then delete. |
+| `nova-wapf-multilingual-fix.php` | Locale-targeting via `wapf/product_field_groups` | Add and test an OPF extension point for this behaviour before deleting the WAPF-specific fix; OPF 0.1.0 has no equivalent `opf/product_field_groups` filter. |
 | `e2e-login.php` | Adds `wapf/skip_*_validation` filters for E2E traffic | Replace with OPF equivalents (`opf_skip_validation`) — needs a small OPF addition first. |
 | `nova-youtube-startcount.php`, `nova-spotify-start-count.php` | Read `_wapf_meta` from **historical order items** | Update to read `_opf_fields` first, falling back to `_wapf_meta`. Do not delete the fallback while pre-migration orders exist. |
 | `wmc-cache-currency-detect.php`, `nova-social-preview.php`, `nova-spotify/nova-youtube` frontend | Comments/DOM reads referencing WAPF | Retarget selectors/comments during Phase 3. |

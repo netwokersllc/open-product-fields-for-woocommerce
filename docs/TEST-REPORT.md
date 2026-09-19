@@ -1,4 +1,8 @@
-# OPF Test Report — September 12, 2026 (final)
+# OPF Historical Test Report — September 12, 2026
+
+This is a record of the followersya cutover test campaign, not a current
+release compatibility guarantee. Refer to [CAPABILITIES.md](CAPABILITIES.md)
+for the implemented OPF 0.1.0 feature set and its exclusions.
 
 Full-suite stability: **multiple consecutive all-green iterations** via the
 single runner `bin/run-all-tests.sh <site> <export.json> [iterations]`
@@ -34,10 +38,11 @@ zero flakes.**
    pre-unserialized meta arrays — all found by earlier test phases, all
    fixed with regression coverage.
 
-## What automation has NOT covered
+## What this test campaign did not establish
 
-Nothing functional remains untested in this environment. The only things a
-human must still do are judgment calls, not tests of known behavior:
+This campaign did not establish support for capabilities outside
+`CAPABILITIES.md`, including unimplemented field types and third-party
+integrations. The remaining followersya rollout work also required:
 
 - Look at the pages (visual/polish sign-off — screenshots from the browser
   run are in `/tmp/ui-*.png` during the test run).

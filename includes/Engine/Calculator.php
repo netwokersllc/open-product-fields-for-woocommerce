@@ -3,7 +3,7 @@
  * Server-side pricing engine. The only place addon money is computed.
  *
  * Semantics (documented contract):
- *  - Every pricing amount is PER UNIT of the cart line quantity.
+ *  - Fixed pricing is flat per cart line unless its per_unit flag is enabled.
  *  - percent : unit_price * amount / 100
  *  - fixed   : amount (shop currency; currency plugins may convert via opf_fixed_price filter)
  *  - formula : expression over [price] (base unit price), [addons] (addons computed

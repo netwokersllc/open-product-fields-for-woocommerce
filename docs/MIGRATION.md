@@ -4,7 +4,11 @@ Field groups live in the **site's own database**, not in either plugin. The
 importer copies them into OPF's own storage; the originals are untouched
 until the separate deletion step (see `WAPF-DELETION.md`).
 
-## Verified status (Sept 2026)
+## Historical verification record (Sept 2026)
+
+The following results record the followersya cutover test phase. They are not
+a general compatibility claim or a substitute for validating a new OPF
+release. The implemented feature scope is [CAPABILITIES.md](CAPABILITIES.md).
 
 Evidence from this repository's test phase (disposable WP 7.1 + WooCommerce
 11.1 environment):
@@ -59,9 +63,10 @@ this point: deactivate OPF, re-activate WAPF — no shared data was modified.
 
 De-WAPF the codebase (inventory in `WAPF-DELETION.md`):
 
-- `themes/framework/modules/wapf.php` → port the Polylang locale-targeting
-  behaviour to an `opf/product_field_groups` filter in OPF, then retire the
-  WAPF-specific parts.
+- `themes/framework/modules/wapf.php` → add and test an OPF extension point
+  for the required Polylang locale-targeting behaviour before retiring the
+  WAPF-specific parts. OPF 0.1.0 does not provide an
+  `opf/product_field_groups` filter.
 - Theme CSS (`field-accordion.css`, `product.css`, `pro.css`) → retarget
   `.wapf-*` selectors to `.opf-*`, or keep compat mode.
 - Theme JS (`quantity.js`, `form-shell.js`, `field-accordion.js`,
