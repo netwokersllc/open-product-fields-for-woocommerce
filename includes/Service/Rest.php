@@ -92,7 +92,13 @@ final class Rest {
 		$title = sanitize_text_field( (string) $request->get_param( 'title' ) );
 		$data  = (array) $request->get_param( 'data' );
 
-		$saved = FieldGroups::save( $id, new FieldGroup( $data ), [ 'title' => $title ] );
+		try {
+			$group = new FieldGroup( $data );
+		} catch ( \InvalidArgumentException $e ) {
+			return new \WP_Error( 'opf_invalid_group', $e->getMessage(), [ 'status' => 400 ] );
+		}
+
+		$saved = FieldGroups::save( $id, $group, [ 'title' => $title ] );
 		if ( ! $saved ) {
 			return new \WP_Error( 'opf_save_failed', __( 'Could not save the field group.', 'open-product-fields-for-woocommerce' ), [ 'status' => 500 ] );
 		}
@@ -121,7 +127,11 @@ final class Rest {
 			return new \WP_Error( 'opf_no_product', __( 'Create a product first to see a preview.', 'open-product-fields-for-woocommerce' ), [ 'status' => 404 ] );
 		}
 
-		$group = new FieldGroup( $data );
+		try {
+			$group = new FieldGroup( $data );
+		} catch ( \InvalidArgumentException $e ) {
+			return new \WP_Error( 'opf_invalid_group', $e->getMessage(), [ 'status' => 400 ] );
+		}
 
 		ob_start();
 		Renderer::render_group(
