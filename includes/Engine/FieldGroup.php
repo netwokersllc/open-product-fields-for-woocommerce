@@ -22,7 +22,7 @@ final class FieldGroup {
 	/**
 	 * Supported field types.
 	 */
-	public const FIELD_TYPES = [ 'text', 'textarea', 'url', 'number', 'select', 'radio', 'checkbox', 'swatch' ];
+	public const FIELD_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'toggle', 'select', 'radio', 'checkbox', 'swatch' ];
 
 	/**
 	 * Supported pricing types.

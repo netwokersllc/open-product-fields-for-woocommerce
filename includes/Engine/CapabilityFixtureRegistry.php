@@ -77,6 +77,88 @@ final class CapabilityFixtureRegistry {
 				],
 				'supported_flows' => self::FLOWS,
 			],
+			'WAPF-FIELD-EMAIL' => [
+				'ledger_id' => 'WAPF-FIELD-EMAIL',
+				'title'     => 'Email field lifecycle',
+				'field_group' => [
+					'schema' => 1,
+					'fields' => [
+						[
+							'id'       => 'contact-email',
+							'label'    => 'Contact email',
+							'type'     => 'email',
+							'required' => true,
+						],
+					],
+				],
+				'expected_normalization' => [
+					'schema' => 1,
+					'fields' => [
+						[
+							'id'           => 'contact-email',
+							'label'        => 'Contact email',
+							'description'  => '',
+							'type'         => 'email',
+							'required'     => true,
+							'width'        => 100,
+							'css_class'    => '',
+							'placeholder'  => '',
+							'choices'      => [],
+							'pricing'      => [ 'type' => 'none', 'amount' => 0.0, 'formula' => '', 'formula_raw' => '', 'per_unit' => true ],
+							'conditionals' => [],
+						],
+					],
+					'rule_groups'     => [],
+					'mark_required'   => true,
+					'labels_position' => 'above',
+				],
+				'expected_result' => [
+					'submitted_values' => [ 'contact-email' => 'ada@example.test' ],
+					'addon_per_unit'  => 0.0,
+				],
+				'supported_flows' => self::FLOWS,
+			],
+			'WAPF-FIELD-TOGGLE' => [
+				'ledger_id' => 'WAPF-FIELD-TOGGLE',
+				'title'     => 'Toggle field lifecycle',
+				'field_group' => [
+					'schema' => 1,
+					'fields' => [
+						[
+							'id'       => 'gift-wrap',
+							'label'    => 'Gift wrap',
+							'type'     => 'toggle',
+							'required' => false,
+						],
+					],
+				],
+				'expected_normalization' => [
+					'schema' => 1,
+					'fields' => [
+						[
+							'id'           => 'gift-wrap',
+							'label'        => 'Gift wrap',
+							'description'  => '',
+							'type'         => 'toggle',
+							'required'     => false,
+							'width'        => 100,
+							'css_class'    => '',
+							'placeholder'  => '',
+							'choices'      => [],
+							'pricing'      => [ 'type' => 'none', 'amount' => 0.0, 'formula' => '', 'formula_raw' => '', 'per_unit' => true ],
+							'conditionals' => [],
+						],
+					],
+					'rule_groups'     => [],
+					'mark_required'   => true,
+					'labels_position' => 'above',
+				],
+				'expected_result' => [
+					'submitted_values' => [ 'gift-wrap' => '0' ],
+					'addon_per_unit'  => 0.0,
+				],
+				'supported_flows' => self::FLOWS,
+			],
 			'WAPF-FIELD-SWATCH-TEXT' => [
 				'ledger_id' => 'WAPF-FIELD-SWATCH-TEXT',
 				'title'     => 'Priced text swatch lifecycle',

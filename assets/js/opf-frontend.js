@@ -138,7 +138,9 @@ const init = () => {
 			}
 			const fid = fieldEl.getAttribute( 'data-opf-field' );
 			const input = event.target;
-			if ( input.type === 'checkbox' && input.name.endsWith( '[]' ) ) {
+			if ( fieldDefs[ fid ] && fieldDefs[ fid ].type === 'toggle' ) {
+				values[ fid ] = input.checked ? '1' : '0';
+			} else if ( input.type === 'checkbox' && input.name.endsWith( '[]' ) ) {
 				values[ fid ] = Array.from(
 					groupEl.querySelectorAll(
 						'[data-opf-field="' + fid + '"] input:checked'

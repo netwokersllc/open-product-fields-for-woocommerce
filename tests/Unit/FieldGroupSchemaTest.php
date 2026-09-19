@@ -27,4 +27,18 @@ final class FieldGroupSchemaTest extends TestCase {
 
 		FieldGroup::normalize( [ 'schema' => FieldGroup::SCHEMA + 1, 'fields' => [] ] );
 	}
+
+	public function test_email_and_toggle_are_canonical_field_types(): void {
+		$group = FieldGroup::normalize(
+			[
+				'fields' => [
+					[ 'id' => 'contact', 'label' => 'Contact email', 'type' => 'email' ],
+					[ 'id' => 'gift-wrap', 'label' => 'Gift wrap', 'type' => 'toggle' ],
+				],
+			]
+		);
+
+		$this->assertSame( 'email', $group['fields'][0]['type'] );
+		$this->assertSame( 'toggle', $group['fields'][1]['type'] );
+	}
 }

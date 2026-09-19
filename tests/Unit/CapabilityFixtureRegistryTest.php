@@ -18,6 +18,8 @@ final class CapabilityFixtureRegistryTest extends TestCase {
 		$this->assertArrayHasKey( 'WAPF-FIELD-SWATCH-TEXT', $fixtures );
 		$this->assertSame( 'Text field lifecycle', $fixtures['WAPF-FIELD-TEXT']['title'] );
 		$this->assertSame( 3.0, $fixtures['WAPF-FIELD-SWATCH-TEXT']['expected_result']['addon_per_unit'] );
+		$this->assertSame( 'email', $fixtures['WAPF-FIELD-EMAIL']['expected_normalization']['fields'][0]['type'] );
+		$this->assertSame( 'toggle', $fixtures['WAPF-FIELD-TOGGLE']['expected_normalization']['fields'][0]['type'] );
 	}
 
 	public function test_registry_fixture_has_the_required_declarative_contract(): void {

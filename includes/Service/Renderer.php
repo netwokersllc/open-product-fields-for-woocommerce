@@ -28,8 +28,10 @@ final class Renderer {
 	private const COMPAT_TYPE_NAMES = [
 		'text'     => 'text',
 		'textarea' => 'textarea',
+		'email'    => 'email',
 		'url'      => 'url',
 		'number'   => 'number',
+		'toggle'   => 'toggle',
 		'select'   => 'select',
 		'radio'    => 'radio',
 		'checkbox' => 'checkbox',
@@ -340,8 +342,15 @@ final class Renderer {
 			case 'url':
 				echo '<input type="url" value="" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
 				break;
+			case 'email':
+				echo '<input type="email" value="" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
+				break;
 			case 'number':
 				echo '<input type="number" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
+				break;
+			case 'toggle':
+				echo '<input type="hidden" name="' . esc_attr( $name ) . '" value="0" />';
+				echo '<input type="checkbox" value="1" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
 				break;
 			default:
 				echo '<input type="text" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
@@ -410,6 +419,9 @@ final class Renderer {
 	 * @return string|array
 	 */
 	private static function default_value( array $field ) {
+		if ( 'toggle' === $field['type'] ) {
+			return '0';
+		}
 		if ( in_array( $field['type'], [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {
 			$selected = [];
 			foreach ( $field['choices'] as $choice ) {

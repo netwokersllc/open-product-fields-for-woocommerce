@@ -23,10 +23,10 @@ known absent in that baseline; `needs audit` has no established result.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `WAPF-FIELD-TEXT` | Single-line text | Free | `FREE` | Field registry | baseline supported | `capability/WAPF-FIELD-TEXT` | Required/default validation; cart, order, email, order-again. |
 | `WAPF-FIELD-TEXTAREA` | Multi-line text | Free | `FREE` | Field registry | baseline supported | `capability/WAPF-FIELD-TEXTAREA` | Safe newline preservation. |
-| `WAPF-FIELD-EMAIL` | Email with invalid-input error | Free | `FREE`, `PRODUCT` | Field registry | gap | `capability/WAPF-FIELD-EMAIL` | Server rejects malformed input. |
+| `WAPF-FIELD-EMAIL` | Email with invalid-input error | Free | `FREE`, `PRODUCT` | Field registry | supported | `capability/WAPF-FIELD-EMAIL` | Server rejects malformed input. |
 | `WAPF-FIELD-URL` | URL with invalid-input error | Free | `FREE`, `PRODUCT` | Field registry | baseline supported | `capability/WAPF-FIELD-URL` | Validation and safe output. |
 | `WAPF-FIELD-NUMBER` | Number with min/max and decimal/whole restrictions | Free | `FREE`, `PRODUCT` | Field registry | baseline supported | `capability/WAPF-FIELD-NUMBER` | Server bounds and precision. |
-| `WAPF-FIELD-TOGGLE` | True/false toggle | Free | `FREE`, `PRODUCT` | Field registry | gap | `capability/WAPF-FIELD-TOGGLE` | Checked and unchecked values. |
+| `WAPF-FIELD-TOGGLE` | True/false toggle | Free | `FREE`, `PRODUCT` | Field registry | supported | `capability/WAPF-FIELD-TOGGLE` | Checked is stored as `1`, unchecked as `0`; a required toggle must be checked. |
 | `WAPF-FIELD-SELECT` | Dropdown/select | Free | `FREE`, `PRODUCT` | Field registry | baseline supported | `capability/WAPF-FIELD-SELECT` | Published-option validation. |
 | `WAPF-FIELD-CHECKBOX` | Checkboxes with selection limits | Free | `FREE`, `PRODUCT` | Field registry | baseline supported | `capability/WAPF-FIELD-CHECKBOX` | Server min/max selection limits. |
 | `WAPF-FIELD-RADIO` | Radio group | Free | `FREE`, `PRODUCT` | Field registry | baseline supported | `capability/WAPF-FIELD-RADIO` | Keyboard-operable exclusive choice. |

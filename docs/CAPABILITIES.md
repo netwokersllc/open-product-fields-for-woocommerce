@@ -10,7 +10,9 @@ validation paths.
 
 | Area | Implemented behavior |
 | --- | --- |
-| Field types | `text`, `textarea`, `url`, `number`, `select`, `radio`, `checkbox`, and text-only `swatch` |
+| Field types | `text`, `textarea`, `email`, `url`, `number`, `toggle`, `select`, `radio`, `checkbox`, and text-only `swatch` |
+| Email | Browser email input plus server-side rejection of malformed non-empty values |
+| Toggle | Boolean input stored as `1` when checked and `0` when unchecked; a required toggle must be checked |
 | Choice behavior | Defaults, disabled choices, single-select controls, and multiple checkbox selections |
 | Conditions | Show or hide a field using `is`, `is_not`, `contains`, `greater`, `less`, `empty`, and `not_empty` rules; condition blocks support all/any logic |
 | Product placement | Product and product-term inclusion/exclusion rules |

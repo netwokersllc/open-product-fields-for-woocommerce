@@ -19,7 +19,7 @@
 	model.fields = model.fields || [];
 	model.rule_groups = model.rule_groups || [];
 
-	var TYPES = [ 'text', 'textarea', 'url', 'number', 'select', 'radio', 'checkbox', 'swatch' ];
+	var TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'toggle', 'select', 'radio', 'checkbox', 'swatch' ];
 	var PRICING = [ 'none', 'fixed', 'percent', 'formula' ];
 
 	function el( tag, attrs, children ) {

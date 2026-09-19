@@ -17,6 +17,7 @@ namespace OPF\Service;
 use OPF\Engine\Calculator;
 use OPF\Engine\Evaluator;
 use OPF\Engine\FieldGroup;
+use OPF\Engine\FieldValue;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -339,6 +340,11 @@ final class CartIntegration {
 	 * @param string|array        $raw   Stored value.
 	 */
 	private static function display_value( array $field, $raw ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- called from visible_selections().
+		if ( 'toggle' === $field['type'] ) {
+			return '1' === $raw
+				? __( 'Yes', 'open-product-fields-for-woocommerce' )
+				: __( 'No', 'open-product-fields-for-woocommerce' );
+		}
 		if ( in_array( $field['type'], [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {
 			$slugs = is_array( $raw ) ? $raw : [ $raw ];
 			$map   = [];
@@ -512,6 +518,10 @@ final class CartIntegration {
 			case 'textarea':
 				$text = sanitize_textarea_field( (string) $value );
 				return '' === trim( $text ) ? null : $text;
+			case 'email':
+				return FieldValue::sanitize( $field, sanitize_text_field( (string) $value ) );
+			case 'toggle':
+				return FieldValue::sanitize( $field, $value );
 			default:
 				$text = sanitize_text_field( (string) $value );
 				return '' === trim( $text ) ? null : $text;
@@ -537,9 +547,11 @@ final class CartIntegration {
 				if ( ! Evaluator::is_visible( $field, $given ) ) {
 					continue;
 				}
-				$empty = ! array_key_exists( $field['id'], $given );
-
-				if ( $field['required'] && $empty ) {
+				$provided = array_key_exists( $field['id'], $given );
+				$value    = $provided && ! is_array( $given[ $field['id'] ] ) ? (string) $given[ $field['id'] ] : null;
+				if ( in_array( $field['type'], [ 'email', 'toggle' ], true ) ) {
+					$errors = array_merge( $errors, FieldValue::validate( $field, $value, $provided ) );
+				} elseif ( $field['required'] && ! $provided ) {
 					$errors[] = sprintf( '"%s" is a required field.', $field['label'] );
 				}
 			}
