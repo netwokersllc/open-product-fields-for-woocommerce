@@ -82,9 +82,12 @@ Current source evidence:
 - `composer.json` has no runtime library dependencies; PHPUnit and its
   transitive packages are development-only and declare MIT/BSD licenses.
 - No separate third-party JS/CSS payloads were found under `assets/`.
-- `bin/build.sh` excludes `vendor/`, tests, and development files. This is
-  consistent with the zero-runtime-dependency manifest, but the final archive
-  still needs a contents/runtime inspection.
+- `bin/build.sh` at public commit `c2153f8` was run from a clean archive. It
+  produced 31 files / 245,569 bytes, including the GPL license, PHP runtime,
+  CSS, and JS; `bin/`, `docs/`, `vendor/`, `tests/`, and Composer manifests
+  were excluded. This inspected directory is baseline 0.1.0, not a 1.0
+  candidate; final install/runtime behavior and marketplace archive remain
+  unverified.
 - Public `HEAD` plugin version and readme stable tag both say 0.1.0. The current
   dirty `open-product-fields-for-woocommerce.php` changes its header and
   `OPF_VERSION` to 0.1.1 while `readme.txt` remains at 0.1.0. Preserve that
