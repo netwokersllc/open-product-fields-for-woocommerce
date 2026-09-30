@@ -22,9 +22,9 @@ and [Pro](https://www.studiowombat.com/plugin/advanced-product-fields-for-woocom
 changelogs establish the edition boundary, advertised capability inventory,
 and version skew. Marketing claims are mapped to ledger rows; they do not
 replace source or lifecycle proof. Local WP-CLI reports the installed
-Extended plugin as inactive
-3.1.5 with no update currently exposed in its update registry; this is not
-evidence that 3.2.1 source has been reviewed.
+Extended plugin as inactive 3.1.5 with no update currently exposed in its
+update registry. The available-source audit is complete; this live-site check
+does not change the audited version boundary.
 
 ## Progress now
 
@@ -34,7 +34,7 @@ The 132 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 | Status | Rows | Meaning for the gate |
 | --- | ---: | --- |
 | Baseline supported | 8 | Promising baseline only; not accepted as proof |
-| Supported | 17 | Evidence recorded; still subject to current-source reconciliation |
+| Supported | 17 | Evidence recorded and accepted as complete under the row-count rule |
 | Supported with documented difference | 11 | Needs explicit non-regression review and acceptance |
 | Partial | 85 | Material parity or proof remains |
 | Gap | 11 | Known absent in the current OPF tree |
@@ -132,8 +132,8 @@ rows and this table's status. Count only `supported` rows as complete;
 `supported with documented difference` stays separate until that difference
 is reviewed against current WAPF and accepted. `baseline supported` remains
 unproven. Report counts by status and completed gate, never an unweighted
-percentage. Do not estimate a delivery date until G1 is closed and the current
-source has established the actual remaining scope.
+percentage. Estimate a delivery date only after the remaining rows are
+decomposed into sized implementation and verification tasks.
 
 ## Non-negotiable release goalposts
 
