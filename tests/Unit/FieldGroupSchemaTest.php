@@ -41,4 +41,10 @@ final class FieldGroupSchemaTest extends TestCase {
 		$this->assertSame( 'email', $group['fields'][0]['type'] );
 		$this->assertSame( 'toggle', $group['fields'][1]['type'] );
 	}
+
+	public function test_date_is_a_canonical_field_type(): void {
+		$group = FieldGroup::normalize( [ 'fields' => [ [ 'id' => 'delivery-date', 'label' => 'Delivery date', 'type' => 'date' ] ] ] );
+
+		$this->assertSame( 'date', $group['fields'][0]['type'] );
+	}
 }

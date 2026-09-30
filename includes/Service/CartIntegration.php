@@ -521,6 +521,8 @@ final class CartIntegration {
 				return '' === trim( $text ) ? null : $text;
 			case 'email':
 				return FieldValue::sanitize( $field, sanitize_text_field( (string) $value ) );
+			case 'date':
+				return FieldValue::sanitize( $field, sanitize_text_field( (string) $value ) );
 			case 'toggle':
 				return FieldValue::sanitize( $field, $value );
 			default:
@@ -550,7 +552,7 @@ final class CartIntegration {
 				}
 				$provided = array_key_exists( $field['id'], $given );
 				$value    = $provided && ! is_array( $given[ $field['id'] ] ) ? (string) $given[ $field['id'] ] : null;
-				if ( in_array( $field['type'], [ 'email', 'toggle' ], true ) ) {
+				if ( in_array( $field['type'], [ 'email', 'date', 'toggle' ], true ) ) {
 					$errors = array_merge( $errors, FieldValue::validate( $field, $value, $provided ) );
 				} elseif ( $field['required'] && ! $provided ) {
 					$errors[] = sprintf( '"%s" is a required field.', $field['label'] );

@@ -26,6 +26,15 @@ final class FieldValueTest extends TestCase {
 		$this->assertSame( [], FieldValue::validate( $field, null, false ) );
 	}
 
+	public function test_date_accepts_only_real_iso_calendar_dates(): void {
+		$field = [ 'type' => 'date', 'label' => 'Delivery date', 'required' => false ];
+
+		$this->assertSame( '2026-09-30', FieldValue::sanitize( $field, ' 2026-09-30 ' ) );
+		$this->assertSame( [], FieldValue::validate( $field, '2026-09-30', true ) );
+		$this->assertSame( [ '"Delivery date" must be a valid date.' ], FieldValue::validate( $field, '2026-02-30', true ) );
+		$this->assertSame( [ '"Delivery date" must be a valid date.' ], FieldValue::validate( $field, '30-09-2026', true ) );
+	}
+
 	public function test_toggle_normalizes_checked_and_unchecked_values_and_required_means_checked(): void {
 		$field = [ 'type' => 'toggle', 'label' => 'Gift wrap', 'required' => true ];
 

@@ -32,7 +32,7 @@ known absent in that baseline; `needs audit` has no established result.
 | `WAPF-FIELD-RADIO` | Radio group | Free | `FREE`, `PRODUCT` | Field registry | baseline supported | `capability/WAPF-FIELD-RADIO` | Keyboard-operable exclusive choice. |
 | `WAPF-FIELD-PARAGRAPH` | Static paragraph | Free | `FREE` | Content/layout | gap | `capability/WAPF-FIELD-PARAGRAPH` | Sanitized, non-submitted content. |
 | `WAPF-FIELD-UPLOAD` | Single/multiple file upload | Pro | `PRODUCT` | Upload service | gap | `capability/WAPF-FIELD-UPLOAD` | Count/type/size/access controls. |
-| `WAPF-FIELD-DATE` | Date picker | Pro | `PRODUCT` | Date field | gap | `capability/WAPF-FIELD-DATE` | Unambiguous date and server validation. |
+| `WAPF-FIELD-DATE` | Date picker | Pro | `PRODUCT` | Date field | partial | `capability/WAPF-FIELD-DATE` | OPF now exposes a native date input and rejects impossible or non-ISO dates server-side. Remaining: min/max and relative limits, disabled dates/weekdays, cutoff rules, configurable display format, and live cart/order proof. |
 | `WAPF-FIELD-SWATCH-TEXT` | Text swatches | Pro | `PRODUCT` | Choice presentation | baseline supported | `capability/WAPF-FIELD-SWATCH-TEXT` | Accessible choices and validation. |
 | `WAPF-FIELD-SWATCH-COLOUR` | Colour swatches | Pro | `PRODUCT` | Choice presentation | gap | `capability/WAPF-FIELD-SWATCH-COLOUR` | Accessible name and selected state. |
 | `WAPF-FIELD-SWATCH-IMAGE` | Image swatches | Pro | `PRODUCT` | Choice presentation | gap | `capability/WAPF-FIELD-SWATCH-IMAGE` | Alternative text and validation. |

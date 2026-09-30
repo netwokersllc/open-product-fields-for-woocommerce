@@ -348,6 +348,9 @@ final class Renderer {
 			case 'number':
 				echo '<input type="number" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
 				break;
+			case 'date':
+				echo '<input type="date" value="" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
+				break;
 			case 'toggle':
 				echo '<input type="hidden" name="' . esc_attr( $name ) . '" value="0" />';
 				echo '<input type="checkbox" value="1" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput

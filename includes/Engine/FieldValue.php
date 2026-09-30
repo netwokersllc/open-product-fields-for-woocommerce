@@ -61,6 +61,14 @@ final class FieldValue {
 			return [ sprintf( '"%s" must be a valid email address.', $label ) ];
 		}
 
+		if ( 'date' === $type ) {
+			$date   = \DateTimeImmutable::createFromFormat( '!Y-m-d', $value, new \DateTimeZone( 'UTC' ) );
+			$errors = \DateTimeImmutable::getLastErrors();
+			if ( ! $date instanceof \DateTimeImmutable || ( is_array( $errors ) && ( 0 !== $errors['warning_count'] || 0 !== $errors['error_count'] ) ) || $date->format( 'Y-m-d' ) !== $value ) {
+				return [ sprintf( '"%s" must be a valid date.', $label ) ];
+			}
+		}
+
 		return [];
 	}
 }
