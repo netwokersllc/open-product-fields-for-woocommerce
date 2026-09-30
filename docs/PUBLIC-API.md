@@ -30,6 +30,25 @@ non-numeric results, non-finite results, malformed arguments, and division by
 zero make the formula return zero. Callbacks run during server-side pricing,
 so they should be deterministic and avoid side effects.
 
+## Field groups
+
+- `opf_get_field_group_by_id( $id )` returns a readable published group (or a
+  draft the current user can read) as an `OPF\Engine\FieldGroup`, or `null`.
+- `opf_get_field_groups_by_ids( $ids )` returns found groups in requested
+  order as `FieldGroup` objects.
+- `opf_get_field_groups_of_product( $product )` accepts a product object or
+  ID and returns applicable groups after product, user, and language rules.
+- `opf_product_has_options( $product )` reports whether applicable groups
+  exist.
+- `opf_display_field_groups_for_product( $product )` returns the same markup
+  as the WooCommerce product hook; it may enqueue the required frontend assets.
+- `opf_fieldgroup_to_array( $group )` returns canonical normalized data.
+  `opf_array_to_fieldgroup( $data )` validates and normalizes it into a
+  `FieldGroup` object.
+
+These helpers use OPF post IDs and data shapes. They do not accept WAPF's
+product-local `p_<product-id>` IDs or WAPF model objects.
+
 This is OPF's stable numeric callback contract. WAPF's beta
 `wapf_add_formula_function()` callback receives raw string arguments and a
 different context; this helper does not claim source-compatible callback

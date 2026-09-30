@@ -126,6 +126,33 @@ final class Renderer {
 	}
 
 	/**
+	 * Render fields for a specific product into a string for public integrations.
+	 *
+	 * @param \WC_Product $product Product.
+	 */
+	public static function render_for_product( \WC_Product $product ): string {
+		$had_product = array_key_exists( 'product', $GLOBALS );
+		$previous    = $GLOBALS['product'] ?? null;
+		$level       = ob_get_level();
+		$GLOBALS['product'] = $product;
+		ob_start();
+		try {
+			self::render();
+			$html = (string) ob_get_contents();
+		} finally {
+			while ( ob_get_level() > $level ) {
+				ob_end_clean();
+			}
+			if ( $had_product ) {
+				$GLOBALS['product'] = $previous;
+			} else {
+				unset( $GLOBALS['product'] );
+			}
+		}
+		return $html;
+	}
+
+	/**
 	 * Client registry: gid => fid => {type, conditionals}.
 	 *
 	 * @param array<int,array{id:int,title:string,lang:string,group:FieldGroup}> $groups Groups.

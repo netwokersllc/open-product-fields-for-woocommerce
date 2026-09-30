@@ -23,6 +23,7 @@ if ( ! defined( 'OPF_FILE' ) ) {
 
 require_once OPF_DIR . 'includes/Autoloader.php';
 require_once OPF_DIR . 'includes/api/formula-functions.php';
+require_once OPF_DIR . 'includes/api/field-groups.php';
 
 if ( ! function_exists( 'get_option' ) ) {
 	function get_option( string $option, $default = false ) {

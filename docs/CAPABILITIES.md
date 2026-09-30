@@ -19,7 +19,7 @@ validation paths.
 | Pricing | No price, fixed amount, percentage of product price, or safe arithmetic formula. The server calculates the cart price. Fixed prices are flat per line unless `per_unit` is enabled; percentage and formula prices are per unit. |
 | Commerce flow | Classic product-form add to cart plus Store API add to cart; cart, block cart/checkout display, order-item storage, and order-again restoration |
 | WooCommerce features | The plugin declares compatibility with HPOS and cart/checkout blocks |
-| Administration | Field-group builder, authenticated `opf/v1` REST endpoints, and WAPF import command |
+| Administration | Field-group builder, authenticated `opf/v1` REST endpoints, public field-group PHP helpers, numeric formula-function registration, and WAPF import command |
 | WAPF import | Maps the supported field types and supported pricing. Unsupported types, repeaters, and unsupported pricing are omitted from the imported group and recorded for review. |
 
 ## Not implemented in 0.1.0
