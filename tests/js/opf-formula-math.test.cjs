@@ -54,4 +54,6 @@ test('WAPF if/and/or and comparisons work with nested numeric and field conditio
 	assert.equal(evaluate('if([field.color] = Red; 10; 20)', { color: 'Red' }), 10);
 	assert.equal(evaluate('if([field.color] != Red; 10; 20)', { color: 'Red' }), 20);
 	assert.equal(evaluate('if([field.color] = [field.finish]; 5; 9)', { color: 'Blue', finish: 'Blue' }), 5);
+	assert.equal(evaluate('if([field.color] > Blue; 10; 20)', { color: 'Red' }), 10);
+	assert.equal(evaluate('if([field.color] <= [field.finish]; 10; 20)', { color: 'Blue', finish: 'Blue' }), 10);
 });

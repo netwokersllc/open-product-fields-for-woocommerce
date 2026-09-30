@@ -97,6 +97,8 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( 10.0, Calculator::evaluate_formula( 'if([field.color] = Red; 10; 20)', 10.0, 1, 0.0, '', null, [ 'color' => 'Red' ] ) );
 		$this->assertSame( 20.0, Calculator::evaluate_formula( 'if([field.color] != Red; 10; 20)', 10.0, 1, 0.0, '', null, [ 'color' => 'Red' ] ) );
 		$this->assertSame( 5.0, Calculator::evaluate_formula( 'if([field.color] = [field.finish]; 5; 9)', 10.0, 1, 0.0, '', null, [ 'color' => 'Blue', 'finish' => 'Blue' ] ) );
+		$this->assertSame( 10.0, Calculator::evaluate_formula( 'if([field.color] > Blue; 10; 20)', 10.0, 1, 0.0, '', null, [ 'color' => 'Red' ] ) );
+		$this->assertSame( 10.0, Calculator::evaluate_formula( 'if([field.color] <= [field.finish]; 10; 20)', 10.0, 1, 0.0, '', null, [ 'color' => 'Blue', 'finish' => 'Blue' ] ) );
 	}
 
 	public function test_formula_safety_garbage_yields_zero(): void {

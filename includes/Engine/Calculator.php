@@ -151,7 +151,7 @@ final class Calculator {
 	public static function evaluate_formula( string $formula, float $price, int $qty, float $addons, string $val = '', ?string $today = null, array $field_values = [], int $product_id = 0 ): float {
 		$formula = ACFFormula::resolve( $formula, max( 0, $product_id ) );
 		$formula = preg_replace_callback(
-			'/\[field\.([a-zA-Z0-9_-]+)\]\s*(==|!=|=)\s*(?:"([^"]*)"|\'([^\']*)\'|([^,;()]+))/i',
+			'/\[field\.([a-zA-Z0-9_-]+)\]\s*(==|!=|>=|<=|=|>|<)\s*(?:"([^"]*)"|\'([^\']*)\'|([^,;()]+))/i',
 			static function ( array $match ) use ( $field_values ): string {
 				$left  = $field_values[ $match[1] ] ?? $field_values[ strtolower( $match[1] ) ] ?? null;
 				$right = '' !== $match[3] ? $match[3] : ( '' !== $match[4] ? $match[4] : trim( $match[5] ) );
@@ -160,10 +160,33 @@ final class Calculator {
 					$right       = is_scalar( $right_value ) ? (string) $right_value : '';
 				}
 				$left = is_scalar( $left ) ? (string) $left : '';
-				$equal = is_numeric( $left ) && is_numeric( $right )
-					? (float) $left === (float) $right
-					: $left === $right;
-				return ( '!=' === $match[2] ? ! $equal : $equal ) ? '1' : '0';
+				$comparison = is_numeric( $left ) && is_numeric( $right )
+					? ( (float) $left <=> (float) $right )
+					: strcmp( $left, $right );
+				switch ( $match[2] ) {
+					case '=':
+					case '==':
+						$matched = 0 === $comparison;
+						break;
+					case '!=':
+						$matched = 0 !== $comparison;
+						break;
+					case '>':
+						$matched = $comparison > 0;
+						break;
+					case '<':
+						$matched = $comparison < 0;
+						break;
+					case '>=':
+						$matched = $comparison >= 0;
+						break;
+					case '<=':
+						$matched = $comparison <= 0;
+						break;
+					default:
+						$matched = false;
+				}
+				return $matched ? '1' : '0';
 			},
 			$formula
 		);

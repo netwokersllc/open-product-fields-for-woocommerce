@@ -466,7 +466,7 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
     return { weekday: date.getUTCDay(), month, timestamp: date.getTime() };
   };
   const expr = String(formula)
-    .replace(/\[field\.([a-z0-9_-]+)\]\s*(==|!=|=)\s*(?:"([^"]*)"|'([^']*)'|([^,;()]+))/gi, (_, fieldId, operator, doubleQuoted, singleQuoted, bare) => {
+    .replace(/\[field\.([a-z0-9_-]+)\]\s*(==|!=|>=|<=|=|>|<)\s*(?:"([^"]*)"|'([^']*)'|([^,;()]+))/gi, (_, fieldId, operator, doubleQuoted, singleQuoted, bare) => {
       const leftValue = fieldValues[fieldId] ?? fieldValues[String(fieldId).toLowerCase()];
       const rightValueRaw = doubleQuoted !== undefined ? doubleQuoted : (singleQuoted !== undefined ? singleQuoted : bare.trim());
       const rightField = /^\[field\.([a-z0-9_-]+)\]$/i.exec(rightValueRaw);
@@ -475,10 +475,25 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
         : rightValueRaw;
       const left = leftValue == null || Array.isArray(leftValue) ? '' : String(leftValue);
       const right = rightValue == null || Array.isArray(rightValue) ? '' : String(rightValue);
-      const equal = left.trim() !== '' && right.trim() !== '' && Number.isFinite(Number(left)) && Number.isFinite(Number(right))
-        ? Number(left) === Number(right)
-        : left === right;
-      return String(operator === '!=' ? !equal : equal);
+      const numeric = left.trim() !== '' && right.trim() !== '' && Number.isFinite(Number(left)) && Number.isFinite(Number(right));
+      let comparison = 0;
+      if (numeric) {
+        comparison = Number(left) < Number(right) ? -1 : (Number(left) > Number(right) ? 1 : 0);
+      } else {
+        const leftPoints = Array.from(left, (char) => char.codePointAt(0));
+        const rightPoints = Array.from(right, (char) => char.codePointAt(0));
+        const count = Math.min(leftPoints.length, rightPoints.length);
+        for (let index = 0; index < count && comparison === 0; index++) {
+          comparison = leftPoints[index] < rightPoints[index] ? -1 : (leftPoints[index] > rightPoints[index] ? 1 : 0);
+        }
+        if (comparison === 0) comparison = leftPoints.length < rightPoints.length ? -1 : (leftPoints.length > rightPoints.length ? 1 : 0);
+      }
+      if (operator === '=' || operator === '==') return String(comparison === 0);
+      if (operator === '!=') return String(comparison !== 0);
+      if (operator === '>') return String(comparison > 0);
+      if (operator === '<') return String(comparison < 0);
+      if (operator === '>=') return String(comparison >= 0);
+      return String(comparison <= 0);
     })
     .replace(/\blen\s*\(([^()]*)\)/gi, (_, rawArgs) => {
       const separators = [];
