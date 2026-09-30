@@ -42,3 +42,16 @@ test('WAPF len accepts text, scalar field values, Unicode, and ignore-spaces fla
 	assert.equal(evaluate('len([field.material])', { material: 'blue' }), 4);
 	assert.equal(evaluate('len([field.material])', { material: ['blue', 'red'] }), 0);
 });
+
+test('WAPF if/and/or and comparisons work with nested numeric and field conditions', () => {
+	const evaluate = (formula, values = {}) => context.__evalFormula(formula, 10, 1, 0, '', values);
+	assert.equal(evaluate('if(75 > 50; 10; 20)'), 10);
+	assert.equal(evaluate('if(2 <= 1; 10; 20)'), 20);
+	assert.equal(evaluate('if(and(75 >= 50; 2 < 3); if(or(1 = 2; 2 != 3); 8; 9); 20)'), 8);
+	assert.equal(evaluate('if(and(1 = 1; 2 > 3); 10; 20)'), 20);
+	assert.equal(evaluate('if(or(1 = 2; 2 = 3); 10; 20)'), 20);
+	assert.equal(evaluate('if([field.size] >= 5; 10; 20)', { size: '7' }), 10);
+	assert.equal(evaluate('if([field.color] = Red; 10; 20)', { color: 'Red' }), 10);
+	assert.equal(evaluate('if([field.color] != Red; 10; 20)', { color: 'Red' }), 20);
+	assert.equal(evaluate('if([field.color] = [field.finish]; 5; 9)', { color: 'Blue', finish: 'Blue' }), 5);
+});

@@ -466,6 +466,20 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
     return { weekday: date.getUTCDay(), month, timestamp: date.getTime() };
   };
   const expr = String(formula)
+    .replace(/\[field\.([a-z0-9_-]+)\]\s*(==|!=|=)\s*(?:"([^"]*)"|'([^']*)'|([^,;()]+))/gi, (_, fieldId, operator, doubleQuoted, singleQuoted, bare) => {
+      const leftValue = fieldValues[fieldId] ?? fieldValues[String(fieldId).toLowerCase()];
+      const rightValueRaw = doubleQuoted !== undefined ? doubleQuoted : (singleQuoted !== undefined ? singleQuoted : bare.trim());
+      const rightField = /^\[field\.([a-z0-9_-]+)\]$/i.exec(rightValueRaw);
+      const rightValue = rightField
+        ? (fieldValues[rightField[1]] ?? fieldValues[String(rightField[1]).toLowerCase()])
+        : rightValueRaw;
+      const left = leftValue == null || Array.isArray(leftValue) ? '' : String(leftValue);
+      const right = rightValue == null || Array.isArray(rightValue) ? '' : String(rightValue);
+      const equal = left.trim() !== '' && right.trim() !== '' && Number.isFinite(Number(left)) && Number.isFinite(Number(right))
+        ? Number(left) === Number(right)
+        : left === right;
+      return String(operator === '!=' ? !equal : equal);
+    })
     .replace(/\blen\s*\(([^()]*)\)/gi, (_, rawArgs) => {
       const separators = [];
       let quote = '';
@@ -545,12 +559,34 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
       const date = resolveFormulaDate(rawDate);
       return date ? String(fn.toLowerCase() === 'dow' ? date.weekday : date.month) : '0';
     })
+    .replace(/\[field\.([a-z0-9_-]+)\]/gi, (_, fieldId) => {
+      const value = fieldValues[fieldId] ?? fieldValues[String(fieldId).toLowerCase()];
+      const number = value != null && !Array.isArray(value) ? Number(value) : NaN;
+      return Number.isFinite(number) ? String(number) : '0';
+    })
+    .replace(/\btrue\b/gi, '1')
+    .replace(/\bfalse\b/gi, '0')
     .replace(/\[val\]/gi, ' V ');
   const vars = { P: price, Q: qty, A: addons, V: parseFloat(val) || 0 };
   let i = 0;
   const s = expr;
   const skipWs = () => { while (i < s.length && /\s/.test(s[i])) i++; };
   const parseExpr = () => {
+    const value = parseSum();
+    skipWs();
+    const operator = ['>=', '<=', '!=', '=='].find((candidate) => s.slice(i, i + candidate.length) === candidate)
+      || ['=', '>', '<'].find((candidate) => s[i] === candidate);
+    if (!operator) return value;
+    i += operator.length;
+    const right = parseSum();
+    if (operator === '=' || operator === '==') return value === right ? 1 : 0;
+    if (operator === '!=') return value !== right ? 1 : 0;
+    if (operator === '>') return value > right ? 1 : 0;
+    if (operator === '<') return value < right ? 1 : 0;
+    if (operator === '>=') return value >= right ? 1 : 0;
+    return value <= right ? 1 : 0;
+  };
+  const parseSum = () => {
     let v = parseTerm();
     while (true) {
       skipWs();
@@ -595,12 +631,15 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
       const name = fn[0].toLowerCase();
       const oneArg = args.length === 1;
       if (name === 'abs' && oneArg) return Math.abs(args[0]);
+      if (name === 'and' && args.length > 0) return args.every((value) => value !== 0) ? 1 : 0;
       if (name === 'ceil' && oneArg) return Math.ceil(args[0]);
       if (name === 'cos' && oneArg) return Math.cos(args[0]);
       if (name === 'floor' && oneArg) return Math.floor(args[0]);
+      if (name === 'if' && args.length === 3) return args[0] !== 0 ? args[1] : args[2];
       if (name === 'max' && args.length > 0) return Math.max(...args);
       if (name === 'min' && args.length > 0) return Math.min(...args);
       if (name === 'pow' && args.length === 2) return Math.pow(args[0], args[1]);
+      if (name === 'or' && args.length > 0) return args.some((value) => value !== 0) ? 1 : 0;
       if (name === 'round' && (args.length === 1 || args.length === 2)) {
         const precision = args.length === 2 ? Math.trunc(args[1]) : 0;
         const factor = Math.pow(10, precision);

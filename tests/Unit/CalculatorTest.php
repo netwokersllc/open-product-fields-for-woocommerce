@@ -86,6 +86,19 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( 0.0, Calculator::evaluate_formula( 'len([field.material])', 10.0, 1, 0.0, '', null, [ 'material' => [ 'blue', 'red' ] ] ) );
 	}
 
+	public function test_wapf_numeric_conditional_functions_and_comparisons(): void {
+		FormulaFunctions::init();
+		$this->assertSame( 10.0, Calculator::evaluate_formula( 'if(75 > 50; 10; 20)', 10.0, 1, 0.0 ) );
+		$this->assertSame( 20.0, Calculator::evaluate_formula( 'if(2 <= 1; 10; 20)', 10.0, 1, 0.0 ) );
+		$this->assertSame( 8.0, Calculator::evaluate_formula( 'if(and(75 >= 50; 2 < 3); if(or(1 = 2; 2 != 3); 8; 9); 20)', 10.0, 1, 0.0 ) );
+		$this->assertSame( 20.0, Calculator::evaluate_formula( 'if(and(1 = 1; 2 > 3); 10; 20)', 10.0, 1, 0.0 ) );
+		$this->assertSame( 20.0, Calculator::evaluate_formula( 'if(or(1 = 2; 2 = 3); 10; 20)', 10.0, 1, 0.0 ) );
+		$this->assertSame( 10.0, Calculator::evaluate_formula( 'if([field.size] >= 5; 10; 20)', 10.0, 1, 0.0, '', null, [ 'size' => '7' ] ) );
+		$this->assertSame( 10.0, Calculator::evaluate_formula( 'if([field.color] = Red; 10; 20)', 10.0, 1, 0.0, '', null, [ 'color' => 'Red' ] ) );
+		$this->assertSame( 20.0, Calculator::evaluate_formula( 'if([field.color] != Red; 10; 20)', 10.0, 1, 0.0, '', null, [ 'color' => 'Red' ] ) );
+		$this->assertSame( 5.0, Calculator::evaluate_formula( 'if([field.color] = [field.finish]; 5; 9)', 10.0, 1, 0.0, '', null, [ 'color' => 'Blue', 'finish' => 'Blue' ] ) );
+	}
+
 	public function test_formula_safety_garbage_yields_zero(): void {
 		$this->assertSame( 0.0, Calculator::evaluate_formula( 'system("rm -rf /")', 10.0, 1, 0.0 ) );
 		$this->assertSame( 0.0, Calculator::evaluate_formula( '[price] *', 10.0, 1, 0.0 ) );

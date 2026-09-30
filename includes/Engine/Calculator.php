@@ -150,6 +150,23 @@ final class Calculator {
 	 */
 	public static function evaluate_formula( string $formula, float $price, int $qty, float $addons, string $val = '', ?string $today = null, array $field_values = [], int $product_id = 0 ): float {
 		$formula = ACFFormula::resolve( $formula, max( 0, $product_id ) );
+		$formula = preg_replace_callback(
+			'/\[field\.([a-zA-Z0-9_-]+)\]\s*(==|!=|=)\s*(?:"([^"]*)"|\'([^\']*)\'|([^,;()]+))/i',
+			static function ( array $match ) use ( $field_values ): string {
+				$left  = $field_values[ $match[1] ] ?? $field_values[ strtolower( $match[1] ) ] ?? null;
+				$right = '' !== $match[3] ? $match[3] : ( '' !== $match[4] ? $match[4] : trim( $match[5] ) );
+				if ( preg_match( '/^\[field\.([a-zA-Z0-9_-]+)\]$/i', $right, $right_field ) ) {
+					$right_value = $field_values[ $right_field[1] ] ?? $field_values[ strtolower( $right_field[1] ) ] ?? null;
+					$right       = is_scalar( $right_value ) ? (string) $right_value : '';
+				}
+				$left = is_scalar( $left ) ? (string) $left : '';
+				$equal = is_numeric( $left ) && is_numeric( $right )
+					? (float) $left === (float) $right
+					: $left === $right;
+				return ( '!=' === $match[2] ? ! $equal : $equal ) ? '1' : '0';
+			},
+			$formula
+		);
 		// WAPF separates function arguments with semicolons; accept commas too
 		// for native OPF formulas and existing extension callbacks.
 		$formula = str_replace( ';', ',', $formula );
@@ -224,6 +241,16 @@ final class Calculator {
 			},
 			$formula
 		);
+		$formula = preg_replace_callback(
+			'/\[field\.([a-zA-Z0-9_-]+)\]/i',
+			static function ( array $match ) use ( $field_values ): string {
+				$value = $field_values[ $match[1] ] ?? $field_values[ strtolower( $match[1] ) ] ?? null;
+				return is_scalar( $value ) && is_numeric( $value ) ? (string) ( 0 + $value ) : '0';
+			},
+			$formula
+		);
+		$formula = preg_replace( '/\btrue\b/i', '1', $formula );
+		$formula = preg_replace( '/\bfalse\b/i', '0', $formula );
 		$formula = str_replace(
 			[ '[price]', '[qty]', '[addons]', '[options_total]', '[val]' ],
 			[ ' P ', ' Q ', ' A ', ' A ', ' V ' ],
@@ -411,6 +438,17 @@ final class Calculator {
 				$i       += strlen( $m[0] );
 				continue;
 			}
+			$comparison = substr( $formula, $i, 2 );
+			if ( in_array( $comparison, [ '>=', '<=', '!=', '==' ], true ) ) {
+				$tokens[] = [ 't' => 'cmp', 'v' => $comparison ];
+				$i       += 2;
+				continue;
+			}
+			if ( in_array( $ch, [ '=', '>', '<' ], true ) ) {
+				$tokens[] = [ 't' => 'cmp', 'v' => $ch ];
+				$i++;
+				continue;
+			}
 			if ( false !== strpos( '+-*/(),', $ch ) && 1 === strlen( $ch ) ) {
 				$tokens[] = [ 't' => $ch, 'v' => 0.0 ];
 				$i++;
@@ -422,13 +460,50 @@ final class Calculator {
 	}
 
 	/**
-	 * expression := term (('+'|'-') term)*
+	 * expression := sum [ comparison sum ]
 	 *
 	 * @param array<int,array{t:string,v:float|string}> $tokens Tokens.
 	 * @param int                                       $pos    Cursor (by reference).
 	 * @param array<string,mixed>                       $context Formula context.
 	 */
 	private static function parse_expression( array $tokens, int &$pos, array $context ): ?float {
+		$value = self::parse_sum( $tokens, $pos, $context );
+		if ( null === $value || $pos >= count( $tokens ) || 'cmp' !== $tokens[ $pos ]['t'] ) {
+			return $value;
+		}
+		$operator = $tokens[ $pos++ ]['v'];
+		$right    = self::parse_sum( $tokens, $pos, $context );
+		if ( null === $right ) {
+			return null;
+		}
+		switch ( $operator ) {
+			case '=':
+			case '==':
+				$matched = $value === $right;
+				break;
+			case '!=':
+				$matched = $value !== $right;
+				break;
+			case '>':
+				$matched = $value > $right;
+				break;
+			case '<':
+				$matched = $value < $right;
+				break;
+			case '>=':
+				$matched = $value >= $right;
+				break;
+			case '<=':
+				$matched = $value <= $right;
+				break;
+			default:
+				$matched = false;
+		}
+		return $matched ? 1.0 : 0.0;
+	}
+
+	/** Sum and difference have higher precedence than comparisons. */
+	private static function parse_sum( array $tokens, int &$pos, array $context ): ?float {
 		$value = self::parse_term( $tokens, $pos, $context );
 		while ( null !== $value && $pos < count( $tokens ) && in_array( $tokens[ $pos ]['t'], [ '+', '-' ], true ) ) {
 			$op = $tokens[ $pos ]['t'];

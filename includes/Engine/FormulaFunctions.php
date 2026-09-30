@@ -11,9 +11,12 @@ defined( 'ABSPATH' ) || exit;
 
 final class FormulaFunctions {
 
-	/** Register the numeric functions available in WAPF Extended formulas. */
+	/** Register built-in functions available in imported WAPF formulas. */
 	public static function init(): void {
 		$functions = [
+			'and'   => static function ( array $args ) {
+			return $args && ! in_array( false, array_map( static fn( float $value ): bool => 0.0 !== $value, $args ), true ) ? 1.0 : 0.0;
+			},
 			'abs'   => static function ( array $args ) {
 				return 1 === count( $args ) ? abs( $args[0] ) : NAN;
 			},
@@ -26,6 +29,9 @@ final class FormulaFunctions {
 			'floor' => static function ( array $args ) {
 				return 1 === count( $args ) ? floor( $args[0] ) : NAN;
 			},
+			'if'    => static function ( array $args ) {
+				return 3 === count( $args ) ? ( 0.0 !== $args[0] ? $args[1] : $args[2] ) : NAN;
+			},
 			'max'   => static function ( array $args ) {
 				return $args ? max( $args ) : NAN;
 			},
@@ -34,6 +40,9 @@ final class FormulaFunctions {
 			},
 			'pow'   => static function ( array $args ) {
 				return 2 === count( $args ) ? pow( $args[0], $args[1] ) : NAN;
+			},
+			'or'    => static function ( array $args ) {
+				return in_array( true, array_map( static fn( float $value ): bool => 0.0 !== $value, $args ), true ) ? 1.0 : 0.0;
 			},
 			'round' => static function ( array $args ) {
 				return in_array( count( $args ), [ 1, 2 ], true ) ? round( $args[0], (int) ( $args[1] ?? 0 ) ) : NAN;
