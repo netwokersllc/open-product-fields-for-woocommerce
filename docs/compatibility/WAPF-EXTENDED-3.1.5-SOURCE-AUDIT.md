@@ -265,6 +265,20 @@ source-level verification of either package. The Pro 3.2.2 blank-admin fix is
 also a separate package-inclusion question even though Extended bundles Pro
 features.
 
+### Current package recovery check — 2026-09-30
+
+Read-only filename searches found no Extended 3.2.1 archive in
+`/home/followersya-5hqi7` or `/tmp`. The three inspected Ploi site backups
+dated 2026-04-12, 2026-08-18, and 2026-08-31 each contain the Extended plugin
+header for 3.1.5. The three ZIPs in the WordPress uploads root contain no
+WAPF plugin paths. A fresh
+WP-CLI read at 2026-09-30 12:18 UTC reports installed version 3.1.5, inactive,
+and no cached update entry. The official paid-plugin install guide directs
+license holders to sign into their Studio Wombat account and download the
+latest version available to their license; no unauthenticated package source
+was found. Thus the 3.2.1 source remains unavailable here. This check does
+not authorize or attempt account access, license changes, or activation.
+
 ### Current changelog-to-ledger crosswalk
 
 This crosswalk is limited to published changelog evidence. It maps every
