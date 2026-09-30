@@ -8,12 +8,12 @@ For a single JSON payload exported from WAPF Tools, first inspect a dry run:
 wp opf import-wapf-json /path/to/wapf-fields.json --title="Imported fields"
 ```
 
-The command accepts one file up to 5 MiB and at most 500 fields. To create an
-OPF **draft** attached to one existing product, add `--product=<id> --commit`.
-Without `--product`, placement still needs to be set in the OPF editor. Every
-created group is marked for review and must be checked before publishing.
-The report flags conditions for manual reconstruction; it does not import
-them. Variable definitions and unsupported options can also need review, so
+The command accepts one file up to 5 MiB and at most 500 fields. Supported
+WAPF group conditions are mapped to OPF placement rules. To attach the draft
+to one existing product instead, add `--product=<id> --commit`; that explicit
+product selection replaces the imported placement. Every created group is
+marked for review and must be checked before publishing. Unsupported
+conditions, variable definitions, and options are reported for review, so
 this path does not claim a complete WAPF Tools round trip. Re-running the same
 payload, title, and product is idempotent. WAPF data is read only.
 

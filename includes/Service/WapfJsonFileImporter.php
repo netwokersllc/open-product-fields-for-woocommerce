@@ -64,9 +64,28 @@ final class WapfJsonFileImporter {
 			throw new \InvalidArgumentException( 'WAPF conditions must be an array.' );
 		}
 
-		$notes = [ 'WAPF Tools JSON omits source title and product placement; review the draft and set placement before publishing.' ];
-		if ( ! empty( $raw['conditions'] ) ) {
-			$notes[] = 'WAPF Tools conditions were detected but not imported; inspect the source payload and rebuild the required conditions in OPF.';
+		$notes = [ 'WAPF Tools JSON omits the source group ID and title; verify mapped placement and choose a title before publishing.' ];
+		$conditions = [];
+		foreach ( $raw['conditions'] ?? [] as $group_index => $condition_group ) {
+			if ( ! is_array( $condition_group ) || ! isset( $condition_group['rules'] ) || ! is_array( $condition_group['rules'] ) ) {
+				throw new \InvalidArgumentException( sprintf( 'WAPF placement group at index %d must contain a rules array.', (int) $group_index ) );
+			}
+			$rules = [];
+			foreach ( $condition_group['rules'] as $rule_index => $rule ) {
+				if ( ! is_array( $rule ) ) {
+					throw new \InvalidArgumentException( sprintf( 'WAPF placement rule %d in group %d must be an object.', (int) $rule_index, (int) $group_index ) );
+				}
+				foreach ( [ 'condition', 'subject' ] as $key ) {
+					if ( isset( $rule[ $key ] ) && ! is_scalar( $rule[ $key ] ) ) {
+						throw new \InvalidArgumentException( sprintf( 'WAPF placement rule %d in group %d has an invalid %s value.', (int) $rule_index, (int) $group_index, $key ) );
+					}
+				}
+				$rules[] = $rule;
+			}
+			if ( $rules ) {
+				$condition_group['rules'] = $rules;
+				$conditions[] = $condition_group;
+			}
 		}
 		$fields = [];
 		$structural = [ 'id', 'label', 'description', 'type', 'required', 'width', 'class', 'conditionals', 'pricing', 'clone', 'options' ];
@@ -101,7 +120,7 @@ final class WapfJsonFileImporter {
 				'type' => 'wapf_product',
 				'fields' => $fields,
 				'layout' => is_array( $raw['layout'] ?? null ) ? $raw['layout'] : [],
-				'rule_groups' => [],
+				'rule_groups' => $conditions,
 				'variables' => is_array( $raw['variables'] ?? null ) ? $raw['variables'] : [],
 			],
 			'notes' => array_values( array_unique( $notes ) ),
