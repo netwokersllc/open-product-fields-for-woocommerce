@@ -6,6 +6,7 @@
 namespace OPF\Tests\Unit;
 
 use OPF\Engine\Calculator;
+use OPF\Engine\FormulaFunctions;
 use PHPUnit\Framework\TestCase;
 
 final class CalculatorTest extends TestCase {
@@ -53,6 +54,22 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( 20.0, Calculator::evaluate_formula( '[price] * 0.1 + [qty] * 2', 100.0, 5, 0.0 ) );
 		$this->assertSame( 6.0, Calculator::evaluate_formula( '(2 + 4) * (3 / 3)', 0.0, 1, 0.0 ) );
 		$this->assertSame( -3.0, Calculator::evaluate_formula( '-3', 0.0, 1, 0.0 ) );
+	}
+
+	public function test_wapf_numeric_formula_functions_accept_semicolon_arguments(): void {
+		FormulaFunctions::init();
+		$this->assertSame( 5.0, Calculator::evaluate_formula( 'abs(-2) + ceil(1.2) + floor(1.8)', 10.0, 1, 0.0 ) );
+		$this->assertSame( 5.0, Calculator::evaluate_formula( 'max(1; 4; 2) + min(1; 4; 2)', 10.0, 1, 0.0 ) );
+		$this->assertSame( 13.0, Calculator::evaluate_formula( 'pow(3; 2) + sqrt(16)', 10.0, 1, 0.0 ) );
+		$this->assertSame( -0.7, Calculator::evaluate_formula( 'round(1.25; 1) + round(-1.5)', 10.0, 1, 0.0 ) );
+		$this->assertEqualsWithDelta( 1.0, Calculator::evaluate_formula( 'sin(0) + cos(0) + tan(0)', 10.0, 1, 0.0 ), 0.000000001 );
+	}
+
+	public function test_wapf_numeric_formula_functions_reject_invalid_calls(): void {
+		FormulaFunctions::init();
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'sqrt(-1)', 10.0, 1, 0.0 ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'pow(2)', 10.0, 1, 0.0 ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'round()', 10.0, 1, 0.0 ) );
 	}
 
 	public function test_formula_safety_garbage_yields_zero(): void {

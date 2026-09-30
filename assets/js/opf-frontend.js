@@ -466,6 +466,7 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
     return { weekday: date.getUTCDay(), month };
   };
   const expr = String(formula)
+    .replace(/;/g, ',')
     .replace(/\b(acf_option|acf)\s*\(\s*([a-z0-9_-]+)\s*\)/gi, (_, type, name) => {
       const values = window.OPF_ACF_VALUES || {};
       const value = Number(values[`${type.toLowerCase()}:${name.toLowerCase()}`]);
@@ -510,6 +511,44 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
     skipWs();
     if (s[i] === '(') { i++; const v = parseExpr(); skipWs(); if (s[i] === ')') i++; return v; }
     if (s[i] === '-') { i++; return -parseFactor(); }
+    const fn = /^[a-z_][a-z0-9_]*/i.exec(s.slice(i));
+    if (fn) {
+      i += fn[0].length;
+      skipWs();
+      if (s[i] !== '(') return NaN;
+      i++;
+      const args = [];
+      skipWs();
+      if (s[i] === ')') return NaN;
+      while (i < s.length) {
+        if (args.length >= 20) return NaN;
+        args.push(parseExpr());
+        skipWs();
+        if (s[i] === ',') { i++; continue; }
+        break;
+      }
+      if (s[i] !== ')') return NaN;
+      i++;
+      const name = fn[0].toLowerCase();
+      const oneArg = args.length === 1;
+      if (name === 'abs' && oneArg) return Math.abs(args[0]);
+      if (name === 'ceil' && oneArg) return Math.ceil(args[0]);
+      if (name === 'cos' && oneArg) return Math.cos(args[0]);
+      if (name === 'floor' && oneArg) return Math.floor(args[0]);
+      if (name === 'max' && args.length > 0) return Math.max(...args);
+      if (name === 'min' && args.length > 0) return Math.min(...args);
+      if (name === 'pow' && args.length === 2) return Math.pow(args[0], args[1]);
+      if (name === 'round' && (args.length === 1 || args.length === 2)) {
+        const precision = args.length === 2 ? Math.trunc(args[1]) : 0;
+        const factor = Math.pow(10, precision);
+        if (!Number.isFinite(factor) || factor === 0) return args[0];
+        return Math.sign(args[0]) * Math.round(Math.abs(args[0]) * factor) / factor;
+      }
+      if (name === 'sin' && oneArg) return Math.sin(args[0]);
+      if (name === 'sqrt' && oneArg) return Math.sqrt(args[0]);
+      if (name === 'tan' && oneArg) return Math.tan(args[0]);
+      return NaN;
+    }
     const m = /^\d+(?:\.\d+)?/.exec(s.slice(i));
     if (m) { i += m[0].length; return parseFloat(m[0]); }
     const variable = /^[PQAV]\b/i.exec(s.slice(i));
