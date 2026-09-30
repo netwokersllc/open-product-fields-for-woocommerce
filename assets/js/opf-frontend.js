@@ -397,17 +397,18 @@ if ( document.readyState === 'loading' ) {
 // data-opf-price attributes and writes the three legacy totals spans, using
 // the same display_options contract the theme's currency converter expects.
 
-const fmtMoney = (amount) => {
-  const o = (window.opf_config || {}).display_options || {};
+const fmtMoney = (amount, trimZeroes = false) => {
+  const o = window.OPF_PRICE_DISPLAY || (window.opf_config || {}).display_options || {};
   const symbol = o.symbol || '$';
   const decimals = typeof o.decimals === 'number' ? o.decimals : 2;
   const thousand = o.thousand || ',';
   const decimal = o.decimal || '.';
   const neg = amount < 0 ? '-' : '';
   const fixed = Math.abs(amount).toFixed(decimals);
-  const [intPart, fracPart] = fixed.split('.');
+  const [intPart, rawFraction = ''] = fixed.split('.');
+  const fracPart = trimZeroes && o.trim_zeroes ? rawFraction.replace(/0+$/, '') : rawFraction;
   const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, thousand);
-  const price = `${neg}${grouped}${decimals > 0 ? decimal + fracPart.slice(0, decimals) : ''}`;
+  const price = `${neg}${grouped}${fracPart ? decimal + fracPart.slice(0, decimals) : ''}`;
   return String(o.format || '{symbol}{price}').replace('{symbol}', symbol).replace('{price}', price);
 };
 
@@ -504,6 +505,8 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
     if (s[i] === '-') { i++; return -parseFactor(); }
     const m = /^\d+(?:\.\d+)?/.exec(s.slice(i));
     if (m) { i += m[0].length; return parseFloat(m[0]); }
+    const variable = /^[PQAV]\b/i.exec(s.slice(i));
+    if (variable) { i += variable[0].length; return Number(vars[variable[0].toUpperCase()]) || 0; }
     i++; // force failure on unknown token
     return NaN;
   };
@@ -541,6 +544,61 @@ const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}
   return 0;
 };
 
+const formatPriceHint = (amount, pricingType, currencyRate) => {
+  if (!Number.isFinite(amount)) return '';
+  const percent = pricingType === 'percent';
+  const shown = percent ? `${amount}%` : fmtMoney(amount * currencyRate, true);
+  const sign = amount < 0 ? '' : '+';
+  const format = String((window.OPF_PRICE_HINTS || {}).format || '(+{x})');
+  return format.replace(/\{x\}/g, shown).replace(/\+/g, sign);
+};
+
+const pricingHintAmount = (pricing, base, qty, addons, value, values) => {
+  const type = pricing && pricing.type;
+  if (type === 'fixed') return parseFloat(pricing.amount) || 0;
+  if (type === 'percent') return parseFloat(pricing.amount) || 0;
+  if (type === 'formula') return evalFormula(pricing.formula_raw || pricing.formula, base, qty, addons, value, values);
+  return null;
+};
+
+const updatePriceHints = (groupEl, gid, values, base, qty, addons, currencyRate) => {
+  const definitions = (window.OPF_FIELDS || {})[gid] || {};
+  const settings = window.OPF_PRICE_HINTS || {};
+  groupEl.querySelectorAll('[data-opf-field]').forEach((fieldEl) => {
+    const fid = fieldEl.getAttribute('data-opf-field');
+    const def = definitions[fid];
+    if (!def) return;
+    const enabled = settings.show !== false && !fieldEl.hidden;
+    const value = values[fid];
+    const fieldAddons = addons;
+    fieldEl.querySelectorAll('[data-opf-choice-hint]').forEach((node) => {
+      const slug = node.dataset.opfChoiceHint || node.getAttribute('data-opf-choice-hint') || '';
+      const choice = (def.choices || []).find((candidate) => candidate.slug === slug);
+      let hint = '';
+      if (enabled && choice && !choice.disabled) {
+        const pricing = choice.pricing || {};
+        const amount = pricingHintAmount(pricing, base, qty, fieldAddons, slug, { ...values, [fid]: slug });
+        if (null !== amount) hint = formatPriceHint(amount, pricing.type, currencyRate);
+      }
+      if (String(node.tagName || '').toLowerCase() === 'option') {
+        const label = node.dataset.opfBaseLabel || node.getAttribute('data-opf-base-label') || node.textContent;
+        node.textContent = label + (hint ? ` ${hint}` : '');
+      } else {
+        node.textContent = hint;
+      }
+    });
+
+    const fieldHint = fieldEl.querySelector('[data-opf-field-hint]');
+    if (!fieldHint) return;
+    const pricing = def.pricing || {};
+    const candidateValue = value == null || value === '' ? String(def.default || '') : String(value);
+    const amount = enabled
+      ? pricingHintAmount(pricing, base, qty, fieldAddons, candidateValue, values)
+      : null;
+    fieldHint.textContent = null === amount ? '' : formatPriceHint(amount, pricing.type, currencyRate);
+  });
+};
+
 
 const writeTotals = () => {
   const totalsEl = document.querySelector('.opf-product-totals, .wapf-product-totals');
@@ -573,6 +631,7 @@ const writeTotals = () => {
         values[fid] = '';
       }
     });
+    let groupOptionsTotal = 0;
     fields.forEach((fieldEl) => {
       const fid = fieldEl.getAttribute('data-opf-field');
       const def = (window.OPF_FIELDS || {})[gid]?.[fid];
@@ -580,9 +639,11 @@ const writeTotals = () => {
       // conditional visibility: hidden fields contribute nothing
       const container = fieldEl;
       if (container.hasAttribute('hidden')) return;
-      const addon = choiceOrFieldAddon(def, values[fid], base, qty, optionsTotal, values[fid] && typeof values[fid] === 'string' ? values[fid] : '', values);
-      optionsTotal += addon;
+      const addon = choiceOrFieldAddon(def, values[fid], base, qty, optionsTotal + groupOptionsTotal, values[fid] && typeof values[fid] === 'string' ? values[fid] : '', values);
+      groupOptionsTotal += addon;
     });
+    updatePriceHints(groupEl, gid, values, base, qty, optionsTotal + groupOptionsTotal, currencyRate);
+    optionsTotal += groupOptionsTotal;
   });
 
   const productTotal = base * qty;

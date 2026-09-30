@@ -168,22 +168,28 @@ final class Renderer {
 				$registry[ $gid ][ $field['id'] ] = [
 					'type'         => $field['type'],
 					'conditionals' => $field['conditionals'],
-				'choices'      => array_map( static function ( $c ) {
-					return [
-						'slug'     => $c['slug'],
-						'label'    => $c['label'],
-						'pricing'  => [
-								'type'       => $c['pricing']['type'],
-								'amount'     => (float) $c['pricing']['amount'],
-								'formula'    => (string) $c['pricing']['formula'],
-								'formula_raw' => (string) ( $c['pricing']['formula_raw'] ?? '' ),
-							],
-						];
-					}, (array) ( $field['choices'] ?? [] ) ),
+					'choices'      => array_map(
+						static function ( $c ) {
+							return [
+								'slug'     => $c['slug'],
+								'label'    => $c['label'],
+								'disabled' => ! empty( $c['disabled'] ),
+								'pricing'  => [
+									'type'        => $c['pricing']['type'],
+									'amount'      => (float) $c['pricing']['amount'],
+									'formula'     => (string) $c['pricing']['formula'],
+									'formula_raw' => (string) ( $c['pricing']['formula_raw'] ?? '' ),
+								],
+							];
+						},
+						(array) ( $field['choices'] ?? [] )
+					),
 					'pricing'      => [
-						'type'    => $field['pricing']['type'],
-						'amount'  => (float) $field['pricing']['amount'],
-						'formula' => (string) ( $field['pricing']['formula'] ?? '' ),
+						'type'       => $field['pricing']['type'],
+						'amount'     => (float) $field['pricing']['amount'],
+						'formula'    => (string) ( $field['pricing']['formula'] ?? '' ),
+						'formula_raw' => (string) ( $field['pricing']['formula_raw'] ?? '' ),
+						'per_unit'   => ! empty( $field['pricing']['per_unit'] ),
 					],
 				];
 			}
@@ -255,6 +261,9 @@ final class Renderer {
 				echo '<abbr class="required" title="' . esc_attr( self::required_title() ) . '">*</abbr>';
 			}
 			echo '</label>';
+			if ( ! in_array( $field['type'], [ 'swatch', 'select', 'radio', 'checkbox', 'paragraph', 'image' ], true ) && 'none' !== ( $field['pricing']['type'] ?? 'none' ) ) {
+				echo '<span class="opf-choice__hint opf-pricing-hint" data-opf-field-hint="1" aria-live="polite"></span>';
+			}
 		}
 		echo '</div>';
 
@@ -315,7 +324,10 @@ final class Renderer {
 		if ( 'select' === $field['type'] ) {
 			echo '<select name="' . esc_attr( $name ) . '" id="opf-' . esc_attr( $gid . '-' . $fid ) . '" class="opf-input input-' . esc_attr( $fid ) . '" autocomplete="off">';
 			foreach ( $field['choices'] as $choice ) {
-				echo '<option value="' . esc_attr( $choice['slug'] ) . '"' . selected( $choice['selected'], true, false ) . '>'
+				$hint_attrs = 'none' !== ( $choice['pricing']['type'] ?? 'none' )
+					? ' data-opf-choice-hint="' . esc_attr( $choice['slug'] ) . '" data-opf-base-label="' . esc_attr( $choice['label'] ) . '"'
+					: '';
+				echo '<option value="' . esc_attr( $choice['slug'] ) . '"' . $hint_attrs . selected( $choice['selected'], true, false ) . '>'
 					. esc_html( $choice['label'] )
 					. '</option>';
 			}
@@ -354,7 +366,10 @@ final class Renderer {
 			);
 
 			echo '<div class="' . esc_attr( implode( ' ', $swatch_classes ) ) . '">';
-			echo '<label><span>' . esc_html( $choice['label'] ) . ' </span>';
+			$hint = 'none' !== ( $choice['pricing']['type'] ?? 'none' )
+				? '<span class="opf-choice__hint" data-opf-choice-hint="' . esc_attr( $choice['slug'] ) . '" aria-live="polite"></span>'
+				: '';
+			echo '<label><span>' . esc_html( $choice['label'] ) . ' </span>' . $hint;
 			echo '<input type="' . ( $multi ? 'checkbox' : 'radio' ) . '" ' . $attrs . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput -- pre-escaped.
 			echo '</label>';
 			echo '</div>';

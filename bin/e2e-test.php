@@ -181,6 +181,7 @@ $asset_api = wp_styles();
 do_action( 'wp_enqueue_scripts' );
 $rendered_api = opf_display_field_groups_for_product( $matched_product );
 check( 'group API: product fields render to HTML', is_string( $rendered_api ) && false !== strpos( $rendered_api, 'Delivery speed' ) );
+check( 'price hints: priced choices and scalar fields expose live hint targets', false !== strpos( $rendered_api, 'data-opf-choice-hint="plus"' ) && false !== strpos( $rendered_api, 'data-opf-choice-hint="boost"' ) && false !== strpos( $rendered_api, 'data-opf-field-hint="1"' ) );
 check( 'paragraph: sanitized plain text renders conditionally', false !== strpos( $rendered_api, 'opf-field-content field-notice opf-hide' ) && false !== strpos( $rendered_api, 'Use carefully' ) && false !== strpos( $rendered_api, 'Plain text only.' ) && false === strpos( $rendered_api, '<script>alert(1)</script>' ) );
 $image_src = $e2e_image_attachment_id ? wp_get_attachment_image_url( $e2e_image_attachment_id, 'full' ) : 'https://example.test/reference.png';
 check( 'image: attachment renders conditionally without a form control', false !== strpos( $rendered_api, 'opf-field-img field-reference-image opf-hide' ) && false !== strpos( $rendered_api, 'src="' . esc_attr( $image_src ) . '"' ) && false !== strpos( $rendered_api, 'alt="Product reference"' ) );

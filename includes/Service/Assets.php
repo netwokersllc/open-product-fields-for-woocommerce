@@ -61,10 +61,17 @@ final class Assets {
 		if ( $registry ) {
 			$date_format = function_exists( 'get_option' ) ? get_option( 'wapf_date_format', 'mm-dd-yyyy' ) : 'mm-dd-yyyy';
 			$today       = function_exists( 'current_time' ) ? current_time( 'Y-m-d' ) : gmdate( 'Y-m-d' );
+			$display_options = self::compat_config()['display_options'];
+			$hints       = [
+				'show'   => 'yes' === get_option( 'opf_show_pricing_hints', get_option( 'wapf_show_pricing_hints', 'yes' ) ),
+				'format' => self::pricing_hint_format(),
+			];
 			wp_print_inline_script_tag(
 				'window.OPF_FIELDS = ' . wp_json_encode( $registry, JSON_UNESCAPED_UNICODE ) . ';'
 				. 'window.OPF_DATE_FORMAT = ' . wp_json_encode( $date_format ) . ';'
 				. 'window.OPF_TODAY = ' . wp_json_encode( $today ) . ';'
+				. 'window.OPF_PRICE_DISPLAY = ' . wp_json_encode( $display_options, JSON_UNESCAPED_UNICODE ) . ';'
+				. 'window.OPF_PRICE_HINTS = ' . wp_json_encode( $hints, JSON_UNESCAPED_UNICODE ) . ';'
 			);
 		}
 		if ( Renderer::compat() ) {
@@ -74,6 +81,15 @@ final class Assets {
 			);
 		}
 		wp_enqueue_style( 'opf-frontend' );
+	}
+
+	/** Read the sanitized, bounded storefront price-hint format. */
+	private static function pricing_hint_format(): string {
+		$format = get_option( 'opf_pricing_hint_format', get_option( 'wapf_hint_format', '(+{x})' ) );
+		if ( ! is_string( $format ) || strlen( $format ) > 100 || 1 !== substr_count( $format, '{x}' ) ) {
+			return '(+{x})';
+		}
+		return $format;
 	}
 
 	/**
@@ -87,6 +103,7 @@ final class Assets {
 			'decimals'    => wc_get_price_decimals(),
 			'price_format' => str_replace( array( '%1$s', '%2$s' ), array( 'symbol', 'price' ), get_woocommerce_price_format() ),
 			'format'      => str_replace( array( '%1$s', '%2$s' ), array( '{symbol}', '{price}' ), get_woocommerce_price_format() ),
+			'trim_zeroes' => function_exists( 'apply_filters' ) ? (bool) apply_filters( 'woocommerce_price_trim_zeros', false ) : false,
 		];
 		$display_options = array_replace( $display_options, Integrations\Woocs::display_options() );
 		return [

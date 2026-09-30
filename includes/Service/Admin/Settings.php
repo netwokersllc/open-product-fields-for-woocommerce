@@ -12,6 +12,7 @@ final class Settings {
 		add_filter( 'woocommerce_get_sections_products', [ __CLASS__, 'add_product_fields_section' ] );
 		add_filter( 'woocommerce_get_settings_products', [ __CLASS__, 'product_fields_settings' ], 10, 2 );
 		add_filter( 'woocommerce_admin_settings_sanitize_option_opf_date_format', [ __CLASS__, 'sanitize_date_format' ], 10, 3 );
+		add_filter( 'woocommerce_admin_settings_sanitize_option_opf_pricing_hint_format', [ __CLASS__, 'sanitize_pricing_hint_format' ], 10, 3 );
 	}
 
 	/** @param array<string,string> $sections Product settings sections. */
@@ -29,8 +30,24 @@ final class Settings {
 			[
 				'title' => __( 'Open Product Fields', 'open-product-fields-for-woocommerce' ),
 				'type' => 'title',
-				'desc' => __( 'Configure how product field dates appear in calendars, carts, checkout, and orders.', 'open-product-fields-for-woocommerce' ),
+				'desc' => __( 'Configure how product field dates and price hints appear.', 'open-product-fields-for-woocommerce' ),
 				'id' => 'opf_product_fields',
+			],
+			[
+				'title' => __( 'Show price hints', 'open-product-fields-for-woocommerce' ),
+				'desc' => __( 'Show the price added by each priced field or choice beside its label.', 'open-product-fields-for-woocommerce' ),
+				'id' => 'opf_show_pricing_hints',
+				'type' => 'checkbox',
+				'default' => 'yes',
+				'autoload' => false,
+			],
+			[
+				'title' => __( 'Price hint format', 'open-product-fields-for-woocommerce' ),
+				'desc' => __( 'Use {x} where the amount should appear. Example: (+{x}).', 'open-product-fields-for-woocommerce' ),
+				'id' => 'opf_pricing_hint_format',
+				'type' => 'text',
+				'default' => '(+{x})',
+				'autoload' => false,
 			],
 			[
 				'title' => __( 'Date format', 'open-product-fields-for-woocommerce' ),
@@ -50,5 +67,15 @@ final class Settings {
 			return DateFormat::normalize( $value );
 		}
 		return DateFormat::normalize( get_option( 'opf_date_format', get_option( 'wapf_date_format', DateFormat::DEFAULT_FORMAT ) ) );
+	}
+
+	/** Preserve a valid custom format and require a single amount placeholder. */
+	public static function sanitize_pricing_hint_format( $value, array $option = [], $raw_value = null ) {
+		$format = is_scalar( $value ) ? ( function_exists( 'sanitize_text_field' ) ? sanitize_text_field( (string) $value ) : trim( strip_tags( (string) $value ) ) ) : '';
+		if ( '' !== $format && strlen( $format ) <= 100 && 1 === substr_count( $format, '{x}' ) ) {
+			return $format;
+		}
+		$previous = get_option( 'opf_pricing_hint_format', get_option( 'wapf_hint_format', '(+{x})' ) );
+		return is_string( $previous ) && strlen( $previous ) <= 100 && 1 === substr_count( $previous, '{x}' ) ? $previous : '(+{x})';
 	}
 }
