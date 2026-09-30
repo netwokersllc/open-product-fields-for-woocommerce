@@ -343,17 +343,20 @@ label. All sources are `INTEGRATIONS` and every fixture is
 | `WAPF-COMPAT-BLOCKSY` | Blocksy | Instructions | Theme adapter |
 | `WAPF-COMPAT-SHOPPE` | Shoppe | Instructions | Theme adapter |
 
-WAPF separately documents the following as incompatible. They are explicit
-OPF compatibility gaps until verified adapters or a narrower supported
-contract exists; WAPF's stated limitation is recorded for Dokan.
+WAPF's current [compatibility page](https://www.studiowombat.com/knowledge-base/which-plugins-and-themes-are-compatible-with-advanced-product-fields-for-woocommerce/)
+names five incompatible products/flows. OPF's target is to support these cases,
+exceeding WAPF's published compatibility. The checked plugin directory contains
+none of these dependencies, and OPF source has no named adapters; exact runtime
+status remains `needs audit` until the dependencies and their supported
+versions are available for integration proof.
 
-| ID | Entry | WAPF behavior | OPF status |
-| --- | --- | --- | --- |
-| `WAPF-COMPAT-EXCLUDES-BUNDLES` | WooCommerce Product Bundles | Incompatible | needs audit |
-| `WAPF-COMPAT-EXCLUDES-COMPOSITES` | WooCommerce Composite Products | Incompatible | needs audit |
-| `WAPF-COMPAT-EXCLUDES-DEPOSITS` | WooCommerce Deposits | Incompatible | needs audit |
-| `WAPF-COMPAT-EXCLUDES-REMOVE-CART` | Remove Cart Products | Incompatible | needs audit |
-| `WAPF-COMPAT-DOKAN` | Dokan vendor authoring | Store admins can create fields; vendors cannot | needs audit |
+| ID | Entry | WAPF behavior | OPF status | OPF exceed-WAPF acceptance target |
+| --- | --- | --- | --- | --- |
+| `WAPF-COMPAT-EXCLUDES-BUNDLES` | WooCommerce Product Bundles | Incompatible | needs audit | Render and validate options on bundle components; retain component-specific values/pricing through native bundle cart, edit, removal, checkout, and order persistence. |
+| `WAPF-COMPAT-EXCLUDES-COMPOSITES` | WooCommerce Composite Products | Incompatible | needs audit | Support fields on composite configuration and selected components; recalculate and validate as component choices change; persist component values and totals through cart edits and order creation. |
+| `WAPF-COMPAT-EXCLUDES-DEPOSITS` | WooCommerce Deposits | Incompatible | needs audit | Apply option pricing consistently to deposit due-now, remaining balance, discounts, and tax; keep cart/order amounts reconciled to deposit schedules. |
+| `WAPF-COMPAT-EXCLUDES-REMOVE-CART` | Remove Cart Products | Incompatible | needs audit | Preserve OPF cart integrity when plugin removes products: linked child lines, uploaded files, totals, and order metadata must not become orphaned or stale. |
+| `WAPF-COMPAT-DOKAN` | Dokan vendor authoring | Store admins can create fields; vendors cannot | needs audit | Let authorized vendors configure fields for their own products in Dokan's dashboard, with ownership/capability checks preventing access to other vendors' products and global settings. |
 
 ## Promotion rule
 
