@@ -13,10 +13,14 @@ the production baseline, not the current parity target.
 [capability ledger](WAPF-CAPABILITY-LEDGER.md) has one stable row per
 capability and records current OPF state, evidence, and remaining gap.
 [3.1.5 installed-source audit](WAPF-EXTENDED-3.1.5-SOURCE-AUDIT.md) records
-the local source baseline. [Official tier comparison](https://www.studiowombat.com/knowledge-base/whats-the-difference-between-each-version/)
-and [official changelog](https://www.studiowombat.com/plugin/advanced-product-fields-for-woocommerce-extended/changelog/)
-establish that Extended includes Pro and identify the current changelog
-version skew. Local WP-CLI reports the installed Extended plugin as inactive
+the local source baseline. [Official tier comparison](https://www.studiowombat.com/knowledge-base/whats-the-difference-between-each-version/),
+[product marketing page](https://www.studiowombat.com/plugin/advanced-product-fields-for-woocommerce/),
+and the separate [Extended](https://www.studiowombat.com/plugin/advanced-product-fields-for-woocommerce-extended/changelog/)
+and [Pro](https://www.studiowombat.com/plugin/advanced-product-fields-for-woocommerce/changelog/)
+changelogs establish the edition boundary, advertised capability inventory,
+and version skew. Marketing claims are mapped to ledger rows; they do not
+replace source or lifecycle proof. Local WP-CLI reports the installed
+Extended plugin as inactive
 3.1.5 with no update currently exposed in its update registry; this is not
 evidence that 3.2.1 source has been reviewed.
 

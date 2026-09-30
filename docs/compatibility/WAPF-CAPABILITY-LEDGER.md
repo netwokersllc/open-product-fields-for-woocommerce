@@ -66,6 +66,7 @@ freezes scope and remaining work can be sized from verified gaps.
 | Key | Official source | Evidence |
 | --- | --- | --- |
 | `PRODUCT` | [WAPF product page](https://www.studiowombat.com/plugin/advanced-product-fields-for-woocommerce/) | Pro fields, pricing, placement, products, cart edit, localization, currency, repeaters. |
+| `PRODUCT-MARKETING` | [WAPF product marketing page](https://www.studiowombat.com/plugin/advanced-product-fields-for-woocommerce/) | Advertised field count, use-cases, broad feature and platform claims; mapped in the 3.1.5 source audit. |
 | `FIELD-TYPES` | [WAPF field types](https://www.studiowombat.com/knowledge-base/all-field-types/) | Content fields, shortcodes, and third-party product-page content. |
 | `TIERS` | [WAPF tier comparison](https://www.studiowombat.com/knowledge-base/whats-the-difference-between-each-version/) | Extended-only fields, functions, date restrictions, weight, swatch zoom. |
 | `ADDONS` | [WAPF official add-ons](https://www.studiowombat.com/advanced-product-fields-addons/) | The six add-ons and user-visible behavior. |

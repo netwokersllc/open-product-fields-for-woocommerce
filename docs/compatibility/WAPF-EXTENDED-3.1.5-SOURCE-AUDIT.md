@@ -15,7 +15,31 @@ separate add-ons are tracked separately in the [full capability
 ledger](WAPF-CAPABILITY-LEDGER.md).
 
 Official edition boundary: [version comparison](https://www.studiowombat.com/knowledge-base/whats-the-difference-between-each-version/)
-and [Extended changelog](https://www.studiowombat.com/plugin/advanced-product-fields-for-woocommerce-extended/changelog/).
+and [Extended changelog](https://www.studiowombat.com/plugin/advanced-product-fields-for-woocommerce-extended/changelog/). The [product marketing page](https://www.studiowombat.com/plugin/advanced-product-fields-for-woocommerce/) is audited separately below as a discovery and scope source.
+
+## Official marketing claim crosswalk — checked 2026-09-30
+
+The product page, tier comparison, and release changelog serve different
+purposes. The tier comparison sets the Pro/Extended/add-ons boundary; the
+landing page describes advertised use-cases and broad capabilities; the
+version-specific changelogs record dated changes. Marketing claims help find
+capabilities to reconcile, while source and lifecycle evidence remain required
+for implementation acceptance.
+
+| Published claim | Ledger scope | Audit disposition |
+| --- | --- | --- |
+| Pro has 16 field types; Extended includes Pro plus Cards, linked Products, Calculation, image swatches with quantities, extra date options, advanced formulas, weight changes, and image zoom | All `WAPF-FIELD-*`, `WAPF-DATE-*`, `WAPF-PRICE-*`, and `WAPF-COMMERCE-WEIGHT` rows | Cross-checked against the tier comparison and field-type guide. The installed 3.1.5 source inventory records the historical implementation; current release claims remain tied to the versioned changelog until source is available. |
+| Product page advertises “20 different input types” and its FAQ enumerates field types | Field-type rows in the ledger | The marketing count is not a stable schema: the FAQ list repeats Cards, while the field guide groups some input types and separates content/shortcodes. The source registries and the ledger's individual capability rows define the auditable inventory; do not derive a missing feature from the headline count alone. |
+| Conditional logic can show, hide, or adjust options and pricing | `WAPF-RULE-*`, field conditional rows, formula/pricing rows | Mapped to the dedicated placement, visibility, and pricing rows. Marketing wording does not specify operators, rule-group semantics, stored keys, or server revalidation. |
+| Flat, quantity, percentage, formula, and lookup-table pricing; measurement-based products | `WAPF-PRICE-*`, `WAPF-FIELD-CALCULATION`, formula-function and lookup rows | Cross-checked with the pricing and formula documentation and installed 3.1.5 source. Pricing grammar, tax and cart/order results are accepted only from row-level source and commerce evidence. |
+| Mix-and-match/bundles use existing linked products and stock; print-on-demand collects customer text, images, or files | `WAPF-FIELD-CHILD-PRODUCTS` and upload/content field rows | Mapped to linked child-product selection, native inventory/cart lifecycle, uploads, and content. Marketing scenarios do not establish support for every bundle/composite extension. |
+| Global or per-product groups, repeaters, image switching, cart editing, WOOCS multi-currency, WPML/Polylang | Group/rule rows; `WAPF-INTERACTION-REPEAT`, `WAPF-INTERACTION-QUANTITY-REPEAT`, `WAPF-INTERACTION-IMAGE-CHANGE`, `WAPF-INTERACTION-CART-EDIT`, and integration/localization rows | Each maps to an existing ledger capability. The compatibility matrix and implementation source narrow each broad claim to named products, hooks, and verified lifecycle paths. |
+| Theme and page-builder compatibility | `WAPF-COMPAT-*` rows | The product page qualifies compatibility by WooCommerce standards and names tested builders. The separate compatibility matrix supplies named integrations; neither claim is treated as universal compatibility proof. |
+| “Extended + Addons” includes six separate add-ons; the landing page also shows live-preview imagery | `WAPF-ADDON-*` rows, excluded from the core Extended 1.0 gate | The tier comparison explicitly places add-ons in the separate bundle. Keep live-preview and the other add-on capabilities outside the core Extended parity denominator. |
+| Product landing page displays version 3.2.2 while the tier-specific Extended changelog lists 3.2.1 and Pro changelog lists 3.2.2 | G0/G1 version boundary; all current-release delta rows | The landing page version label is not tier-specific. Use the separate Extended and Pro changelogs for their version targets; inspect the current Extended archive to determine whether the Pro 3.2.2 fix is bundled. |
+| Marketing page states PHP 7.1+, WordPress 6.0+, and WooCommerce 7.0+ | `WAPF-COMPAT-MINIMUM-PLATFORM` | Recorded as the current paid-edition requirement claim; header/runtime source and actual compatibility testing determine the supported floor. |
+
+Sources: [product marketing page](https://www.studiowombat.com/plugin/advanced-product-fields-for-woocommerce/), [tier comparison](https://www.studiowombat.com/knowledge-base/whats-the-difference-between-each-version/), [all field types](https://www.studiowombat.com/knowledge-base/all-field-types/), [Extended changelog](https://www.studiowombat.com/plugin/advanced-product-fields-for-woocommerce-extended/changelog/), and [Pro changelog](https://www.studiowombat.com/plugin/advanced-product-fields-for-woocommerce/changelog/).
 
 ## Extended capability inventory
 
