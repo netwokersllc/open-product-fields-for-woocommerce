@@ -30,7 +30,7 @@ audits may split these broad rows when they reveal separately testable
 capabilities; 166 is current inventory, not a proven final feature count.
 Across current rows, 8 are baseline-supported, 22 supported, 12 supported with a documented
 difference, 118 partial, 3 known gaps, and 3 need audit. The 29 Extended-only
-rows comprise 2 supported, 4 supported with a documented difference, 20
+rows comprise 2 supported, 4 supported with a documented difference, 21
 partial, and 2 needing audit. These are row counts, not weighted feature percentages. No credible
 single percentage exists until row weights and the source-version scope are
 approved; gate completion is the progress measure. All 32 add-on lifecycle and
