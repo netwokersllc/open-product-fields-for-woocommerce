@@ -51,6 +51,28 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( 0.0, Calculator::evaluate_formula( '1 / 0', 10.0, 1, 0.0 ) );
 	}
 
+	public function test_wapf_date_formula_functions_match_weekday_month_and_today_semantics(): void {
+		$this->assertSame( 2.0, Calculator::evaluate_formula( "dow('01-10-2023')", 10.0, 1, 0.0 ) );
+		$this->assertSame( 3.0, Calculator::evaluate_formula( "month('03-01-2023')", 10.0, 1, 0.0 ) );
+		$this->assertSame( 1.0, Calculator::evaluate_formula( "dow('2024-01-01')", 10.0, 1, 0.0 ) );
+		$this->assertSame( 9.0, Calculator::evaluate_formula( 'month(today())', 10.0, 1, 0.0, '', '2026-09-30' ) );
+		$this->assertSame( 2.0, Calculator::evaluate_formula( 'dow([val])', 10.0, 1, 0.0, '01-10-2023' ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( "dow('02-30-2023')", 10.0, 1, 0.0 ) );
+
+		$previous_format = $GLOBALS['opf_test_options']['wapf_date_format'] ?? null;
+		try {
+			$GLOBALS['opf_test_options']['wapf_date_format'] = 'dd/mm/yyyy';
+			$this->assertSame( 3.0, Calculator::evaluate_formula( "dow('01/03/2023')", 10.0, 1, 0.0 ) );
+			$this->assertSame( 12.0, Calculator::evaluate_formula( "month('31/12/2023')", 10.0, 1, 0.0 ) );
+		} finally {
+			if ( null === $previous_format ) {
+				unset( $GLOBALS['opf_test_options']['wapf_date_format'] );
+			} else {
+				$GLOBALS['opf_test_options']['wapf_date_format'] = $previous_format;
+			}
+		}
+	}
+
 	public function test_field_addon_choice_fields(): void {
 		$field = [
 			'type'    => 'swatch',

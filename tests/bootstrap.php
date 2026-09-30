@@ -22,3 +22,9 @@ if ( ! defined( 'OPF_FILE' ) ) {
 }
 
 require_once OPF_DIR . 'includes/Autoloader.php';
+
+if ( ! function_exists( 'get_option' ) ) {
+	function get_option( string $option, $default = false ) {
+		return $GLOBALS['opf_test_options'][ $option ] ?? $default;
+	}
+}

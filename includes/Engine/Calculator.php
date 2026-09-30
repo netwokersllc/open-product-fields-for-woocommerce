@@ -114,7 +114,23 @@ final class Calculator {
 	 * (alias of [addons]), [val]. No eval() — recursive descent parser. Any syntax
 	 * error, division by zero, or non-finite result yields 0.0.
 	 */
-	public static function evaluate_formula( string $formula, float $price, int $qty, float $addons, string $val = '' ): float {
+	public static function evaluate_formula( string $formula, float $price, int $qty, float $addons, string $val = '', ?string $today = null ): float {
+		$today = $today ?? ( function_exists( 'current_time' ) ? current_time( 'Y-m-d' ) : gmdate( 'Y-m-d' ) );
+		if ( ! self::is_formula_iso_date( $today ) ) {
+			$today = gmdate( 'Y-m-d' );
+		}
+		$formula = preg_replace( '/today\s*\(\s*\)/i', '__OPF_TODAY__', $formula );
+		$formula = preg_replace_callback(
+			'/\b(dow|month)\s*\(([^()]*)\)/i',
+			static function ( array $match ) use ( $val, $today ): string {
+				$date = self::parse_formula_date( $match[2], $val, $today );
+				if ( null === $date ) {
+					return '0';
+				}
+				return 'dow' === strtolower( $match[1] ) ? $date->format( 'w' ) : $date->format( 'n' );
+			},
+			$formula
+		);
 		$formula = str_replace(
 			[ '[price]', '[qty]', '[addons]', '[options_total]', '[val]' ],
 			[ ' P ', ' Q ', ' A ', ' A ', ' V ' ],
@@ -134,6 +150,72 @@ final class Calculator {
 		// Negatives allowed here (formulas may offset other addons); the
 		// final addon total is clamped at the field_addon boundary.
 		return is_finite( $value ) ? (float) $value : 0.0;
+	}
+
+	/** Resolve a WAPF date function argument to a strictly validated date. */
+	private static function parse_formula_date( string $argument, string $val, string $today ): ?\DateTimeImmutable {
+		$argument = trim( $argument );
+		if ( strlen( $argument ) >= 2 && ( ( "'" === $argument[0] && "'" === substr( $argument, -1 ) ) || ( '"' === $argument[0] && '"' === substr( $argument, -1 ) ) ) ) {
+			$argument = substr( $argument, 1, -1 );
+		}
+		if ( '__OPF_TODAY__' === $argument ) {
+			$argument = $today;
+		} elseif ( '[val]' === strtolower( $argument ) ) {
+			$argument = $val;
+		}
+		$argument = trim( $argument );
+
+		if ( self::is_formula_iso_date( $argument ) ) {
+			return \DateTimeImmutable::createFromFormat( '!Y-m-d', $argument, new \DateTimeZone( 'UTC' ) ) ?: null;
+		}
+
+		$date_format = function_exists( 'get_option' ) ? (string) get_option( 'wapf_date_format', 'mm-dd-yyyy' ) : 'mm-dd-yyyy';
+		preg_match_all( '/yyyy|yy|mm|m|dd|d|[-\/., ]/i', $date_format, $format_tokens );
+		if ( 5 !== count( $format_tokens[0] ) ) {
+			return null;
+		}
+
+		$pattern = '';
+		$parts   = [];
+		foreach ( $format_tokens[0] as $token ) {
+			$token = strtolower( $token );
+			if ( in_array( $token, [ '-', '/', '.', ',', ' ' ], true ) ) {
+				$pattern .= preg_quote( $token, '/' );
+				continue;
+			}
+			$part = 'y' === substr( $token, 0, 1 ) ? 'year' : ( 'm' === $token[0] ? 'month' : 'day' );
+			if ( isset( $parts[ $part ] ) ) {
+				return null;
+			}
+			$parts[ $part ] = count( $parts ) + 1;
+			$digits = 'yyyy' === $token ? '4' : ( in_array( $token, [ 'yy', 'mm', 'dd' ], true ) ? '2' : '1,2' );
+			$pattern .= '(\\d{' . $digits . '})';
+		}
+		if ( 3 !== count( $parts ) || ! preg_match( '/^' . $pattern . '$/', $argument, $matches ) ) {
+			return null;
+		}
+
+		$date = [];
+		foreach ( $parts as $part => $index ) {
+			$date[ $part ] = (int) $matches[ $index ];
+		}
+		$year = $date['year'];
+		if ( 2 === strlen( (string) $matches[ $parts['year'] ] ) ) {
+			$year = $year < 70 ? 2000 + $year : 1900 + $year;
+		}
+		if ( ! checkdate( $date['month'], $date['day'], $year ) ) {
+			return null;
+		}
+		return \DateTimeImmutable::createFromFormat( '!Y-m-d', sprintf( '%04d-%02d-%02d', $year, $date['month'], $date['day'] ), new \DateTimeZone( 'UTC' ) ) ?: null;
+	}
+
+	/** Return whether a value is an exact valid ISO calendar date. */
+	private static function is_formula_iso_date( string $value ): bool {
+		if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ) {
+			return false;
+		}
+		[ $year, $month, $day ] = array_map( 'intval', explode( '-', $value ) );
+		return checkdate( $month, $day, $year );
 	}
 
 	/**

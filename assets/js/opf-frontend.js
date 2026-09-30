@@ -185,13 +185,61 @@ const fmtMoney = (amount) => {
   return `${neg}${symbol}${grouped}${decimals > 0 ? decimal + fracPart.slice(0, decimals) : ''}`;
 };
 
-const evalFormula = (formula, price, qty, addons, val) => {
+const evalFormula = (formula, price, qty, addons, val, todayOverride = null) => {
   // Safe mirror of the server-side evaluator (per-unit formulas; the qty
   // factor was stripped at import and is re-applied by the caller).
+  const today = String(todayOverride || window.OPF_TODAY || new Date().toISOString().slice(0, 10));
+  const dateFormat = String(window.OPF_DATE_FORMAT || (window.wapf_config || {}).date_format || 'mm-dd-yyyy');
+  const resolveFormulaDate = (rawValue) => {
+    let value = String(rawValue || '').trim();
+    if (value.length >= 2 && ((value[0] === "'" && value[value.length - 1] === "'") || (value[0] === '"' && value[value.length - 1] === '"'))) value = value.slice(1, -1);
+    if (value === '__OPF_TODAY__') value = today;
+    else if (value.toLowerCase() === '[val]') value = String(val || '').trim();
+    let year;
+    let month;
+    let day;
+    const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (iso) {
+      [, year, month, day] = iso.map((part) => Number(part));
+    } else {
+      const tokens = dateFormat.toLowerCase().match(/yyyy|yy|mm|m|dd|d|[-\/., ]/g);
+      if (!tokens || tokens.length !== 5) return null;
+      let pattern = '';
+      const parts = {};
+      for (const token of tokens) {
+        if (['-', '/', '.', ',', ' '].includes(token)) {
+          pattern += token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          continue;
+        }
+        const key = token[0] === 'y' ? 'year' : (token[0] === 'm' ? 'month' : 'day');
+        if (parts[key]) return null;
+        parts[key] = Object.keys(parts).length + 1;
+        pattern += `(\\d{${token === 'yyyy' ? '4' : (['yy', 'mm', 'dd'].includes(token) ? '2' : '1,2')}})`;
+      }
+      if (Object.keys(parts).length !== 3) return null;
+      const match = new RegExp(`^${pattern}$`).exec(value);
+      if (!match) return null;
+      year = Number(match[parts.year]);
+      month = Number(match[parts.month]);
+      day = Number(match[parts.day]);
+      if (dateFormat.toLowerCase().includes('yy') && !dateFormat.toLowerCase().includes('yyyy')) year += year < 70 ? 2000 : 1900;
+    }
+    if (![year, month, day].every(Number.isInteger)) return null;
+    const date = new Date(0);
+    date.setUTCHours(0, 0, 0, 0);
+    date.setUTCFullYear(year, month - 1, day);
+    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+    return { weekday: date.getUTCDay(), month };
+  };
   const expr = String(formula)
     .replace(/\[price\]/gi, ' P ')
     .replace(/\[qty\]/gi, ' Q ')
     .replace(/\[addons\]|\[options_total\]/gi, ' A ')
+    .replace(/today\s*\(\s*\)/gi, '__OPF_TODAY__')
+    .replace(/\b(dow|month)\s*\(([^()]*)\)/gi, (_, fn, rawDate) => {
+      const date = resolveFormulaDate(rawDate);
+      return date ? String(fn.toLowerCase() === 'dow' ? date.weekday : date.month) : '0';
+    })
     .replace(/\[val\]/gi, ' V ');
   const vars = { P: price, Q: qty, A: addons, V: parseFloat(val) || 0 };
   let i = 0;

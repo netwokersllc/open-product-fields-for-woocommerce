@@ -59,8 +59,12 @@ final class Assets {
 		// no-op here. Classic inline scripts execute immediately — before the
 		// deferred module — which is exactly the ordering the registry needs.
 		if ( $registry ) {
+			$date_format = function_exists( 'get_option' ) ? get_option( 'wapf_date_format', 'mm-dd-yyyy' ) : 'mm-dd-yyyy';
+			$today       = function_exists( 'current_time' ) ? current_time( 'Y-m-d' ) : gmdate( 'Y-m-d' );
 			wp_print_inline_script_tag(
 				'window.OPF_FIELDS = ' . wp_json_encode( $registry, JSON_UNESCAPED_UNICODE ) . ';'
+				. 'window.OPF_DATE_FORMAT = ' . wp_json_encode( $date_format ) . ';'
+				. 'window.OPF_TODAY = ' . wp_json_encode( $today ) . ';'
 			);
 		}
 		if ( Renderer::compat() ) {
