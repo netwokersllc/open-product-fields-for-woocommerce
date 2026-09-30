@@ -314,7 +314,7 @@ label. All sources are `INTEGRATIONS` and every fixture is
 | `WAPF-COMPAT-PDF-INVOICES` | PDF Invoices & Packing Slips | T | Invoice adapter |
 | `WAPF-COMPAT-DEPOSITS` | Deposits & Partial Payments | A | Payments adapter |
 | `WAPF-COMPAT-PRODUCT-TABLE` | WooCommerce Product Table | I | Product-table adapter |
-| `WAPF-COMPAT-QUANTITY-RULES` | Quantity Discounts, Rules & Swatches | I | Quantity adapter |
+| `WAPF-COMPAT-QUANTITY-RULES` | WooCommerce Quantity Discounts, Rules & Swatches | I | `class-tiered-pricing-table.php` adapter; current Wombat product page confirms tier pricing and quantity rules |
 | `WAPF-COMPAT-QUICK-VIEW-PRO` | WooCommerce Quick View Pro | I | Quick-view adapter |
 | `WAPF-COMPAT-RESTAURANT` | WooCommerce Restaurant Ordering | C | Ordering adapter |
 | `WAPF-COMPAT-SUBSCRIPTIONS` | WooCommerce Subscriptions | I | Subscription adapter |
