@@ -12,30 +12,32 @@ evidence.
 
 WAPF's current paid edition names are Pro, Extended, and Extended + Addons;
 official documentation does not define a separate current edition called
-"Premium." The target here is the Extended edition: Pro core plus Extended
-features. The separate add-ons and Extended + Addons bundle are excluded from
-this 1.0 parity gate unless the user expands scope. Official documentation
-says add-ons may be purchased separately.
+"Premium." OPF 1.0 target includes Free, Pro, Extended, and all six tracked
+official add-ons, whether purchased separately or through Extended + Addons.
+The add-ons remain separately identified because their lifecycle and source
+contracts differ from core. OPF must deliver parity in its own GPL-licensed
+code with no runtime dependency on WAPF or its paid add-ons.
 
 ## Progress snapshot and release goalposts — 2026-09-30
 
 Scope baseline: the live site has WAPF Extended 3.1.5 installed (inactive),
 but Studio Wombat's current official changelog lists Extended 3.2.1. Extended
-includes Pro; six separately sold add-ons are outside this Extended-edition
-target and remain separately tracked. The ledger has 139 rows: 133 for the
-Free + Pro + Extended edition scope (including 3 “All versions” rows), and 6
-for separately sold add-ons. Of the 133 edition rows, 8 are baseline-supported,
-22 supported, 12 supported with a documented difference, 85 partial, 3 known
-gaps, and 3 need audit. The 28 Extended-only
+includes Pro. The current ledger tracks 139 rows: 133 Free + Pro + Extended
+rows (including 3 “All versions” rows) plus 6 official add-ons. Add-on source
+audits may split these broad rows when they reveal separately testable
+capabilities; 139 is current inventory, not a proven final feature count.
+Across current rows, 8 are baseline-supported, 22 supported, 12 supported with a documented
+difference, 91 partial, 3 known gaps, and 3 need audit. The 28 Extended-only
 rows comprise 2 supported, 4 supported with a documented difference, 20
 partial, and 2 needing audit. These are row counts, not weighted feature percentages. No credible
 single percentage exists until row weights and the source-version scope are
-approved; gate completion is the progress measure.
+approved; gate completion is the progress measure. The six add-on rows are all
+partial and included in these totals.
 
 The source-audit gate remains open. Bounded implementation may continue from
 audited installed source and official documentation; current-version parity
 must not be claimed where the licensed package remains unaudited. Every
-edition-scope row must have (1) current-source or official-document
+core or add-on row must have (1) current-source or official-document
 evidence, (2) behavior and serialized/import semantics recorded, (3) frontend,
 validation, price, cart, order, and admin lifecycle impacts identified where
 applicable, and (4) an OPF status and proof gap. The 3.1.5 source audit is
@@ -51,9 +53,9 @@ price-type mapping/equivalence remains a parity gap until proved. See the
 
 | Gate | Exit condition | State |
 | --- | --- | --- |
-| G0 — Edition and version baseline | Live installed version, current official target versions, edition boundary, source inventory, and dated changelog delta recorded | Partial: live installed 3.1.5 and official Extended 3.2.1 / Pro 3.2.2 changelogs are identified; 3.1.5 source inventory exists; current package source has not been audited |
-| G1 — Source and behavior audit | All 133 Free/Pro/Extended edition rows reconciled to current docs/source, import data, admin/frontend behavior, and lifecycle; source-version uncertainty and unknowns bounded; no edition row is `needs audit` | Open: installed 3.1.5 and public Free 1.7.1 source are mapped; official current release deltas are mapped; licensed Extended 3.2.1 source is unavailable locally. Card-quantity conditionals, date-picker accessibility, WooCommerce Bookings adapter activation, current-package stored keys/defaults, hook signatures, and Pro 3.2.2 inclusion remain unverified. Gift Card's only source delta is mapped to variable-product validation; see source audit. |
-| G2 — Ordered implementation parity | Every edition row is `supported` or has a specifically accepted, non-regressing difference; no baseline-supported, partial, gap, or needs-audit rows; no unaccepted difference | Not met: 85 partial, 3 gaps, 3 need audit, 8 baseline-supported rows without executed proof, and 12 differences awaiting explicit acceptance; see roadmap work packages |
+| G0 — Edition and version baseline | Live installed version, current official target versions, edition boundary, source inventory, and dated changelog delta recorded | Partial: live installed 3.1.5 and official Extended 3.2.1 / Pro 3.2.2 targets are identified; official product pages list six add-on versions in the roadmap; 3.1.5 core source inventory exists; current package archives/hashes and add-on source inventories remain missing |
+| G1 — Source and behavior audit | Every discovered core and add-on capability reconciled to current docs/source, import data, admin/frontend behavior, and lifecycle; source-version uncertainty and unknowns bounded; no row is `needs audit` | Open: installed 3.1.5 and public Free 1.7.1 source are mapped; official current release deltas are mapped; licensed Extended 3.2.1 and current add-on package sources are not fully audited. Card-quantity conditionals, date-picker accessibility, WooCommerce Bookings adapter activation, current-package stored keys/defaults, hook signatures, Pro 3.2.2 inclusion, and add-on-specific lifecycle/import contracts remain unverified. Add-on rows may need decomposition after source review. Gift Card's only source delta is mapped to variable-product validation; see source audit. |
+| G2 — Ordered implementation parity | Every discovered core and add-on capability is `supported` or has a specifically accepted, non-regressing difference; no baseline-supported, partial, gap, or needs-audit rows; no unaccepted difference | Not met: current ledger has 91 partial, 3 gaps, 3 need audit, 8 baseline-supported rows without executed proof, and 12 differences awaiting explicit acceptance; counts may grow as source audit decomposes add-on capabilities; see roadmap work packages |
 | G3 — End-to-end proof | Browser, server validation/pricing, classic + Store API cart, checkout/order persistence, order-again/refund/stock and relevant integrations pass for every applicable row | Partial: evidence and open paths remain per row; no aggregate pass claim |
 | G4 — 1.0 release readiness | Compatibility/integration scope, security, accessibility, translations, upgrade/import/rollback, docs, packaging, and WordPress.org/commercial marketplace checklists pass | Not met |
 
@@ -72,7 +74,7 @@ freezes scope and remaining work can be sized from verified gaps.
 | `PRODUCT-MARKETING` | [WAPF product marketing page](https://www.studiowombat.com/plugin/advanced-product-fields-for-woocommerce/) | Advertised field count, use-cases, broad feature and platform claims; mapped in the 3.1.5 source audit. |
 | `FIELD-TYPES` | [WAPF field types](https://www.studiowombat.com/knowledge-base/all-field-types/) | Content fields, shortcodes, and third-party product-page content. |
 | `TIERS` | [WAPF tier comparison](https://www.studiowombat.com/knowledge-base/whats-the-difference-between-each-version/) | Extended-only fields, functions, date restrictions, weight, swatch zoom. |
-| `ADDONS` | [WAPF official add-ons](https://www.studiowombat.com/advanced-product-fields-addons/) | The six add-ons and user-visible behavior. |
+| `ADDONS` | [WAPF official add-ons](https://www.studiowombat.com/advanced-product-fields-addons/) | Current catalog lists ACF integration, image upload editing/processing, URL parameter prefill, live content preview, layered images, and lookup-table import. This validates the six tracked add-on identities, not an exhaustive source-level feature inventory; package/source audits may add capability rows. |
 | `INTEGRATIONS` | [WAPF compatibility matrix](https://www.studiowombat.com/knowledge-base/which-plugins-and-themes-are-compatible-with-advanced-product-fields-for-woocommerce/) | Named integrations and WAPF's labels. |
 | `FREE` | [WAPF Free directory page](https://wordpress.org/plugins/advanced-product-fields-for-woocommerce/) | Free inputs, tax, targeting, Ajax variations, translations, limitations. |
 | `PRICING` | [WAPF pricing options](https://www.studiowombat.com/knowledge-base/all-pricing-options-explained/) | Fixed, quantity-fixed, percentage, quantity-percentage, character, and numeric-value pricing variants. |
