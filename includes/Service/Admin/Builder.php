@@ -74,17 +74,26 @@ final class Builder {
 		$tag_terms  = get_terms( [ 'taxonomy' => 'product_tag', 'hide_empty' => false, 'number' => 500 ] );
 
 		$selected = [ 'product_cat' => [], 'product_tag' => [] ];
+		$auth     = 'all';
+		$role     = '';
+		$role_op  = 'in';
 		if ( $group ) {
 			foreach ( $group->data['rule_groups'] as $rule_group ) {
 				foreach ( $rule_group['rules'] as $rule ) {
 					if ( 'in' === $rule['operator'] && isset( $selected[ $rule['subject'] ] ) ) {
 						$selected[ $rule['subject'] ] = array_merge( $selected[ $rule['subject'] ], $rule['terms'] );
+					} elseif ( 'auth' === $rule['subject'] ) {
+						$auth = 'not_in' === $rule['operator'] ? 'logged_out' : 'logged_in';
+					} elseif ( 'user_role' === $rule['subject'] && ! empty( $rule['terms'][0] ) ) {
+						$role    = (string) $rule['terms'][0];
+						$role_op = 'not_in' === $rule['operator'] ? 'not_in' : 'in';
 					}
 				}
 			}
 		}
+		$roles = function_exists( 'get_editable_roles' ) ? get_editable_roles() : ( function_exists( 'wp_roles' ) ? wp_roles()->roles : [] );
 		?>
-		<p class="description"><?php esc_html_e( 'Leave both empty to show this group on every product.', 'open-product-fields-for-woocommerce' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Leave category and tag filters empty to apply this group to every product. Visitor and role conditions below still apply.', 'open-product-fields-for-woocommerce' ); ?></p>
 		<p><strong><?php esc_html_e( 'Product categories', 'open-product-fields-for-woocommerce' ); ?></strong></p>
 		<select multiple size="8" id="opf-placement-cats" style="width:100%">
 			<?php foreach ( (array) $cat_terms as $term ) : ?>
@@ -100,6 +109,24 @@ final class Builder {
 					<?php echo esc_html( $term->name ); ?>
 				</option>
 			<?php endforeach; ?>
+		</select>
+		<p><label for="opf-placement-auth"><strong><?php esc_html_e( 'Visitor authentication', 'open-product-fields-for-woocommerce' ); ?></strong></label></p>
+		<select id="opf-placement-auth" style="width:100%">
+			<option value="all" <?php selected( 'all', $auth ); ?>><?php esc_html_e( 'All visitors', 'open-product-fields-for-woocommerce' ); ?></option>
+			<option value="logged_in" <?php selected( 'logged_in', $auth ); ?>><?php esc_html_e( 'Logged in', 'open-product-fields-for-woocommerce' ); ?></option>
+			<option value="logged_out" <?php selected( 'logged_out', $auth ); ?>><?php esc_html_e( 'Logged out', 'open-product-fields-for-woocommerce' ); ?></option>
+		</select>
+		<p><label for="opf-placement-role"><strong><?php esc_html_e( 'User role', 'open-product-fields-for-woocommerce' ); ?></strong></label></p>
+		<select id="opf-placement-role" style="width:100%">
+			<option value=""><?php esc_html_e( 'Any role', 'open-product-fields-for-woocommerce' ); ?></option>
+			<?php foreach ( (array) $roles as $role_id => $role_data ) : ?>
+				<option value="<?php echo esc_attr( (string) $role_id ); ?>" <?php selected( (string) $role_id, $role ); ?>><?php echo esc_html( translate_user_role( (string) ( $role_data['name'] ?? $role_id ) ) ); ?></option>
+			<?php endforeach; ?>
+		</select>
+		<p><label for="opf-placement-role-operator"><?php esc_html_e( 'Role condition', 'open-product-fields-for-woocommerce' ); ?></label></p>
+		<select id="opf-placement-role-operator" style="width:100%">
+			<option value="in" <?php selected( 'in', $role_op ); ?>><?php esc_html_e( 'Has role', 'open-product-fields-for-woocommerce' ); ?></option>
+			<option value="not_in" <?php selected( 'not_in', $role_op ); ?>><?php esc_html_e( 'Does not have role', 'open-product-fields-for-woocommerce' ); ?></option>
 		</select>
 		<p class="description"><?php esc_html_e( 'Placement changes are saved together with the fields.', 'open-product-fields-for-woocommerce' ); ?></p>
 		<?php

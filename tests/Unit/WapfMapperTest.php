@@ -74,6 +74,26 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( [ '8768' ], $mapped['group']['rule_groups'][0]['rules'][0]['terms'] );
 	}
 
+	public function test_maps_wapf_auth_and_role_placement_rules(): void {
+		$wapf = $this->swatch_group();
+		$wapf['rule_groups'] = [
+			[ 'rules' => [
+				[ 'condition' => 'auth', 'subject' => 'auth', 'value' => [] ],
+				[ 'condition' => '!role', 'subject' => 'role', 'value' => [ [ 'id' => 'shop_manager', 'text' => 'Shop manager' ] ] ],
+			] ],
+		];
+		$mapped = WapfMapper::map( $wapf );
+
+		$this->assertFalse( $mapped['needs_review'] );
+		$this->assertSame(
+			[
+				[ 'subject' => 'auth', 'operator' => 'in', 'terms' => [] ],
+				[ 'subject' => 'user_role', 'operator' => 'not_in', 'terms' => [ 'shop_manager' ] ],
+			],
+			$mapped['group']['rule_groups'][0]['rules']
+		);
+	}
+
 	public function test_attaches_local_groups_to_host_product(): void {
 		$mapped = WapfMapper::map( $this->swatch_group(), [ 'attach_product_ids' => [ 199813 ] ] );
 		$rules  = $mapped['group']['rule_groups'][0]['rules'];

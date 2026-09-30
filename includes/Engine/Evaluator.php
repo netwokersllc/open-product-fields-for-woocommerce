@@ -103,7 +103,7 @@ final class Evaluator {
 	 * @param array<string, array<int|string>> $has_terms subject => term ids the product belongs to, e.g. ['product_cat' => [1,2]].
 	 * @param int                 $product_id  Current product id.
 	 */
-	public static function group_matches( array $group, array $has_terms, int $product_id ): bool {
+	public static function group_matches( array $group, array $has_terms, int $product_id, array $user_context = [] ): bool {
 		$rule_groups = $group['rule_groups'] ?? [];
 		if ( empty( $rule_groups ) ) {
 			return true;
@@ -111,7 +111,7 @@ final class Evaluator {
 		foreach ( $rule_groups as $rule_group ) {
 			$group_ok = true;
 			foreach ( $rule_group['rules'] as $rule ) {
-				if ( ! self::placement_rule_passes( $rule, $has_terms, $product_id ) ) {
+				if ( ! self::placement_rule_passes( $rule, $has_terms, $product_id, $user_context ) ) {
 					$group_ok = false;
 					break;
 				}
@@ -129,16 +129,35 @@ final class Evaluator {
 	 * @param array<string,mixed> $rule       Normalized placement rule.
 	 * @param array<string,array> $has_terms  subject => term ids.
 	 */
-	private static function placement_rule_passes( array $rule, array $has_terms, int $product_id ): bool {
+	private static function placement_rule_passes( array $rule, array $has_terms, int $product_id, array $user_context ): bool {
 		$subject = $rule['subject'];
-
-		if ( 'product' === $subject ) {
-			$in = in_array( (string) $product_id, $rule['terms'], true );
-			return 'not_in' === $rule['operator'] ? ! $in : $in;
+		$operator = $rule['operator'];
+		$terms = array_map( 'strval', $rule['terms'] );
+		if ( ! in_array( $operator, [ 'in', 'not_in' ], true ) ) {
+			return false;
 		}
 
-		$terms = array_map( 'strval', $has_terms[ $subject ] ?? [] );
-		$in    = ! empty( array_intersect( $rule['terms'], $terms ) );
-		return 'not_in' === $rule['operator'] ? ! $in : $in;
+		if ( 'auth' === $subject ) {
+			if ( ! array_key_exists( 'logged_in', $user_context ) ) {
+				return false;
+			}
+			$matches = (bool) $user_context['logged_in'];
+			return 'not_in' === $operator ? ! $matches : $matches;
+		}
+
+		if ( 'user_role' === $subject ) {
+			$roles   = array_map( 'strval', (array) ( $user_context['roles'] ?? [] ) );
+			$matches = ! empty( array_intersect( $terms, $roles ) );
+			return 'not_in' === $operator ? ! $matches : $matches;
+		}
+
+		if ( 'product' === $subject ) {
+			$in = in_array( (string) $product_id, $terms, true );
+			return 'not_in' === $operator ? ! $in : $in;
+		}
+
+		$product_terms = array_map( 'strval', $has_terms[ $subject ] ?? [] );
+		$in             = ! empty( array_intersect( $terms, $product_terms ) );
+		return 'not_in' === $operator ? ! $in : $in;
 	}
 }

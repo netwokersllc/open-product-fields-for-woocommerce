@@ -268,6 +268,14 @@
 		if ( tags.length ) {
 			rules.push( { subject: 'product_tag', operator: 'in', terms: tags } );
 		}
+		var auth = document.getElementById( 'opf-placement-auth' ).value;
+		if ( 'logged_in' === auth || 'logged_out' === auth ) {
+			rules.push( { subject: 'auth', operator: 'logged_out' === auth ? 'not_in' : 'in', terms: [ 'logged_in' ] } );
+		}
+		var role = document.getElementById( 'opf-placement-role' ).value;
+		if ( role ) {
+			rules.push( { subject: 'user_role', operator: document.getElementById( 'opf-placement-role-operator' ).value, terms: [ role ] } );
+		}
 		model.rule_groups = rules.length ? [ { rules: rules } ] : [];
 
 		var status = document.getElementById( 'opf-b-status' );

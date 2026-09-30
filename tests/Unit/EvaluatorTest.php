@@ -100,4 +100,38 @@ final class EvaluatorTest extends TestCase {
 		$this->assertTrue( Evaluator::group_matches( $group, [ 'product_cat' => [ 9 ], 'product_tag' => [ 2 ] ], 42 ) );
 		$this->assertFalse( Evaluator::group_matches( $group, [ 'product_cat' => [ 9 ], 'product_tag' => [ 3 ] ], 42 ) );
 	}
+
+	public function test_placement_authentication_matches_logged_in_and_logged_out_rules(): void {
+		$logged_in = [ 'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'auth', 'operator' => 'in', 'terms' => [ 'logged_in' ] ] ] ] ] ];
+		$logged_out = [ 'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'auth', 'operator' => 'not_in', 'terms' => [ 'logged_in' ] ] ] ] ] ];
+
+		$this->assertTrue( Evaluator::group_matches( $logged_in, [], 42, [ 'logged_in' => true ] ) );
+		$this->assertFalse( Evaluator::group_matches( $logged_in, [], 42, [ 'logged_in' => false ] ) );
+		$this->assertTrue( Evaluator::group_matches( $logged_out, [], 42, [ 'logged_in' => false ] ) );
+		$this->assertFalse( Evaluator::group_matches( $logged_out, [], 42, [ 'logged_in' => true ] ) );
+		$this->assertFalse( Evaluator::group_matches( $logged_out, [], 42 ) );
+	}
+
+	public function test_placement_role_matches_any_current_user_role_and_negation(): void {
+		$has_editor = [ 'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'user_role', 'operator' => 'in', 'terms' => [ 'editor' ] ] ] ] ] ];
+		$not_shop_manager = [ 'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'user_role', 'operator' => 'not_in', 'terms' => [ 'shop_manager' ] ] ] ] ] ];
+
+		$this->assertTrue( Evaluator::group_matches( $has_editor, [], 42, [ 'roles' => [ 'subscriber', 'editor' ] ] ) );
+		$this->assertFalse( Evaluator::group_matches( $has_editor, [], 42, [ 'roles' => [ 'subscriber' ] ] ) );
+		$this->assertFalse( Evaluator::group_matches( $not_shop_manager, [], 42, [ 'roles' => [ 'shop_manager' ] ] ) );
+		$this->assertTrue( Evaluator::group_matches( $not_shop_manager, [], 42, [ 'roles' => [ 'subscriber' ] ] ) );
+		$this->assertTrue( Evaluator::group_matches( $not_shop_manager, [], 42, [ 'roles' => [] ] ) );
+	}
+
+	public function test_user_placement_rules_combine_with_product_placement_rules(): void {
+		$group = [ 'rule_groups' => [ [ 'rules' => [
+			[ 'subject' => 'product_cat', 'operator' => 'in', 'terms' => [ '1' ] ],
+			[ 'subject' => 'auth', 'operator' => 'in', 'terms' => [ 'logged_in' ] ],
+			[ 'subject' => 'user_role', 'operator' => 'in', 'terms' => [ 'editor' ] ],
+		] ] ] ];
+
+		$this->assertTrue( Evaluator::group_matches( $group, [ 'product_cat' => [ 1 ] ], 42, [ 'logged_in' => true, 'roles' => [ 'editor' ] ] ) );
+		$this->assertFalse( Evaluator::group_matches( $group, [ 'product_cat' => [ 1 ] ], 42, [ 'logged_in' => true, 'roles' => [ 'subscriber' ] ] ) );
+		$this->assertFalse( Evaluator::group_matches( $group, [ 'product_cat' => [ 9 ] ], 42, [ 'logged_in' => true, 'roles' => [ 'editor' ] ] ) );
+	}
 }

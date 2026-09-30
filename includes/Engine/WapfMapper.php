@@ -357,6 +357,8 @@ final class WapfMapper {
 					'product_cats' => 'product_cat',
 					'p_tags'       => 'product_tag',
 					'product_tag'  => 'product_tag',
+					'auth'         => 'auth',
+					'role'         => 'user_role',
 				];
 				if ( ! isset( $map[ $cond ] ) ) {
 					$notes[]      = sprintf( 'placement condition "%s" has no OPF equivalent; rule dropped.', $condition );
