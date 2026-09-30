@@ -529,7 +529,15 @@ WooCommerce Bookings adapter, now represented as a separate Pro capability
 row. Together with three separately verified Pro group-target conditions
 (login state, user role, and current language), plus the unregistered Bookings
 class requiring runtime classification and the beta PHP helper API, the edition
-ledger now has 132 rows. The official descriptions do not disclose the release rows'
+ledger now has 133 edition rows (139 including the six separately sold add-ons).
+The WooCommerce product duplication callback is a separately tracked Pro
+capability: installed source reads the duplicate product's local
+`_wapf_fieldgroup`, regenerates field IDs and references, resets the group ID to
+`p_<duplicate product ID>`, persists the copied data, then fires
+`wapf/admin/after_product_duplication` with the duplicate product, source product,
+new field-group object, and field ID map. This seeds `WAPF-PRODUCT-DUPLICATION`;
+current 3.2.1 source reconciliation remains open. The official descriptions do
+not disclose the release rows'
 exact setting
 keys or complete behavior, so only the licensed current package can close
 those source questions.

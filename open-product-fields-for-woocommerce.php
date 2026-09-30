@@ -48,6 +48,7 @@ use OPF\Service\Cli;
 use OPF\Service\FieldGroups;
 use OPF\Service\Importer;
 use OPF\Service\MetaPrettifier;
+use OPF\Service\ProductFieldGroupDuplication;
 use OPF\Service\Renderer;
 use OPF\Service\Rest;
 
@@ -90,6 +91,7 @@ function opf_boot(): void {
 	ImportPage::init();
 	Settings::init();
 	MetaPrettifier::init();
+	ProductFieldGroupDuplication::init();
 
 	if ( defined( 'WP_CLI' ) && WP_CLI ) {
 		Cli::init();
