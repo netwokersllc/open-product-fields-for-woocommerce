@@ -45,6 +45,7 @@ require_once OPF_DIR . 'includes/api/cart-orders.php';
 
 use OPF\Service\Admin\Builder;
 use OPF\Service\Admin\ImportPage;
+use OPF\Service\Admin\LookupTables as LookupTablesAdmin;
 use OPF\Service\Admin\Settings;
 use OPF\Service\Assets;
 use OPF\Service\CartIntegration;
@@ -97,6 +98,7 @@ function opf_boot(): void {
 	Acf::init();
 	Rest::init();
 	Importer::init();
+	LookupTablesAdmin::init();
 	Builder::init();
 	ImportPage::init();
 	Settings::init();

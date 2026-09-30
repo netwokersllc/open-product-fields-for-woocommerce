@@ -12,6 +12,7 @@
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
 delete_option( 'opf_version' );
+delete_option( 'opf_lookup_tables' );
 
 $groups = get_posts(
 	[

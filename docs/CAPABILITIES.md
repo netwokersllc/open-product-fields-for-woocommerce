@@ -16,18 +16,17 @@ validation paths.
 | Choice behavior | Defaults, disabled choices, single-select controls, and multiple checkbox selections |
 | Conditions | Show or hide a field using `is`, `is_not`, `contains`, `greater`, `less`, `empty`, and `not_empty` rules; condition blocks support all/any logic |
 | Product placement | Product and product-term inclusion/exclusion, logged-in state, WordPress user role, and current-language rules through Polylang or WPML when available |
-| Pricing | No price, fixed amount, percentage of product price, or safe arithmetic formula. The server calculates the cart price. Fixed prices are flat per line unless `per_unit` is enabled; percentage and formula prices are per unit. |
+| Pricing | No price, fixed amount, percentage of product price, safe arithmetic formula, or lookup-table formula. The server calculates the cart price. Fixed prices are flat per line unless `per_unit` is enabled; percentage and formula prices are per unit. |
 | Commerce flow | Classic product-form add to cart plus Store API add to cart; cart, block cart/checkout display, order-item storage, and order-again restoration |
 | WooCommerce features | The plugin declares compatibility with HPOS and cart/checkout blocks |
-| Administration | Field-group builder, authenticated `opf/v1` REST endpoints, public field-group PHP helpers, numeric formula functions and lookup-table registration, and WAPF import command |
+| Administration | Field-group builder, authenticated `opf/v1` REST endpoints, public field-group PHP helpers, numeric formula functions and lookup-table registration, CSV lookup-table management, and WAPF import command |
 | WAPF import | Maps the supported field types and supported pricing. Unsupported types, repeaters, and unsupported pricing are omitted from the imported group and recorded for review. |
 
 ## Not implemented in 0.1.0
 
-OPF does not currently provide file uploads, time fields, image or
+OPF does not currently provide product file-upload fields, time fields, image or
 colour swatches, repeatable fields, child/linked products, image quantities,
-rich HTML or shortcode content, other layout fields, visual previews, lookup
-tables, or complete third-party integrations. Price hints and pricing support
+rich HTML or shortcode content, other layout fields, visual previews, or complete third-party integrations. Price hints and pricing support
 fixed, percentage, formula, per-character, and numeric-value modes; formatted
 cart hint metadata is not yet supported. FOX/WOOCS live total display is partial;
 per-currency fixed prices, linked-product pricing, currency-switched hint

@@ -75,10 +75,12 @@ check( 'reactivate: CPT re-registered', post_type_exists( 'opf_field_group' ) );
 check( 'reactivate: group intact', OPF\Service\FieldGroups::group_from_post( get_post( $gid ) ) instanceof OPF\Engine\FieldGroup );
 
 // ------------------------------------------------------- uninstall routine.
+update_option( 'opf_lookup_tables', [ 'uninstall_probe' => [ 10 => 12.0 ] ], false );
 define( 'WP_UNINSTALL_PLUGIN', true );
 include OPF_DIR . 'uninstall.php';
 
 check( 'uninstall: option removed', ! get_option( 'opf_version' ) );
+check( 'uninstall: imported lookup tables removed', ! get_option( 'opf_lookup_tables' ) );
 check( 'uninstall: field group posts removed', 0 === count( get_posts( [ 'post_type' => 'opf_field_group', 'post_status' => 'any', 'posts_per_page' => 1, 'fields' => 'ids' ] ) ) );
 $probe_order = wc_get_order( $order_id );
 $probe_item  = $probe_order ? array_values( $probe_order->get_items() )[0] : null;

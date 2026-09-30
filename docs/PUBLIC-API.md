@@ -32,8 +32,9 @@ so they should be deterministic and avoid side effects.
 
 ## Lookup-table formulas
 
-Register a request-local lookup table using nested maps. Each map level is one
-formula dimension; the leaf is a finite numeric price:
+Register a request-local lookup table using nested maps. Names contain only
+letters, numbers, and underscores. Each map level is one formula dimension;
+the leaf is a finite numeric price:
 
 ```php
 opf_register_lookup_table( 'size_price', [
@@ -52,6 +53,17 @@ registrations return `false` and leave it unchanged.
 Only tables referenced by formulas in the current product's rendered field
 registry are included in browser preview data. Their contents are public on
 those product pages; do not register secret or cost-only data.
+
+CSV tables can be imported and managed under **WooCommerce → Lookup tables**.
+Two-field grids use the top row as the first formula dimension and column A as
+the second; cell A1 supplies the name, or the filename is used when A1 is empty.
+Combination lists use the filename as their table name, with one field per
+column and price in the final column. Select the list layout when its first
+field value could be mistaken for a table name by automatic detection.
+Re-uploading a table name replaces it.
+Imports are stored in the non-autoloaded `opf_lookup_tables` option. Code
+registrations override imported tables with the same name for the current PHP
+request. CSV files are limited to 10 MiB and 100,000 cells.
 
 ## Field groups
 

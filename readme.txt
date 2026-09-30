@@ -25,6 +25,8 @@ This plugin is 100% free and open source (GPLv2 or later). No license keys, no n
 * Field types: text, textarea, URL, number, select, radio, checkbox, and text-only swatches
 * Conditional logic (show/hide fields based on other values)
 * Pricing per choice: fixed, percentage of product price, and math formulas — always computed server-side
+* Formula lookup tables: define reusable tables in PHP or import 2D pricing grids and multidimensional CSV lists
+* Manage imported lookup tables in WooCommerce with same-name replacement and deletion
 * Works on classic product pages AND block-based cart/checkout (Store API)
 * Per-field order-item metadata stored through WooCommerce's order-item API; compatible with declared HPOS support
 * Migration tool: imports the supported WAPF field types and flags unsupported fields or repeaters for review; it can recover corrupted legacy payloads (`wp opf import-wapf`)
@@ -52,9 +54,14 @@ OPF renders fields through standard WooCommerce product hooks. Validate it with 
 
 Run `wp opf import-wapf` (dry run first, then `--commit`). Supported placement rules, field types, choices, and pricing are mapped; unsupported field types, repeaters, and pricing are flagged for review. See docs/MIGRATION.md and docs/CAPABILITIES.md.
 
+= Can I import a spreadsheet price table? =
+
+Yes. Open WooCommerce → Lookup tables and upload a CSV exported from spreadsheet software. Use a grid for two fields or a row list for three or more fields, then reference the table with `lookuptable(table_name; field_id; ...)` in formula pricing.
+
 == Changelog ==
 
 = 0.1.0 =
 * Field groups with conditional logic and server-side pricing.
+* Reusable formula lookup tables with PHP registration and CSV import/management.
 * Classic and block cart/checkout support, order persistence, order-again restore.
 * WAPF import tool with corruption repair and WP-CLI command.
