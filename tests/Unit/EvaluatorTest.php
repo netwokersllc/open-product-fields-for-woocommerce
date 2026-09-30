@@ -100,4 +100,20 @@ final class EvaluatorTest extends TestCase {
 		$this->assertTrue( Evaluator::group_matches( $group, [ 'product_cat' => [ 9 ], 'product_tag' => [ 2 ] ], 42 ) );
 		$this->assertFalse( Evaluator::group_matches( $group, [ 'product_cat' => [ 9 ], 'product_tag' => [ 3 ] ], 42 ) );
 	}
+
+	public function test_user_auth_role_and_language_placement_rules(): void {
+		$group = [ 'rule_groups' => [ [ 'rules' => [
+			[ 'subject' => 'user_auth', 'operator' => 'in', 'terms' => [ 'logged_in' ] ],
+			[ 'subject' => 'user_role', 'operator' => 'in', 'terms' => [ 'wholesale' ] ],
+			[ 'subject' => 'user_role', 'operator' => 'not_in', 'terms' => [ 'suspended' ] ],
+			[ 'subject' => 'user_language', 'operator' => 'in', 'terms' => [ 'nl_NL' ] ],
+		] ] ] ];
+		$buyer = [ 'logged_in' => true, 'roles' => [ 'customer', 'wholesale' ], 'language' => 'nl_NL' ];
+
+		$this->assertTrue( Evaluator::group_matches( $group, [], 42, $buyer ) );
+		$this->assertFalse( Evaluator::group_matches( $group, [], 42, [ 'logged_in' => false, 'roles' => [], 'language' => 'nl_NL' ] ) );
+		$this->assertFalse( Evaluator::group_matches( $group, [], 42, [ 'logged_in' => true, 'roles' => [ 'customer' ], 'language' => 'nl_NL' ] ) );
+		$this->assertFalse( Evaluator::group_matches( $group, [], 42, [ 'logged_in' => true, 'roles' => [ 'wholesale', 'suspended' ], 'language' => 'nl_NL' ] ) );
+		$this->assertFalse( Evaluator::group_matches( $group, [], 42, [ 'logged_in' => true, 'roles' => [ 'wholesale' ], 'language' => 'en_US' ] ) );
+	}
 }

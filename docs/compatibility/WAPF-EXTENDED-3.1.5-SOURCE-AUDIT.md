@@ -321,12 +321,15 @@ evaluator is `SW_WAPF_PRO\Includes\Classes\Conditions::check()` in
 
 The Free and installed OPF group-assignment rows already cover product,
 variation, category, attribute, tag, type, and exclusion targeting. The Pro
-source adds the three user/context conditions above. A repository-wide search
-of OPF's `includes` and `assets/js` finds Polylang post-language assignment,
-but no login-state, role, or group-language condition in its builder/evaluator;
-the ledger therefore records those three as gaps. The exact latest-package
-source is still required to confirm that these 3.1.5 keys and semantics remain
-unchanged in Extended 3.2.1.
+source adds the three user/context conditions above. OPF now imports and
+evaluates login-state, role, and language rules; the builder exposes controls
+for each. Evaluator, mapper, and viewer-cache-key unit tests pass, and Chromium
+verifies builder save behavior, including preservation of untouched OR groups
+and propagation of edited user rules across them. Request caching includes authentication,
+roles, Polylang/WPML condition language, and Polylang group language to prevent
+cross-context group leakage. Live WordPress product-page behavior, actual
+Polylang/WPML installations, and the exact Extended 3.2.1 source remain
+unverified; keep these ledger rows partial.
 
 The field-group placement registry contains no date/time or scheduling rule;
 scheduled groups use WordPress's native `future` post status and publish

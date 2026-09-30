@@ -115,7 +115,17 @@ final class FieldGroups {
 	 */
 	public static function for_product( \WC_Product $product ): array {
 		$product_id = $product->get_parent_id() ? $product->get_parent_id() : $product->get_id();
-		$cached     = wp_cache_get( $product_id, 'opf_groups_for_product' );
+		$logged_in  = function_exists( 'is_user_logged_in' ) && is_user_logged_in();
+		$user       = function_exists( 'wp_get_current_user' ) ? wp_get_current_user() : null;
+		$roles      = $logged_in && is_object( $user ) ? array_map( 'strval', (array) ( $user->roles ?? [] ) ) : [];
+		sort( $roles );
+		$language   = function_exists( 'pll_current_language' )
+			? (string) pll_current_language( 'locale' )
+			: ( defined( 'ICL_LANGUAGE_CODE' ) ? (string) ICL_LANGUAGE_CODE : 'default' );
+		$current_lang = function_exists( 'pll_current_language' ) ? pll_current_language( 'slug' ) : '';
+		$context      = [ 'logged_in' => $logged_in, 'roles' => $roles, 'language' => $language ];
+		$cache_key    = self::cache_key_for_viewer( $product_id, $context, (string) $current_lang );
+		$cached       = wp_cache_get( $cache_key, 'opf_groups_for_product' );
 		if ( is_array( $cached ) ) {
 			return $cached;
 		}
@@ -125,19 +135,17 @@ final class FieldGroups {
 			'product_tag' => wc_get_product_term_ids( $product_id, 'product_tag' ),
 		];
 
-		$current_lang = function_exists( 'pll_current_language' ) ? pll_current_language( 'slug' ) : '';
-
 		$matching = [];
 		foreach ( self::all() as $entry ) {
 			if ( $current_lang && ! empty( $entry['lang'] ) && $entry['lang'] !== $current_lang ) {
 				continue;
 			}
-			if ( Evaluator::group_matches( $entry['group']->data, $has_terms, $product_id ) ) {
+			if ( Evaluator::group_matches( $entry['group']->data, $has_terms, $product_id, $context ) ) {
 				$matching[] = $entry;
 			}
 		}
 
-		wp_cache_set( $product_id, $matching, 'opf_groups_for_product' );
+		wp_cache_set( $cache_key, $matching, 'opf_groups_for_product' );
 		return $matching;
 	}
 
@@ -194,5 +202,17 @@ final class FieldGroups {
 	public static function flush_cache(): void {
 		self::$all = null;
 		wp_cache_flush_group( 'opf_groups_for_product' );
+	}
+
+	/**
+	 * Keep cached placement results isolated by viewer and translation context.
+	 *
+	 * @param array{logged_in?:bool,roles?:array<int,string>,language?:string} $context Viewer context.
+	 */
+	private static function cache_key_for_viewer( int $product_id, array $context, string $group_language ): string {
+		$roles = array_map( 'strval', (array) ( $context['roles'] ?? [] ) );
+		sort( $roles );
+		$context['roles'] = $roles;
+		return $product_id . ':' . hash( 'sha256', serialize( [ $context, $group_language ] ) );
 	}
 }

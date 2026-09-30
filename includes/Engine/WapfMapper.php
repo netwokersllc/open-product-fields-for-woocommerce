@@ -357,6 +357,9 @@ final class WapfMapper {
 					'product_cats' => 'product_cat',
 					'p_tags'       => 'product_tag',
 					'product_tag'  => 'product_tag',
+					'auth'         => 'user_auth',
+					'role'         => 'user_role',
+					'lang'         => 'user_language',
 				];
 				if ( ! isset( $map[ $cond ] ) ) {
 					$notes[]      = sprintf( 'placement condition "%s" has no OPF equivalent; rule dropped.', $condition );
@@ -365,7 +368,9 @@ final class WapfMapper {
 				}
 
 				$terms = [];
-				if ( is_array( $value ) ) {
+				if ( 'auth' === $cond ) {
+					$terms = [ 'logged_in' ];
+				} elseif ( is_array( $value ) ) {
 					foreach ( $value as $v ) {
 						if ( is_array( $v ) && isset( $v['id'] ) ) {
 							$terms[] = (string) $v['id'];
@@ -375,6 +380,11 @@ final class WapfMapper {
 					}
 				} elseif ( is_scalar( $value ) && '' !== (string) $value ) {
 					$terms[] = (string) $value;
+				}
+				if ( in_array( $cond, [ 'role', 'lang' ], true ) && ! $terms ) {
+					$notes[]      = sprintf( 'placement condition "%s" has no selected value; rule dropped.', $condition );
+					$needs_review = true;
+					continue;
 				}
 
 				$rules[] = [

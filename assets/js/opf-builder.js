@@ -228,21 +228,49 @@
 	}
 
 	function save() {
-		// Fold placement selects into the model.
-		var cats = Array.prototype.slice.call( document.querySelectorAll( '#opf-placement-cats option:checked' ) ).map( function ( o ) {
-			return o.value;
-		} );
-		var tags = Array.prototype.slice.call( document.querySelectorAll( '#opf-placement-tags option:checked' ) ).map( function ( o ) {
-			return o.value;
-		} );
+		var placementAtSave = placementSelection();
+		function changed( key ) {
+			return JSON.stringify( placementAtSave[ key ] ) !== JSON.stringify( initialPlacementSelection[ key ] );
+		}
+		var changedSubjects = {
+			product_cat: changed( 'cats' ),
+			product_tag: changed( 'tags' ),
+			user_auth: changed( 'auth' ),
+			user_role: changed( 'roles' ) || changed( 'excludedRoles' ),
+			user_language: changed( 'language' ) || changed( 'languageOperator' ),
+		};
 		var rules = [];
-		if ( cats.length ) {
-			rules.push( { subject: 'product_cat', operator: 'in', terms: cats } );
+		if ( changedSubjects.product_cat && placementAtSave.cats.length ) {
+			rules.push( { subject: 'product_cat', operator: 'in', terms: placementAtSave.cats } );
 		}
-		if ( tags.length ) {
-			rules.push( { subject: 'product_tag', operator: 'in', terms: tags } );
+		if ( changedSubjects.product_tag && placementAtSave.tags.length ) {
+			rules.push( { subject: 'product_tag', operator: 'in', terms: placementAtSave.tags } );
 		}
-		model.rule_groups = rules.length ? [ { rules: rules } ] : [];
+		if ( changedSubjects.user_auth && placementAtSave.auth ) {
+			rules.push( { subject: 'user_auth', operator: 'logged_out' === placementAtSave.auth ? 'not_in' : 'in', terms: [ 'logged_in' ] } );
+		}
+		if ( changedSubjects.user_role ) {
+			placementAtSave.roles.forEach( function ( role ) { rules.push( { subject: 'user_role', operator: 'in', terms: [ role ] } ); } );
+			placementAtSave.excludedRoles.forEach( function ( role ) { rules.push( { subject: 'user_role', operator: 'not_in', terms: [ role ] } ); } );
+		}
+		if ( changedSubjects.user_language && placementAtSave.language ) {
+			rules.push( { subject: 'user_language', operator: placementAtSave.languageOperator || 'in', terms: [ placementAtSave.language ] } );
+		}
+
+		if ( Object.keys( changedSubjects ).some( function ( subject ) { return changedSubjects[ subject ]; } ) ) {
+			var groups = ( model.rule_groups || [] ).map( function ( group ) {
+				return { rules: ( group.rules || [] ).filter( function ( rule ) {
+					if ( changedSubjects[ rule.subject ] && [ 'user_auth', 'user_role', 'user_language' ].indexOf( rule.subject ) !== -1 ) return false;
+					return ! ( changedSubjects[ rule.subject ] && 'in' === rule.operator && [ 'product_cat', 'product_tag' ].indexOf( rule.subject ) !== -1 );
+				} ) };
+			} );
+			if ( groups.length ) {
+				groups.forEach( function ( group ) { group.rules = group.rules.concat( rules ); } );
+				model.rule_groups = groups.some( function ( group ) { return 0 === group.rules.length; } ) ? [] : groups;
+			} else {
+				model.rule_groups = rules.length ? [ { rules: rules } ] : [];
+			}
+		}
 
 		var status = document.getElementById( 'opf-b-status' );
 		status.textContent = 'Saving…';
@@ -258,6 +286,7 @@
 			return r.json();
 		} ).then( function ( j ) {
 			if ( j.id ) {
+				initialPlacementSelection = placementAtSave;
 				postId = j.id;
 				if ( ! parseInt( mount.dataset.postId, 10 ) ) {
 					mount.dataset.postId = j.id;
@@ -290,6 +319,27 @@
 		} );
 	}
 
+	function placementSelection() {
+		function values( selector ) {
+			return Array.prototype.slice.call( document.querySelectorAll( selector ) ).map( function ( option ) { return option.value; } );
+		}
+		function value( selector ) {
+			var control = document.querySelector( selector );
+			return control ? control.value : '';
+		}
+		return {
+			cats: values( '#opf-placement-cats option:checked' ),
+			tags: values( '#opf-placement-tags option:checked' ),
+			auth: value( '#opf-placement-auth' ),
+			roles: values( '#opf-placement-roles option:checked' ),
+			excludedRoles: values( '#opf-placement-excluded-roles option:checked' ),
+			language: value( '#opf-placement-language' ),
+			languageOperator: value( '#opf-placement-language-operator' ),
+		};
+	}
+
+	var initialPlacementSelection = null;
+
 	var toolbar = el( 'div', { class: 'opf-b-toolbar' }, [
 		el( 'button', { class: 'button button-primary', text: '+ Add field', onclick: function () {
 			model.fields.push( { id: uniqueId( 'field' ), label: '', description: '', type: 'text', required: false, width: 100, choices: [], pricing: { type: 'none', amount: 0, formula: '' }, conditionals: [] } );
@@ -309,4 +359,5 @@
 	mount.appendChild( frame );
 
 	rerender();
+	initialPlacementSelection = placementSelection();
 } )();

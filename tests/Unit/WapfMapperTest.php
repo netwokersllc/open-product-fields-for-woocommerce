@@ -74,6 +74,32 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( [ '8768' ], $mapped['group']['rule_groups'][0]['rules'][0]['terms'] );
 	}
 
+	public function test_maps_user_and_language_placement(): void {
+		$wapf = [
+			'fields' => [],
+			'rule_groups' => [ [ 'rules' => [
+				[ 'condition' => 'auth', 'subject' => 'user', 'value' => [] ],
+				[ 'condition' => 'role', 'subject' => 'user', 'value' => [ [ 'id' => 'wholesale', 'text' => 'Wholesale' ] ] ],
+				[ 'condition' => '!role', 'subject' => 'user', 'value' => [ [ 'id' => 'suspended', 'text' => 'Suspended' ] ] ],
+				[ 'condition' => 'lang', 'subject' => 'system', 'value' => [ [ 'id' => 'nl_NL', 'text' => 'Nederlands' ] ] ],
+				[ 'condition' => '!lang', 'subject' => 'system', 'value' => [ [ 'id' => 'fr_FR', 'text' => 'Français' ] ] ],
+			] ] ],
+		];
+
+		$mapped = WapfMapper::map( $wapf );
+		$this->assertFalse( $mapped['needs_review'] );
+		$this->assertSame(
+			[
+				[ 'subject' => 'user_auth', 'operator' => 'in', 'terms' => [ 'logged_in' ] ],
+				[ 'subject' => 'user_role', 'operator' => 'in', 'terms' => [ 'wholesale' ] ],
+				[ 'subject' => 'user_role', 'operator' => 'not_in', 'terms' => [ 'suspended' ] ],
+				[ 'subject' => 'user_language', 'operator' => 'in', 'terms' => [ 'nl_NL' ] ],
+				[ 'subject' => 'user_language', 'operator' => 'not_in', 'terms' => [ 'fr_FR' ] ],
+			],
+			$mapped['group']['rule_groups'][0]['rules']
+		);
+	}
+
 	public function test_attaches_local_groups_to_host_product(): void {
 		$mapped = WapfMapper::map( $this->swatch_group(), [ 'attach_product_ids' => [ 199813 ] ] );
 		$rules  = $mapped['group']['rule_groups'][0]['rules'];
