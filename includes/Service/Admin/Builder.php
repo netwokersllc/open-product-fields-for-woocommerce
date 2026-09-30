@@ -21,6 +21,7 @@ final class Builder {
 	public static function init(): void {
 		add_action( 'add_meta_boxes', [ __CLASS__, 'add_meta_boxes' ] );
 		add_filter( 'use_block_editor_for_post_type', [ __CLASS__, 'disable_block_editor' ], 10, 2 );
+		GroupDuplication::init();
 	}
 
 	/**
