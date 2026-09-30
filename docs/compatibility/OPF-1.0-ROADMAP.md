@@ -45,6 +45,13 @@ the official current Extended target is 3.2.1, the Pro changelog separately
 lists 3.2.2, and bundled Pro behavior is also in scope. No implementation
 slice starts until G1 passes.
 
+The changelog crosswalk has found two capability rows missing from the current
+125-row edition inventory: conditional settings for card quantity inputs and
+date-picker accessibility. Treat 125 and the status totals above as provisional
+until both rows are added, classified, and the ledger totals are recomputed.
+See the release-by-release crosswalk in
+`WAPF-EXTENDED-3.1.5-SOURCE-AUDIT.md`.
+
 ## G1 audit tracker
 
 This is the active stop line. Status advances only on recorded evidence in the
@@ -58,7 +65,7 @@ source audit and ledger; changelog coverage alone does not close source review.
 | D | Map official changes from Extended 3.1.6–3.2.1 and Pro 3.2.2 to ledger rows | Done for changelog mapping; source confirmation open | Versioned changes and affected rows listed; no changelog claim treated as source proof |
 | E | Acquire the licensed current Extended 3.2.1 archive and verify its version/hash | **Blocked: archive unavailable on server** | Exact archive retained locally; plugin header/version and package inventory recorded |
 | F | Inspect current package source, including bundled Pro code; reconcile 3.2.2 admin fix | Not started; depends on E | Changed files and behavior mapped against 3.1.5; exact defaults, stored keys, hook signatures, validation and lifecycle paths recorded |
-| G | Reconcile all 125 edition rows to current source/docs and resolve bounded unknowns | Not started; depends on F | Every row names evidence, behavior/data semantics, relevant lifecycle, OPF gap and proof needed; no `needs audit` row |
+| G | Reconcile all edition rows, including audit-discovered additions, to current source/docs and resolve bounded unknowns | Not started; depends on F | Inventory totals are recomputed; every row names evidence, behavior/data semantics, relevant lifecycle, OPF gap and proof needed; no `needs audit` row |
 | H | Fresh review of audit and ledger, then freeze source baseline | Not started; depends on G | Reviewer confirms scope/version and all row citations; G1 marked passed with dated snapshot |
 
 Until E–H pass, do not start or continue parity implementation. Existing dirty
