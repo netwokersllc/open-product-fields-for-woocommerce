@@ -28,7 +28,7 @@ test('an unmatched last-changed field restores the original product image', () =
 	const linkAttrs = new Map([['href', 'https://shop.test/original-large.jpg']]);
 	const link = { getAttribute: (name) => linkAttrs.get(name) ?? null, setAttribute: (name, value) => linkAttrs.set(name, String(value)), removeAttribute: (name) => linkAttrs.delete(name) };
 	const image = { getAttribute: (name) => attrs.get(name) ?? null, setAttribute: (name, value) => attrs.set(name, String(value)), removeAttribute: (name) => attrs.delete(name), closest: () => link };
-	const doc = { querySelector: () => image };
+	const doc = { querySelector: (selector) => '.woocommerce-product-gallery' === selector ? null : image };
 	const evaluation = { values: { finish: 'red', size: 'large' }, rules: [{ target_url: 'https://cdn.test/red.jpg', conditions: [{ field: 'finish', value: 'red' }] }], mode: 'last', changedField: 'finish' };
 	sandbox.updateProductImage(doc, [evaluation]);
 	assert.equal(attrs.get('src'), 'https://cdn.test/red.jpg');

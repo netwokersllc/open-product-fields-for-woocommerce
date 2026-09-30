@@ -101,9 +101,10 @@ OPF maps both modes, remaps legacy field IDs, validates image URLs and field
 values, and preserves the mode through the group schema and frontend registry.
 The frontend tracks the changed OPF field, applies the matching image, and
 restores the base image when the latest field has no match. Unit coverage is
-added for mapper output, matching, and restoration. It does not yet replace the
-existing real-browser check of rules mode, and Extended 3.2.1 source/runtime
-behavior remains unaudited.
+added for mapper output, matching, and restoration. A focused Chromium run on a
+WooCommerce gallery DOM fixture exercises the helper's existing-slide,
+external-image, and restore paths; it does not exercise a live WordPress
+product page. Extended 3.2.1 source/runtime behavior remains unaudited.
 
 Sources: installed `views/admin/settings/gallery-image.php`,
 `includes/classes/class-field-groups.php`, `includes/models/class-fieldgroup.php`,
