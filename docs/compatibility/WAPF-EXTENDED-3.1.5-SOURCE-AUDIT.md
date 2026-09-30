@@ -160,6 +160,35 @@ modal, so the exact Tools payload transformation and full import/export
 round-trip remain unproven from this helper alone. These are installed 3.1.5
 source facts, not current 3.2.1 confirmation.
 
+### Installed 3.1.5 Tools import/export behavior
+
+The Tools view (`views/admin/tools.php`) presents a code payload, offers
+replace (default) and append import modes, and warns that cross-site images are
+not copied. Static inspection of the installed `assets/js/admin.min.js`
+controller shows the payload contains `fields`, `conditions`, `layout`, and
+`variables`; it does not carry the source group ID or title. Import creates new
+field IDs and updates recognized field-condition, formula, calculation,
+choice-formula, variable, and gallery references. The linked-product remapping
+loop is empty, so linked-product references are not rewritten by this path.
+
+The append label does not mean every section appends. Nonempty fields append or
+replace according to the selected mode, while an empty fields list is a no-op.
+Variables append or replace. Nonempty conditions replace existing conditions
+even in append mode; an empty conditions list is a no-op, and the product editor
+does not apply the group-level conditions import branch. Layout is always
+rebuilt from defaults and then copied from the import, including in append
+mode; an empty layout therefore resets layout settings. The import handler only
+applies a parsed nonempty payload, so an empty top-level import is a no-op.
+These asymmetries can produce a successful import whose conditions or layout
+differ from what the user expects from “append”.
+
+The export projection operates on field objects and mutates the in-memory group
+while removing unsupported/generated rules and flattening field options. It is
+not a full-group archive: group metadata, group conditions, and group rules are
+not part of the four-value Tools payload. These findings describe the installed
+3.1.5 admin asset; its obfuscated controller has not been executed in an
+authenticated browser, and current Extended 3.2.1 behavior remains unaudited.
+
 ### Installed 3.1.5 integration adapter inventory
 
 The controller conditionally registers eight plugin adapters and three theme
