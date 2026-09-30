@@ -294,6 +294,12 @@ integrated. Every OPF status is `needs audit`; OPF must not inherit WAPF's
 label. All sources are `INTEGRATIONS` and every fixture is
 `compatibility/<ID>`.
 
+Reconciled against Wombat's [current premium compatibility table](https://www.studiowombat.com/knowledge-base/which-plugins-and-themes-are-compatible-with-advanced-product-fields-for-woocommerce/)
+on 2026-09-30: 46 published entries and 46 ledger entries, with display names
+updated to match the table. These are vendor compatibility claims, not proof
+that an adapter is bundled or works in the installed runtime; source-backed
+adapter evidence is recorded separately in the 3.1.5 audit.
+
 | ID | Entry | WAPF | OPF owner |
 | --- | --- | --- | --- |
 | `WAPF-COMPAT-BEAVER` | Beaver Builder | T | Builder adapter |
@@ -302,17 +308,17 @@ label. All sources are `INTEGRATIONS` and every fixture is
 | `WAPF-COMPAT-OXYGEN` | Oxygen Builder | T | Builder adapter |
 | `WAPF-COMPAT-BREAKDANCE` | Breakdance | T | Builder adapter |
 | `WAPF-COMPAT-VISUAL-COMPOSER` | Visual Composer | T | Builder adapter |
-| `WAPF-COMPAT-WPBAKERY` | WPBakery | T | Builder adapter |
-| `WAPF-COMPAT-ORDER-EXPORT` | Advanced Order Export | T | Export adapter |
+| `WAPF-COMPAT-WPBAKERY` | WP Bakery | T | Builder adapter |
+| `WAPF-COMPAT-ORDER-EXPORT` | Advanced Order Export For WooCommerce | T | Export adapter |
 | `WAPF-COMPAT-WC-DISCOUNTS` | WooCommerce Discounts | I | Discounts adapter |
 | `WAPF-COMPAT-INVOICE-DELIVERY` | Print Invoice & Delivery Notes | C | Invoice adapter |
 | `WAPF-COMPAT-RESERVED-STOCK` | Reserved Stock Pro | T | Stock adapter |
-| `WAPF-COMPAT-TI-WISHLIST` | TI Wishlist | A | Wishlist adapter |
+| `WAPF-COMPAT-TI-WISHLIST` | TI WooCommerce Wishlist | A | Wishlist adapter |
 | `WAPF-COMPAT-YITH-ELEMENTOR` | Ultimate Addons for Elementor | C | Builder adapter |
-| `WAPF-COMPAT-VARIATION-SWATCHES` | Variation Swatches | T | Variation adapter |
+| `WAPF-COMPAT-VARIATION-SWATCHES` | Variation Swatches for WooCommerce | T | Variation adapter |
 | `WAPF-COMPAT-WEIGHT-SHIPPING` | Weight Based Shipping | T | Shipping adapter |
-| `WAPF-COMPAT-PDF-INVOICES` | PDF Invoices & Packing Slips | T | Invoice adapter |
-| `WAPF-COMPAT-DEPOSITS` | Deposits & Partial Payments | A | Payments adapter |
+| `WAPF-COMPAT-PDF-INVOICES` | WooCommerce PDF Invoices & Packing Slips | T | Invoice adapter |
+| `WAPF-COMPAT-DEPOSITS` | Deposits & Partial Payments for WooCommerce | A | Payments adapter |
 | `WAPF-COMPAT-PRODUCT-TABLE` | WooCommerce Product Table | I | Product-table adapter |
 | `WAPF-COMPAT-QUANTITY-RULES` | WooCommerce Quantity Discounts, Rules & Swatches | I | `class-tiered-pricing-table.php` adapter; current Wombat product page confirms tier pricing and quantity rules |
 | `WAPF-COMPAT-QUICK-VIEW-PRO` | WooCommerce Quick View Pro | I | Quick-view adapter |
@@ -320,12 +326,12 @@ label. All sources are `INTEGRATIONS` and every fixture is
 | `WAPF-COMPAT-SUBSCRIPTIONS` | WooCommerce Subscriptions | I | Subscription adapter |
 | `WAPF-COMPAT-WP-ALL-EXPORT` | WP All Export | T | Export adapter |
 | `WAPF-COMPAT-YITH-BOOKING` | YITH Booking & Appointment | C | License-gated external snippet (not bundled in 3.1.5 adapter map) |
-| `WAPF-COMPAT-YITH-QUOTE` | YITH Request a Quote | I | Quote adapter |
-| `WAPF-COMPAT-YITH-QUICK-VIEW` | YITH WooCommerce Quick View | C | Quick-view adapter |
-| `WAPF-COMPAT-ADVANCED-SHIPPING` | Advanced Shipping Rates | A | Shipping adapter |
-| `WAPF-COMPAT-FEATURED-VIDEOS` | Featured Videos | T | Media adapter |
-| `WAPF-COMPAT-CADDY` | Caddy Smart Side Cart | T | Cart adapter |
-| `WAPF-COMPAT-PAYPAL` | Payment Plugin for PayPal | A | Payments adapter |
+| `WAPF-COMPAT-YITH-QUOTE` | Yith Request a Quote | I | Quote adapter |
+| `WAPF-COMPAT-YITH-QUICK-VIEW` | Yith WooCommerce Quick View | C | Quick-view adapter |
+| `WAPF-COMPAT-ADVANCED-SHIPPING` | Advanced Shipping Rates for WooCommerce | A | Shipping adapter |
+| `WAPF-COMPAT-FEATURED-VIDEOS` | Featured Videos for WooCommerce | T | Media adapter |
+| `WAPF-COMPAT-CADDY` | Caddy – Smart Side Cart for WooCommerce | T | Cart adapter |
+| `WAPF-COMPAT-PAYPAL` | Payment Plugin for PayPal WooCommerce | A | Payments adapter |
 | `WAPF-COMPAT-AELIA` | Aelia WooCommerce Currency Switcher | I | Currency adapter (`WAPF-CURRENCY-AELIA`) |
 | `WAPF-COMPAT-FOX` | FOX – Currency Switcher Professional for WooCommerce | I | Currency adapter (`WAPF-CURRENCY-FOX`) |
 | `WAPF-COMPAT-SHOPTIMIZER` | Shoptimizer | T | Theme adapter |
