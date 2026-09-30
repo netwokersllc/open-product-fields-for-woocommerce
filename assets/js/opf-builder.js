@@ -105,7 +105,7 @@
 		selected.addEventListener( 'change', function () {
 			choice.selected = selected.checked;
 		} );
-		var remove = el( 'button', { class: 'button-link opf-b-remove', text: '×', onclick: function () {
+		var remove = el( 'button', { class: 'button-link opf-b-remove', type: 'button', text: '×', onclick: function () {
 			field.choices.splice( index, 1 );
 			rerender();
 		} } );
@@ -150,16 +150,23 @@
 			field.description = e.target.value;
 		} );
 
-		var remove = el( 'button', { class: 'button button-link-delete', text: 'Delete field', onclick: function () {
-			model.fields.splice( index, 1 );
+		var remove = el( 'button', { class: 'button button-link-delete', type: 'button', text: 'Delete field', onclick: function () {
+			deleteField( index );
+		} } );
+		var duplicate = el( 'button', { class: 'button opf-b-duplicate', type: 'button', text: 'Duplicate', title: 'Duplicate field', onclick: function () {
+			var copy = JSON.parse( JSON.stringify( field ) );
+			copy.id = uniqueId( ( field.id || 'field' ) + '-copy' );
+			copy.label = String( field.label || '' ) + ' (Copy)';
+			model.fields.splice( index + 1, 0, copy );
 			rerender();
 		} } );
+		var actions = el( 'div', { class: 'opf-b-field-actions' }, [ duplicate, remove ] );
 
-		var head = el( 'div', { class: 'opf-b-field-head' }, [ label, typeSel, desc, req, remove ] );
+		var head = el( 'div', { class: 'opf-b-field-head' }, [ label, typeSel, desc, req, actions ] );
 		var card = el( 'div', { class: 'opf-b-field' }, [ head ] );
 
 		if ( field.choices.length ) {
-			var addChoice = el( 'button', { class: 'button', text: '+ Add choice', onclick: function () {
+			var addChoice = el( 'button', { class: 'button', type: 'button', text: '+ Add choice', onclick: function () {
 				var n = field.choices.length + 1;
 				field.choices.push( { slug: 'option-' + n, label: 'Option ' + n, selected: false, disabled: false, pricing: { type: 'none', amount: 0, formula: '' } } );
 				rerender();
@@ -213,6 +220,25 @@
 		}
 
 		return card;
+	}
+
+	function deleteField( index ) {
+		var removed = model.fields[ index ];
+		if ( ! removed ) {
+			return;
+		}
+		model.fields.forEach( function ( field ) {
+			field.conditionals = ( field.conditionals || [] ).map( function ( conditional ) {
+				conditional.rules = ( conditional.rules || [] ).filter( function ( rule ) {
+					return rule.field !== removed.id;
+				} );
+				return conditional;
+			} ).filter( function ( conditional ) {
+				return conditional.rules.length > 0;
+			} );
+		} );
+		model.fields.splice( index, 1 );
+		rerender();
 	}
 
 	function in_array( needle, haystack ) {
@@ -291,12 +317,12 @@
 	}
 
 	var toolbar = el( 'div', { class: 'opf-b-toolbar' }, [
-		el( 'button', { class: 'button button-primary', text: '+ Add field', onclick: function () {
+		el( 'button', { class: 'button button-primary', type: 'button', text: '+ Add field', onclick: function () {
 			model.fields.push( { id: uniqueId( 'field' ), label: '', description: '', type: 'text', required: false, width: 100, choices: [], pricing: { type: 'none', amount: 0, formula: '' }, conditionals: [] } );
 			rerender();
 		} } ),
-		el( 'button', { class: 'button', text: 'Save', onclick: save } ),
-		el( 'button', { class: 'button', text: 'Refresh preview', onclick: preview } ),
+		el( 'button', { class: 'button', type: 'button', text: 'Save', onclick: save } ),
+		el( 'button', { class: 'button', type: 'button', text: 'Refresh preview', onclick: preview } ),
 		el( 'span', { id: 'opf-b-status', class: 'opf-b-status' } )
 	] );
 

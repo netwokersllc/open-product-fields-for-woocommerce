@@ -32,10 +32,10 @@ The 133 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 | Status | Rows | Meaning for the gate |
 | --- | ---: | --- |
 | Baseline supported | 8 | Promising baseline only; not accepted as proof |
-| Supported | 18 | Evidence recorded; still subject to current-source reconciliation |
+| Supported | 19 | Evidence recorded; still subject to current-source reconciliation |
 | Supported with documented difference | 11 | Needs explicit non-regression review and acceptance |
 | Partial | 83 | Material parity or proof remains |
-| Gap | 10 | Known absent in the current OPF tree |
+| Gap | 9 | Known absent in the current OPF tree |
 | Needs audit | 3 | Card-quantity conditionals, date-picker accessibility, and whether WAPF registers its bundled Bookings adapter need source review |
 | **Total** | **133** | **G1 and G2 remain open** |
 

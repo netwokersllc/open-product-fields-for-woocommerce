@@ -32,6 +32,12 @@
 	align-items: center;
 }
 
+.opf-b-field-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
 .opf-b-input {
 	width: 100%;
 }
