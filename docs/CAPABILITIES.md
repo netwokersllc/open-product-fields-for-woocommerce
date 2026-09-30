@@ -27,9 +27,9 @@ validation paths.
 OPF does not currently provide file uploads, time fields, image or
 colour swatches, repeatable fields, child/linked products, image quantities,
 rich HTML or shortcode content, other layout fields, visual previews, lookup
-tables, or complete third-party integrations. Price hints support fixed,
-percentage, and formula pricing; per-character/numeric-value hints and their
-cart metadata are not yet supported. FOX/WOOCS live total display is partial;
+tables, or complete third-party integrations. Price hints and pricing support
+fixed, percentage, formula, per-character, and numeric-value modes; formatted
+cart hint metadata is not yet supported. FOX/WOOCS live total display is partial;
 per-currency fixed prices, linked-product pricing, currency-switched hint
 runtime, and converted cart/order totals are not verified. These remain
 roadmap work, not full parity claims.

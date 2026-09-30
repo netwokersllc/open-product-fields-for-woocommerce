@@ -30,6 +30,18 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( 2.0, Calculator::choice_addon( $pricing, 10.0, 5, 0.0 ) );
 	}
 
+	public function test_character_and_numeric_pricing_match_wapf_quantity_modes(): void {
+		$text_field = [ 'type' => 'text', 'choices' => [], 'pricing' => [ 'type' => 'char', 'amount' => 1.5, 'formula' => '', 'per_unit' => false ] ];
+		$this->assertSame( 3.0, Calculator::field_addon( $text_field, 'café', [ 'qty' => 2 ] ) );
+		$text_field['pricing'] = [ 'type' => 'charq', 'amount' => 1.5, 'formula' => '', 'per_unit' => true ];
+		$this->assertSame( 6.0, Calculator::field_addon( $text_field, 'café', [ 'qty' => 2 ] ) );
+
+		$number_field = [ 'type' => 'number', 'choices' => [], 'pricing' => [ 'type' => 'nr', 'amount' => 4.0, 'formula' => '', 'per_unit' => false ] ];
+		$this->assertSame( 5.0, Calculator::field_addon( $number_field, '2.5', [ 'qty' => 2 ] ) );
+		$number_field['pricing'] = [ 'type' => 'nrq', 'amount' => 4.0, 'formula' => '', 'per_unit' => true ];
+		$this->assertSame( 10.0, Calculator::field_addon( $number_field, '2.5', [ 'qty' => 2 ] ) );
+	}
+
 	public function test_formula_from_production_data(): void {
 		// Real WAPF formula from production (after qty-compensation strip):
 		// "(([price] + [options_total]) * 0.2) * [qty]" → "(([price] + [addons]) * 0.2)"

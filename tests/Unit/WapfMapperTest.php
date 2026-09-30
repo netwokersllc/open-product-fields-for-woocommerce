@@ -67,6 +67,21 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( 15.5, $field['choices'][3]['pricing']['amount'] );
 	}
 
+	public function test_maps_wapf_character_and_numeric_pricing_modes(): void {
+		$wapf = $this->swatch_group();
+		$wapf['fields'] = [
+			[ 'id' => 'engraving', 'label' => 'Engraving', 'type' => 'text', 'pricing' => [ 'enabled' => true, 'type' => 'char', 'amount' => 1.5 ] ],
+			[ 'id' => 'engraving-qty', 'label' => 'Engraving per unit', 'type' => 'text', 'qty_based' => true, 'pricing' => [ 'enabled' => true, 'type' => 'charq', 'amount' => 1.5 ] ],
+			[ 'id' => 'quantity', 'label' => 'Quantity', 'type' => 'number', 'pricing' => [ 'enabled' => true, 'type' => 'nr', 'amount' => 4 ] ],
+			[ 'id' => 'quantity-per-unit', 'label' => 'Quantity per unit', 'type' => 'number', 'pricing' => [ 'enabled' => true, 'type' => 'nrq', 'amount' => 4 ] ],
+		];
+		$mapped = WapfMapper::map( $wapf );
+
+		$this->assertFalse( $mapped['needs_review'] );
+		$this->assertSame( [ 'char', 'charq', 'nr', 'nrq' ], array_column( array_column( $mapped['group']['fields'], 'pricing' ), 'type' ) );
+		$this->assertSame( [ false, true, false, true ], array_column( array_column( $mapped['group']['fields'], 'pricing' ), 'per_unit' ) );
+	}
+
 	public function test_maps_current_and_legacy_wapf_plain_text_content_fields(): void {
 		$wapf = $this->swatch_group();
 		$wapf['fields'] = [

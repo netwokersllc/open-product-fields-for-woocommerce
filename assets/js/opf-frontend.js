@@ -538,17 +538,33 @@ const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}
   }
   const p = def.pricing || {};
   if (!String(value || '').trim()) return 0;
-  if (p.type === 'fixed') return parseFloat(p.amount) || 0;
-  if (p.type === 'percent') return base * ((parseFloat(p.amount) || 0) / 100);
+  if (p.type === 'fixed') return (parseFloat(p.amount) || 0) / (p.per_unit ? 1 : Math.max(1, qty));
+  if (p.type === 'percent') return (base * ((parseFloat(p.amount) || 0) / 100)) / (p.per_unit === false ? Math.max(1, qty) : 1);
   if (p.type === 'formula') return evalFormula(p.formula_raw || p.formula, base, qty, addons, val, fieldValues);
+  if (p.type === 'char' || p.type === 'charq') {
+    const count = Array.from(String(value)).length;
+    const amount = (parseFloat(p.amount) || 0) * count;
+    return amount / (p.per_unit ? 1 : Math.max(1, qty));
+  }
+  if (p.type === 'nr' || p.type === 'nrq') {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return 0;
+    const amount = (parseFloat(p.amount) || 0) * numeric;
+    return amount / (p.per_unit ? 1 : Math.max(1, qty));
+  }
   return 0;
 };
 
 const formatPriceHint = (amount, pricingType, currencyRate) => {
   if (!Number.isFinite(amount)) return '';
   const percent = pricingType === 'percent';
-  const shown = percent ? `${amount}%` : fmtMoney(amount * currencyRate, true);
-  const sign = amount < 0 ? '' : '+';
+  const perCharacter = pricingType === 'char' || pricingType === 'charq';
+  const numericMultiplier = pricingType === 'nr' || pricingType === 'nrq';
+  let shown = `${fmtMoney(amount * currencyRate, true)}`;
+  if (percent) shown = `${amount}%`;
+  else if (perCharacter) shown += ' per character';
+  else if (numericMultiplier) shown = `×${shown}`;
+  const sign = numericMultiplier ? '' : (amount < 0 ? '' : '+');
   const format = String((window.OPF_PRICE_HINTS || {}).format || '(+{x})');
   return format.replace(/\{x\}/g, shown).replace(/\+/g, sign);
 };
@@ -558,6 +574,7 @@ const pricingHintAmount = (pricing, base, qty, addons, value, values) => {
   if (type === 'fixed') return parseFloat(pricing.amount) || 0;
   if (type === 'percent') return parseFloat(pricing.amount) || 0;
   if (type === 'formula') return evalFormula(pricing.formula_raw || pricing.formula, base, qty, addons, value, values);
+  if (type === 'char' || type === 'charq' || type === 'nr' || type === 'nrq') return parseFloat(pricing.amount) || 0;
   return null;
 };
 

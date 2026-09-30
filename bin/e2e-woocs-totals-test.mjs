@@ -17,6 +17,8 @@ await page.setContent(`<!doctype html><html><body>
 <div data-opf-fields><div data-opf-group="1">
 <div data-opf-field="addon"><span data-opf-choice-hint="five"></span><span data-opf-choice-hint="ten"></span><input type="radio" name="addon" value="five" checked></div>
 <div data-opf-field="formulaAddon"><input type="text" name="formulaAddon" value="v"><span data-opf-field-hint></span></div>
+<div data-opf-field="charAddon"><input name="charAddon" value=""><span data-opf-field-hint></span></div>
+<div data-opf-field="numberAddon"><input name="numberAddon" value=""><span data-opf-field-hint></span></div>
 </div></div>
 <div class="opf-product-totals" data-product-price="100" data-opf-currency-rate="1.25">
 <span class="opf-product-total"></span><span class="opf-options-total"></span><span class="opf-grand-total"></span>
@@ -24,7 +26,9 @@ await page.setContent(`<!doctype html><html><body>
 await page.evaluate(() => {
 	window.OPF_FIELDS = { '1': {
 		addon: { type: 'radio', choices: [ { slug: 'five', pricing: { type: 'fixed', amount: 5 } }, { slug: 'ten', pricing: { type: 'percent', amount: 10 } } ] },
-		formulaAddon: { type: 'text', pricing: { type: 'formula', formula: '[price]*0.1' } }
+		formulaAddon: { type: 'text', pricing: { type: 'formula', formula: '[price]*0.1' } },
+		charAddon: { type: 'text', pricing: { type: 'char', amount: 0.5, per_unit: false } },
+		numberAddon: { type: 'number', pricing: { type: 'nr', amount: 4, per_unit: false } }
 	} };
 	window.opf_config = { display_options: { symbol: '€', decimals: 2, thousand: ' ', decimal: ',', trim_zeroes: true, format: '{price} {symbol}' } };
 	window.OPF_PRICE_HINTS = { show: true, format: '(+{x})' };
@@ -39,12 +43,28 @@ const checks = [];
 const check = (name, ok) => { console.log(`${ok ? 'ok' : 'FAIL'} ${name}`); if (!ok) checks.push(name); };
 const totals = async () => page.evaluate(() => [ '.opf-product-total', '.opf-options-total', '.opf-grand-total' ].map((selector) => document.querySelector(selector).textContent));
 check('base-currency formula displays converted totals in selected currency format', JSON.stringify(await totals()) === JSON.stringify([ '250,00 €', '18,75 €', '268,75 €' ]));
-const hints = async () => page.evaluate(() => [ '[data-opf-choice-hint="five"]', '[data-opf-choice-hint="ten"]', '[data-opf-field-hint]' ].map((selector) => document.querySelector(selector).textContent));
-check('fixed, percent, and formula hints use converted currency without changing percentages', JSON.stringify(await hints()) === JSON.stringify([ '(+6,25 €)', '(+10%)', '(+12,5 €)' ]));
+const hints = async () => page.evaluate(() => [ '[data-opf-choice-hint="five"]', '[data-opf-choice-hint="ten"]', '[data-opf-field="formulaAddon"] [data-opf-field-hint]', '[data-opf-field="charAddon"] [data-opf-field-hint]', '[data-opf-field="numberAddon"] [data-opf-field-hint]' ].map((selector) => document.querySelector(selector).textContent));
+check('fixed, percent, and formula hints use converted currency without changing percentages', JSON.stringify((await hints()).slice(0, 3)) === JSON.stringify([ '(+6,25 €)', '(+10%)', '(+12,5 €)' ]));
+check('character and numeric hints show WAPF unit labels', JSON.stringify(await hints()) === JSON.stringify([ '(+6,25 €)', '(+10%)', '(+12,5 €)', '(+0,63 € per character)', '(×5 €)' ]));
+await page.evaluate(() => {
+	document.querySelector('[name="charAddon"]').value = 'café';
+	document.querySelector('[name="numberAddon"]').value = '2.5';
+	document.querySelector('[name="charAddon"]').dispatchEvent(new Event('input', { bubbles: true }));
+	document.querySelector('[name="numberAddon"]').dispatchEvent(new Event('input', { bubbles: true }));
+});
+await page.waitForTimeout(70);
+check('character and numeric fields update storefront option totals', JSON.stringify(await totals()) === JSON.stringify([ '250,00 €', '26,25 €', '276,25 €' ]));
 await page.evaluate(() => window.__opfCurrencyHandlers['found_variation.opfCurrency'](null, { opf_currency_base: 200, opf_currency_rate: 1.5 }));
-check('variation currency payload updates totals and their hints', JSON.stringify(await totals()) === JSON.stringify([ '600,00 €', '37,50 €', '637,50 €' ]) && JSON.stringify(await hints()) === JSON.stringify([ '(+7,5 €)', '(+10%)', '(+30 €)' ]));
+check('variation currency payload updates totals and their hints', JSON.stringify(await totals()) === JSON.stringify([ '600,00 €', '46,50 €', '646,50 €' ]) && JSON.stringify(await hints()) === JSON.stringify([ '(+7,5 €)', '(+10%)', '(+30 €)', '(+0,75 € per character)', '(×6 €)' ]));
+await page.evaluate(() => {
+	document.querySelector('[name="charAddon"]').value = '';
+	document.querySelector('[name="numberAddon"]').value = '';
+	document.querySelector('[name="charAddon"]').dispatchEvent(new Event('input', { bubbles: true }));
+	document.querySelector('[name="numberAddon"]').dispatchEvent(new Event('input', { bubbles: true }));
+});
+await page.waitForTimeout(70);
 await page.evaluate(() => window.__opfCurrencyHandlers['reset_data.opfCurrency']());
-check('reset restores parent currency context', JSON.stringify(await totals()) === JSON.stringify([ '250,00 €', '18,75 €', '268,75 €' ]) && JSON.stringify(await hints()) === JSON.stringify([ '(+6,25 €)', '(+10%)', '(+12,5 €)' ]));
+check('reset restores parent currency context', JSON.stringify(await totals()) === JSON.stringify([ '250,00 €', '18,75 €', '268,75 €' ]) && JSON.stringify(await hints()) === JSON.stringify([ '(+6,25 €)', '(+10%)', '(+12,5 €)', '(+0,63 € per character)', '(×5 €)' ]));
 check('no uncaught frontend errors', errors.length === 0);
 if ( errors.length ) console.log(errors.join('\n'));
 await browser.close();

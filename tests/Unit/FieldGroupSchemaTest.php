@@ -42,6 +42,20 @@ final class FieldGroupSchemaTest extends TestCase {
 		$this->assertSame( 'toggle', $group['fields'][1]['type'] );
 	}
 
+	public function test_character_and_numeric_pricing_are_limited_to_matching_field_types(): void {
+		$valid_text = FieldGroup::normalize_field( [ 'id' => 'engraving', 'type' => 'text', 'pricing' => [ 'type' => 'char', 'amount' => 2 ] ] );
+		$valid_number = FieldGroup::normalize_field( [ 'id' => 'quantity', 'type' => 'number', 'pricing' => [ 'type' => 'nrq', 'amount' => 3 ] ] );
+		$invalid_text = FieldGroup::normalize_field( [ 'id' => 'wrong', 'type' => 'number', 'pricing' => [ 'type' => 'char', 'amount' => 2 ] ] );
+		$invalid_choice = FieldGroup::normalize_field( [ 'id' => 'choice', 'type' => 'select', 'choices' => [ [ 'slug' => 'x', 'label' => 'X', 'pricing' => [ 'type' => 'nr', 'amount' => 2 ] ] ] ] );
+
+		$this->assertSame( 'char', $valid_text['pricing']['type'] );
+		$this->assertFalse( $valid_text['pricing']['per_unit'] );
+		$this->assertSame( 'nrq', $valid_number['pricing']['type'] );
+		$this->assertTrue( $valid_number['pricing']['per_unit'] );
+		$this->assertSame( 'none', $invalid_text['pricing']['type'] );
+		$this->assertSame( 'none', $invalid_choice['choices'][0]['pricing']['type'] );
+	}
+
 	public function test_date_is_a_canonical_field_type(): void {
 		$group = FieldGroup::normalize( [ 'fields' => [ [ 'id' => 'delivery-date', 'label' => 'Delivery date', 'type' => 'date' ] ] ] );
 

@@ -27,7 +27,7 @@ final class FieldGroup {
 	/**
 	 * Supported pricing types.
 	 */
-	public const PRICING_TYPES = [ 'none', 'fixed', 'percent', 'formula' ];
+	public const PRICING_TYPES = [ 'none', 'fixed', 'percent', 'formula', 'char', 'charq', 'nr', 'nrq' ];
 
 	/**
 	 * @var array<string,mixed>
@@ -142,12 +142,16 @@ final class FieldGroup {
 				continue;
 			}
 			$pricing   = is_array( $choice['pricing'] ?? null ) ? $choice['pricing'] : [];
+			$choice_pricing = self::normalize_pricing( $pricing );
+			if ( ! in_array( $choice_pricing['type'], [ 'none', 'fixed', 'percent', 'formula' ], true ) ) {
+				$choice_pricing = self::normalize_pricing( [] );
+			}
 			$choices[] = [
 				'slug'     => (string) ( $choice['slug'] ?? '' ),
 				'label'    => (string) $choice['label'],
 				'selected' => (bool) ( $choice['selected'] ?? false ),
 				'disabled' => (bool) ( $choice['disabled'] ?? false ),
-				'pricing'  => self::normalize_pricing( $pricing ),
+				'pricing'  => $choice_pricing,
 			];
 		}
 
@@ -177,6 +181,13 @@ final class FieldGroup {
 		}
 
 		$pricing = self::normalize_pricing( is_array( $field['pricing'] ?? null ) ? $field['pricing'] : [] );
+		$character_priced_fields = [ 'text', 'textarea', 'email', 'url' ];
+		if ( in_array( $pricing['type'], [ 'char', 'charq' ], true ) && ! in_array( $type, $character_priced_fields, true ) ) {
+			$pricing = self::normalize_pricing( [] );
+		}
+		if ( in_array( $pricing['type'], [ 'nr', 'nrq' ], true ) && 'number' !== $type ) {
+			$pricing = self::normalize_pricing( [] );
+		}
 
 		// Field ids become input name fragments and DOM hooks: restrict to a
 		// conservative slug charset regardless of the source.
@@ -317,8 +328,9 @@ final class FieldGroup {
 			$type   = 'none';
 			$amount = 0.0;
 		}
-		$per_unit = 'fixed' === $type
-			? (bool) ( $pricing['per_unit'] ?? false )
+		$per_unit_default = in_array( $type, [ 'percent', 'charq', 'nrq' ], true );
+		$per_unit = in_array( $type, [ 'fixed', 'percent', 'char', 'charq', 'nr', 'nrq' ], true )
+			? (bool) ( $pricing['per_unit'] ?? $per_unit_default )
 			: true;
 
 		return [

@@ -4,6 +4,8 @@
  *
  * Behavioral notes preserved from production data analysis (Sept 2026):
  *  - WAPF choice pricing types in the wild: none, fixed, percent, fx (formula).
+ *  - Text character and numeric-value field pricing keeps WAPF's flat vs
+ *    quantity-scaled distinction (`char`/`nr` vs `charq`/`nrq`).
  *  - WAPF formula amounts end in "* [qty]" because WAPF normalized per-unit
  *    results by dividing by quantity; OPF pricing is already per-unit, so the
  *    mapper strips a trailing quantity multiplication.
@@ -250,11 +252,19 @@ final class WapfMapper {
 		$amt  = (float) ( $pricing['amount'] ?? 0 );
 		switch ( $type ) {
 			case 'fixed':
+				return [ 'type' => 'fixed', 'amount' => $amt, 'formula' => '', 'per_unit' => false ];
 			case 'qt':
-				return [ 'type' => 'fixed', 'amount' => $amt, 'formula' => '' ];
+				return [ 'type' => 'fixed', 'amount' => $amt, 'formula' => '', 'per_unit' => true ];
 			case 'percent':
+				return [ 'type' => 'percent', 'amount' => $amt, 'formula' => '', 'per_unit' => true ];
 			case 'p':
-				return [ 'type' => 'percent', 'amount' => $amt, 'formula' => '' ];
+				return [ 'type' => 'percent', 'amount' => $amt, 'formula' => '', 'per_unit' => false ];
+			case 'char':
+			case 'nr':
+				return [ 'type' => $type, 'amount' => $amt, 'formula' => '', 'per_unit' => false ];
+			case 'charq':
+			case 'nrq':
+				return [ 'type' => $type, 'amount' => $amt, 'formula' => '', 'per_unit' => true ];
 			case 'fx':
 				$formula = self::normalize_formula( (string) ( $pricing['amount'] ?? '' ) );
 				if ( null !== $formula ) {

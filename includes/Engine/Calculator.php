@@ -122,9 +122,19 @@ final class Calculator {
 				$amount = (float) $pricing['amount'];
 				return empty( $pricing['per_unit'] ) ? $amount / $qty : $amount;
 			case 'percent':
-				return $price * ( (float) $pricing['amount'] / 100 );
+				$amount = $price * ( (float) $pricing['amount'] / 100 );
+				return empty( $pricing['per_unit'] ) ? $amount / $qty : $amount;
 			case 'formula':
 				return self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, $value, null, $field_values );
+			case 'char':
+			case 'charq':
+			case 'nr':
+			case 'nrq':
+				$units = in_array( $pricing['type'], [ 'char', 'charq' ], true )
+					? ( function_exists( 'mb_strlen' ) ? mb_strlen( $value, 'UTF-8' ) : strlen( $value ) )
+					: ( is_numeric( $value ) ? (float) $value : 0.0 );
+				$amount = (float) $pricing['amount'] * $units;
+				return empty( $pricing['per_unit'] ) ? $amount / $qty : $amount;
 			default:
 				return 0.0;
 		}
