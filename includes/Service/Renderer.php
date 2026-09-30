@@ -351,8 +351,19 @@ final class Renderer {
 				break;
 			case 'date':
 				$date_attrs = '';
+				$date_min = isset( $field['min_date'] ) ? FieldValue::resolve_date_boundary( (string) $field['min_date'] ) : null;
+				$date_max = isset( $field['max_date'] ) ? FieldValue::resolve_date_boundary( (string) $field['max_date'] ) : null;
+				$current = function_exists( 'current_datetime' ) ? current_datetime() : new \DateTimeImmutable( 'now', new \DateTimeZone( 'UTC' ) );
+				$site_today = $current->format( 'Y-m-d' );
+				if ( false === ( $field['allow_past'] ?? true ) && ( null === $date_min || $date_min < $site_today ) ) {
+					$date_min = $site_today;
+				}
+				if ( false === ( $field['allow_future'] ?? true ) && ( null === $date_max || $date_max > $site_today ) ) {
+					$date_max = $site_today;
+				}
 				foreach ( [ 'min_date' => 'min', 'max_date' => 'max' ] as $key => $attribute ) {
-					if ( isset( $field[ $key ] ) && null !== ( $date = FieldValue::resolve_date_boundary( (string) $field[ $key ] ) ) ) {
+					$date = 'min_date' === $key ? $date_min : $date_max;
+					if ( null !== $date ) {
 						$date_attrs .= ' ' . $attribute . '="' . esc_attr( $date ) . '"';
 					}
 				}

@@ -174,6 +174,13 @@
 		}
 		if ( 'date' === field.type ) {
 			var dateBounds = el( 'div', { class: 'opf-b-constraints' } );
+			[ [ 'allow_past', 'Allow past dates' ], [ 'allow_future', 'Allow future dates' ] ].forEach( function ( setting ) {
+				var checkbox = el( 'input', { type: 'checkbox' } );
+				checkbox.checked = field[ setting[ 0 ] ] !== false;
+				checkbox.addEventListener( 'change', function () { field[ setting[ 0 ] ] = checkbox.checked; } );
+				var label = el( 'label', { class: 'opf-b-date-policy' }, [ checkbox, document.createTextNode( setting[ 1 ] ) ] );
+				dateBounds.appendChild( label );
+			} );
 			[ [ 'min_date', 'Minimum date (2026-12-31 or 7d)' ], [ 'max_date', 'Maximum date (2026-12-31 or 1y 2m)' ] ].forEach( function ( setting ) {
 				var input = el( 'input', { class: 'opf-b-input', type: 'text', value: field[ setting[ 0 ] ] || '', placeholder: setting[ 1 ] } );
 				input.addEventListener( 'input', function () {

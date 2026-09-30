@@ -135,6 +135,14 @@ final class FieldValue {
 			if ( ! $date instanceof \DateTimeImmutable || ( is_array( $errors ) && ( 0 !== $errors['warning_count'] || 0 !== $errors['error_count'] ) ) || $date->format( 'Y-m-d' ) !== $value ) {
 				return [ sprintf( '"%s" must be a valid date.', $label ) ];
 			}
+			$current = $today ?? ( function_exists( 'current_datetime' ) ? current_datetime() : new \DateTimeImmutable( 'now', new \DateTimeZone( 'UTC' ) ) );
+			$site_today = $current->format( 'Y-m-d' );
+			if ( false === ( $field['allow_past'] ?? true ) && $value < $site_today ) {
+				return [ sprintf( '"%s" cannot be in the past.', $label ) ];
+			}
+			if ( false === ( $field['allow_future'] ?? true ) && $value > $site_today ) {
+				return [ sprintf( '"%s" cannot be in the future.', $label ) ];
+			}
 			foreach ( [ 'min_date' => 'on or after', 'max_date' => 'on or before' ] as $key => $comparison ) {
 				if ( ! isset( $field[ $key ] ) ) {
 					continue;

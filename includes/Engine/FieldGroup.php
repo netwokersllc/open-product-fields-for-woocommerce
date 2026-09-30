@@ -201,6 +201,13 @@ final class FieldGroup {
 		];
 
 		if ( 'date' === $type ) {
+			foreach ( [ 'allow_past', 'allow_future' ] as $key ) {
+				$value = $field[ $key ] ?? true;
+				if ( ! in_array( $value, [ true, false, 0, 1, '0', '1' ], true ) ) {
+					throw new \InvalidArgumentException( sprintf( 'Date field %s must be a boolean.', $key ) );
+				}
+				$normalized[ $key ] = in_array( $value, [ true, 1, '1' ], true );
+			}
 			foreach ( [ 'min_date', 'max_date' ] as $key ) {
 				if ( ! array_key_exists( $key, $field ) ) {
 					continue;
