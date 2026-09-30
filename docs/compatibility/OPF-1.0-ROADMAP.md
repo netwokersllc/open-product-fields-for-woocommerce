@@ -30,9 +30,9 @@ The 132 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 | Baseline supported | 8 | Promising baseline only; not accepted as proof |
 | Supported | 18 | Evidence recorded; still subject to current-source reconciliation |
 | Supported with documented difference | 11 | Needs explicit non-regression review and acceptance |
-| Partial | 80 | Material parity or proof remains |
+| Partial | 81 | Material parity or proof remains |
 | Gap | 11 | Known absent in the current OPF tree |
-| Needs audit | 4 | Gift Card details, card-quantity conditionals, date-picker accessibility, and whether WAPF registers its bundled Bookings adapter need source review |
+| Needs audit | 3 | Card-quantity conditionals, date-picker accessibility, and whether WAPF registers its bundled Bookings adapter need source review |
 | **Total** | **132** | **G1 and G2 remain open** |
 
 Extended-only rows: 28 total; 2 supported, 4 supported with a documented

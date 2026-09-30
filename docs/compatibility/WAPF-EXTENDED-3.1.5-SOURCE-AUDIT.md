@@ -229,8 +229,10 @@ The current WordPress.org source page lists Free 1.7.1; its plugin header and
 readme agree. The inspected WordPress.org archive contains 79 files (53 PHP,
 20 translation catalogs, 2 JS, and 2 CSS files). This is a public, GPL-licensed
 source baseline separate from the production server, where the Extended
-package is installed and the standalone Free plugin is absent. Archive
-SHA-256: `b1852652a2c966a2419f7f2d7059ad97b296e1e136785f252260bafc2513e283`.
+package is installed and the standalone Free plugin is absent. The official
+[WordPress.org 1.7.1 archive](https://downloads.wordpress.org/plugin/advanced-product-fields-for-woocommerce.1.7.1.zip)
+retrieved 2026-09-30 has SHA-256
+`c51ad76eb88f0095704bcf6b0a7a9b12d3d18263028121d276bff96ea70f9171`.
 
 | Free subsystem | 1.7.1 source | Audited behavior and edition boundary |
 | --- | --- | --- |
@@ -244,12 +246,27 @@ SHA-256: `b1852652a2c966a2419f7f2d7059ad97b296e1e136785f252260bafc2513e283`.
 Official Free source and boundary references: [WordPress.org plugin page and
 changelog](https://wordpress.org/plugins/advanced-product-fields-for-woocommerce/)
 and [official Pro/Extended tier comparison](https://www.studiowombat.com/knowledge-base/whats-the-difference-between-each-version/).
-The Free readme's 1.6.22 changelog says Gift Card plugin integration was
-improved, but neither plugin names nor the integration contract are specified;
-the public 1.7.1 PHP source has no explicit gift-card adapter identifier. It
-remains an unclassified integration until the target plugin/behavior is
-identified from authoritative evidence; OPF compatibility must remain
-unclaimed until then.
+### Free 1.6.22 Gift Card changelog source check
+
+The official WordPress.org [Free 1.6.21 archive](https://downloads.wordpress.org/plugin/advanced-product-fields-for-woocommerce.1.6.21.zip)
+and [Free 1.6.22 archive](https://downloads.wordpress.org/plugin/advanced-product-fields-for-woocommerce.1.6.22.zip)
+have SHA-256
+`9741270796d61583df9a66ab2b154434b7f2d6237569372489e3efd00e197db6` and
+`a059ec283c187d614cf3041cebdc65ff014d954b5a4986f1ae336c23f02a636a`,
+respectively. Excluding version/readme/changelog/catalog changes, the only PHP
+behavior delta is in `includes/controllers/class-product-controller.php::validate_cart_data()`:
+1.6.21 looked up field groups by the selected variation ID when present;
+1.6.22 looks them up by the parent `$product_id`. The 1.6.22 minified admin
+JavaScript has the same 17 WAPF module bodies as 1.6.21 (same module hashes,
+different concatenation order), with no other PHP adapter or vendor identifier
+added. Free 1.7.1 and installed Extended 3.1.5 retain parent-product-ID lookup
+in this validation path. The changelog names no Gift Card plugin, and the
+source contains no dedicated Gift Card adapter. The concrete behavior is
+therefore mapped to `WAPF-PRODUCT-VARIABLE`; this audit makes no claim about
+arbitrary third-party Gift Card plugins. The ledger's Gift Card row stays
+`partial` to retain that scope limit rather than treating the vague changelog
+phrase as an independent adapter contract.
+
 This Free source audit plus the installed Extended 3.1.5/Pro map documents the
 available code baselines; it does not replace the still-open source audit of
 current Extended 3.2.1 and Pro 3.2.2 packages.
