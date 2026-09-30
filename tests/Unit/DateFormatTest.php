@@ -1,7 +1,4 @@
 <?php
-/**
- * WAPF-compatible date output format tests.
- */
 
 namespace OPF\Tests\Unit;
 
@@ -18,18 +15,21 @@ final class DateFormatTest extends TestCase {
 		$this->assertFalse( DateFormat::is_valid( 'yyyy-mm-dd extra' ) );
 	}
 
-	public function test_iso_dates_format_without_changing_canonical_storage(): void {
+	public function test_formats_iso_dates_with_the_published_placeholders(): void {
 		$this->assertSame( '06-15-2026', DateFormat::format( '2026-06-15', 'mm-dd-yyyy' ) );
+		$this->assertSame( '6/15/26', DateFormat::format( '2026-06-15', 'm/d/yy' ) );
+		$this->assertSame( '2026.6.15', DateFormat::format( '2026-06-15', 'yyyy.m.d' ) );
 		$this->assertSame( '15/6/26', DateFormat::format( '2026-06-15', 'd/m/yy' ) );
 		$this->assertSame( '2026.06.15', DateFormat::format( '2026-06-15', 'yyyy.mm.dd' ) );
-		$this->assertSame( '', DateFormat::format( '2026-02-30', 'd/m/yy' ) );
 		$stored_value = '2026-06-15';
 		DateFormat::format( $stored_value, 'd/m/yy' );
 		$this->assertSame( '2026-06-15', $stored_value );
 	}
 
-	public function test_invalid_formats_fall_back_to_the_default(): void {
-		$this->assertSame( DateFormat::DEFAULT_FORMAT, DateFormat::normalize( 'mm-mm-yyyy' ) );
+	public function test_invalid_format_uses_safe_default_and_malformed_iso_date_fails_closed(): void {
+		$this->assertSame( '06-15-2026', DateFormat::format( '2026-06-15', 'yyyy-mm' ) );
+		$this->assertSame( '', DateFormat::format( '2026-02-30', 'mm-dd-yyyy' ) );
+		$this->assertSame( 'mm-dd-yyyy', DateFormat::normalize( 'DD/MM' ) );
 		$this->assertSame( DateFormat::DEFAULT_FORMAT, DateFormat::normalize( null ) );
 	}
 }
