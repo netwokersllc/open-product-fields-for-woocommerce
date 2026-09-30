@@ -37,6 +37,7 @@ final class Renderer {
 		'radio'    => 'radio',
 		'checkbox' => 'checkbox',
 		'swatch'   => 'text-swatch',
+		'paragraph' => 'content',
 	];
 
 	/**
@@ -239,15 +240,21 @@ final class Renderer {
 
 		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-opf-field="' . esc_attr( $fid ) . '" style="width:' . esc_attr( (string) $field['width'] ) . '%;" for="' . esc_attr( $fid ) . '">';
 
-		echo '<div class="opf-field-label"><label';
-		if ( ! in_array( $field['type'], [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {
-			echo ' for="opf-' . esc_attr( $gid . '-' . $fid ) . '"';
+		echo '<div class="opf-field-label">';
+		if ( 'paragraph' === $field['type'] ) {
+			echo '<span>' . esc_html( $field['label'] ) . '</span>';
+		} else {
+			echo '<label';
+			if ( ! in_array( $field['type'], [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {
+				echo ' for="opf-' . esc_attr( $gid . '-' . $fid ) . '"';
+			}
+			echo '><span>' . esc_html( $field['label'] ) . '</span> ';
+			if ( $field['required'] ) {
+				echo '<abbr class="required" title="' . esc_attr( self::required_title() ) . '">*</abbr>';
+			}
+			echo '</label>';
 		}
-		echo '><span>' . esc_html( $field['label'] ) . '</span> ';
-		if ( $field['required'] ) {
-			echo '<abbr class="required" title="' . esc_attr( self::required_title() ) . '">*</abbr>';
-		}
-		echo '</label></div>';
+		echo '</div>';
 
 		if ( '' !== $field['description'] ) {
 			echo '<div class="opf-field-description">' . esc_html( $field['description'] ) . '</div>';
@@ -255,7 +262,9 @@ final class Renderer {
 
 		echo '<div class="opf-field-input">';
 
-		if ( in_array( $field['type'], [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {
+		if ( 'paragraph' === $field['type'] ) {
+			echo '<div class="opf-field-content">' . nl2br( esc_html( $field['content'] ) ) . '</div>';
+		} elseif ( in_array( $field['type'], [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {
 			self::render_choices( $gid, $name, $field, $base_price );
 		} else {
 			self::render_input( $name, $gid, $field );

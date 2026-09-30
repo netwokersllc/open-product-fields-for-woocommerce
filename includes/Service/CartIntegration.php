@@ -485,6 +485,9 @@ final class CartIntegration {
 
 			foreach ( $group->data['fields'] as $field ) {
 				$fid = $field['id'];
+				if ( 'paragraph' === $field['type'] ) {
+					continue;
+				}
 				if ( ! isset( $raw[ $gid ][ $fid ] ) ) {
 					continue;
 				}

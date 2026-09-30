@@ -77,6 +77,17 @@ await page.locator('.opf-b-toolbar button').nth(1).click();
 await page.waitForFunction(() => window.__opfSavedPayloads.length === 2);
 const afterDelete = await page.evaluate(() => window.__opfSavedPayloads[1].data.fields);
 check('delete removes dangling rules and drops condition groups left empty', afterDelete.length === 2 && afterDelete[1].conditionals.length === 1 && afterDelete[1].conditionals[0].rules.length === 1 && afterDelete[1].conditionals[0].rules[0].field === 'other');
+
+await page.locator('.opf-b-toolbar button').first().click();
+const paragraph = page.locator('.opf-b-field').last();
+await paragraph.locator('select.opf-b-input').selectOption('paragraph');
+check('paragraph type exposes plain-text content editor and disables required', await paragraph.locator('.opf-b-paragraph-content').count() === 1 && await paragraph.locator('input[type="checkbox"]').first().isDisabled() && ! await paragraph.locator('input[type="checkbox"]').first().isChecked());
+await paragraph.locator('.opf-b-paragraph-content').fill('Read this first');
+await page.locator('.opf-b-toolbar button').nth(1).click();
+await page.waitForFunction(() => window.__opfSavedPayloads.length === 3);
+const withParagraph = await page.evaluate(() => window.__opfSavedPayloads[2].data.fields);
+const savedParagraph = withParagraph[withParagraph.length - 1];
+check('paragraph save persists content as a non-required, non-priced field', savedParagraph.type === 'paragraph' && savedParagraph.content === 'Read this first' && savedParagraph.required === false && savedParagraph.pricing.type === 'none' && savedParagraph.choices.length === 0);
 check('no uncaught builder errors', errors.length === 0);
 if ( errors.length ) console.log(errors.join('\n'));
 await browser.close();

@@ -33,6 +33,8 @@ final class WapfMapper {
 		'checkbox'      => 'checkbox',
 		'text-swatch'   => 'swatch',
 		'image-swatch'  => 'swatch',
+		'content'       => 'paragraph',
+		'paragraph'     => 'paragraph',
 	];
 
 	/**
@@ -95,6 +97,7 @@ final class WapfMapper {
 					'choices'      => $has_choices ? self::map_choices( $wapf_field, $notes ) : [],
 					'pricing'      => self::map_field_pricing( $wapf_field ),
 					'conditionals' => self::map_conditionals( $wapf_field, $notes, $seen_ids ),
+					'content'      => (string) ( $wapf_field['options']['p_content'] ?? '' ),
 				]
 			);
 

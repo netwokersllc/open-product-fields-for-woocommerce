@@ -22,7 +22,7 @@ final class FieldGroup {
 	/**
 	 * Supported field types.
 	 */
-	public const FIELD_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch' ];
+	public const FIELD_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'paragraph' ];
 
 	/**
 	 * Supported pricing types.
@@ -199,6 +199,14 @@ final class FieldGroup {
 			'pricing'      => $pricing,
 			'conditionals' => $conditionals,
 		];
+		if ( 'paragraph' === $type ) {
+			$content = (string) ( $field['content'] ?? '' );
+			$content = function_exists( 'sanitize_textarea_field' ) ? sanitize_textarea_field( $content ) : strip_tags( $content );
+			$normalized['required'] = false;
+			$normalized['choices']  = [];
+			$normalized['pricing']  = [ 'type' => 'none', 'amount' => 0.0, 'formula' => '' ];
+			$normalized['content']  = $content;
+		}
 
 		if ( 'date' === $type ) {
 			foreach ( [ 'allow_past', 'allow_future' ] as $key ) {

@@ -47,4 +47,20 @@ final class FieldGroupSchemaTest extends TestCase {
 
 		$this->assertSame( 'date', $group['fields'][0]['type'] );
 	}
+
+	public function test_paragraph_is_static_non_required_non_priced_text(): void {
+		$group = FieldGroup::normalize(
+			[
+				'fields' => [
+					[ 'id' => 'notice', 'label' => 'Notice', 'type' => 'paragraph', 'content' => "First line\nSecond line<script>alert(1)</script>", 'required' => true, 'pricing' => [ 'type' => 'fixed', 'amount' => 9 ] ],
+				],
+			]
+		);
+		$field = $group['fields'][0];
+
+		$this->assertSame( 'paragraph', $field['type'] );
+		$this->assertSame( "First line\nSecond linealert(1)", $field['content'] );
+		$this->assertFalse( $field['required'] );
+		$this->assertSame( 'none', $field['pricing']['type'] );
+	}
 }

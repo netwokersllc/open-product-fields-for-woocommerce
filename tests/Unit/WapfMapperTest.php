@@ -67,6 +67,22 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( 15.5, $field['choices'][3]['pricing']['amount'] );
 	}
 
+	public function test_maps_current_and_legacy_wapf_plain_text_content_fields(): void {
+		$wapf = $this->swatch_group();
+		$wapf['fields'] = [
+			[ 'id' => 'intro', 'label' => 'Intro', 'type' => 'content', 'required' => false, 'options' => [ 'p_content' => "Plain text\nsecond line" ] ],
+			[ 'id' => 'legacy-note', 'label' => 'Legacy note', 'type' => 'paragraph', 'required' => false, 'options' => [ 'p_content' => 'Legacy text' ] ],
+		];
+		$mapped = WapfMapper::map( $wapf );
+
+		$this->assertFalse( $mapped['needs_review'] );
+		$this->assertSame( [ 'paragraph', 'paragraph' ], array_column( $mapped['group']['fields'], 'type' ) );
+		$this->assertSame( "Plain text\nsecond line", $mapped['group']['fields'][0]['content'] );
+		$this->assertSame( 'Legacy text', $mapped['group']['fields'][1]['content'] );
+		$this->assertFalse( $mapped['group']['fields'][0]['required'] );
+		$this->assertSame( 'none', $mapped['group']['fields'][0]['pricing']['type'] );
+	}
+
 	public function test_maps_product_tag_placement(): void {
 		$mapped = WapfMapper::map( $this->swatch_group() );
 		$this->assertSame( 'product_tag', $mapped['group']['rule_groups'][0]['rules'][0]['subject'] );

@@ -108,6 +108,13 @@ $group_data = [
 			'conditionals' => [],
 		],
 		[
+			'id' => 'notice', 'label' => 'Usage note', 'description' => '', 'type' => 'paragraph',
+			'content' => "Use carefully <script>alert(1)</script>\nPlain text only.", 'required' => true,
+			'pricing' => [ 'type' => 'fixed', 'amount' => 8.0, 'formula' => '' ],
+			'conditionals' => [ [ 'action' => 'show', 'logic' => 'all', 'rules' => [ [ 'field' => 'delivery', 'operator' => 'is', 'value' => 'plus' ] ] ] ],
+			'width' => 100, 'choices' => [],
+		],
+		[
 			'id'          => 'boost_note',
 			'label'       => 'Boost instructions',
 			'description' => '',
@@ -156,6 +163,7 @@ $asset_api = wp_styles();
 do_action( 'wp_enqueue_scripts' );
 $rendered_api = opf_display_field_groups_for_product( $matched_product );
 check( 'group API: product fields render to HTML', is_string( $rendered_api ) && false !== strpos( $rendered_api, 'Delivery speed' ) );
+check( 'paragraph: sanitized plain text renders conditionally', false !== strpos( $rendered_api, 'opf-field-content field-notice opf-hide' ) && false !== strpos( $rendered_api, 'Use carefully' ) && false !== strpos( $rendered_api, 'Plain text only.' ) && false === strpos( $rendered_api, '<script>alert(1)</script>' ) );
 ob_start();
 wp_script_modules()->print_enqueued_script_modules();
 $module_markup = ob_get_clean();
@@ -165,6 +173,7 @@ check( 'group API: renderer enqueues frontend module and styles', false !== strp
 $_POST['opf'] = [
 	(string) $gid => [
 		'delivery'   => 'plus',
+		'notice'     => 'Injected cart text',
 		'boost_note' => '', // hidden under delivery=plus → stripped.
 	],
 ];
@@ -178,6 +187,7 @@ check( 'classic: validation passes', $passed );
 check( 'classic: item added', false !== $item_key );
 $cart_item = $cart->get_cart_item( $item_key );
 check( 'classic: values attached', ( $cart_item['opf_fields'][ (string) $gid ]['delivery'] ?? '' ) === 'plus' );
+check( 'paragraph: submitted value never enters cart', ! isset( $cart_item['opf_fields'][ (string) $gid ]['notice'] ) );
 check( 'classic: hidden field stripped', ! isset( $cart_item['opf_fields'][ (string) $gid ]['boost_note'] ) );
 check( 'classic: base price stored', abs( (float) $cart_item['opf_base_price'] - 100.0 ) < 0.001 );
 $cart_api = opf_get_custom_fields_in_cart();

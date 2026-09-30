@@ -10,7 +10,7 @@ validation paths.
 
 | Area | Implemented behavior |
 | --- | --- |
-| Field types | `text`, `textarea`, `email`, `url`, `number`, `date`, `toggle`, `select`, `radio`, `checkbox`, and text-only `swatch` |
+| Field types | `text`, `textarea`, `email`, `url`, `number`, `date`, `toggle`, `select`, `radio`, `checkbox`, text-only `swatch`, and non-submittable plain-text `paragraph` |
 | Email | Browser email input plus server-side rejection of malformed non-empty values |
 | Toggle | Boolean input stored as `1` when checked and `0` when unchecked; a required toggle must be checked |
 | Choice behavior | Defaults, disabled choices, single-select controls, and multiple checkbox selections |
@@ -26,8 +26,9 @@ validation paths.
 
 OPF does not currently provide file uploads, time fields, image or
 colour swatches, repeatable fields, child/linked products, image quantities,
-content/layout fields, visual previews, lookup tables, or third-party
-integration adapters. These are roadmap work, not supported features.
+content images, rich HTML or shortcode content, other layout fields, visual
+previews, lookup tables, or third-party integration adapters. These are
+roadmap work, not supported features.
 
 There is no general compatibility guarantee for a theme, page builder,
 currency plugin, translated product/group synchronization, subscription
