@@ -59,7 +59,7 @@ for the complete edition scope. Paths are relative to
 | WooCommerce and theme/plugin adapters | `includes/controllers/class-integrations-controller.php`; 12 files under `includes/classes/integrations/` | The controller registers eight plugin adapters and three theme adapters. A WooCommerce Bookings adapter class also exists, but is absent from the controller's registry and no instantiation call exists in the package search; its effective runtime status is unresolved. Exact source scope recorded below. |
 | Localization and translation integration | `languages/sw-wapf.pot`; `languages/sw-wapf-*.mo`; `wpml-config.xml`; `includes/controllers/class-admin-controller.php`; `class-wapf.php` | Strings use the `sw-wapf` text domain with a POT and bundled locale catalogs. WAPF registers its global group post type for Polylang; WPML config marks selected admin text options, while the WPML guide describes translation of group CPTs and product/variation fields. |
 | Vendor settings, licensing, and update boundary | `includes/classes/class-licensing.php`; `includes/controllers/class-admin-controller.php`; `includes/controllers/class-extended-controller.php`; `includes/classes/class-config.php` | The admin exposes global labels, upload/date behavior and date format, summary/design settings, product price display and plugin license/update UI. Extended controllers add fields/date/formula/weight/linked-product options on top of the shared Pro settings framework. Licensed distribution/update behavior is separate from OPF's source behavior and does not enter the FOSS compatibility license decision. |
-| Developer extension API | PHP `apply_filters()` / `do_action()` calls under `includes/`, `extend/`, and `class-wapf.php` | Static source inventory found 92 unique literal `wapf/...` filter names and 8 unique literal `wapf/...` action names in the installed 3.1.5 package. Names cover field registration/rendering, validation, formula/pricing, cart/order, upload, linked products, admin screens, and integrations. Some names may be deprecated or internal call sites; counts do not define a stable documented API. Current-package signatures/arguments and OPF compatibility remain open. Official changelogs document individual developer hooks over time, including child-product query and cart-pricing filters. |
+| Developer extension API | PHP `apply_filters()` / `do_action()` calls under `includes/`, `extend/`, and `class-wapf.php`; `includes/api/api-helpers.php` | Static source inventory found 92 unique literal `wapf/...` filter names, 8 unique literal `wapf/...` action names, and 12 global helper functions in installed 3.1.5. Hook names cover field registration/rendering, validation, formula/pricing, cart/order, upload, linked products, admin screens, and integrations. Helper API is explicitly labeled beta in source and spans settings, custom formula functions, field-group display/lookups, cart/order reads, and field-group serialization. Counts do not define a stable documented API. Current-package signatures/arguments and OPF compatibility remain open. |
 
 This source map covers the installed package's subsystem boundaries. It does
 not assert that OPF matches each behavior: capability equivalence, migration
@@ -70,6 +70,14 @@ The 3.1.5 literal-hook inventory seeds `WAPF-DEVELOPER-HOOKS` in the ledger;
 it does not prove every hook is public, supported, or unchanged in 3.2.1. OPF's
 separately namespaced filters need an explicit compatibility contract and
 documentation before this row can count as parity.
+
+The beta helper API is a separate capability from action/filter extension
+points. OPF's current global functions are lifecycle bootstrap/activation
+entrypoints only; static search found no corresponding public field-group,
+cart/order, settings, serialization, or custom-formula-function helpers.
+The ledger records this as a separate gap. WAPF signatures and behavior need
+rechecking against current Extended source before treating the 3.1.5 API as a
+fixed compatibility target.
 
 ### Installed 3.1.5 integration adapter inventory
 
@@ -297,8 +305,8 @@ Both are explicit `needs audit` rows. The installed-source audit also found the
 WooCommerce Bookings adapter, now represented as a separate Pro capability
 row. Together with three separately verified Pro group-target conditions
 (login state, user role, and current language), plus the unregistered Bookings
-class requiring runtime classification, the edition ledger now has 131
-rows. The official descriptions do not disclose the release rows'
+class requiring runtime classification and the beta PHP helper API, the edition
+ledger now has 132 rows. The official descriptions do not disclose the release rows'
 exact setting
 keys or complete behavior, so only the licensed current package can close
 those source questions.
