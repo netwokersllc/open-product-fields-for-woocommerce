@@ -402,8 +402,12 @@ WP-CLI read at 2026-09-30 12:18 UTC reports installed version 3.1.5, inactive,
 and no cached update entry. The official paid-plugin install guide directs
 license holders to sign into their Studio Wombat account and download the
 latest version available to their license; no unauthenticated package source
-was found. Thus the 3.2.1 source remains unavailable here. This check does
-not authorize or attempt account access, license changes, or activation.
+was found. A second read-only search at 2026-09-30 12:53 UTC across the
+`/home/followersya-5hqi7` tree found no 3.2.1 source directory or named
+archive; all three hashed ZIPs in the FollowersYa uploads root were inspected
+and none contained WAPF paths. Thus the 3.2.1 source remains unavailable here.
+These checks do not authorize or attempt account access, license changes, or
+activation.
 
 ### Current changelog-to-ledger crosswalk
 
