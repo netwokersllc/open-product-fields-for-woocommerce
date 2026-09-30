@@ -110,10 +110,10 @@ The official changelog delta that must be reconciled into the ledger is:
 | Version | Published capability or behavior changes | Audit implications |
 | --- | --- | --- |
 | 3.1.6 | Cards with quantity inputs gained additional conditional-logic options; select tax handling was fixed | Inspect card quantity condition controls and saved settings, then compare selected-option tax behavior |
-| 3.1.7 | Upload and order-admin deletion security hardening; text-swatch corner-radius persistence fix; informational calculation result-format fix; modern uploader enabled by default | Inspect upload and order-admin authorization, corner-radius serialization, calculation result formatting, and uploader defaults |
-| 3.2 | True/false and checkbox switch presentation; checkbox columns; field-group title search; number step and whole/decimal validation; formula weight; styled-control accessibility; negative options-total formatting; active product-type condition filtering; upload validation fix | Inspect setting keys/defaults, server validation, formula-weight parsing, keyboard/screen-reader behavior, and the admin query/filter contract |
-| Extended 3.2.1 | Image zoom for image+quantity and linked-product image fields; date-picker accessibility; disabled-days save fix; option-discount tax fix | Inspect zoom controls/data, date control semantics and persistence, and option-tax calculations |
-| Pro 3.2.2 | Fixed a blank Product Fields admin page | Extended includes Pro features, but the versioned Extended package source must establish whether this Pro patch is bundled |
+| 3.1.7 | Upload and order-admin deletion security hardening; output hardening; text-swatch corner-radius persistence fix; informational calculation result-format fix; modern uploader enabled by default; minimum WooCommerce version raised to 7.0 | `WAPF-FIELD-UPLOAD`: inspect upload and order-admin authorization/output paths. `WAPF-FIELD-CARDS`/style rows: inspect saved corner radius. Calculation row: check informational result format. Uploader row: reconcile default. G4: confirm WC 7.0 floor and security behavior. |
+| 3.2 | True/false and checkbox switch presentation; checkbox columns; field-group title search; number step and whole/decimal validation; formula weight; styled-control accessibility; negative options-total formatting; active product-type filtering; skip validation for unsupported product types; iOS upload validation scroll fix | Reconcile setting keys/defaults and server validation for switch/columns/number rows; title-search row; formula-weight row; styled-control keyboard/screen-reader behavior; negative-total row; product-type query behavior; upload error focus on iOS. |
+| Extended 3.2.1 | Image zoom for image+quantity and linked-product image fields; date-picker accessibility; auto-update fix; disabled-days save fix; option-discount tax fix; WordPress 7.0 admin CSS fixes | Inspect zoom data/settings; date control semantics, accessibility and disabled-day persistence; updater/package behavior; admin CSS; option-discount tax calculations. Map to image-quantity/child-image zoom, date, commerce tax, and release-readiness rows. |
+| Pro 3.2.2 | Fixed a blank Product Fields admin page | Extended includes Pro features, but the versioned Extended package source must establish whether this Pro patch is bundled. Verify admin page load independently in the exact archive. |
 
 Sources: [official Extended changelog](https://www.studiowombat.com/plugin/advanced-product-fields-for-woocommerce-extended/changelog/),
 [official Pro changelog](https://www.studiowombat.com/plugin/advanced-product-fields-for-woocommerce/changelog/),
@@ -122,5 +122,8 @@ The edition comparison confirms Extended includes Pro; the audit gate therefore
 covers both Pro-core and Extended-only behavior. Pro's latest changelog is
 3.2.2 while Extended's is 3.2.1, so exact package inclusion is an open
 source-audit question. Six separately sold add-ons remain out of this scope.
-This is a changelog-based release-delta review, not source-level verification
-of the current 3.2.1/3.2.2 packages.
+The current official changelog pages were reread on 2026-09-30: Extended lists
+3.2.1, Pro lists 3.2.2. This is a changelog-based release-delta review, not
+source-level verification of either package. The Pro 3.2.2 blank-admin fix is
+also a separate package-inclusion question even though Extended bundles Pro
+features.
