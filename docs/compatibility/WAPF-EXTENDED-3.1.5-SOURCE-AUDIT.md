@@ -135,6 +135,31 @@ declares a return type. The order/cart helpers expose WAPF's `_wapf_meta` and
 API compatibility. `WAPF-DEVELOPER-PHP-API` remains a known OPF gap; current
 3.2.1 signatures and migration guarantees await the licensed package.
 
+### Installed 3.1.5 field-group deserialization contract
+
+`Field_Groups::raw_json_to_field_group()` is called by the admin save path on
+posted field-group JSON. It returns `null` when group `id` or `type` is empty;
+sanitizes both as text; skips fields missing an `id` or `type`; and rebuilds
+the group, layout, variables, fields, choices, conditionals, and group rules
+from recognized structures. It sanitizes labels/descriptions as allowed HTML,
+choice slugs and labels, default values by field type, numeric limits, clone
+settings, pricing and formula strings, and gallery references. A choice without
+a slug or label is dropped. Field conditionals retain only field/value/
+condition rules; group rules retain condition/subject and sanitize scalar or
+product-reference values. Section conditions generate child-field conditions
+that are flagged `generated` and removed again by the export projection.
+
+The parser also invokes `wapf/admin/sanitize_field` by reference before
+processing remaining field keys. Non-reserved keys not already populated in
+the normalized options are retained: `formula` gets text-without-tags
+sanitization and other values get textarea sanitization. This is an
+extension-preserving but type-generic path; it is not proof that arbitrary
+third-party values round-trip unchanged. This method is on the ordinary
+admin-save path; the minified/obfuscated admin JavaScript mediates the Tools
+modal, so the exact Tools payload transformation and full import/export
+round-trip remain unproven from this helper alone. These are installed 3.1.5
+source facts, not current 3.2.1 confirmation.
+
 ### Installed 3.1.5 integration adapter inventory
 
 The controller conditionally registers eight plugin adapters and three theme
