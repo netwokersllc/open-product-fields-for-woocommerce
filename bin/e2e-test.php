@@ -140,6 +140,20 @@ $unmatched_titles  = wp_list_pluck( OPF\Service\FieldGroups::for_product( $unmat
 // tag-scoped E2E Group should match.
 check( 'placement: tagged product matches the E2E group', in_array( 'E2E Group', $matched_titles, true ) );
 check( 'placement: untagged product matches nothing yet', empty( $unmatched_titles ) );
+$group_api = opf_get_field_group_by_id( $gid );
+check( 'group API: lookup by ID', $group_api instanceof OPF\Engine\FieldGroup && 'delivery' === $group_api->data['fields'][0]['id'] );
+check( 'group API: lookup multiple IDs', count( opf_get_field_groups_by_ids( [ $gid ] ) ) === 1 );
+$product_groups_api = opf_get_field_groups_of_product( $matched_product );
+$product_group_found = false;
+foreach ( $product_groups_api as $product_group_api ) {
+	if ( 'delivery' === ( $product_group_api->data['fields'][0]['id'] ?? '' ) ) {
+		$product_group_found = true;
+		break;
+	}
+}
+check( 'group API: product group lookup', $product_group_found && opf_product_has_options( $matched_product ) );
+$rendered_api = opf_display_field_groups_for_product( $matched_product );
+check( 'group API: product fields render to HTML', is_string( $rendered_api ) && false !== strpos( $rendered_api, 'Delivery speed' ) );
 
 // ------------------------------------------------- classic add-to-cart path.
 $_POST['opf'] = [
@@ -160,6 +174,10 @@ $cart_item = $cart->get_cart_item( $item_key );
 check( 'classic: values attached', ( $cart_item['opf_fields'][ (string) $gid ]['delivery'] ?? '' ) === 'plus' );
 check( 'classic: hidden field stripped', ! isset( $cart_item['opf_fields'][ (string) $gid ]['boost_note'] ) );
 check( 'classic: base price stored', abs( (float) $cart_item['opf_base_price'] - 100.0 ) < 0.001 );
+$cart_api = opf_get_custom_fields_in_cart();
+check( 'cart helper: cart item identified', ( $cart_api[0]['cart_item_key'] ?? '' ) === (string) $item_key && ( $cart_api[0]['product_id'] ?? 0 ) === $matched_id );
+check( 'cart helper: raw selections returned', ( $cart_api[0]['fields'][0]['field_id'] ?? '' ) === 'delivery' && ( $cart_api[0]['fields'][0]['value'] ?? '' ) === 'plus' );
+check( 'cart helper: stripped hidden values omitted', ! in_array( 'boost_note', wp_list_pluck( $cart_api[0]['fields'], 'field_id' ), true ) );
 
 $cart->calculate_totals();
 $line = $cart->get_cart_item( $item_key );
@@ -251,6 +269,23 @@ $first_item = array_values( $order->get_items() )[0];
 $stored = $first_item->get_meta( '_opf_fields', true );
 check( 'order: structured meta persisted', is_string( $stored ) && false !== strpos( (string) $stored, 'formula' ) );
 check( 'order: display meta persisted', '' !== $first_item->get_meta( 'Delivery speed', true ) );
+$snapshot = json_decode( (string) $first_item->get_meta( '_opf_fields_snapshot', true ), true );
+check( 'order helper: checkout snapshot persists field identity', is_array( $snapshot ) && ( $snapshot[0]['field_id'] ?? '' ) === 'delivery' && ( $snapshot[0]['type'] ?? '' ) === 'swatch' );
+$order_api = opf_get_options_from_order( $order );
+check( 'order helper: snapshot returns display and raw values', ( $order_api[0]['options'][0]['value'] ?? '' ) === 'Formula' && ( $order_api[0]['options'][0]['raw_value'] ?? '' ) === 'formula' );
+check( 'order helper: order ID resolves', count( opf_get_options_from_order( $order->get_id() ) ) === 1 );
+$edited_group_data = $group_data;
+$edited_group_data['fields'][0]['label'] = 'Edited delivery label';
+OPF\Service\FieldGroups::save( $gid, new OPF\Engine\FieldGroup( $edited_group_data ), [ 'title' => 'E2E Group' ] );
+$edited_order_api = opf_get_options_from_order( $order );
+check( 'order helper: snapshot keeps historical label after group edit', ( $edited_order_api[0]['options'][0]['label'] ?? '' ) === 'Delivery speed' );
+OPF\Service\FieldGroups::save( $gid, new OPF\Engine\FieldGroup( $group_data ), [ 'title' => 'E2E Group' ] );
+$hidden_meta = apply_filters( 'woocommerce_hidden_order_itemmeta', [] );
+check( 'order helper: snapshot metadata hidden from order display', in_array( '_opf_fields_snapshot', $hidden_meta, true ) );
+$first_item->delete_meta_data( '_opf_fields_snapshot' );
+$first_item->save();
+$legacy_api = opf_get_options_from_order( $order );
+check( 'order helper: legacy _opf_fields data remains readable', ( $legacy_api[0]['options'][0]['value'] ?? '' ) === 'formula' );
 
 // -------------------------------------------------------- order-again flow.
 $again = apply_filters( 'woocommerce_order_again_cart_item_data', [], $first_item, $order );
