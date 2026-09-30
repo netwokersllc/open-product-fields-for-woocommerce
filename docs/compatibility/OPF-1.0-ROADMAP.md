@@ -36,23 +36,23 @@ verification or source review.
 
 ## Progress now
 
-The current ledger tracks 139 rows: 133 Free/Pro/Extended rows (including
-three “All versions” rows) plus six official add-ons. Add-on source audits may
-split broad rows into separately testable capabilities, so 139 is not a final
-feature count. Current recorded status:
+The current ledger tracks 152 rows: 133 Free/Pro/Extended rows (including
+three “All versions” rows) plus 19 add-on lifecycle/feature rows covering six
+add-ons. Current source audits may identify more distinct capabilities, so 152
+is not a final feature count. Current recorded status:
 
 | Status | Rows | Meaning for the gate |
 | --- | ---: | --- |
 | Baseline supported | 8 | Promising baseline only; not accepted as proof |
 | Supported | 22 | Evidence recorded; still subject to current-source reconciliation |
 | Supported with documented difference | 12 | Needs explicit non-regression review and acceptance |
-| Partial | 91 | Material parity or proof remains |
+| Partial | 104 | Material parity or proof remains |
 | Gap | 3 | Known absent in the current OPF tree |
 | Needs audit | 3 | Card-quantity conditionals, date-picker accessibility, and whether WAPF registers its bundled Bookings adapter need source review |
-| **Total** | **139** | **G1 and G2 remain open** |
+| **Total** | **152** | **G1 and G2 remain open** |
 
 Extended-only rows: 28 total; 2 supported, 4 supported with a documented
-difference, 20 partial, 2 needs audit. All 139 currently tracked core and
+difference, 20 partial, 2 needs audit. All 152 currently tracked core and
 add-on rows have a ledger status; this closes current known-gap classification,
 not complete feature inventory or source freeze. Source review may add rows.
 Several statuses
@@ -131,7 +131,7 @@ marketplace requirements are reviewed against the exact release commit.
 | 3 | Extended field experiences | **Active for documented/source-confirmed behavior** | Close cards and main-image switching, child/linked products (specific and category sources, fixed/none category price type), image choices with quantity limits/zoom, date policies/cutoffs, calculation display and price modes, and formula-driven weight. | Admin save/reload and keyboard-accessible product-page behavior match the audited source contract; each field's stored/imported state and invalid-input behavior are covered. |
 | 4 | WooCommerce lifecycle and integrations | **Active where contract is documented; current-package differences remain gated** | Close pricing/tax/coupons/currency, classic and Store API carts, cart editing, stock and parent-child quantity/removal, checkout/order metadata, order-again, refunds/restocks, and each claimed theme/plugin integration. | Every applicable row has end-to-end evidence through the relevant storefront, server validation, cart, checkout/order, and restore/refund paths. No integration is claimed from static markup alone. |
 | 5 | Admin, display, and accessibility parity | **Active against available source/docs; current-package-only details remain gated** | Close global/product settings, builder usability, field-group listing/search/scheduling, visual design, price summaries/hints, translations, screen-reader/keyboard behavior, and responsive layouts against current docs/source. | Every UI row has admin save/reload and browser evidence; accessibility and responsive acceptance criteria are recorded in the ledger. |
-| 6 | Ledger closure and release candidate | **Not started; depends on WP1–5** | Review all 139 core and add-on rows with a fresh reviewer; resolve or explicitly document every difference; security/privacy, supported WordPress/WooCommerce/PHP versions, upgrade/uninstall, packaging, docs, changelog, rollback, and marketplace requirements. Add a release-candidate manifest and reproducible verification record. | **G2:** no baseline-supported/partial/gap/needs-audit rows and no unaccepted difference. **G3:** applicable commerce proofs pass. **G4:** release checklist passes before 1.0 tag/publication. |
+| 6 | Ledger closure and release candidate | **Not started; depends on WP1–5** | Review all currently tracked core and add-on rows with a fresh reviewer; resolve or explicitly document every difference; security/privacy, supported WordPress/WooCommerce/PHP versions, upgrade/uninstall, packaging, docs, changelog, rollback, and marketplace requirements. Add a release-candidate manifest and reproducible verification record. | **G2:** no baseline-supported/partial/gap/needs-audit rows and no unaccepted difference. **G3:** applicable commerce proofs pass. **G4:** release checklist passes before 1.0 tag/publication. |
 
 Packages 1–5 proceed in the listed order using the best available evidence.
 Features whose semantics are established by available source/docs can move
@@ -155,7 +155,7 @@ source has established the actual remaining scope.
 ## Non-negotiable release goalposts
 
 1. **G1 source freeze:** reconcile current Extended 3.2.1 behavior, bundled
-   Pro 3.2.2 fixes, and all 139 core/add-on rows before claiming release-wide
+   Pro 3.2.2 fixes, and every tracked core/add-on capability before claiming release-wide
    parity. Version-confirmed implementation can continue while the source
    audit proceeds.
 2. **G2 capability parity:** every edition row supported or has a reviewed,
