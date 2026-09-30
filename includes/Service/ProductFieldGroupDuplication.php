@@ -62,7 +62,9 @@ final class ProductFieldGroupDuplication {
 			}
 
 			try {
-				$data = FieldGroupDuplicator::duplicate( $group->data );
+				$duplicated = FieldGroupDuplicator::duplicate_with_map( $group->data );
+				$data       = $duplicated['group'];
+				$id_map     = $duplicated['id_map'];
 			} catch ( \Throwable $error ) {
 				self::log_failure( (int) $post->ID, $source_id, 'invalid-group' );
 				continue;
@@ -96,6 +98,15 @@ final class ProductFieldGroupDuplication {
 					pll_set_post_language( $new_id, $language );
 				}
 			}
+
+			do_action(
+				'opf/admin/after_product_duplication',
+				$duplicate,
+				$source,
+				new \OPF\Engine\FieldGroup( $data ),
+				$id_map,
+				$new_id
+			);
 		}
 	}
 

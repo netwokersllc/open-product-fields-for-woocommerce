@@ -19,6 +19,19 @@ final class FieldGroupDuplicator {
 	 * @return array<string,mixed>
 	 */
 	public static function duplicate( array $data, ?callable $id_factory = null ): array {
+		$result = self::duplicate_with_map( $data, $id_factory );
+		return $result['group'];
+	}
+
+	/**
+	 * Copy a group and return the old-to-new field ID map for extension hooks.
+	 *
+	 * @param array<string,mixed> $data       Source group.
+	 * @param callable|null       $id_factory Optional deterministic ID factory for tests.
+	 * @return array{group:array<string,mixed>,id_map:array<string,string>}
+	 * @internal
+	 */
+	public static function duplicate_with_map( array $data, ?callable $id_factory = null ): array {
 		$copy = FieldGroup::normalize( $data );
 		$used = [];
 		foreach ( $copy['fields'] as $field ) {
@@ -57,7 +70,10 @@ final class FieldGroupDuplicator {
 		}
 		unset( $field );
 
-		return $copy;
+		return [
+			'group'  => $copy,
+			'id_map' => $id_map,
+		];
 	}
 
 	/**

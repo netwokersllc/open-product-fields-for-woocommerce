@@ -17,6 +17,15 @@ function opf_product_duplicate_assert( bool $condition, string $message ): void 
 }
 
 ProductFieldGroupDuplication::init();
+$duplication_events = [];
+add_action(
+	'opf/admin/after_product_duplication',
+	static function ( $duplicate, $source, $group, $id_map, $group_id ) use ( &$duplication_events ): void {
+		$duplication_events[] = [ $duplicate, $source, $group, $id_map, $group_id ];
+	},
+	10,
+	5
+);
 $source_product_id = 0;
 $duplicate_id      = 0;
 $local_group_id    = 0;
@@ -83,6 +92,12 @@ try {
 	opf_product_duplicate_assert( $copy->data['fields'][1]['conditionals'][0]['rules'][0]['field'] === $copy->data['fields'][0]['id'], 'Copied conditional still points at the source field ID.' );
 	opf_product_duplicate_assert( $copy->data['fields'][1]['pricing']['formula'] === '[field.' . $copy->data['fields'][0]['id'] . '] + [field.material-extra]', 'Copied formula references were not remapped precisely.' );
 	opf_product_duplicate_assert( ! get_post_meta( $global_group_id, '_opf_imported_from', true ), 'Ordinary global group was incorrectly marked as imported.' );
+	opf_product_duplicate_assert( 1 === count( $duplication_events ), 'Expected one developer event for the copied local group.' );
+	[ $event_duplicate, $event_source, $event_group, $event_id_map, $event_group_id ] = $duplication_events[0];
+	opf_product_duplicate_assert( $event_duplicate->get_id() === $duplicate_id && $event_source->get_id() === $source_product_id, 'Developer event received the wrong product objects.' );
+	opf_product_duplicate_assert( $event_group instanceof OPF\Engine\FieldGroup && $event_group_id === $local_copy_id, 'Developer event did not receive the saved OPF group and post ID.' );
+	opf_product_duplicate_assert( $event_group->data === $copy->data, 'Developer event group data does not match the saved copy.' );
+	opf_product_duplicate_assert( $event_id_map === [ 'material' => $copy->data['fields'][0]['id'], 'finish' => $copy->data['fields'][1]['id'] ], 'Developer event field ID map is incorrect.' );
 
 	// WooCommerce's duplicate action may be retried; the source-group marker makes it idempotent.
 	do_action( 'woocommerce_product_duplicate', wc_get_product( $duplicate_id ), wc_get_product( $source_product_id ) );
@@ -97,6 +112,7 @@ try {
 		]
 	);
 	opf_product_duplicate_assert( 1 === count( $copies_after_retry ), 'Repeated duplication action created another copy.' );
+	opf_product_duplicate_assert( 1 === count( $duplication_events ), 'Idempotent retry emitted a second developer event.' );
 
 	WP_CLI::log( 'PASS Woo product copy, local group and review metadata remapping, global-group exclusion, idempotency.' );
 } finally {
