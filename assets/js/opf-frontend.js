@@ -407,7 +407,8 @@ const fmtMoney = (amount) => {
   const fixed = Math.abs(amount).toFixed(decimals);
   const [intPart, fracPart] = fixed.split('.');
   const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, thousand);
-  return `${neg}${symbol}${grouped}${decimals > 0 ? decimal + fracPart.slice(0, decimals) : ''}`;
+  const price = `${neg}${grouped}${decimals > 0 ? decimal + fracPart.slice(0, decimals) : ''}`;
+  return String(o.format || '{symbol}{price}').replace('{symbol}', symbol).replace('{price}', price);
 };
 
 const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOverride = null) => {
@@ -546,6 +547,8 @@ const writeTotals = () => {
   if (!totalsEl) return;
   const base = parseFloat(totalsEl.getAttribute('data-product-price'));
   if (!isFinite(base)) return;
+  const rateValue = parseFloat(totalsEl.getAttribute('data-opf-currency-rate'));
+  const currencyRate = isFinite(rateValue) && rateValue > 0 ? rateValue : 1;
   const qtyInput = document.querySelector('form.cart input[name="quantity"], form.cart .qty');
   const qty = Math.max(1, parseInt(qtyInput && qtyInput.value, 10) || 1);
 
@@ -586,11 +589,31 @@ const writeTotals = () => {
   const grand = productTotal + optionsTotal;
   const fmtEl = (el, amount) => {
     if (!el) return;
-    el.innerHTML = fmtMoney(amount);
+    el.textContent = fmtMoney(amount * currencyRate);
   };
   fmtEl(totalsEl.querySelector('.opf-product-total, .wapf-product-total'), productTotal);
   fmtEl(totalsEl.querySelector('.opf-options-total, .wapf-options-total'), optionsTotal);
   fmtEl(totalsEl.querySelector('.opf-grand-total, .wapf-grand-total'), grand);
+};
+
+const initVariationCurrency = () => {
+  const totalsEl = document.querySelector('.opf-product-totals, .wapf-product-totals');
+  const form = document.querySelector('form.variations_form');
+  if (!totalsEl || !form || !window.jQuery) return;
+  const originalBase = totalsEl.getAttribute('data-product-price');
+  const originalRate = totalsEl.getAttribute('data-opf-currency-rate') || '1';
+  window.jQuery(form)
+    .on('found_variation.opfCurrency', (_event, variation) => {
+      if (!variation || !Number.isFinite(Number(variation.opf_currency_base)) || !Number.isFinite(Number(variation.opf_currency_rate))) return;
+      totalsEl.setAttribute('data-product-price', String(variation.opf_currency_base));
+      totalsEl.setAttribute('data-opf-currency-rate', String(variation.opf_currency_rate));
+      writeTotals();
+    })
+    .on('reset_data.opfCurrency', () => {
+      totalsEl.setAttribute('data-product-price', originalBase);
+      totalsEl.setAttribute('data-opf-currency-rate', originalRate);
+      writeTotals();
+    });
 };
 
 const initTotals = () => {
@@ -609,7 +632,8 @@ const initTotals = () => {
 };
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initTotals);
+  document.addEventListener('DOMContentLoaded', () => { initTotals(); initVariationCurrency(); });
 } else {
   initTotals();
+  initVariationCurrency();
 }

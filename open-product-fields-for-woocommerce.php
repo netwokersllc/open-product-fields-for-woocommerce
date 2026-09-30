@@ -51,6 +51,7 @@ use OPF\Service\CartIntegration;
 use OPF\Service\Cli;
 use OPF\Service\FieldGroups;
 use OPF\Service\Importer;
+use OPF\Service\Integrations\Woocs;
 use OPF\Service\MetaPrettifier;
 use OPF\Service\ProductFieldGroupDuplication;
 use OPF\Service\Renderer;
@@ -89,6 +90,7 @@ function opf_boot(): void {
 	Renderer::init();
 	CartIntegration::init();
 	Assets::init();
+	Woocs::init();
 	Rest::init();
 	Importer::init();
 	Builder::init();

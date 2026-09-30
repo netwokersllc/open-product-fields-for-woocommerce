@@ -15,6 +15,7 @@
 
 namespace OPF\Service;
 
+use OPF\Service\Integrations\Woocs;
 use OPF\Engine\Evaluator;
 use OPF\Engine\FieldGroup;
 use OPF\Engine\FieldValue;
@@ -500,7 +501,8 @@ final class Renderer {
 		) {
 			$data_tax = 1;
 		}
-		echo '<div class="opf-product-totals' . esc_attr( $hidden ) . '" style="' . ( self::show_totals() ? '' : 'display:none;' ) . '" data-product-id="' . esc_attr( (string) $product->get_id() ) . '" data-product-type="' . esc_attr( $product->get_type() ) . '" data-product-price="' . esc_attr( (string) $product->get_price() ) . '" data-tax="' . esc_attr( (string) $data_tax ) . '"><div class="opf--inner">';
+		$currency = Woocs::display_context( (float) $product->get_price( 'edit' ), Woocs::rate() );
+		echo '<div class="opf-product-totals' . esc_attr( $hidden ) . '" style="' . ( self::show_totals() ? '' : 'display:none;' ) . '" data-product-id="' . esc_attr( (string) $product->get_id() ) . '" data-product-type="' . esc_attr( $product->get_type() ) . '" data-product-price="' . esc_attr( (string) $currency['base'] ) . '" data-opf-currency-rate="' . esc_attr( (string) $currency['rate'] ) . '" data-tax="' . esc_attr( (string) $data_tax ) . '"><div class="opf--inner">';
 		echo '<div><span>' . esc_html( $i18n['product_total'] ) . '</span> <span class="opf-total opf-product-total price amount"></span></div>';
 		echo '<div><span>' . esc_html( $i18n['options_total'] ) . '</span> <span class="opf-total opf-options-total price amount"></span></div>';
 		echo '<div><span>' . esc_html( $i18n['grand_total'] ) . '</span> <span class="opf-total opf-grand-total price amount"></span></div>';

@@ -80,16 +80,19 @@ final class Assets {
 	 * Subset of the legacy pricing-format config the theme integration reads.
 	 */
 	private static function compat_config(): array {
+		$display_options = [
+			'symbol'      => get_woocommerce_currency_symbol(),
+			'thousand'    => wc_get_price_thousand_separator(),
+			'decimal'     => wc_get_price_decimal_separator(),
+			'decimals'    => wc_get_price_decimals(),
+			'price_format' => str_replace( array( '%1$s', '%2$s' ), array( 'symbol', 'price' ), get_woocommerce_price_format() ),
+			'format'      => str_replace( array( '%1$s', '%2$s' ), array( '{symbol}', '{price}' ), get_woocommerce_price_format() ),
+		];
+		$display_options = array_replace( $display_options, Integrations\Woocs::display_options() );
 		return [
 			'ajax'            => admin_url( 'admin-ajax.php' ),
 			'currency'        => get_woocommerce_currency(),
-			'display_options' => [
-				'symbol'      => get_woocommerce_currency_symbol(),
-				'thousand'    => wc_get_price_thousand_separator(),
-				'decimal'     => wc_get_price_decimal_separator(),
-				'decimals'    => wc_get_price_decimals(),
-				'price_format' => str_replace( array( '%1$s', '%2$s' ), array( 'symbol', 'price' ), get_woocommerce_price_format() ),
-			],
+			'display_options' => $display_options,
 		];
 	}
 

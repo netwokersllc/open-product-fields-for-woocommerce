@@ -185,6 +185,26 @@ check( 'paragraph: sanitized plain text renders conditionally', false !== strpos
 $image_src = $e2e_image_attachment_id ? wp_get_attachment_image_url( $e2e_image_attachment_id, 'full' ) : 'https://example.test/reference.png';
 check( 'image: attachment renders conditionally without a form control', false !== strpos( $rendered_api, 'opf-field-img field-reference-image opf-hide' ) && false !== strpos( $rendered_api, 'src="' . esc_attr( $image_src ) . '"' ) && false !== strpos( $rendered_api, 'alt="Product reference"' ) );
 check( 'image: safe external image URL renders as an escaped source', false !== strpos( $rendered_api, 'src="https://example.test/remote.png"' ) && false !== strpos( $rendered_api, 'alt="Remote reference"' ) );
+$prior_woocs = $GLOBALS['WOOCS'] ?? null;
+$GLOBALS['WOOCS'] = new class {
+	public string $current_currency = 'EUR';
+	public string $default_currency = 'USD';
+	public function get_currencies(): array { return [ 'USD' => [ 'rate' => 1 ], 'EUR' => [ 'rate' => 0.92, 'symbol' => '€', 'decimals' => 2, 'position' => 'right_space', 'separators' => '3' ] ]; }
+};
+$currency_html = opf_display_field_groups_for_product( $matched_product );
+check( 'WOOCS: totals keep base-currency input and expose selected rate', false !== strpos( $currency_html, 'data-product-price="100" data-opf-currency-rate="0.92"' ) );
+$currency_options = OPF\Service\Integrations\Woocs::display_options();
+check( 'WOOCS: selected symbol, placement, precision, and separators are exposed', ( $currency_options['symbol'] ?? '' ) === '€' && ( $currency_options['format'] ?? '' ) === '{price} {symbol}' && ( $currency_options['decimals'] ?? -1 ) === 2 && ( $currency_options['thousand'] ?? '' ) === ' ' && ( $currency_options['decimal'] ?? '' ) === ',' );
+$e2e_variation = new WC_Product_Variation();
+$e2e_variation->set_regular_price( '75' );
+$e2e_variation->set_price( '75' );
+$e2e_variation_data = OPF\Service\Integrations\Woocs::variation_currency_data( [], $matched_product, $e2e_variation );
+check( 'WOOCS: variable product preview uses the selected variation base and rate', ( $e2e_variation_data['opf_currency_base'] ?? 0 ) === 75.0 && ( $e2e_variation_data['opf_currency_rate'] ?? 0 ) === 0.92 );
+if ( null === $prior_woocs ) {
+	unset( $GLOBALS['WOOCS'] );
+} else {
+	$GLOBALS['WOOCS'] = $prior_woocs;
+}
 ob_start();
 wp_script_modules()->print_enqueued_script_modules();
 $module_markup = ob_get_clean();

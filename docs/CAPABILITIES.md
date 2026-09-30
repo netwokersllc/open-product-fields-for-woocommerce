@@ -27,7 +27,9 @@ validation paths.
 OPF does not currently provide file uploads, time fields, image or
 colour swatches, repeatable fields, child/linked products, image quantities,
 rich HTML or shortcode content, other layout fields, visual previews, lookup
-tables, or third-party integration adapters. These are roadmap work, not
+tables, or complete third-party integrations. FOX/WOOCS live total display is
+partial; per-currency fixed prices, linked-product pricing, price hints, and
+converted cart/order totals are not verified. These are roadmap work, not
 supported features.
 
 There is no general compatibility guarantee for a theme, page builder,
