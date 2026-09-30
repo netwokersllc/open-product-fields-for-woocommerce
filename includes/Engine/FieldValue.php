@@ -102,6 +102,81 @@ final class FieldValue {
 		return $resolved->format( 'Y-m-d' );
 	}
 
+	/** Validate a WAPF disabled date, recurring month/day, or inclusive range. */
+	public static function is_disabled_date( string $rule ): bool {
+		$parts = preg_split( '/\s+/', trim( $rule ) );
+		if ( ! is_array( $parts ) || ! in_array( count( $parts ), [ 1, 2 ], true ) ) {
+			return false;
+		}
+		foreach ( $parts as $part ) {
+			if ( preg_match( '/^\d{2}-\d{2}$/', $part ) ) {
+				$date = \DateTimeImmutable::createFromFormat( '!Y-m-d', '2000-' . $part, new \DateTimeZone( 'UTC' ) );
+				$errors = \DateTimeImmutable::getLastErrors();
+				if ( ! $date instanceof \DateTimeImmutable || ( is_array( $errors ) && ( $errors['warning_count'] || $errors['error_count'] ) ) || $date->format( 'm-d' ) !== $part ) {
+					return false;
+				}
+			} elseif ( ! self::is_iso_date( $part ) ) {
+				return false;
+			}
+		}
+		if ( 2 === count( $parts ) ) {
+			$first_is_month_day = (bool) preg_match( '/^\d{2}-\d{2}$/', $parts[0] );
+			$second_is_month_day = (bool) preg_match( '/^\d{2}-\d{2}$/', $parts[1] );
+			if ( $first_is_month_day !== $second_is_month_day || ( ! $first_is_month_day && $parts[0] > $parts[1] ) ) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/** Check a date against exact, recurring, and inclusive date-range rules. */
+	public static function matches_disabled_date( string $value, array $rules ): bool {
+		$date = \DateTimeImmutable::createFromFormat( '!Y-m-d', $value, new \DateTimeZone( 'UTC' ) );
+		if ( ! $date instanceof \DateTimeImmutable || ! self::is_iso_date( $value ) ) {
+			return false;
+		}
+		$month_day = $date->format( 'm-d' );
+		foreach ( $rules as $rule ) {
+			if ( ! is_string( $rule ) || ! self::is_disabled_date( $rule ) ) {
+				continue;
+			}
+			$parts = preg_split( '/\s+/', trim( $rule ) );
+			if ( 1 === count( $parts ) ) {
+				if ( $parts[0] === $value || $parts[0] === $month_day ) {
+					return true;
+				}
+				continue;
+			}
+			$start = $parts[0];
+			$end = $parts[1];
+			if ( preg_match( '/^\d{2}-\d{2}$/', $start ) && preg_match( '/^\d{2}-\d{2}$/', $end ) ) {
+				if ( ( $start <= $end && $month_day >= $start && $month_day <= $end ) || ( $start > $end && ( $month_day >= $start || $month_day <= $end ) ) ) {
+					return true;
+				}
+			} else {
+				if ( preg_match( '/^\d{2}-\d{2}$/', $start ) ) {
+					$start = $date->format( 'Y' ) . '-' . $start;
+				}
+				if ( preg_match( '/^\d{2}-\d{2}$/', $end ) ) {
+					$end = $date->format( 'Y' ) . '-' . $end;
+				}
+				if ( $start <= $value && $value <= $end ) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private static function is_iso_date( string $value ): bool {
+		if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ) {
+			return false;
+		}
+		$date = \DateTimeImmutable::createFromFormat( '!Y-m-d', $value, new \DateTimeZone( 'UTC' ) );
+		$errors = \DateTimeImmutable::getLastErrors();
+		return $date instanceof \DateTimeImmutable && ( ! is_array( $errors ) || ( 0 === $errors['warning_count'] && 0 === $errors['error_count'] ) ) && $date->format( 'Y-m-d' ) === $value;
+	}
+
 	/**
 	 * Return server-side validation messages for a submitted field value.
 	 *
@@ -151,6 +226,12 @@ final class FieldValue {
 				if ( null !== $boundary && ( 'min_date' === $key ? $value < $boundary : $value > $boundary ) ) {
 					return [ sprintf( '"%s" must be %s %s.', $label, $comparison, $boundary ) ];
 				}
+			}
+			if ( in_array( (int) $date->format( 'w' ), $field['disabled_weekdays'] ?? [], true ) ) {
+				return [ sprintf( '"%s" is unavailable on this weekday.', $label ) ];
+			}
+			if ( self::matches_disabled_date( $value, $field['disabled_dates'] ?? [] ) ) {
+				return [ sprintf( '"%s" contains a disallowed date.', $label ) ];
 			}
 		}
 

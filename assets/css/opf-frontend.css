@@ -97,3 +97,69 @@
 	.opf-group { grid-template-columns: 1fr; }
 	.opf-field, .opf-col-25, .opf-col-50, .opf-col-75 { grid-column: span 1; }
 }
+.opf-date-picker {
+	position: relative;
+	margin-top: 0.35em;
+}
+
+.opf-date-picker__toggle,
+.opf-date-picker__header button,
+.opf-date-picker__grid button {
+	font: inherit;
+}
+
+.opf-date-picker__panel {
+	position: absolute;
+	z-index: 20;
+	width: min(19rem, calc(100vw - 2rem));
+	padding: 0.75rem;
+	border: 1px solid rgb(0 0 0 / 0.2);
+	border-radius: 0.5rem;
+	background: #fff;
+	box-shadow: 0 0.4rem 1.2rem rgb(0 0 0 / 0.16);
+}
+
+.opf-date-picker__panel[hidden] { display: none; }
+
+.opf-date-picker__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 0.5rem;
+}
+
+.opf-date-picker__grid {
+	display: block;
+	text-align: center;
+}
+
+.opf-date-picker__grid [role="row"] {
+	display: grid;
+	grid-template-columns: repeat(7, minmax(0, 1fr));
+	gap: 0.2rem;
+}
+
+.opf-date-picker__grid button {
+	min-height: 2rem;
+	border: 0;
+	border-radius: 0.25rem;
+	background: transparent;
+	cursor: pointer;
+}
+
+.opf-date-picker__grid button:hover:not(:disabled),
+.opf-date-picker__grid button[aria-pressed="true"] { background: rgb(0 0 0 / 0.1); }
+
+.opf-date-picker__grid button:focus-visible,
+.opf-date-picker__header button:focus-visible,
+.opf-date-picker__toggle:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
+}
+
+.opf-date-picker__grid button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.opf-date-picker__status {
+	margin-top: 0.5rem;
+	font-size: 0.9em;
+}

@@ -367,6 +367,12 @@ final class Renderer {
 						$date_attrs .= ' ' . $attribute . '="' . esc_attr( $date ) . '"';
 					}
 				}
+				if ( ! empty( $field['disabled_weekdays'] ) ) {
+					$date_attrs .= ' data-opf-disabled-weekdays="' . esc_attr( wp_json_encode( array_values( $field['disabled_weekdays'] ) ) ) . '"';
+				}
+				if ( ! empty( $field['disabled_dates'] ) ) {
+					$date_attrs .= ' data-opf-disabled-dates="' . esc_attr( wp_json_encode( array_values( $field['disabled_dates'] ) ) ) . '"';
+				}
 				echo '<input type="date" value="" ' . $shared . $date_attrs . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
 				break;
 			case 'toggle':

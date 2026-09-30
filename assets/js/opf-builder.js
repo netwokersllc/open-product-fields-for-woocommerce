@@ -189,6 +189,20 @@
 				} );
 				dateBounds.appendChild( input );
 			} );
+			var disabledWeekdays = el( 'input', { class: 'opf-b-input', type: 'text', value: Array.isArray( field.disabled_weekdays ) ? field.disabled_weekdays.join( ', ' ) : '', placeholder: 'Disabled weekdays (0=Sun … 6=Sat)' } );
+			disabledWeekdays.addEventListener( 'input', function () {
+				var days = disabledWeekdays.value.split( ',' ).map( function ( value ) { return value.trim(); } ).filter( Boolean );
+				if ( days.length && days.every( function ( day ) { return /^[0-6]$/.test( day ); } ) ) field.disabled_weekdays = days.map( Number );
+				else if ( ! days.length ) delete field.disabled_weekdays;
+			} );
+			var disabledDates = el( 'input', { class: 'opf-b-input', type: 'text', value: Array.isArray( field.disabled_dates ) ? field.disabled_dates.join( ', ' ) : '', placeholder: 'Disabled dates/ranges (YYYY-MM-DD, MM-DD, or start end)' } );
+			disabledDates.addEventListener( 'input', function () {
+				var rules = disabledDates.value.split( ',' ).map( function ( value ) { return value.trim(); } ).filter( Boolean );
+				if ( rules.length ) field.disabled_dates = rules;
+				else delete field.disabled_dates;
+			} );
+			dateBounds.appendChild( disabledWeekdays );
+			dateBounds.appendChild( disabledDates );
 			card.appendChild( dateBounds );
 		}
 

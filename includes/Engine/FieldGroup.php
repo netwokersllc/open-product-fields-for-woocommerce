@@ -229,6 +229,32 @@ final class FieldGroup {
 			if ( null !== $min_date && null !== $max_date && $min_date > $max_date ) {
 				throw new \InvalidArgumentException( 'Date minimum cannot exceed its maximum.' );
 			}
+			if ( array_key_exists( 'disabled_weekdays', $field ) ) {
+				if ( ! is_array( $field['disabled_weekdays'] ) ) {
+					throw new \InvalidArgumentException( 'Disabled weekdays must be a list of weekday numbers from 0 to 6.' );
+				}
+				$weekdays = [];
+				foreach ( $field['disabled_weekdays'] as $weekday ) {
+					if ( ! is_scalar( $weekday ) || ! preg_match( '/^[0-6]$/', (string) $weekday ) ) {
+						throw new \InvalidArgumentException( 'Disabled weekdays must be a list of weekday numbers from 0 to 6.' );
+					}
+					$weekdays[] = (int) $weekday;
+				}
+				$normalized['disabled_weekdays'] = array_values( array_unique( $weekdays ) );
+			}
+			if ( array_key_exists( 'disabled_dates', $field ) ) {
+				if ( ! is_array( $field['disabled_dates'] ) || count( $field['disabled_dates'] ) > 512 ) {
+					throw new \InvalidArgumentException( 'Disabled dates must be a list of at most 512 rules.' );
+				}
+				$disabled_dates = [];
+				foreach ( $field['disabled_dates'] as $disabled_date ) {
+					if ( ! is_string( $disabled_date ) || ! FieldValue::is_disabled_date( $disabled_date ) ) {
+						throw new \InvalidArgumentException( 'Disabled dates must be YYYY-MM-DD, MM-DD, or an inclusive range using two dates.' );
+					}
+					$disabled_dates[] = trim( $disabled_date );
+				}
+				$normalized['disabled_dates'] = array_values( array_unique( $disabled_dates ) );
+			}
 		}
 		return $normalized;
 	}

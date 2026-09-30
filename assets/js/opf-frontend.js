@@ -69,6 +69,180 @@ const isVisible = ( field, values ) => {
 	return hasShow ? showPass : true;
 };
 
+const dateIsBlocked = ( input, isoDate ) => {
+	if ( ( input.min && isoDate < input.min ) || ( input.max && isoDate > input.max ) ) return true;
+	const date = new Date( isoDate + 'T00:00:00Z' );
+	if ( Number.isNaN( date.getTime() ) ) return true;
+	const weekdays = JSON.parse( input.dataset.opfDisabledWeekdays || '[]' );
+	if ( weekdays.includes( date.getUTCDay() ) ) return true;
+	const monthDay = isoDate.slice( 5 );
+	return JSON.parse( input.dataset.opfDisabledDates || '[]' ).some( ( rule ) => {
+		const parts = String( rule ).trim().split( /\s+/ );
+		if ( 1 === parts.length ) return parts[0] === isoDate || parts[0] === monthDay;
+		let [ start, end ] = parts;
+		if ( /^\d{2}-\d{2}$/.test( start ) && /^\d{2}-\d{2}$/.test( end ) ) {
+			return start <= end ? monthDay >= start && monthDay <= end : monthDay >= start || monthDay <= end;
+		}
+		if ( /^\d{2}-\d{2}$/.test( start ) ) start = isoDate.slice( 0, 4 ) + '-' + start;
+		if ( /^\d{2}-\d{2}$/.test( end ) ) end = isoDate.slice( 0, 4 ) + '-' + end;
+		return start <= isoDate && isoDate <= end;
+	} );
+};
+
+const initDatePicker = ( fieldEl, input ) => {
+	if ( fieldEl.querySelector( '.opf-date-picker' ) ) return;
+	const wrapper = document.createElement( 'div' );
+	wrapper.className = 'opf-date-picker';
+	const toggle = document.createElement( 'button' );
+	toggle.type = 'button';
+	toggle.className = 'opf-date-picker__toggle';
+	toggle.textContent = 'Choose date';
+	toggle.setAttribute( 'aria-haspopup', 'dialog' );
+	toggle.setAttribute( 'aria-expanded', 'false' );
+	const panel = document.createElement( 'div' );
+	panel.className = 'opf-date-picker__panel';
+	panel.id = input.id + '-calendar';
+	panel.setAttribute( 'role', 'dialog' );
+	panel.setAttribute( 'aria-label', 'Choose a date' );
+	panel.hidden = true;
+	toggle.setAttribute( 'aria-controls', panel.id );
+	const header = document.createElement( 'div' );
+	header.className = 'opf-date-picker__header';
+	const previous = document.createElement( 'button' );
+	previous.type = 'button';
+	previous.textContent = '‹';
+	previous.setAttribute( 'aria-label', 'Previous month' );
+	const monthLabel = document.createElement( 'strong' );
+	const next = document.createElement( 'button' );
+	next.type = 'button';
+	next.textContent = '›';
+	next.setAttribute( 'aria-label', 'Next month' );
+	header.append( previous, monthLabel, next );
+	const grid = document.createElement( 'div' );
+	grid.className = 'opf-date-picker__grid';
+	grid.setAttribute( 'role', 'grid' );
+	grid.setAttribute( 'aria-label', 'Calendar dates' );
+	const status = document.createElement( 'div' );
+	status.className = 'opf-date-picker__status';
+	status.setAttribute( 'role', 'status' );
+	status.setAttribute( 'aria-live', 'polite' );
+	panel.append( header, grid, status );
+	wrapper.append( toggle, panel );
+	fieldEl.appendChild( wrapper );
+	let visibleMonth = ( input.value || new Date().toISOString().slice( 0, 10 ) ).slice( 0, 7 ) + '-01';
+	const weekStart = Math.min( 6, Math.max( 0, Number( input.dataset.opfWeekStart || 0 ) ) );
+	const render = () => {
+		grid.textContent = '';
+		const month = new Date( visibleMonth + 'T00:00:00Z' );
+		monthLabel.textContent = new Intl.DateTimeFormat( undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' } ).format( month );
+		const labels = [ 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' ];
+		const headingRow = document.createElement( 'div' );
+		headingRow.setAttribute( 'role', 'row' );
+		labels.slice( weekStart ).concat( labels.slice( 0, weekStart ) ).forEach( ( label ) => {
+			const heading = document.createElement( 'span' );
+			heading.textContent = label;
+			heading.setAttribute( 'role', 'columnheader' );
+			headingRow.appendChild( heading );
+		} );
+		grid.appendChild( headingRow );
+		const firstWeekday = new Date( month ).getUTCDay();
+		const blanks = ( firstWeekday - weekStart + 7 ) % 7;
+		const dayCount = new Date( Date.UTC( month.getUTCFullYear(), month.getUTCMonth() + 1, 0 ) ).getUTCDate();
+		let row = document.createElement( 'div' );
+		row.setAttribute( 'role', 'row' );
+		for ( let blank = 0; blank < blanks; blank++ ) row.appendChild( document.createElement( 'span' ) );
+		let tabStopSet = false;
+		for ( let day = 1; day <= dayCount; day++ ) {
+			const isoDate = visibleMonth.slice( 0, 7 ) + '-' + String( day ).padStart( 2, '0' );
+			const choice = document.createElement( 'button' );
+			choice.type = 'button';
+			choice.textContent = String( day );
+			choice.dataset.opfDate = isoDate;
+			choice.setAttribute( 'role', 'gridcell' );
+			choice.setAttribute( 'aria-label', new Intl.DateTimeFormat( undefined, { dateStyle: 'full', timeZone: 'UTC' } ).format( new Date( isoDate + 'T00:00:00Z' ) ) );
+			choice.disabled = dateIsBlocked( input, isoDate );
+			choice.tabIndex = ! choice.disabled && ! tabStopSet && ( isoDate === input.value || ! input.value ) ? 0 : -1;
+			if ( choice.tabIndex === 0 ) tabStopSet = true;
+			if ( isoDate === input.value ) choice.setAttribute( 'aria-pressed', 'true' );
+			choice.addEventListener( 'click', () => {
+				input.value = isoDate;
+				input.dispatchEvent( new Event( 'input', { bubbles: true } ) );
+				input.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+				panel.hidden = true;
+				toggle.setAttribute( 'aria-expanded', 'false' );
+				toggle.textContent = isoDate;
+				toggle.focus();
+			} );
+			row.appendChild( choice );
+			if ( ( blanks + day ) % 7 === 0 ) {
+				grid.appendChild( row );
+				row = document.createElement( 'div' );
+				row.setAttribute( 'role', 'row' );
+			}
+		}
+		if ( row.children.length ) grid.appendChild( row );
+		status.textContent = grid.querySelector( 'button:not(:disabled)' ) ? '' : 'No selectable dates this month.';
+		toggle.textContent = input.value || 'Choose date';
+	};
+	const changeMonth = ( amount ) => {
+		const month = new Date( visibleMonth + 'T00:00:00Z' );
+		month.setUTCMonth( month.getUTCMonth() + amount );
+		visibleMonth = month.toISOString().slice( 0, 7 ) + '-01';
+		render();
+	};
+	previous.addEventListener( 'click', () => changeMonth( -1 ) );
+	next.addEventListener( 'click', () => changeMonth( 1 ) );
+	toggle.addEventListener( 'click', () => {
+		panel.hidden = ! panel.hidden;
+		toggle.setAttribute( 'aria-expanded', String( ! panel.hidden ) );
+		render();
+		if ( ! panel.hidden ) ( grid.querySelector( '[aria-pressed="true"]:not(:disabled)' ) || grid.querySelector( '[tabindex="0"]' ) || next ).focus();
+	} );
+	panel.addEventListener( 'keydown', ( event ) => {
+		if ( 'Escape' === event.key ) {
+			panel.hidden = true;
+			toggle.setAttribute( 'aria-expanded', 'false' );
+			toggle.focus();
+			event.preventDefault();
+		}
+	} );
+	grid.addEventListener( 'keydown', ( event ) => {
+		const current = event.target.closest( 'button[data-opf-date]' );
+		if ( ! current ) return;
+		let amount = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[ event.key ];
+		if ( 'Home' === event.key ) amount = -(( new Date( current.dataset.opfDate + 'T00:00:00Z' ).getUTCDay() - weekStart + 7 ) % 7 );
+		if ( 'End' === event.key ) amount = 6 - (( new Date( current.dataset.opfDate + 'T00:00:00Z' ).getUTCDay() - weekStart + 7 ) % 7 );
+		if ( null === amount || undefined === amount ) return;
+		const date = new Date( current.dataset.opfDate + 'T00:00:00Z' );
+		const direction = amount < 0 ? -1 : 1;
+		for ( let attempt = 0; attempt < 42; attempt++ ) {
+			const candidate = new Date( date.getTime() );
+			candidate.setUTCDate( candidate.getUTCDate() + amount + ( direction * attempt ) );
+			const isoDate = candidate.toISOString().slice( 0, 10 );
+			if ( dateIsBlocked( input, isoDate ) ) {
+				continue;
+			}
+			if ( isoDate.slice( 0, 7 ) !== visibleMonth.slice( 0, 7 ) ) {
+				visibleMonth = isoDate.slice( 0, 7 ) + '-01';
+				render();
+			}
+			const nextDate = grid.querySelector( 'button[data-opf-date="' + isoDate + '"]' );
+			if ( nextDate ) {
+				grid.querySelectorAll( 'button[data-opf-date]' ).forEach( ( button ) => { button.tabIndex = button === nextDate ? 0 : -1; } );
+				nextDate.focus();
+			}
+			break;
+		}
+		event.preventDefault();
+	} );
+	input.addEventListener( 'input', () => {
+		const invalid = !! input.value && dateIsBlocked( input, input.value );
+		input.setCustomValidity( invalid ? 'This date is unavailable.' : '' );
+		render();
+	} );
+	render();
+};
+
 const init = () => {
 	document.querySelectorAll( '[data-opf-group]' ).forEach( ( groupEl ) => {
 		const gid = groupEl.getAttribute( 'data-opf-group' );
@@ -92,6 +266,10 @@ const init = () => {
 						).map( ( c ) => c.value )
 					: input.value;
 			}
+		} );
+		fields.forEach( ( fieldEl ) => {
+			const input = fieldEl.querySelector( 'input[type="date"]' );
+			if ( input ) initDatePicker( fieldEl, input );
 		} );
 
 		const refresh = () => {
@@ -138,6 +316,11 @@ const init = () => {
 			}
 			const fid = fieldEl.getAttribute( 'data-opf-field' );
 			const input = event.target;
+			if ( 'date' === input.type && input.value && dateIsBlocked( input, input.value ) ) {
+				input.setCustomValidity( 'This date is unavailable.' );
+			} else if ( 'date' === input.type ) {
+				input.setCustomValidity( '' );
+			}
 			if ( fieldDefs[ fid ] && fieldDefs[ fid ].type === 'toggle' ) {
 				values[ fid ] = input.checked ? '1' : '0';
 			} else if ( input.type === 'checkbox' && input.name.endsWith( '[]' ) ) {
