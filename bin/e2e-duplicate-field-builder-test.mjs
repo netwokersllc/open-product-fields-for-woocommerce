@@ -52,14 +52,14 @@ await page.addScriptTag({ content: source });
 const cards = page.locator('.opf-b-field');
 check('each field offers a duplicate action', await cards.count() === 2 && await page.locator('.opf-b-duplicate').count() === 2);
 await page.locator('.opf-b-duplicate').first().click();
-check('duplicate is inserted immediately after its source', await page.locator('.opf-b-field').count() === 3 && await page.locator('.opf-b-field').nth(1).locator('.opf-b-label').inputValue() === 'Finish');
+check('duplicate is inserted immediately after its source with WAPF copy label', await page.locator('.opf-b-field').count() === 3 && await page.locator('.opf-b-field').nth(1).locator('.opf-b-label').inputValue() === 'Finish (Copy)');
 
 await page.locator('.opf-b-toolbar button').nth(1).click();
 await page.waitForFunction(() => window.__opfSavedPayloads.length === 1);
 const saved = await page.evaluate(() => window.__opfSavedPayloads[0].data.fields);
 const sourceField = saved[0];
 const copy = saved[1];
-check('copy preserves every field setting while receiving a collision-free ID', copy.id === 'finish-copy-2' && JSON.stringify({ ...copy, id: sourceField.id }) === JSON.stringify(sourceField));
+check('copy preserves every field setting while receiving a collision-free ID', copy.id === 'finish-copy-2' && copy.label === 'Finish (Copy)' && JSON.stringify({ ...copy, id: sourceField.id, label: sourceField.label }) === JSON.stringify(sourceField));
 await page.locator('.opf-b-field').nth(1).locator('.opf-b-label').fill('Custom finish');
 check('source label remains unchanged after copy edit', await page.locator('.opf-b-field').first().locator('.opf-b-label').inputValue() === 'Finish');
 check('no uncaught builder errors', errors.length === 0);
