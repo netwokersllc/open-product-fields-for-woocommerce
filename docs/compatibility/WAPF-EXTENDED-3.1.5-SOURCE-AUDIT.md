@@ -176,18 +176,15 @@ ledger families:
 | `file` | `WAPF-FIELD-UPLOAD`, `WAPF-UPLOAD-AJAX-UI` |
 | `p`, `img`, `section`, `sectionend` | `WAPF-FIELD-CONTENT-TEXT`, `WAPF-FIELD-CONTENT-IMAGE`, `WAPF-FIELD-SECTION` |
 
-The 3.1.5 condition registry disambiguates the later “cards with quantity
-inputs” changelog item. Ordinary `card`/`vcard` choices have selection
-conditions; `image-swatch-qty` separately has `empty`, `!empty`,
-`==contains`, and `!=contains` quantity conditions. The product field
-registry marks `products-card-qty` and `products-vcard-qty` as quantity
-selector variants of linked child products. The best source-based mapping for
-the ambiguous 3.1.6 changelog phrase is therefore quantity-enabled
-child-product cards (`WAPF-FIELD-CHILD-PRODUCTS`), not ordinary choice cards or
-image swatches. This is an inference from the 3.1.5 type registry and
-changelog wording, not source confirmation of the 3.1.6 feature. The installed
-3.1.5 source establishes baseline control types only; it does not establish
-the new options, their stored representation, or evaluator behavior.
+The 3.1.5 field-type registry and the linked-products controller's field
+visibility registrations identify the best baseline match for the later
+“cards with quantity inputs” changelog item as quantity-enabled child-product
+cards (`products-card-qty` / `products-vcard-qty`, tracked by
+`WAPF-FIELD-CHILD-PRODUCTS`). Those subtypes have only no/any-quantity rules in
+3.1.5. Ordinary `card`/`vcard` and `image-swatch-qty` are different field
+families; the latter has its own quantity-contains operators. The target
+version's exact additions, stored representation, and evaluator behavior
+remain unverified without 3.2.1 source.
 
 Two related registrations are conditional or owned by other controllers and
 must not be omitted from the full inventory: date is added only when the
@@ -251,6 +248,38 @@ but no login-state, role, or group-language condition in its builder/evaluator;
 the ledger therefore records those three as gaps. The exact latest-package
 source is still required to confirm that these 3.1.5 keys and semantics remain
 unchanged in Extended 3.2.1.
+
+### Installed 3.1.5 field visibility conditions
+
+`Config::get_field_visibility_conditions()` registers built-in field
+condition operators in `includes/classes/class-config.php`. The linked
+Products controller extends that registry in
+`includes/controllers/class-linked-products-controller.php::add_field_visibility_conditions()`.
+`Fields::is_valid_rule()` reads current request or validated cart values and
+evaluates saved rules in `includes/classes/class-fields.php`.
+
+| Field family | 3.1.5 condition keys and semantics |
+| --- | --- |
+| `text`, `email`, `url`, `textarea` | `==`, `!=`, `empty`, `!empty`, `==contains` |
+| `calc` | `==`, `!=`, `gt`, `lt` |
+| `number` | `==`, `!=`, `gt`, `lt`, `empty`, `!empty`, `==contains` |
+| `true-false` | `check`, `!check` |
+| `select`, `radio`, `image-swatch`, `color-swatch`, `color-swatches`, `text-swatch` | `==`, `!=`, `empty`, `!empty` against one option |
+| `checkboxes`, `card`, `vcard`, `multi-image-swatch`, `multi-color-swatch`, `multi-text-swatch` | `==`/`!=` mean selection contains/does not contain the chosen option; also `empty`, `!empty` |
+| `date` | `==`, `!=`, `gtd` (later), `ltd` (older), `empty`, `!empty`; display input uses `wapf_date_format`, rule values parse as `m-d-Y` |
+| `file` | `empty`, `!empty` |
+| `image-swatch-qty` | `empty`, `!empty`, `==contains`, `!=contains`; quantity comparison uses a numeric rule value |
+| Linked product `products-dropdown`, `products-radio` | `==`, `!=` against a product; also `empty`, `!empty` |
+| Linked product `products-checkbox`, `products-image`, `products-card`, `products-vcard` | `==`/`!=` mean selected-product contains/does not contain; also `empty`, `!empty` |
+| Linked product `products-card-qty`, `products-vcard-qty` | Only `empty` (no quantity) and `!empty` (any quantity) in the installed 3.1.5 registry |
+
+This establishes the child-product-card baseline behind the 3.1.6 changelog:
+in 3.1.5 its quantity-card subtypes expose only no/any-quantity rules, while
+non-quantity child-product cards expose selected-product contains/not-contains
+rules. The changelog's “more conditional logic options” therefore means 3.1.6
+added options beyond the existing quantity-card pair. Exact new operators,
+saved keys, and evaluation behavior remain unknown until the current licensed
+package is available.
 
 ## WAPF Free 1.7.1 source and edition boundary
 
