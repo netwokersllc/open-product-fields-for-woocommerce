@@ -165,6 +165,33 @@ final class Calculator {
 			},
 			$formula
 		);
+		$formula = preg_replace_callback(
+			'/\blen\s*\(([^()]*)\)/i',
+			static function ( array $match ) use ( $val, $field_values ): string {
+				$args = self::split_len_arguments( $match[1] );
+				if ( count( $args ) < 1 || count( $args ) > 2 ) {
+					return '0';
+				}
+				$text = trim( $args[0] );
+				if ( strlen( $text ) >= 2 && ( ( "'" === $text[0] && "'" === substr( $text, -1 ) ) || ( '"' === $text[0] && '"' === substr( $text, -1 ) ) ) ) {
+					$text = substr( $text, 1, -1 );
+				} elseif ( '[val]' === strtolower( $text ) ) {
+					$text = $val;
+				} elseif ( preg_match( '/^\[field\.([a-zA-Z0-9_-]+)\]$/i', $text, $field_match ) ) {
+					$value = $field_values[ $field_match[1] ] ?? $field_values[ strtolower( $field_match[1] ) ] ?? null;
+					$text  = is_scalar( $value ) ? (string) $value : '';
+				}
+				if ( isset( $args[1] ) && in_array( strtolower( trim( $args[1] ) ), [ 'true', '1' ], true ) ) {
+					$text = preg_replace( '/\s/u', '', $text );
+				}
+				if ( function_exists( 'mb_strlen' ) ) {
+					return (string) mb_strlen( $text, 'UTF-8' );
+				}
+				$count = preg_match_all( '/./us', $text, $characters );
+				return (string) ( false === $count ? strlen( $text ) : $count );
+			},
+			$formula
+		);
 		$today = $today ?? ( function_exists( 'current_time' ) ? current_time( 'Y-m-d' ) : gmdate( 'Y-m-d' ) );
 		if ( ! self::is_formula_iso_date( $today ) ) {
 			$today = gmdate( 'Y-m-d' );
@@ -227,7 +254,7 @@ final class Calculator {
 	}
 
 	/** Split formula arguments while preserving commas inside quoted date text. */
-	private static function split_formula_arguments( string $arguments ): array {
+	private static function split_formula_arguments( string $arguments, string $separator = ',' ): array {
 		$parts = [];
 		$start = 0;
 		$quote = '';
@@ -241,13 +268,41 @@ final class Calculator {
 			}
 			if ( "'" === $char || '"' === $char ) {
 				$quote = $char;
-			} elseif ( ',' === $char ) {
+			} elseif ( $separator === $char ) {
 				$parts[] = trim( substr( $arguments, $start, $i - $start ) );
 				$start   = $i + 1;
 			}
 		}
 		$parts[] = trim( substr( $arguments, $start ) );
 		return $parts;
+	}
+
+	/** Keep punctuation inside the text argument; split only a trailing flag. */
+	private static function split_len_arguments( string $arguments ): array {
+		$quote      = '';
+		$separators = [];
+		for ( $i = 0, $length = strlen( $arguments ); $i < $length; $i++ ) {
+			$char = $arguments[ $i ];
+			if ( '' !== $quote ) {
+				if ( $char === $quote ) {
+					$quote = '';
+				}
+				continue;
+			}
+			if ( "'" === $char || '"' === $char ) {
+				$quote = $char;
+			} elseif ( ',' === $char || ';' === $char ) {
+				$separators[] = $i;
+			}
+		}
+		for ( $i = count( $separators ) - 1; $i >= 0; $i-- ) {
+			$position = $separators[ $i ];
+			$flag     = trim( substr( $arguments, $position + 1 ) );
+			if ( in_array( strtolower( $flag ), [ 'true', 'false', '1', '0' ], true ) ) {
+				return [ trim( substr( $arguments, 0, $position ) ), $flag ];
+			}
+		}
+		return [ trim( $arguments ) ];
 	}
 
 	/** Resolve a WAPF date function argument to a strictly validated date. */

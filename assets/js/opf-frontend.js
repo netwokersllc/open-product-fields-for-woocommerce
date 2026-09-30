@@ -466,6 +466,44 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
     return { weekday: date.getUTCDay(), month, timestamp: date.getTime() };
   };
   const expr = String(formula)
+    .replace(/\blen\s*\(([^()]*)\)/gi, (_, rawArgs) => {
+      const separators = [];
+      let quote = '';
+      for (let index = 0; index < rawArgs.length; index++) {
+        const char = rawArgs[index];
+        if (quote) {
+          if (char === quote) quote = '';
+        } else if (char === "'" || char === '"') {
+          quote = char;
+        } else if (char === ',' || char === ';') {
+          separators.push(index);
+        }
+      }
+      let args = [rawArgs.trim()];
+      for (let index = separators.length - 1; index >= 0; index--) {
+        const position = separators[index];
+        const flag = rawArgs.slice(position + 1).trim();
+        if (['true', 'false', '1', '0'].includes(flag.toLowerCase())) {
+          args = [rawArgs.slice(0, position).trim(), flag];
+          break;
+        }
+      }
+      if (args.length < 1 || args.length > 2) return '0';
+      let text = args[0];
+      if (text.length >= 2 && ((text[0] === "'" && text.endsWith("'")) || (text[0] === '"' && text.endsWith('"')))) {
+        text = text.slice(1, -1);
+      } else if (text.toLowerCase() === '[val]') {
+        text = String(val || '');
+      } else {
+        const field = /^\[field\.([a-z0-9_-]+)\]$/i.exec(text);
+        if (field) {
+          const value = fieldValues[field[1]] ?? fieldValues[String(field[1]).toLowerCase()];
+          text = value == null || Array.isArray(value) ? '' : String(value);
+        }
+      }
+      if (args[1] && ['true', '1'].includes(args[1].toLowerCase())) text = text.replace(/\s/gu, '');
+      return String(Array.from(text).length);
+    })
     .replace(/;/g, ',')
     .replace(/\bchecked\s*\(\s*([a-z0-9_-]+)\s*\)/gi, (_, fieldId) => {
       const value = fieldValues[fieldId] ?? fieldValues[String(fieldId).toLowerCase()];

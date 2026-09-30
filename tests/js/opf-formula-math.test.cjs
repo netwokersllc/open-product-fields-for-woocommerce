@@ -33,3 +33,12 @@ test('WAPF checked(field ID) previews selected multi-select choices', () => {
 	assert.equal(context.__evalFormula('checked(material)', 10, 1, 0, '', { material: [] }), 0);
 	assert.equal(context.__evalFormula('checked(material)', 10, 1, 0, '', { material: 'red' }), 0);
 });
+
+test('WAPF len accepts text, scalar field values, Unicode, and ignore-spaces flag', () => {
+	const evaluate = (formula, values = {}) => context.__evalFormula(formula, 10, 1, 0, '', values);
+	assert.equal(evaluate('len(a quick, brown fox)'), 18);
+	assert.equal(evaluate('len(a quick, brown fox; true)'), 15);
+	assert.equal(evaluate("len('café 😀')"), 6);
+	assert.equal(evaluate('len([field.material])', { material: 'blue' }), 4);
+	assert.equal(evaluate('len([field.material])', { material: ['blue', 'red'] }), 0);
+});

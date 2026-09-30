@@ -78,6 +78,14 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( 5.0, Calculator::evaluate_formula( 'checked(material) + 5', 10.0, 1, 0.0, '', null, [ 'material' => 'red' ] ) );
 	}
 
+	public function test_wapf_len_function_counts_unicode_text_and_can_ignore_whitespace(): void {
+		$this->assertSame( 18.0, Calculator::evaluate_formula( 'len(a quick, brown fox)', 10.0, 1, 0.0 ) );
+		$this->assertSame( 15.0, Calculator::evaluate_formula( 'len(a quick, brown fox; true)', 10.0, 1, 0.0 ) );
+		$this->assertSame( 6.0, Calculator::evaluate_formula( "len('café 😀')", 10.0, 1, 0.0 ) );
+		$this->assertSame( 4.0, Calculator::evaluate_formula( 'len([field.material])', 10.0, 1, 0.0, '', null, [ 'material' => 'blue' ] ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'len([field.material])', 10.0, 1, 0.0, '', null, [ 'material' => [ 'blue', 'red' ] ] ) );
+	}
+
 	public function test_formula_safety_garbage_yields_zero(): void {
 		$this->assertSame( 0.0, Calculator::evaluate_formula( 'system("rm -rf /")', 10.0, 1, 0.0 ) );
 		$this->assertSame( 0.0, Calculator::evaluate_formula( '[price] *', 10.0, 1, 0.0 ) );
