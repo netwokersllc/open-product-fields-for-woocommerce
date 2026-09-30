@@ -77,6 +77,8 @@ final class Builder {
 		$auth     = 'all';
 		$role     = '';
 		$role_op  = 'in';
+		$language = '';
+		$lang_op  = 'in';
 		if ( $group ) {
 			foreach ( $group->data['rule_groups'] as $rule_group ) {
 				foreach ( $rule_group['rules'] as $rule ) {
@@ -87,11 +89,16 @@ final class Builder {
 					} elseif ( 'user_role' === $rule['subject'] && ! empty( $rule['terms'][0] ) ) {
 						$role    = (string) $rule['terms'][0];
 						$role_op = 'not_in' === $rule['operator'] ? 'not_in' : 'in';
+					} elseif ( 'language' === $rule['subject'] && ! empty( $rule['terms'][0] ) ) {
+						$language = (string) $rule['terms'][0];
+						$lang_op  = 'not_in' === $rule['operator'] ? 'not_in' : 'in';
 					}
 				}
 			}
 		}
 		$roles = function_exists( 'get_editable_roles' ) ? get_editable_roles() : ( function_exists( 'wp_roles' ) ? wp_roles()->roles : [] );
+		$languages = \OPF\Service\LanguageResolver::available();
+		$known_languages = array_column( $languages, 'code' );
 		?>
 		<p class="description"><?php esc_html_e( 'Leave category and tag filters empty to apply this group to every product. Visitor and role conditions below still apply.', 'open-product-fields-for-woocommerce' ); ?></p>
 		<p><strong><?php esc_html_e( 'Product categories', 'open-product-fields-for-woocommerce' ); ?></strong></p>
@@ -127,6 +134,21 @@ final class Builder {
 		<select id="opf-placement-role-operator" style="width:100%">
 			<option value="in" <?php selected( 'in', $role_op ); ?>><?php esc_html_e( 'Has role', 'open-product-fields-for-woocommerce' ); ?></option>
 			<option value="not_in" <?php selected( 'not_in', $role_op ); ?>><?php esc_html_e( 'Does not have role', 'open-product-fields-for-woocommerce' ); ?></option>
+		</select>
+		<p><label for="opf-placement-language"><strong><?php esc_html_e( 'Current language', 'open-product-fields-for-woocommerce' ); ?></strong></label></p>
+		<select id="opf-placement-language" style="width:100%">
+			<option value=""><?php esc_html_e( 'All languages', 'open-product-fields-for-woocommerce' ); ?></option>
+			<?php if ( '' !== $language && ! in_array( $language, $known_languages, true ) ) : ?>
+				<option value="<?php echo esc_attr( $language ); ?>" selected><?php echo esc_html( sprintf( __( 'Unavailable language (%s)', 'open-product-fields-for-woocommerce' ), $language ) ); ?></option>
+			<?php endif; ?>
+			<?php foreach ( $languages as $available_language ) : ?>
+				<option value="<?php echo esc_attr( $available_language['code'] ); ?>" <?php selected( $available_language['code'], $language ); ?>><?php echo esc_html( $available_language['label'] ); ?></option>
+			<?php endforeach; ?>
+		</select>
+		<p><label for="opf-placement-language-operator"><?php esc_html_e( 'Language condition', 'open-product-fields-for-woocommerce' ); ?></label></p>
+		<select id="opf-placement-language-operator" style="width:100%">
+			<option value="in" <?php selected( 'in', $lang_op ); ?>><?php esc_html_e( 'Is', 'open-product-fields-for-woocommerce' ); ?></option>
+			<option value="not_in" <?php selected( 'not_in', $lang_op ); ?>><?php esc_html_e( 'Is not', 'open-product-fields-for-woocommerce' ); ?></option>
 		</select>
 		<p class="description"><?php esc_html_e( 'Placement changes are saved together with the fields.', 'open-product-fields-for-woocommerce' ); ?></p>
 		<?php

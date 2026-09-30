@@ -40,7 +40,7 @@ const initial = {
 	rule_groups: [],
 };
 
-await page.setContent('<!doctype html><html><body><input id="title" value="Fixture"><select id="opf-placement-cats" multiple></select><select id="opf-placement-tags" multiple></select><select id="opf-placement-auth"><option value="all">All visitors</option><option value="logged_in" selected>Logged in</option><option value="logged_out">Logged out</option></select><select id="opf-placement-role"><option value="">Any role</option><option value="editor" selected>Editor</option></select><select id="opf-placement-role-operator"><option value="in">Has role</option><option value="not_in" selected>Does not have role</option></select><div id="opf-builder-app"></div></body></html>');
+await page.setContent('<!doctype html><html><body><input id="title" value="Fixture"><select id="opf-placement-cats" multiple></select><select id="opf-placement-tags" multiple></select><select id="opf-placement-auth"><option value="all">All visitors</option><option value="logged_in" selected>Logged in</option><option value="logged_out">Logged out</option></select><select id="opf-placement-role"><option value="">Any role</option><option value="editor" selected>Editor</option></select><select id="opf-placement-role-operator"><option value="in">Has role</option><option value="not_in" selected>Does not have role</option></select><select id="opf-placement-language"><option value="">All languages</option><option value="en_US" selected>English</option></select><select id="opf-placement-language-operator"><option value="in">Is</option><option value="not_in" selected>Is not</option></select><div id="opf-builder-app"></div></body></html>');
 await page.evaluate((model) => {
 	const mount = document.getElementById('opf-builder-app');
 	mount.dataset.postId = '31';
@@ -68,7 +68,7 @@ const sourceField = saved[0];
 const copy = saved[1];
 check('copy preserves every field setting while receiving a collision-free ID', copy.id === 'finish-copy-2' && copy.label === 'Finish (Copy)' && JSON.stringify({ ...copy, id: sourceField.id, label: sourceField.label }) === JSON.stringify(sourceField));
 const savedRules = await page.evaluate(() => window.__opfSavedPayloads[0].data.rule_groups[0].rules);
-check('placement save retains authentication and role conditions with existing filters', savedRules.some((rule) => rule.subject === 'auth' && rule.operator === 'in') && savedRules.some((rule) => rule.subject === 'user_role' && rule.operator === 'not_in' && rule.terms[0] === 'editor'));
+check('placement save retains authentication, role, and language conditions with product filters', savedRules.some((rule) => rule.subject === 'auth' && rule.operator === 'in') && savedRules.some((rule) => rule.subject === 'user_role' && rule.operator === 'not_in' && rule.terms[0] === 'editor') && savedRules.some((rule) => rule.subject === 'language' && rule.operator === 'not_in' && rule.terms[0] === 'en_US'));
 await page.locator('.opf-b-field').nth(1).locator('.opf-b-label').fill('Custom finish');
 check('source label remains unchanged after copy edit', await page.locator('.opf-b-field').first().locator('.opf-b-label').inputValue() === 'Finish');
 await page.locator('.opf-b-field').first().locator('.button-link-delete').click();

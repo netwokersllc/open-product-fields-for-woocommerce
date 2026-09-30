@@ -80,6 +80,7 @@ final class WapfMapperTest extends TestCase {
 			[ 'rules' => [
 				[ 'condition' => 'auth', 'subject' => 'auth', 'value' => [] ],
 				[ 'condition' => '!role', 'subject' => 'role', 'value' => [ [ 'id' => 'shop_manager', 'text' => 'Shop manager' ] ] ],
+				[ 'condition' => '!lang', 'subject' => 'lang', 'value' => 'nl_NL' ],
 			] ],
 		];
 		$mapped = WapfMapper::map( $wapf );
@@ -89,6 +90,7 @@ final class WapfMapperTest extends TestCase {
 			[
 				[ 'subject' => 'auth', 'operator' => 'in', 'terms' => [] ],
 				[ 'subject' => 'user_role', 'operator' => 'not_in', 'terms' => [ 'shop_manager' ] ],
+				[ 'subject' => 'language', 'operator' => 'not_in', 'terms' => [ 'nl_NL' ] ],
 			],
 			$mapped['group']['rule_groups'][0]['rules']
 		);

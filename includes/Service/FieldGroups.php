@@ -120,8 +120,9 @@ final class FieldGroups {
 		$user_roles = $user_id > 0 ? (array) $user->roles : [];
 		sort( $user_roles );
 		$current_lang = function_exists( 'pll_current_language' ) ? pll_current_language( 'slug' ) : '';
+		$rule_language = LanguageResolver::current();
 		$roles_hash   = hash( 'sha256', implode( "\0", $user_roles ) );
-		$cache_key    = $product_id . ':' . $user_id . ':' . $roles_hash . ':' . $current_lang;
+		$cache_key    = $product_id . ':' . $user_id . ':' . $roles_hash . ':' . $current_lang . ':' . $rule_language;
 		$cached       = wp_cache_get( $cache_key, 'opf_groups_for_product' );
 		if ( is_array( $cached ) ) {
 			return $cached;
@@ -135,6 +136,7 @@ final class FieldGroups {
 		$user_context = [
 			'logged_in' => $user_id > 0,
 			'roles'     => $user_roles,
+			'language'  => $rule_language,
 		];
 
 		$matching = [];

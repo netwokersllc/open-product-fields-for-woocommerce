@@ -15,7 +15,7 @@ validation paths.
 | Toggle | Boolean input stored as `1` when checked and `0` when unchecked; a required toggle must be checked |
 | Choice behavior | Defaults, disabled choices, single-select controls, and multiple checkbox selections |
 | Conditions | Show or hide a field using `is`, `is_not`, `contains`, `greater`, `less`, `empty`, and `not_empty` rules; condition blocks support all/any logic |
-| Product placement | Product and product-term inclusion/exclusion rules |
+| Product placement | Product and product-term inclusion/exclusion, logged-in state, WordPress user role, and current-language rules through Polylang or WPML when available |
 | Pricing | No price, fixed amount, percentage of product price, or safe arithmetic formula. The server calculates the cart price. Fixed prices are flat per line unless `per_unit` is enabled; percentage and formula prices are per unit. |
 | Commerce flow | Classic product-form add to cart plus Store API add to cart; cart, block cart/checkout display, order-item storage, and order-again restoration |
 | WooCommerce features | The plugin declares compatibility with HPOS and cart/checkout blocks |
@@ -24,14 +24,16 @@ validation paths.
 
 ## Not implemented in 0.1.0
 
-OPF does not currently provide file uploads, date or time fields, image or
+OPF does not currently provide file uploads, time fields, image or
 colour swatches, repeatable fields, child/linked products, image quantities,
 content/layout fields, visual previews, lookup tables, or third-party
 integration adapters. These are roadmap work, not supported features.
 
 There is no general compatibility guarantee for a theme, page builder,
-currency plugin, translation plugin, subscription plugin, or another product
-extension until OPF ships and documents an adapter and its tests.
+currency plugin, translated product/group synchronization, subscription
+plugin, or another product extension until OPF ships and documents an adapter
+and its tests. Language targeting is limited to the current-language rule
+documented above.
 
 ## Formula syntax
 

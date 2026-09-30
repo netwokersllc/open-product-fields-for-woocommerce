@@ -134,4 +134,14 @@ final class EvaluatorTest extends TestCase {
 		$this->assertFalse( Evaluator::group_matches( $group, [ 'product_cat' => [ 1 ] ], 42, [ 'logged_in' => true, 'roles' => [ 'subscriber' ] ] ) );
 		$this->assertFalse( Evaluator::group_matches( $group, [ 'product_cat' => [ 9 ] ], 42, [ 'logged_in' => true, 'roles' => [ 'editor' ] ] ) );
 	}
+
+	public function test_placement_language_matches_current_locale_and_negation(): void {
+		$language = [ 'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'language', 'operator' => 'in', 'terms' => [ 'nl_NL' ] ] ] ] ] ];
+		$other_language = [ 'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'language', 'operator' => 'not_in', 'terms' => [ 'nl_NL' ] ] ] ] ] ];
+
+		$this->assertTrue( Evaluator::group_matches( $language, [], 42, [ 'language' => 'nl_NL' ] ) );
+		$this->assertFalse( Evaluator::group_matches( $language, [], 42, [ 'language' => 'en_US' ] ) );
+		$this->assertTrue( Evaluator::group_matches( $other_language, [], 42, [ 'language' => 'en_US' ] ) );
+		$this->assertFalse( Evaluator::group_matches( $other_language, [], 42 ) );
+	}
 }

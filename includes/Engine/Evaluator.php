@@ -151,6 +151,14 @@ final class Evaluator {
 			return 'not_in' === $operator ? ! $matches : $matches;
 		}
 
+		if ( 'language' === $subject ) {
+			if ( ! array_key_exists( 'language', $user_context ) ) {
+				return false;
+			}
+			$matches = in_array( (string) $user_context['language'], $terms, true );
+			return 'not_in' === $operator ? ! $matches : $matches;
+		}
+
 		if ( 'product' === $subject ) {
 			$in = in_array( (string) $product_id, $terms, true );
 			return 'not_in' === $operator ? ! $in : $in;

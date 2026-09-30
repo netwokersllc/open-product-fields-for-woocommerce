@@ -276,6 +276,10 @@
 		if ( role ) {
 			rules.push( { subject: 'user_role', operator: document.getElementById( 'opf-placement-role-operator' ).value, terms: [ role ] } );
 		}
+		var language = document.getElementById( 'opf-placement-language' ).value;
+		if ( language ) {
+			rules.push( { subject: 'language', operator: document.getElementById( 'opf-placement-language-operator' ).value, terms: [ language ] } );
+		}
 		model.rule_groups = rules.length ? [ { rules: rules } ] : [];
 
 		var status = document.getElementById( 'opf-b-status' );
