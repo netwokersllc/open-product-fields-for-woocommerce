@@ -185,7 +185,7 @@ const fmtMoney = (amount) => {
   return `${neg}${symbol}${grouped}${decimals > 0 ? decimal + fracPart.slice(0, decimals) : ''}`;
 };
 
-const evalFormula = (formula, price, qty, addons, val, todayOverride = null) => {
+const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOverride = null) => {
   // Safe mirror of the server-side evaluator (per-unit formulas; the qty
   // factor was stripped at import and is re-applied by the caller).
   const today = String(todayOverride || window.OPF_TODAY || new Date().toISOString().slice(0, 10));
@@ -195,6 +195,13 @@ const evalFormula = (formula, price, qty, addons, val, todayOverride = null) => 
     if (value.length >= 2 && ((value[0] === "'" && value[value.length - 1] === "'") || (value[0] === '"' && value[value.length - 1] === '"'))) value = value.slice(1, -1);
     if (value === '__OPF_TODAY__') value = today;
     else if (value.toLowerCase() === '[val]') value = String(val || '').trim();
+    else {
+      const field = /^\[field\.([a-z0-9_-]+)\]$/i.exec(value);
+      if (field) {
+        const fieldValue = fieldValues[String(field[1]).toLowerCase()];
+        value = fieldValue == null || Array.isArray(fieldValue) ? '' : String(fieldValue);
+      }
+    }
     let year;
     let month;
     let day;
@@ -279,15 +286,15 @@ const evalFormula = (formula, price, qty, addons, val, todayOverride = null) => 
   return isFinite(out) ? out : 0;
 };
 
-const choiceAddonDisplay = (pricing, base, qty, addons, val) => {
+const choiceAddonDisplay = (pricing, base, qty, addons, val, fieldValues = {}) => {
   const t = pricing.type;
   if (t === 'fixed') return parseFloat(pricing.amount) || 0;
   if (t === 'percent') return base * ((parseFloat(pricing.amount) || 0) / 100);
-  if (t === 'formula') return evalFormula(pricing.formula_raw || pricing.formula, base, qty, addons, val);
+  if (t === 'formula') return evalFormula(pricing.formula_raw || pricing.formula, base, qty, addons, val, fieldValues);
   return 0;
 };
 
-const choiceOrFieldAddon = (def, value, base, qty, addons, val) => {
+const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}) => {
   if (def.type === 'swatch' || def.type === 'select' || def.type === 'radio' || def.type === 'checkbox') {
     const slugs = Array.isArray(value) ? value : [value];
     let sum = 0;
@@ -296,7 +303,7 @@ const choiceOrFieldAddon = (def, value, base, qty, addons, val) => {
       const p = c.pricing || {};
       if (p.type === 'fixed') sum += parseFloat(p.amount) || 0;
       else if (p.type === 'percent') sum += base * ((parseFloat(p.amount) || 0) / 100);
-      else if (p.type === 'formula') sum += evalFormula(p.formula_raw || p.formula, base, qty, addons, val);
+      else if (p.type === 'formula') sum += evalFormula(p.formula_raw || p.formula, base, qty, addons, val, fieldValues);
     });
     return sum;
   }
@@ -304,7 +311,7 @@ const choiceOrFieldAddon = (def, value, base, qty, addons, val) => {
   if (!String(value || '').trim()) return 0;
   if (p.type === 'fixed') return parseFloat(p.amount) || 0;
   if (p.type === 'percent') return base * ((parseFloat(p.amount) || 0) / 100);
-  if (p.type === 'formula') return evalFormula(p.formula_raw || p.formula, base, qty, addons, val);
+  if (p.type === 'formula') return evalFormula(p.formula_raw || p.formula, base, qty, addons, val, fieldValues);
   return 0;
 };
 
@@ -345,7 +352,7 @@ const writeTotals = () => {
       // conditional visibility: hidden fields contribute nothing
       const container = fieldEl;
       if (container.hasAttribute('hidden')) return;
-      const addon = choiceOrFieldAddon(def, values[fid], base, qty, optionsTotal, values[fid] && typeof values[fid] === 'string' ? values[fid] : '');
+      const addon = choiceOrFieldAddon(def, values[fid], base, qty, optionsTotal, values[fid] && typeof values[fid] === 'string' ? values[fid] : '', values);
       optionsTotal += addon;
     });
   });

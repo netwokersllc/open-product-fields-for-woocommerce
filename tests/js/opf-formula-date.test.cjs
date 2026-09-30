@@ -13,7 +13,7 @@ const context = {
 	console,
 };
 vm.createContext(context);
-vm.runInContext(`${fs.readFileSync(sourcePath, 'utf8')}\nglobalThis.__evalFormula = evalFormula;`, context);
+vm.runInContext(`${fs.readFileSync(sourcePath, 'utf8')}\nglobalThis.__evalFormula = evalFormula; globalThis.__choiceOrFieldAddon = choiceOrFieldAddon;`, context);
 
 test('WAPF date formula functions use Sunday-zero weekdays and one-based months', () => {
 	assert.equal(context.__evalFormula("dow('01-10-2023')", 10, 1, 0, ''), 2);
@@ -23,6 +23,15 @@ test('WAPF date formula functions use Sunday-zero weekdays and one-based months'
 
 test('WAPF date functions accept the selected field value and site today', () => {
 	assert.equal(context.__evalFormula('month(today())', 10, 1, 0, ''), 6);
+	assert.equal(context.__evalFormula('month([field.end_date]) + dow([field.start_date])', 10, 1, 0, '', {
+		end_date: '2024-02-29',
+		start_date: '2024-01-01',
+	}), 3);
+	assert.equal(context.__choiceOrFieldAddon({
+		type: 'text',
+		pricing: { type: 'formula', formula: 'month([field.end_date]) + dow([field.start_date])' },
+	}, 'selected', 10, 1, 0, 'selected', { end_date: '2024-02-29', start_date: '2024-01-01' }), 3);
+	assert.equal(context.__evalFormula('dow([field.start_date])', 10, 1, 0, '', { start_date: ['2024-01-01'] }), 0);
 });
 
 test('WAPF date functions honor configured formats and reject invalid calendar dates', () => {

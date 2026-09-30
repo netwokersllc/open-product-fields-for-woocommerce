@@ -73,6 +73,22 @@ final class CalculatorTest extends TestCase {
 		}
 	}
 
+	public function test_wapf_date_formula_functions_read_validated_sibling_field_values(): void {
+		$field = [
+			'type'    => 'text',
+			'choices' => [],
+			'pricing' => [ 'type' => 'formula', 'amount' => 0.0, 'formula' => 'month([field.end_date]) + dow([field.start_date])' ],
+		];
+		$this->assertSame( 3.0, Calculator::field_addon( $field, 'selected', [
+			'price'        => 10.0,
+			'qty'          => 1,
+			'field_values' => [ 'end_date' => '2024-02-29', 'start_date' => '2024-01-01' ],
+		] ) );
+		$this->assertSame( 0.0, Calculator::field_addon( $field, 'selected', [
+			'field_values' => [ 'end_date' => [ 'invalid' ], 'start_date' => [ 'invalid' ] ],
+		] ) );
+	}
+
 	public function test_field_addon_choice_fields(): void {
 		$field = [
 			'type'    => 'swatch',

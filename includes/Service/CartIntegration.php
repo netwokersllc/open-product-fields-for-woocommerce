@@ -256,6 +256,7 @@ final class CartIntegration {
 						'price'  => $base,
 						'qty'    => $quantity,
 						'addons' => $per_unit,
+						'field_values' => $group_values,
 					]
 				);
 			}
