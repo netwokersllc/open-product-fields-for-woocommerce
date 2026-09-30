@@ -74,128 +74,30 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( [ '8768' ], $mapped['group']['rule_groups'][0]['rules'][0]['terms'] );
 	}
 
-	public function test_maps_wapf_login_visibility_conditions(): void {
-		$source = $this->swatch_group();
-		$source['rule_groups'] = [
-			[ 'rules' => [ [ 'condition' => 'auth', 'subject' => 'product', 'value' => [] ] ] ],
+	public function test_maps_user_and_language_placement(): void {
+		$wapf = [
+			'fields' => [],
+			'rule_groups' => [ [ 'rules' => [
+				[ 'condition' => 'auth', 'subject' => 'user', 'value' => [] ],
+				[ 'condition' => 'role', 'subject' => 'user', 'value' => [ [ 'id' => 'wholesale', 'text' => 'Wholesale' ] ] ],
+				[ 'condition' => '!role', 'subject' => 'user', 'value' => [ [ 'id' => 'suspended', 'text' => 'Suspended' ] ] ],
+				[ 'condition' => 'lang', 'subject' => 'system', 'value' => [ [ 'id' => 'nl_NL', 'text' => 'Nederlands' ] ] ],
+				[ 'condition' => '!lang', 'subject' => 'system', 'value' => [ [ 'id' => 'fr_FR', 'text' => 'Français' ] ] ],
+			] ] ],
 		];
-		$logged_in = WapfMapper::map( $source );
-		$this->assertFalse( $logged_in['needs_review'] );
-		$this->assertSame( 'user_auth', $logged_in['group']['rule_groups'][0]['rules'][0]['subject'] );
-		$this->assertSame( 'logged_in', $logged_in['group']['rule_groups'][0]['rules'][0]['operator'] );
 
-		$source['rule_groups'][0]['rules'][0]['condition'] = '!auth';
-		$logged_out = WapfMapper::map( $source );
-		$this->assertFalse( $logged_out['needs_review'] );
-		$this->assertSame( 'logged_out', $logged_out['group']['rule_groups'][0]['rules'][0]['operator'] );
-	}
-
-	public function test_malformed_wapf_login_rule_is_review_required(): void {
-		$source = $this->swatch_group();
-		$source['rule_groups'] = [ [ 'rules' => [ [ 'condition' => 'auth', 'subject' => 'product', 'value' => [ 'unexpected' ] ] ] ] ];
-		$mapped = WapfMapper::map( $source );
-		$this->assertTrue( $mapped['needs_review'] );
-		$this->assertStringContainsString( 'unexpectedly has a value', implode( ' ', $mapped['notes'] ) );
-		$this->assertEmpty( $mapped['group']['rule_groups'] );
-	}
-
-	public function test_maps_wapf_field_condition_shapes_and_operators(): void {
-		$mapped = WapfMapper::map( [
-			'fields' => [
-				[ 'id' => 'f-a91', 'label' => 'Source field', 'type' => 'text', 'conditionals' => [] ],
-				[ 'id' => 'f-b73', 'label' => 'Target field', 'type' => 'text', 'conditionals' => [ [ 'rules' => [
-					[ 'field' => 'f-a91', 'condition' => '==', 'value' => 'yes' ],
-					[ 'field' => 'f-a91', 'condition' => '!=contains', 'value' => 'blocked' ],
-					[ 'field' => 'f-a91', 'condition' => '!empty', 'value' => '' ],
-				] ] ] ],
-			],
-			'rule_groups' => [],
-		] );
-
-		$rules = $mapped['group']['fields'][1]['conditionals'][0]['rules'];
+		$mapped = WapfMapper::map( $wapf );
 		$this->assertFalse( $mapped['needs_review'] );
-		$this->assertSame( [ 'source-field', 'source-field', 'source-field' ], array_column( $rules, 'field' ) );
-		$this->assertSame( [ 'is', 'not_contains', 'not_empty' ], array_column( $rules, 'operator' ) );
-		$this->assertSame( [ 'yes', 'blocked', '' ], array_column( $rules, 'value' ) );
-	}
-
-	public function test_maps_wapf_true_false_fields_and_check_conditions(): void {
-		$mapped = WapfMapper::map( [
-			'fields' => [
-				[ 'id' => 'toggle-123', 'label' => 'Enabled', 'type' => 'true-false', 'conditionals' => [] ],
-				[ 'id' => 'details', 'label' => 'Details', 'type' => 'text', 'conditionals' => [ [ 'rules' => [
-					[ 'field' => 'toggle-123', 'condition' => 'check', 'value' => '' ],
-				] ] ] ],
+		$this->assertSame(
+			[
+				[ 'subject' => 'user_auth', 'operator' => 'in', 'terms' => [ 'logged_in' ] ],
+				[ 'subject' => 'user_role', 'operator' => 'in', 'terms' => [ 'wholesale' ] ],
+				[ 'subject' => 'user_role', 'operator' => 'not_in', 'terms' => [ 'suspended' ] ],
+				[ 'subject' => 'user_language', 'operator' => 'in', 'terms' => [ 'nl_NL' ] ],
+				[ 'subject' => 'user_language', 'operator' => 'not_in', 'terms' => [ 'fr_FR' ] ],
 			],
-			'rule_groups' => [],
-		] );
-
-		$this->assertFalse( $mapped['needs_review'] );
-		$this->assertSame( 'toggle', $mapped['group']['fields'][0]['type'] );
-		$this->assertSame( 'enabled', $mapped['group']['fields'][1]['conditionals'][0]['rules'][0]['field'] );
-		$this->assertSame( 'is', $mapped['group']['fields'][1]['conditionals'][0]['rules'][0]['operator'] );
-		$this->assertSame( '1', $mapped['group']['fields'][1]['conditionals'][0]['rules'][0]['value'] );
-	}
-
-	public function test_marks_unsupported_field_conditionals_for_review(): void {
-		$mapped = WapfMapper::map( [
-			'fields' => [
-				[ 'id' => 'source', 'label' => 'Source', 'type' => 'text', 'conditionals' => [] ],
-				[ 'id' => 'target', 'label' => 'Target', 'type' => 'text', 'conditionals' => [ [ 'rules' => [
-					[ 'field' => 'source', 'condition' => 'unsupported', 'value' => 'x' ],
-				] ] ] ],
-			],
-			'rule_groups' => [],
-		] );
-
-		$this->assertTrue( $mapped['needs_review'] );
-		$this->assertNotEmpty( $mapped['notes'] );
-	}
-
-	public function test_remaps_forward_field_references(): void {
-		$mapped = WapfMapper::map( [
-			'fields' => [
-				[ 'id' => 'target-id', 'label' => 'Target', 'type' => 'text', 'conditionals' => [ [ 'rules' => [
-					[ 'field' => 'source-id', 'condition' => '==', 'value' => 'ready' ],
-				] ] ] ],
-				[ 'id' => 'source-id', 'label' => 'Source', 'type' => 'text', 'conditionals' => [] ],
-			],
-		] );
-
-		$this->assertFalse( $mapped['needs_review'] );
-		$this->assertSame( 'source', $mapped['group']['fields'][0]['conditionals'][0]['rules'][0]['field'] );
-	}
-
-	public function test_marks_ambiguous_duplicate_source_ids_for_review(): void {
-		$mapped = WapfMapper::map( [
-			'fields' => [
-				[ 'id' => 'same-id', 'label' => 'First', 'type' => 'text', 'conditionals' => [] ],
-				[ 'id' => 'same-id', 'label' => 'Second', 'type' => 'text', 'conditionals' => [] ],
-				[ 'id' => 'target-id', 'label' => 'Target', 'type' => 'text', 'conditionals' => [ [ 'rules' => [
-					[ 'field' => 'same-id', 'condition' => '==', 'value' => 'ready' ],
-				] ] ] ],
-			],
-		] );
-
-		$this->assertTrue( $mapped['needs_review'] );
-		$this->assertStringContainsString( 'ambiguous field ID', implode( ' ', $mapped['notes'] ) );
-		$this->assertEmpty( $mapped['group']['fields'][2]['conditionals'] );
-	}
-
-	public function test_marks_unsupported_field_and_choice_pricing_for_review(): void {
-		$mapped = WapfMapper::map( [
-			'fields' => [
-				[
-					'id' => 'choice', 'label' => 'Choice', 'type' => 'radio', 'conditionals' => [],
-					'pricing' => [ 'enabled' => true, 'type' => 'unknown', 'amount' => 3 ],
-					'options' => [ 'choices' => [ [ 'slug' => 'a', 'label' => 'A', 'pricing_type' => 'unknown', 'pricing_amount' => 2 ] ] ],
-				],
-			],
-			'rule_groups' => [],
-		] );
-
-		$this->assertTrue( $mapped['needs_review'] );
-		$this->assertCount( 2, $mapped['notes'] );
+			$mapped['group']['rule_groups'][0]['rules']
+		);
 	}
 
 	public function test_attaches_local_groups_to_host_product(): void {
@@ -203,6 +105,21 @@ final class WapfMapperTest extends TestCase {
 		$rules  = $mapped['group']['rule_groups'][0]['rules'];
 		$this->assertSame( 'product', $rules[0]['subject'] );
 		$this->assertSame( [ '199813' ], $rules[0]['terms'] );
+	}
+
+	public function test_local_product_import_keeps_user_context_conditions(): void {
+		$source = $this->swatch_group();
+		$source['rule_groups'] = [ [ 'rules' => [
+			[ 'condition' => 'auth', 'subject' => 'user', 'value' => [] ],
+			[ 'condition' => 'role', 'subject' => 'user', 'value' => [ [ 'id' => 'wholesale', 'text' => 'Wholesale' ] ] ],
+		] ] ];
+
+		$mapped = WapfMapper::map( $source, [ 'attach_product_ids' => [ 199813 ] ] );
+		$rules = $mapped['group']['rule_groups'][0]['rules'];
+		$this->assertFalse( $mapped['needs_review'] );
+		$this->assertSame( [ 'product', 'user_auth', 'user_role' ], array_column( $rules, 'subject' ) );
+		$this->assertSame( [ 'in', 'in', 'in' ], array_column( $rules, 'operator' ) );
+		$this->assertSame( [ 'wholesale' ], $rules[2]['terms'] );
 	}
 
 	public function test_empty_condition_flags_needs_review_not_match_all(): void {

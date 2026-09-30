@@ -71,29 +71,38 @@ final class Builder {
 		$group      = \OPF\Service\FieldGroups::group_from_post( $post );
 		$cat_terms  = get_terms( [ 'taxonomy' => 'product_cat', 'hide_empty' => false, 'number' => 500 ] );
 		$tag_terms  = get_terms( [ 'taxonomy' => 'product_tag', 'hide_empty' => false, 'number' => 500 ] );
+		$roles      = function_exists( 'get_editable_roles' ) ? get_editable_roles() : [];
+		$languages  = self::language_options();
 
-		$selected = [ 'product_cat' => [], 'product_tag' => [], 'user_auth' => 'all' ];
+		$selected = [
+			'product_cat'     => [],
+			'product_tag'     => [],
+			'user_auth'       => '',
+			'user_role'       => [],
+			'user_role_not'   => [],
+			'user_language'   => '',
+			'user_language_op' => 'in',
+		];
 		if ( $group ) {
 			foreach ( $group->data['rule_groups'] as $rule_group ) {
 				foreach ( $rule_group['rules'] as $rule ) {
-					if ( 'user_auth' === $rule['subject'] ) {
-						$selected['user_auth'] = 'logged_in' === $rule['operator'] ? 'logged-in' : ( 'logged_out' === $rule['operator'] ? 'logged-out' : 'all' );
-						continue;
-					}
-					if ( 'in' === $rule['operator'] && isset( $selected[ $rule['subject'] ] ) ) {
+					if ( 'in' === $rule['operator'] && in_array( $rule['subject'], [ 'product_cat', 'product_tag' ], true ) ) {
 						$selected[ $rule['subject'] ] = array_merge( $selected[ $rule['subject'] ], $rule['terms'] );
+					} elseif ( 'user_auth' === $rule['subject'] && in_array( $rule['operator'], [ 'in', 'not_in', 'logged_in', 'logged_out' ], true ) ) {
+						$logged_out = in_array( $rule['operator'], [ 'not_in', 'logged_out' ], true );
+						$selected['user_auth'] = $logged_out ? 'logged_out' : 'logged_in';
+					} elseif ( 'user_role' === $rule['subject'] && in_array( $rule['operator'], [ 'in', 'not_in' ], true ) ) {
+						$key = 'not_in' === $rule['operator'] ? 'user_role_not' : 'user_role';
+						$selected[ $key ] = array_merge( $selected[ $key ], $rule['terms'] );
+					} elseif ( 'user_language' === $rule['subject'] && in_array( $rule['operator'], [ 'in', 'not_in' ], true ) ) {
+						$selected['user_language'] = (string) ( $rule['terms'][0] ?? '' );
+						$selected['user_language_op'] = $rule['operator'];
 					}
 				}
 			}
 		}
 		?>
-		<p class="description"><?php esc_html_e( 'Leave categories and tags empty to target every product. Visitor access still applies.', 'open-product-fields-for-woocommerce' ); ?></p>
-		<p><strong><?php esc_html_e( 'Visitor access', 'open-product-fields-for-woocommerce' ); ?></strong></p>
-		<select id="opf-placement-auth" style="width:100%">
-			<option value="all" <?php selected( 'all' === $selected['user_auth'] ); ?>><?php esc_html_e( 'Everyone', 'open-product-fields-for-woocommerce' ); ?></option>
-			<option value="logged-in" <?php selected( 'logged-in' === $selected['user_auth'] ); ?>><?php esc_html_e( 'Logged-in visitors', 'open-product-fields-for-woocommerce' ); ?></option>
-			<option value="logged-out" <?php selected( 'logged-out' === $selected['user_auth'] ); ?>><?php esc_html_e( 'Logged-out visitors', 'open-product-fields-for-woocommerce' ); ?></option>
-		</select>
+		<p class="description"><?php esc_html_e( 'Leave product and customer conditions empty to show this group everywhere.', 'open-product-fields-for-woocommerce' ); ?></p>
 		<p><strong><?php esc_html_e( 'Product categories', 'open-product-fields-for-woocommerce' ); ?></strong></p>
 		<select multiple size="8" id="opf-placement-cats" style="width:100%">
 			<?php foreach ( (array) $cat_terms as $term ) : ?>
@@ -110,7 +119,76 @@ final class Builder {
 				</option>
 			<?php endforeach; ?>
 		</select>
+		<p><strong><?php esc_html_e( 'Customer login', 'open-product-fields-for-woocommerce' ); ?></strong></p>
+		<select id="opf-placement-auth" style="width:100%">
+			<option value="" <?php selected( '' === $selected['user_auth'] ); ?>><?php esc_html_e( 'Any visitor', 'open-product-fields-for-woocommerce' ); ?></option>
+			<option value="logged_in" <?php selected( 'logged_in' === $selected['user_auth'] ); ?>><?php esc_html_e( 'Logged in', 'open-product-fields-for-woocommerce' ); ?></option>
+			<option value="logged_out" <?php selected( 'logged_out' === $selected['user_auth'] ); ?>><?php esc_html_e( 'Not logged in', 'open-product-fields-for-woocommerce' ); ?></option>
+		</select>
+		<p><strong><?php esc_html_e( 'Require every selected user role', 'open-product-fields-for-woocommerce' ); ?></strong></p>
+		<select multiple size="5" id="opf-placement-roles" style="width:100%">
+			<?php foreach ( $roles as $role_id => $role ) : ?>
+				<option value="<?php echo esc_attr( (string) $role_id ); ?>" <?php selected( in_array( (string) $role_id, $selected['user_role'], true ) ); ?>><?php echo esc_html( (string) $role['name'] ); ?></option>
+			<?php endforeach; ?>
+		</select>
+		<p><strong><?php esc_html_e( 'Exclude every selected user role', 'open-product-fields-for-woocommerce' ); ?></strong></p>
+		<select multiple size="5" id="opf-placement-excluded-roles" style="width:100%">
+			<?php foreach ( $roles as $role_id => $role ) : ?>
+				<option value="<?php echo esc_attr( (string) $role_id ); ?>" <?php selected( in_array( (string) $role_id, $selected['user_role_not'], true ) ); ?>><?php echo esc_html( (string) $role['name'] ); ?></option>
+			<?php endforeach; ?>
+		</select>
+		<?php if ( $languages || '' !== $selected['user_language'] ) : ?>
+			<p><strong><?php esc_html_e( 'Current language', 'open-product-fields-for-woocommerce' ); ?></strong></p>
+			<select id="opf-placement-language-operator" style="width:100%">
+				<option value="in" <?php selected( 'in' === $selected['user_language_op'] ); ?>><?php esc_html_e( 'Is', 'open-product-fields-for-woocommerce' ); ?></option>
+				<option value="not_in" <?php selected( 'not_in' === $selected['user_language_op'] ); ?>><?php esc_html_e( 'Is not', 'open-product-fields-for-woocommerce' ); ?></option>
+			</select>
+			<select id="opf-placement-language" style="width:100%">
+				<option value=""><?php esc_html_e( 'Any language', 'open-product-fields-for-woocommerce' ); ?></option>
+				<?php if ( $selected['user_language'] && ! in_array( $selected['user_language'], array_column( $languages, 'id' ), true ) ) : ?>
+					<option value="<?php echo esc_attr( $selected['user_language'] ); ?>" selected><?php echo esc_html( $selected['user_language'] ); ?></option>
+				<?php endif; ?>
+				<?php foreach ( $languages as $language ) : ?>
+					<option value="<?php echo esc_attr( $language['id'] ); ?>" <?php selected( $language['id'] === $selected['user_language'] ); ?>><?php echo esc_html( $language['text'] ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		<?php endif; ?>
 		<p class="description"><?php esc_html_e( 'Placement changes are saved together with the fields.', 'open-product-fields-for-woocommerce' ); ?></p>
 		<?php
+	}
+
+	/**
+	 * Languages exposed by installed Polylang or WPML, in the identifiers WAPF evaluates.
+	 *
+	 * @return array<int,array{id:string,text:string}>
+	 */
+	private static function language_options(): array {
+		if ( function_exists( 'pll_languages_list' ) ) {
+			$available = pll_languages_list( [ 'fields' => null ] );
+			if ( is_array( $available ) ) {
+				$languages = [];
+				foreach ( $available as $language ) {
+					if ( is_object( $language ) && isset( $language->locale, $language->name ) ) {
+						$languages[] = [ 'id' => (string) $language->locale, 'text' => (string) $language->name ];
+					}
+				}
+				return $languages;
+			}
+		}
+
+		if ( function_exists( 'icl_get_languages' ) ) {
+			$available = icl_get_languages( 'skip_missing=0&orderby=code' );
+			if ( is_array( $available ) ) {
+				$languages = [];
+				foreach ( $available as $language ) {
+					if ( is_array( $language ) && isset( $language['code'], $language['native_name'] ) ) {
+						$languages[] = [ 'id' => (string) $language['code'], 'text' => (string) $language['native_name'] ];
+					}
+				}
+				return $languages;
+			}
+		}
+
+		return [];
 	}
 }

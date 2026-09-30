@@ -380,15 +380,41 @@ final class WapfMapper {
 	 */
 	private static function map_placement( array $wapf, array $overrides, array &$notes, bool &$needs_review ): array {
 		if ( ! empty( $overrides['attach_product_ids'] ) ) {
-			return [
-				[ 'rules' => [
-					[
-						'subject'  => 'product',
-						'operator' => 'in',
-						'terms'    => array_map( 'strval', (array) $overrides['attach_product_ids'] ),
-					],
-				] ],
+			$product_rule = [
+				'subject'  => 'product',
+				'operator' => 'in',
+				'terms'    => array_map( 'strval', (array) $overrides['attach_product_ids'] ),
 			];
+			$source_groups = $wapf['rule_groups'] ?? [];
+			if ( ! $source_groups ) {
+				return [ [ 'rules' => [ $product_rule ] ] ];
+			}
+			$attached_groups = [];
+			foreach ( $source_groups as $source_group ) {
+				$has_user_condition = false;
+				$user_rules = [];
+				foreach ( ( $source_group['rules'] ?? [] ) as $source_rule ) {
+					if ( ! is_array( $source_rule ) ) {
+						continue;
+					}
+					$condition = ltrim( (string) ( $source_rule['condition'] ?? '' ), '!' );
+					if ( ! in_array( $condition, [ 'auth', 'role', 'lang' ], true ) ) {
+						continue;
+					}
+					$has_user_condition = true;
+					$mapped = self::map_user_placement_rule( $source_rule, $notes, $needs_review );
+					if ( null !== $mapped ) {
+						$user_rules[] = $mapped;
+					}
+				}
+				// A source OR group with no user restriction makes the local group
+				// available to every visitor; preserve that by returning host-only.
+				if ( ! $has_user_condition ) {
+					return [ [ 'rules' => [ $product_rule ] ] ];
+				}
+				$attached_groups[] = [ 'rules' => array_merge( [ $product_rule ], $user_rules ) ];
+			}
+			return $attached_groups ?: [ [ 'rules' => [ $product_rule ] ] ];
 		}
 
 		$out = [];
@@ -401,20 +427,14 @@ final class WapfMapper {
 				$condition = (string) ( $rule['condition'] ?? '' );
 				$subject   = (string) ( $rule['subject'] ?? '' );
 				$value     = $rule['value'] ?? null;
-				if ( 'auth' === $condition || '!auth' === $condition ) {
-					if ( ! empty( $value ) ) {
-						$notes[] = sprintf( 'login visibility rule "%s" unexpectedly has a value and needs review.', $condition );
-						$needs_review = true;
-						continue;
+				$cond = ltrim( $condition, '!' );
+				if ( in_array( $cond, [ 'auth', 'role', 'lang' ], true ) ) {
+					$mapped = self::map_user_placement_rule( $rule, $notes, $needs_review );
+					if ( null !== $mapped ) {
+						$rules[] = $mapped;
 					}
-					$rules[] = [
-						'subject'  => 'user_auth',
-						'operator' => 'auth' === $condition ? 'logged_in' : 'logged_out',
-						'terms'    => [],
-					];
 					continue;
 				}
-
 				// WAPF evaluated empty conditions as FALSE (dead rule). Flag,
 				// don't silently broaden scope.
 				if ( '' === $condition ) {
@@ -452,7 +472,6 @@ final class WapfMapper {
 				} elseif ( is_scalar( $value ) && '' !== (string) $value ) {
 					$terms[] = (string) $value;
 				}
-
 				$rules[] = [
 					'subject'  => $map[ $cond ],
 					'operator' => ( $negate ? 'not_in' : 'in' ),
@@ -464,6 +483,49 @@ final class WapfMapper {
 			}
 		}
 		return $out;
+	}
+
+	/**
+	 * Convert one WAPF user-context group rule without losing its target.
+	 *
+	 * @param array<string,mixed> $rule WAPF placement rule.
+	 * @param string[]            $notes Collector.
+	 */
+	private static function map_user_placement_rule( array $rule, array &$notes, bool &$needs_review ): ?array {
+		$condition = (string) ( $rule['condition'] ?? '' );
+		$negate = isset( $condition[0] ) && '!' === $condition[0];
+		$cond = ltrim( $condition, '!' );
+		$value = $rule['value'] ?? null;
+		if ( 'auth' === $cond ) {
+			if ( ! empty( $value ) ) {
+				$notes[] = sprintf( 'login visibility rule "%s" unexpectedly has a value and needs review.', $condition );
+				$needs_review = true;
+				return null;
+			}
+			return [ 'subject' => 'user_auth', 'operator' => $negate ? 'not_in' : 'in', 'terms' => [ 'logged_in' ] ];
+		}
+		$terms = [];
+		if ( is_array( $value ) ) {
+			foreach ( $value as $entry ) {
+				if ( is_array( $entry ) && isset( $entry['id'] ) ) {
+					$terms[] = (string) $entry['id'];
+				} elseif ( is_scalar( $entry ) ) {
+					$terms[] = (string) $entry;
+				}
+			}
+		} elseif ( is_scalar( $value ) && '' !== (string) $value ) {
+			$terms[] = (string) $value;
+		}
+		if ( ! in_array( $cond, [ 'role', 'lang' ], true ) || 1 !== count( $terms ) ) {
+			$notes[] = sprintf( 'placement condition "%s" must have exactly one selected value; rule dropped.', $condition );
+			$needs_review = true;
+			return null;
+		}
+		return [
+			'subject'  => 'role' === $cond ? 'user_role' : 'user_language',
+			'operator' => $negate ? 'not_in' : 'in',
+			'terms'    => $terms,
+		];
 	}
 
 	/**

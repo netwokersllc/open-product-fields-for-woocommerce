@@ -1,6 +1,9 @@
 <?php
 
 namespace {
+	if ( ! function_exists( 'is_user_logged_in' ) ) {
+		function is_user_logged_in(): bool { return (bool) ( $GLOBALS['opf_auth_test_logged_in'] ?? false ); }
+	}
 	if ( ! class_exists( 'WP_Post' ) ) {
 		class WP_Post {
 			public int $ID;
@@ -41,8 +44,8 @@ namespace OPF\Tests\Unit {
 			$GLOBALS['opf_auth_test_cache'] = [];
 			$GLOBALS['opf_auth_test_posts'] = [
 				self::post( 1, 'Everyone', [] ),
-				self::post( 2, 'Members', [ 'subject' => 'user_auth', 'operator' => 'logged_in' ] ),
-				self::post( 3, 'Guests', [ 'subject' => 'user_auth', 'operator' => 'logged_out' ] ),
+				self::post( 2, 'Members', [ 'subject' => 'user_auth', 'operator' => 'in', 'terms' => [ 'logged_in' ] ] ),
+				self::post( 3, 'Guests', [ 'subject' => 'user_auth', 'operator' => 'not_in', 'terms' => [ 'logged_in' ] ] ),
 			];
 			FieldGroups::flush_cache();
 		}

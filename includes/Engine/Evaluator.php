@@ -80,8 +80,6 @@ final class Evaluator {
 				return ! self::rule_passes( [ 'field' => $rule['field'], 'operator' => 'is', 'value' => $expect ], $value );
 			case 'contains':
 				return false !== strpos( strtolower( $actual ), strtolower( $expect ) );
-			case 'not_contains':
-				return false === strpos( strtolower( $actual ), strtolower( $expect ) );
 			case 'greater':
 				return is_numeric( $actual ) && is_numeric( $expect ) && (float) $actual > (float) $expect;
 			case 'less':
@@ -104,9 +102,8 @@ final class Evaluator {
 	 * @param array<string,mixed> $group       Normalized group data.
 	 * @param array<string, array<int|string>> $has_terms subject => term ids the product belongs to, e.g. ['product_cat' => [1,2]].
 	 * @param int                 $product_id  Current product id.
-	 * @param bool                $is_logged_in Whether current visitor is logged in.
 	 */
-	public static function group_matches( array $group, array $has_terms, int $product_id, bool $is_logged_in = false ): bool {
+	public static function group_matches( array $group, array $has_terms, int $product_id, array $user_context = [] ): bool {
 		$rule_groups = $group['rule_groups'] ?? [];
 		if ( empty( $rule_groups ) ) {
 			return true;
@@ -114,7 +111,7 @@ final class Evaluator {
 		foreach ( $rule_groups as $rule_group ) {
 			$group_ok = true;
 			foreach ( $rule_group['rules'] as $rule ) {
-				if ( ! self::placement_rule_passes( $rule, $has_terms, $product_id, $is_logged_in ) ) {
+				if ( ! self::placement_rule_passes( $rule, $has_terms, $product_id, $user_context ) ) {
 					$group_ok = false;
 					break;
 				}
@@ -132,15 +129,39 @@ final class Evaluator {
 	 * @param array<string,mixed> $rule       Normalized placement rule.
 	 * @param array<string,array> $has_terms  subject => term ids.
 	 */
-	private static function placement_rule_passes( array $rule, array $has_terms, int $product_id, bool $is_logged_in ): bool {
+	private static function placement_rule_passes( array $rule, array $has_terms, int $product_id, array $user_context ): bool {
 		$subject = $rule['subject'];
-		if ( 'user_auth' === $subject ) {
-			return 'logged_in' === $rule['operator'] ? $is_logged_in : ( 'logged_out' === $rule['operator'] && ! $is_logged_in );
-		}
 
 		if ( 'product' === $subject ) {
 			$in = in_array( (string) $product_id, $rule['terms'], true );
 			return 'not_in' === $rule['operator'] ? ! $in : $in;
+		}
+
+		if ( 'user_auth' === $subject ) {
+			$in = ! empty( $user_context['logged_in'] );
+			if ( [ 'logged_in' ] === $rule['terms'] && in_array( $rule['operator'], [ 'in', 'not_in' ], true ) ) {
+				return 'not_in' === $rule['operator'] ? ! $in : $in;
+			}
+			if ( [] === $rule['terms'] && in_array( $rule['operator'], [ 'logged_in', 'logged_out' ], true ) ) {
+				return 'logged_in' === $rule['operator'] ? $in : ! $in;
+			}
+			return false;
+		}
+
+		if ( 'user_role' === $subject ) {
+			$roles = array_map( 'strval', (array) ( $user_context['roles'] ?? [] ) );
+			$in    = ! empty( array_intersect( $rule['terms'], $roles ) );
+			return 'not_in' === $rule['operator'] ? ! $in : $in;
+		}
+
+		if ( 'user_language' === $subject ) {
+			$language = (string) ( $user_context['language'] ?? 'default' );
+			$in       = in_array( $language, $rule['terms'], true );
+			return 'not_in' === $rule['operator'] ? ! $in : $in;
+		}
+
+		if ( ! in_array( $subject, [ 'product_cat', 'product_tag' ], true ) ) {
+			return false;
 		}
 
 		$terms = array_map( 'strval', $has_terms[ $subject ] ?? [] );

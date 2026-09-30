@@ -59,8 +59,6 @@ final class EvaluatorTest extends TestCase {
 		$this->assertTrue( $check( 'is', [ '4', '5' ] ) );
 		$this->assertTrue( $check( 'is_not', '6' ) );
 		$this->assertTrue( $check( 'contains', 'hello 5 world', '5' ) );
-		$this->assertTrue( $check( 'not_contains', 'hello world', '5' ) );
-		$this->assertFalse( $check( 'not_contains', 'hello 5 world', '5' ) );
 		$this->assertTrue( $check( 'greater', '7' ) );
 		$this->assertFalse( $check( 'greater', '3' ) );
 		$this->assertTrue( $check( 'less', '3' ) );
@@ -103,23 +101,19 @@ final class EvaluatorTest extends TestCase {
 		$this->assertFalse( Evaluator::group_matches( $group, [ 'product_cat' => [ 9 ], 'product_tag' => [ 3 ] ], 42 ) );
 	}
 
-	public function test_placement_can_target_logged_in_or_logged_out_visitors(): void {
-		$logged_in = [ 'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'user_auth', 'operator' => 'logged_in', 'terms' => [] ] ] ] ] ];
-		$logged_out = [ 'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'user_auth', 'operator' => 'logged_out', 'terms' => [] ] ] ] ] ];
-
-		$this->assertTrue( Evaluator::group_matches( $logged_in, [], 42, true ) );
-		$this->assertFalse( Evaluator::group_matches( $logged_in, [], 42, false ) );
-		$this->assertTrue( Evaluator::group_matches( $logged_out, [], 42, false ) );
-		$this->assertFalse( Evaluator::group_matches( $logged_out, [], 42, true ) );
-	}
-
-	public function test_visitor_access_combines_with_product_placement(): void {
+	public function test_user_auth_role_and_language_placement_rules(): void {
 		$group = [ 'rule_groups' => [ [ 'rules' => [
-			[ 'subject' => 'product', 'operator' => 'in', 'terms' => [ '42' ] ],
-			[ 'subject' => 'user_auth', 'operator' => 'logged_in', 'terms' => [] ],
+			[ 'subject' => 'user_auth', 'operator' => 'in', 'terms' => [ 'logged_in' ] ],
+			[ 'subject' => 'user_role', 'operator' => 'in', 'terms' => [ 'wholesale' ] ],
+			[ 'subject' => 'user_role', 'operator' => 'not_in', 'terms' => [ 'suspended' ] ],
+			[ 'subject' => 'user_language', 'operator' => 'in', 'terms' => [ 'nl_NL' ] ],
 		] ] ] ];
-		$this->assertTrue( Evaluator::group_matches( $group, [], 42, true ) );
-		$this->assertFalse( Evaluator::group_matches( $group, [], 42, false ) );
-		$this->assertFalse( Evaluator::group_matches( $group, [], 43, true ) );
+		$buyer = [ 'logged_in' => true, 'roles' => [ 'customer', 'wholesale' ], 'language' => 'nl_NL' ];
+
+		$this->assertTrue( Evaluator::group_matches( $group, [], 42, $buyer ) );
+		$this->assertFalse( Evaluator::group_matches( $group, [], 42, [ 'logged_in' => false, 'roles' => [], 'language' => 'nl_NL' ] ) );
+		$this->assertFalse( Evaluator::group_matches( $group, [], 42, [ 'logged_in' => true, 'roles' => [ 'customer' ], 'language' => 'nl_NL' ] ) );
+		$this->assertFalse( Evaluator::group_matches( $group, [], 42, [ 'logged_in' => true, 'roles' => [ 'wholesale', 'suspended' ], 'language' => 'nl_NL' ] ) );
+		$this->assertFalse( Evaluator::group_matches( $group, [], 42, [ 'logged_in' => true, 'roles' => [ 'wholesale' ], 'language' => 'en_US' ] ) );
 	}
 }

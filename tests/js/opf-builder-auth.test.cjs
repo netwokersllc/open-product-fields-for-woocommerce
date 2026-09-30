@@ -22,7 +22,7 @@ async function savePlacement( access ) {
 	};
 	const mount = makeElement( 'div' );
 	mount.dataset = { postId: '0', model: JSON.stringify( { fields: [], rule_groups: [] } ), nonce: 'test', rest: '/opf/v1/groups', previewRest: '/opf/v1/preview' };
-	const authSelect = { value: access };
+	const authSelect = { value: '' };
 	const status = { textContent: '' };
 	const document = {
 		getElementById( id ) {
@@ -33,6 +33,7 @@ async function savePlacement( access ) {
 			return null;
 		},
 		querySelectorAll() { return []; },
+		querySelector( selector ) { return '#opf-placement-auth' === selector ? authSelect : null; },
 		createElement: makeElement,
 	};
 	const window = {
@@ -42,6 +43,7 @@ async function savePlacement( access ) {
 		},
 	};
 	vm.runInNewContext( script, { window, document, console, setTimeout, clearTimeout, JSON, Math, Date } );
+	authSelect.value = access;
 	const toolbar = mount.children[ 0 ];
 	const saveButton = toolbar.children.find( ( child ) => 'Save' === child.textContent );
 	assert.ok( saveButton, 'save button is rendered' );
@@ -51,9 +53,9 @@ async function savePlacement( access ) {
 }
 
 ( async () => {
-	assert.deepEqual( await savePlacement( 'logged-in' ), [ { rules: [ { subject: 'user_auth', operator: 'logged_in', terms: [] } ] } ] );
-	assert.deepEqual( await savePlacement( 'logged-out' ), [ { rules: [ { subject: 'user_auth', operator: 'logged_out', terms: [] } ] } ] );
-	assert.deepEqual( await savePlacement( 'all' ), [] );
+	assert.deepEqual( await savePlacement( 'logged_in' ), [ { rules: [ { subject: 'user_auth', operator: 'in', terms: [ 'logged_in' ] } ] } ] );
+	assert.deepEqual( await savePlacement( 'logged_out' ), [ { rules: [ { subject: 'user_auth', operator: 'not_in', terms: [ 'logged_in' ] } ] } ] );
+	assert.deepEqual( await savePlacement( '' ), [] );
 	console.log( 'OPF builder visitor targeting checks passed (3)' );
 } )().catch( ( error ) => {
 	console.error( error );

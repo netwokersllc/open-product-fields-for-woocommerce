@@ -200,13 +200,28 @@ final class WapfExporter {
 	/** @param array<string,mixed> $rule */
 	private static function map_placement_rule( array $rule ): array {
 		if ( 'user_auth' === $rule['subject'] ) {
-			if ( ! in_array( $rule['operator'], [ 'logged_in', 'logged_out' ], true ) || $rule['terms'] ) {
+			if ( [ 'logged_in' ] === $rule['terms'] && in_array( $rule['operator'], [ 'in', 'not_in' ], true ) ) {
+				$logged_in = 'in' === $rule['operator'];
+			} elseif ( [] === $rule['terms'] && in_array( $rule['operator'], [ 'logged_in', 'logged_out' ], true ) ) {
+				$logged_in = 'logged_in' === $rule['operator'];
+			} else {
 				throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve this visitor access rule.' );
 			}
 			return [
-				'subject' => 'product',
-				'condition' => 'logged_in' === $rule['operator'] ? 'auth' : '!auth',
+				'subject' => 'user',
+				'condition' => $logged_in ? 'auth' : '!auth',
 				'value' => [],
+			];
+		}
+		if ( in_array( $rule['subject'], [ 'user_role', 'user_language' ], true ) ) {
+			if ( ! in_array( $rule['operator'], [ 'in', 'not_in' ], true ) || 1 !== count( $rule['terms'] ) ) {
+				throw new \InvalidArgumentException( 'WAPF Tools export requires exactly one role or language per placement rule.' );
+			}
+			$is_role = 'user_role' === $rule['subject'];
+			return [
+				'subject' => $is_role ? 'user' : 'system',
+				'condition' => ( 'not_in' === $rule['operator'] ? '!' : '' ) . ( $is_role ? 'role' : 'lang' ),
+				'value' => [ [ 'id' => (string) $rule['terms'][0], 'text' => (string) $rule['terms'][0] ] ],
 			];
 		}
 		$subject_map = [ 'product' => 'products', 'category' => 'product_cats', 'tag' => 'p_tags' ];

@@ -59,12 +59,27 @@ final class WapfExporterTest extends TestCase {
 	}
 
 	public function test_exports_logged_in_and_logged_out_placement(): void {
-		$group = FieldGroup::normalize( [ 'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'user_auth', 'operator' => 'logged_out', 'terms' => [] ] ] ] ] ] );
+		$group = FieldGroup::normalize( [ 'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'user_auth', 'operator' => 'not_in', 'terms' => [ 'logged_in' ] ] ] ] ] ] );
 		$payload = WapfExporter::build_payload( $group );
-		$this->assertSame( [ 'subject' => 'product', 'condition' => '!auth', 'value' => [] ], $payload['conditions'][0]['rules'][0] );
+		$this->assertSame( [ 'subject' => 'user', 'condition' => '!auth', 'value' => [] ], $payload['conditions'][0]['rules'][0] );
 		$round_trip = WapfMapper::map( [ 'fields' => [], 'rule_groups' => $payload['conditions'] ] );
 		$this->assertFalse( $round_trip['needs_review'] );
-		$this->assertSame( 'logged_out', $round_trip['group']['rule_groups'][0]['rules'][0]['operator'] );
+		$this->assertSame( [ 'operator' => 'not_in', 'terms' => [ 'logged_in' ] ], array_intersect_key( $round_trip['group']['rule_groups'][0]['rules'][0], array_flip( [ 'operator', 'terms' ] ) ) );
+	}
+
+	public function test_exports_role_and_language_rules_as_wapf_user_and_system_conditions(): void {
+		$group = FieldGroup::normalize( [ 'rule_groups' => [ [ 'rules' => [
+			[ 'subject' => 'user_role', 'operator' => 'in', 'terms' => [ 'wholesale' ] ],
+			[ 'subject' => 'user_role', 'operator' => 'not_in', 'terms' => [ 'suspended' ] ],
+			[ 'subject' => 'user_language', 'operator' => 'in', 'terms' => [ 'nl_NL' ] ],
+		] ] ] ] );
+		$payload = WapfExporter::build_payload( $group );
+		$this->assertSame( [ 'user', 'role' ], [ $payload['conditions'][0]['rules'][0]['subject'], $payload['conditions'][0]['rules'][0]['condition'] ] );
+		$this->assertSame( '!role', $payload['conditions'][0]['rules'][1]['condition'] );
+		$this->assertSame( [ 'system', 'lang' ], [ $payload['conditions'][0]['rules'][2]['subject'], $payload['conditions'][0]['rules'][2]['condition'] ] );
+		$round_trip = WapfMapper::map( [ 'fields' => [], 'rule_groups' => $payload['conditions'] ] );
+		$this->assertFalse( $round_trip['needs_review'] );
+		$this->assertSame( [ 'user_role', 'user_role', 'user_language' ], array_column( $round_trip['group']['rule_groups'][0]['rules'], 'subject' ) );
 	}
 
 	public function test_expands_any_rules_into_or_conditionals_and_maps_wapf_pro_operators(): void {
