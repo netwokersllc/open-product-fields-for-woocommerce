@@ -123,6 +123,34 @@ character-count and numeric-value pricing rows in the ledger. This closes the
 installed 3.1.5 registry inventory only; equivalence and current 3.2.1 changes
 remain release- and behavior-level audit work.
 
+### Installed 3.1.5 field-group targeting conditions
+
+`SW_WAPF_Config::get_fieldgroup_visibility_conditions()` registers these
+placement families in `includes/classes/class-config.php`; the server
+evaluator is `SW_WAPF_PRO\Includes\Classes\Conditions::check()` in
+`includes/classes/class-conditions.php`:
+
+| Source keys and behavior | Source implementation | Ledger row |
+| --- | --- | --- |
+| `auth` / `!auth`: logged in / logged out | `is_user_logged_in()` | `WAPF-RULE-AUTH` (new row) |
+| `role` / `!role`: user has / does not have a selected role | `get_editable_roles()` populates the builder; `wp_get_current_user()->roles` is checked server-side | `WAPF-RULE-ROLE` (new row) |
+| `product` / `!product`: selected products | Product lookup condition and Woo product IDs | `WAPF-RULE-PRODUCT` |
+| `product_var` / `!product_var`: selected variations | Variation lookup and product relationship | `WAPF-RULE-VARIATION` |
+| `product_cats` / `!product_cats`: product categories | Product/category membership; legacy `product_cat` values are normalized | `WAPF-RULE-CATEGORY` |
+| `patts` / `!patts`: attribute terms, optionally any term via `*` | Product attribute resolver | `WAPF-RULE-ATTRIBUTE` |
+| `p_tags` / `!p_tags`: product tags | Product-tag resolver | `WAPF-RULE-TAG` |
+| `product_type` / `!product_type`: simple, variable, or grouped | Product-type resolver; 3.2 later filters admin choices to active/allowed types | `WAPF-RULE-TYPE` |
+| `lang` / `!lang`: current language | `Helper::get_available_languages()` and `get_current_language()` support Polylang and WPML; `Conditions::current_language_is()` compares the selected language | `WAPF-RULE-LANGUAGE` (new row) |
+
+The Free and installed OPF group-assignment rows already cover product,
+variation, category, attribute, tag, type, and exclusion targeting. The Pro
+source adds the three user/context conditions above. A repository-wide search
+of OPF's `includes` and `assets/js` finds Polylang post-language assignment,
+but no login-state, role, or group-language condition in its builder/evaluator;
+the ledger therefore records those three as gaps. The exact latest-package
+source is still required to confirm that these 3.1.5 keys and semantics remain
+unchanged in Extended 3.2.1.
+
 ## WAPF Free 1.7.1 source and edition boundary
 
 The current WordPress.org source page lists Free 1.7.1; its plugin header and
@@ -233,6 +261,9 @@ or bundled Pro contents.
 This review found two capability rows missing from the prior edition
 inventory: card quantity conditional settings and date-picker accessibility.
 Both are now explicit `needs audit` rows in the ledger, bringing the edition
-scope to 127. The official descriptions do not disclose their exact setting
+scope to 130 after adding three separately verified Pro group-target
+conditions (login state, user role, and current language) from the installed
+3.1.5 source. The official descriptions do not disclose the release rows'
+exact setting
 keys or complete behavior, so only the licensed current package can close
 those source questions.
