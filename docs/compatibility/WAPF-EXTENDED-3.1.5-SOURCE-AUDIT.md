@@ -79,6 +79,34 @@ The ledger records this as a separate gap. WAPF signatures and behavior need
 rechecking against current Extended source before treating the 3.1.5 API as a
 fixed compatibility target.
 
+### Installed 3.1.5 beta PHP helper signatures
+
+The declarations and behavior below come from
+`includes/api/api-helpers.php`. The file labels this API “BETA - PLEASE USE AT
+OWN RISK AS API CAN CHANGE IN FUTURE UPDATES.” These are historical 3.1.5
+facts, not a promise that Extended 3.2.1 preserves them.
+
+| Function | Installed signature | Observed return/side effect |
+| --- | --- | --- |
+| `wapf_has_setting` | `wapf_has_setting( $name = '' )` | Forwards to `wapf_pro()->has_setting( $name )`. |
+| `wapf_get_setting` | `wapf_get_setting( $name, $value = null )` | Reads the setting; uses `$value` only when the stored result is `null`; then applies `wapf/setting/{$name}` to the result. |
+| `wapf_add_formula_function` | `wapf_add_formula_function( $func, $callback )` | Registers the callback through `Helper::add_formula_function`; no explicit return. |
+| `wapf_display_field_groups_for_product` | `wapf_display_field_groups_for_product( $product )` | Returns `''` when no groups are found; otherwise returns rendered markup from `Html::display_field_groups`. |
+| `wapf_product_has_options` | `wapf_product_has_options( $product )` | Forwards to `Field_Groups::product_has_field_group`. |
+| `wapf_get_field_groups_of_product` | `wapf_get_field_groups_of_product( $product )` | Forwards to `Field_Groups::get_field_groups_of_product`. |
+| `wapf_get_field_groups_by_ids` | `wapf_get_field_groups_by_ids( $ids = [] )` | Forwards to `Field_Groups::get_by_ids`. |
+| `wapf_get_field_group_by_id` | `wapf_get_field_group_by_id( $id )` | Forwards to `Field_Groups::get_by_id`. |
+| `wapf_get_options_from_order` | `wapf_get_options_from_order($order): array` | Accepts an order object or passes the argument to `wc_get_order`; returns line-item records (`product_id`, `item_id`, `quantity`, and option records with field ID, label, value, optional type). It skips linked-product fields when those are separate cart lines. No failed-order guard appears before `get_items()`. |
+| `wapf_get_custom_fields_in_cart` | `wapf_get_custom_fields_in_cart()` | Returns `[]` when WooCommerce/cart is unavailable; otherwise cart-item records with cart key, product ID, and matched field ID/label/value records. |
+| `wapf_fieldgroup_to_array` | `wapf_fieldgroup_to_array( FieldGroup $fg )` | Returns `$fg->to_array()`. |
+| `wapf_array_to_fieldgroup` | `wapf_array_to_fieldgroup( array $a )` | Creates a `FieldGroup`, calls `from_array( $a )`, and returns it. |
+
+Only the last two declarations type their inputs, and only the order helper
+declares a return type. The order/cart helpers expose WAPF's `_wapf_meta` and
+`wapf` storage conventions, so matching function names alone would not provide
+API compatibility. `WAPF-DEVELOPER-PHP-API` remains a known OPF gap; current
+3.2.1 signatures and migration guarantees await the licensed package.
+
 ### Installed 3.1.5 integration adapter inventory
 
 The controller conditionally registers eight plugin adapters and three theme
