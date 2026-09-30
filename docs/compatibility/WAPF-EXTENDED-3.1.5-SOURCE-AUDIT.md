@@ -267,8 +267,9 @@ features.
 
 ### Current package recovery check — 2026-09-30
 
-Read-only filename searches found no Extended 3.2.1 archive in
-`/home/followersya-5hqi7` or `/tmp`. The three inspected Ploi site backups
+Read-only filename search across the server found no Extended 3.2.1 archive
+(excluding virtual `/proc`, `/sys`, `/dev`, `/run`, and Docker storage).
+The three inspected Ploi site backups
 dated 2026-04-12, 2026-08-18, and 2026-08-31 each contain the Extended plugin
 header for 3.1.5. The three ZIPs in the WordPress uploads root contain no
 WAPF plugin paths. A fresh
