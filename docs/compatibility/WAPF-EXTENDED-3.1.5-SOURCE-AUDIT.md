@@ -56,7 +56,7 @@ for the complete edition scope. Paths are relative to
 | Storefront markup, design, and browser behavior | `includes/classes/class-html.php`; `includes/classes/class-design-helper.php`; `includes/controllers/class-product-controller.php`; `views/frontend/field-group.php`; `views/frontend/fields/*.php`; `assets/js/frontend.min.js`; `assets/js/datepicker.min.js`; `assets/css/frontend-*.min.css`; `assets/css/datepicker.min.css` | The renderer emits type-specific controls, labels, descriptions, price hints, conditional state, group layout, design classes, variation data, and pricing summary. Frontend JS handles choice state, condition updates, pricing previews, image switching, repeater controls, uploader interactions, and product quantity changes. Date picker behavior is in its dedicated script. |
 | Cart validation, price calculation, order, and restore | `includes/classes/class-cart.php`; `includes/controllers/class-product-controller.php`; `includes/controllers/class-linked-products-controller.php`; `includes/controllers/class-public-controller.php` | The add-to-cart path reads raw field values, applies field/group/conditional and type-specific validation, recalculates price on the server, adds structured WAPF data to Woo cart lines, and renders configured values on cart/checkout/order surfaces. Source hooks also cover Store API data, cart edits, order metadata, order-again restoration, checkout validation, stock, and linked-child line handling. |
 | File upload lifecycle | `includes/classes/class-file-upload.php`; `includes/controllers/class-public-controller.php`; `views/frontend/fields/file.php`; `assets/js/dropzone.min.js`; `assets/js/frontend.min.js` | Uploads have a dedicated Ajax and native-input path, allowed-type handling, size/count checks, storage-path protection files, cart-token validation, removal, order download/cleanup, and optional zip creation. The installed 3.1.5 implementation is the baseline; later security hardening/default changes are listed in the current-release delta above and remain to verify in the current package. |
-| WooCommerce and theme/plugin adapters | `includes/controllers/class-integrations-controller.php`; `includes/classes/integrations/class-*.php` | Conditional adapters are registered for WooCommerce Subscriptions, WOOCS/FOX, Aelia, Woo Discount Rules, YITH Request a Quote, Tiered Pricing Table, WooCommerce Bookings, product tables, quick view, and named themes (Astra, Flatsome, Woodmart). Each adapter changes specific hooks for product type, price/currency, coupon, cart display, gallery, or quantity behavior; these are not one generic compatibility guarantee. |
+| WooCommerce and theme/plugin adapters | `includes/controllers/class-integrations-controller.php`; 12 files under `includes/classes/integrations/` | The controller registers eight plugin adapters and three theme adapters. A WooCommerce Bookings adapter class also exists, but is absent from the controller's registry and no instantiation call exists in the package search; its effective runtime status is unresolved. Exact source scope recorded below. |
 | Localization and translation integration | `languages/sw-wapf.pot`; `languages/sw-wapf-*.mo`; `wpml-config.xml`; `includes/controllers/class-admin-controller.php`; `class-wapf.php` | Strings use the `sw-wapf` text domain with a POT and bundled locale catalogs. WAPF registers its global group post type for Polylang; WPML config marks selected admin text options, while the WPML guide describes translation of group CPTs and product/variation fields. |
 | Vendor settings, licensing, and update boundary | `includes/classes/class-licensing.php`; `includes/controllers/class-admin-controller.php`; `includes/controllers/class-extended-controller.php`; `includes/classes/class-config.php` | The admin exposes global labels, upload/date behavior and date format, summary/design settings, product price display and plugin license/update UI. Extended controllers add fields/date/formula/weight/linked-product options on top of the shared Pro settings framework. Licensed distribution/update behavior is separate from OPF's source behavior and does not enter the FOSS compatibility license decision. |
 | Developer extension API | PHP `apply_filters()` / `do_action()` calls under `includes/`, `extend/`, and `class-wapf.php` | Static source inventory found 92 unique literal `wapf/...` filter names and 8 unique literal `wapf/...` action names in the installed 3.1.5 package. Names cover field registration/rendering, validation, formula/pricing, cart/order, upload, linked products, admin screens, and integrations. Some names may be deprecated or internal call sites; counts do not define a stable documented API. Current-package signatures/arguments and OPF compatibility remain open. Official changelogs document individual developer hooks over time, including child-product query and cart-pricing filters. |
@@ -70,6 +70,39 @@ The 3.1.5 literal-hook inventory seeds `WAPF-DEVELOPER-HOOKS` in the ledger;
 it does not prove every hook is public, supported, or unchanged in 3.2.1. OPF's
 separately namespaced filters need an explicit compatibility contract and
 documentation before this row can count as parity.
+
+### Installed 3.1.5 integration adapter inventory
+
+The controller conditionally registers eight plugin adapters and three theme
+adapters. A separate Woo Bookings adapter class exists in the same directory,
+but this audit found no package code that registers or instantiates it. Its
+source behavior is therefore recorded as a candidate capability, not a
+confirmed active WAPF feature. This inventory was compared with existing feature and
+compatibility rows. It covers the installed 3.1.5 package only; adapter labels
+or behavior may differ in Extended 3.2.1.
+
+| Source adapter | Detected behavior | Ledger mapping |
+| --- | --- | --- |
+| `class-aelia.php` | Converts product/variation bases, formula bases, linked-product choice prices, pricing hints, option totals, and browser totals to the active Aelia currency. | `WAPF-CURRENCY-AELIA` |
+| `class-astra.php` | Reinitializes WAPF frontend behavior in Astra quick-view modal. | `WAPF-COMPAT-ASTRA` |
+| `class-flatsome.php` | Reinitializes fields and pricing in Flatsome quick view. | `WAPF-COMPAT-FLATSOME` |
+| `class-product-table.php` | Initializes fields for Barn2 product-table rows and synthesizes variation data for individually listed variations. | `WAPF-COMPAT-PRODUCT-TABLE` |
+| `class-quickview.php` | Initializes Barn2 Quick View Pro fields, serializes field inputs during Ajax add-to-cart, and hides duplicate totals in modal. | `WAPF-COMPAT-QUICK-VIEW-PRO` |
+| `class-tiered-pricing-table.php` | Uses active tier-rule prices in browser and cart; honors variation and summarized-quantity rules; adds option prices to tiered cart display. | `WAPF-COMPAT-QUANTITY-RULES` (vendor/name mapping requires current docs review) |
+| `class-woo-discount-rules.php` | Uses discount-plugin prices for product, variation, and cart bases; includes WAPF option prices in discount calculations; suppresses WAPF validation for generated free cart items. | `WAPF-COMPAT-WC-DISCOUNTS` |
+| `class-woocommerce-bookings.php` | Class implementation adds booking product groups; per-field repeat-by-person-type settings; frontend clone/removal by person count; person-cost-multiplier pricing; and restrictions on pricing/repeater options. But `Integrations_Controller::$available_integrations` does not list this class and package search found no other instantiation. Effective runtime support is unverified. | `WAPF-PRODUCT-BOOKINGS` (new `needs audit` row) |
+| `class-woocommerce-subscriptions.php` | Supports subscription product types and prices; updates variable-subscription browser base; skips field validation during early and regular renewal cart setup. | `WAPF-PRODUCT-SUBSCRIPTION` |
+| `class-woocs.php` | Converts simple/variable bases, formulas, linked products, hints, and cart totals through WOOCS rates/back-conversion; updates browser currency formatting. | `WAPF-CURRENCY-WOOCS`, `WAPF-CURRENCY-FOX` (FOX equivalence still unverified) |
+| `class-woodmart.php` | Reinitializes fields in Woodmart quick view; adjusts edit-cart redirect and product-gallery image classes/events. | `WAPF-COMPAT-WOODMART` |
+| `class-yith-raq.php` | Carries validated fields/files/pricing into YITH quote requests, quote display/email/orders, quote-to-cart restoration, quantity behavior, and acceptance flow. | `WAPF-COMPAT-YITH-QUOTE` |
+
+This pass found a distinct WooCommerce Bookings implementation absent from the
+edition ledger, then found that installed 3.1.5 does not register it. OPF has
+no Bookings-specific builder or person-type repeat and price bridge. Ledger
+keeps this as `needs audit` until the supported WAPF runtime behavior is
+established. Other adapter behaviors map to existing currency/product/
+integration rows or the separate compatibility matrix; exact current-package
+reconciliation remains part of G1.
 
 ### Installed 3.1.5 field-definition registry
 
@@ -258,12 +291,14 @@ or bundled Pro contents.
 | Extended 3.2.1: WordPress 7.0 admin CSS fixes | G4 supported-platform/admin compatibility | Release compatibility behavior; verify current admin screens at the claimed WordPress floor and WordPress 7.0. |
 | Pro 3.2.2: blank Product Fields admin-page fix | G1 package-inclusion check; G4 admin reliability | No separate customer capability row. Inspect the exact Extended archive to determine whether it includes the fix, then verify the Product Fields screen loads. |
 
-This review found two capability rows missing from the prior edition
+This review found two release-delta rows missing from the prior edition
 inventory: card quantity conditional settings and date-picker accessibility.
-Both are now explicit `needs audit` rows in the ledger, bringing the edition
-scope to 130 after adding three separately verified Pro group-target
-conditions (login state, user role, and current language) from the installed
-3.1.5 source. The official descriptions do not disclose the release rows'
+Both are explicit `needs audit` rows. The installed-source audit also found the
+WooCommerce Bookings adapter, now represented as a separate Pro capability
+row. Together with three separately verified Pro group-target conditions
+(login state, user role, and current language), plus the unregistered Bookings
+class requiring runtime classification, the edition ledger now has 131
+rows. The official descriptions do not disclose the release rows'
 exact setting
 keys or complete behavior, so only the licensed current package can close
 those source questions.

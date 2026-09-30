@@ -22,7 +22,7 @@ evidence that 3.2.1 source has been reviewed.
 
 ## Progress now
 
-The 130 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
+The 131 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 “All versions” rows. Current recorded status:
 
 | Status | Rows | Meaning for the gate |
@@ -32,11 +32,11 @@ The 130 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 | Supported with documented difference | 11 | Needs explicit non-regression review and acceptance |
 | Partial | 80 | Material parity or proof remains |
 | Gap | 10 | Known absent in the current OPF tree |
-| Needs audit | 3 | Gift Card details, card-quantity conditionals, and date-picker accessibility need source review |
-| **Total** | **130** | **G1 and G2 remain open** |
+| Needs audit | 4 | Gift Card details, card-quantity conditionals, date-picker accessibility, and whether WAPF registers its bundled Bookings adapter need source review |
+| **Total** | **131** | **G1 and G2 remain open** |
 
 Extended-only rows: 28 total; 2 supported, 4 supported with a documented
-difference, 20 partial, 2 needs audit. All 130 edition rows have a ledger status; this closes
+difference, 20 partial, 2 needs audit. All 131 edition rows have a ledger status; this closes
 inventory and known-gap classification, not source freeze. Several statuses
 remain provisional against installed 3.1.5 source and current public docs; the
 current licensed package has not been source-audited. These are row counts, not a
@@ -64,7 +64,7 @@ source audit and ledger; changelog coverage alone does not close source review.
 | D | Map official changes from Extended 3.1.6–3.2.1 and Pro 3.2.2 to ledger rows | Done for changelog mapping; source confirmation open | Versioned changes and affected rows listed; no changelog claim treated as source proof |
 | E | Acquire the licensed current Extended 3.2.1 archive and verify its version/hash | **Blocked: archive unavailable on server** | Exact archive retained locally; plugin header/version and package inventory recorded |
 | F | Inspect current package source, including bundled Pro code; reconcile 3.2.2 admin fix | Not started; depends on E | Changed files and behavior mapped against 3.1.5; exact defaults, stored keys, hook signatures, validation and lifecycle paths recorded |
-| G | Reconcile all 130 edition rows to current source/docs and resolve bounded unknowns | Not started; depends on F | Every row names evidence, behavior/data semantics, relevant lifecycle, OPF gap and proof needed; no `needs audit` row |
+| G | Reconcile all 131 edition rows to current source/docs and resolve bounded unknowns | Not started; depends on F | Every row names evidence, behavior/data semantics, relevant lifecycle, OPF gap and proof needed; no `needs audit` row |
 | H | Fresh review of audit and ledger, then freeze source baseline | Not started; depends on G | Reviewer confirms scope/version and all row citations; G1 marked passed with dated snapshot |
 
 Until E–H pass, do not start or continue parity implementation. Existing dirty
@@ -77,13 +77,13 @@ license key or fetch a paid package through an account without authorization.
 
 | Order | Work package | Current state | Scope and required output | Exit condition |
 | --- | --- | --- | --- | --- |
-| 0 | Freeze current source and edition scope | **Blocked at audit step E** | Obtain authoritative Extended 3.2.1 source. Reconcile Pro 3.2.2's fix, changelogs 3.1.6–3.2.2, official docs, public Free 1.7.1 source, and installed 3.1.5 source. Review all 130 edition rows, including duplicate-field/group operations, import/export, Gift Card integration, user/role/language group targeting, platform support floors, bundled Pro behavior, and developer hook/API surface. Record source path/version, serialized keys/defaults, hook signatures, admin/frontend behavior, and applicable validation/price/cart/order lifecycle. Keep the six add-ons excluded. | **G1:** 130/130 rows reconciled to source/docs; version-specific claims cited; unknowns bounded; audit reviewed; no 3.1.5-only claim treated as current 3.2.1/core proof. |
+| 0 | Freeze current source and edition scope | **Blocked at audit step E** | Obtain authoritative Extended 3.2.1 source. Reconcile Pro 3.2.2's fix, changelogs 3.1.6–3.2.2, official docs, public Free 1.7.1 source, and installed 3.1.5 source. Review all 131 edition rows, including duplicate-field/group operations, import/export, Gift Card and WooCommerce Bookings integrations, user/role/language group targeting, platform support floors, bundled Pro behavior, and developer hook/API surface. Record source path/version, serialized keys/defaults, hook signatures, admin/frontend behavior, and applicable validation/price/cart/order lifecycle. Keep the six add-ons excluded. | **G1:** 131/131 rows reconciled to source/docs; version-specific claims cited; unknowns bounded; audit reviewed; no 3.1.5-only claim treated as current 3.2.1/core proof. |
 | 1 | Migration and data fidelity | **On hold until G1** | Close every row whose gap includes WAPF import/export, legacy IDs, conditions, field/choice settings, global variables, formulas, or review-required mappings. Use real anonymized exports where available plus source-derived fixtures for absent field types. Unknown semantics must remain visibly review-required, never silently dropped. | Every in-scope importable row round-trips or maps equivalently; unsupported legacy data is reported for review; migration proof is attached to its ledger row. |
 | 2 | Shared field/value and rule engines | **On hold until G1 and WP1** | Close core field input, defaults, required/constraints, conditional logic, repeaters, dates, calculations, formula functions/variables, and price/weight evaluation. Implement shared semantics once where possible, and keep browser previews aligned with server-authoritative validation and totals. | Each affected ledger row has passing focused coverage for normalization, valid/invalid submitted values, conditional visibility, and pricing/weight where relevant; no client-only behavior is counted as parity. |
 | 3 | Extended field experiences | **On hold until G1 and WP2** | Close cards and main-image switching, child/linked products (specific and category sources, fixed/none category price type), image choices with quantity limits/zoom, date policies/cutoffs, calculation display and price modes, and formula-driven weight. | Admin save/reload and keyboard-accessible product-page behavior match the audited source contract; each field's stored/imported state and invalid-input behavior are covered. |
 | 4 | WooCommerce lifecycle and integrations | **On hold until G1 and WP2–3** | Close pricing/tax/coupons/currency, classic and Store API carts, cart editing, stock and parent-child quantity/removal, checkout/order metadata, order-again, refunds/restocks, and each claimed theme/plugin integration. | Every applicable row has end-to-end evidence through the relevant storefront, server validation, cart, checkout/order, and restore/refund paths. No integration is claimed from static markup alone. |
 | 5 | Admin, display, and accessibility parity | **On hold until G1** | Close global/product settings, builder usability, field-group listing/search/scheduling, visual design, price summaries/hints, translations, screen-reader/keyboard behavior, and responsive layouts against current docs/source. | Every UI row has admin save/reload and browser evidence; accessibility and responsive acceptance criteria are recorded in the ledger. |
-| 6 | Ledger closure and release candidate | **Not started; depends on WP1–5** | Review all 130 edition rows with a fresh reviewer; resolve or explicitly document every difference; security/privacy, supported WordPress/WooCommerce/PHP versions, upgrade/uninstall, packaging, docs, changelog, rollback, and marketplace requirements. Add a release-candidate manifest and reproducible verification record. | **G2:** no baseline-supported/partial/gap/needs-audit rows and no unaccepted difference. **G3:** applicable commerce proofs pass. **G4:** release checklist passes before 1.0 tag/publication. |
+| 6 | Ledger closure and release candidate | **Not started; depends on WP1–5** | Review all 131 edition rows with a fresh reviewer; resolve or explicitly document every difference; security/privacy, supported WordPress/WooCommerce/PHP versions, upgrade/uninstall, packaging, docs, changelog, rollback, and marketplace requirements. Add a release-candidate manifest and reproducible verification record. | **G2:** no baseline-supported/partial/gap/needs-audit rows and no unaccepted difference. **G3:** applicable commerce proofs pass. **G4:** release checklist passes before 1.0 tag/publication. |
 
 Packages 1–5 are worked in the listed order after G1. A package can split into
 small public commits, but its ledger row and proof must close before moving to
@@ -104,7 +104,7 @@ source has established the actual remaining scope.
 ## Non-negotiable release goalposts
 
 1. **G1 source freeze:** current Extended 3.2.1 behavior, bundled Pro 3.2.2
-   fixes, and all 130 edition rows understood before further parity
+   fixes, and all 131 edition rows understood before further parity
    implementation.
 2. **G2 capability parity:** every edition row supported or has a reviewed,
    explicitly accepted difference; zero baseline-only, partial, gap, or
