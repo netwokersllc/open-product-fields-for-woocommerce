@@ -28,6 +28,8 @@ final class WapfMapper {
 		'textarea'      => 'textarea',
 		'url'           => 'url',
 		'number'        => 'number',
+		'toggle'        => 'toggle',
+		'true-false'    => 'toggle',
 		'select'        => 'select',
 		'radio'         => 'radio',
 		'checkbox'      => 'checkbox',
@@ -65,6 +67,7 @@ final class WapfMapper {
 		$fields        = [];
 		$unsupported   = [];
 		$seen_ids      = [];
+		$legacy_ids    = [];
 
 		foreach ( ( $wapf['fields'] ?? [] ) as $wapf_field ) {
 			if ( ! is_array( $wapf_field ) ) {
@@ -79,6 +82,10 @@ final class WapfMapper {
 
 			$field_id = self::field_id( (string) ( $wapf_field['label'] ?? '' ), (string) ( $wapf_field['id'] ?? '' ), $seen_ids );
 			$seen_ids[ $field_id ] = true;
+			$legacy_id = (string) ( $wapf_field['id'] ?? '' );
+			if ( '' !== $legacy_id ) {
+				$legacy_ids[ $legacy_id ] = $field_id;
+			}
 
 			$has_choices = in_array( self::TYPE_MAP[ $wapf_type ], [ 'swatch', 'select', 'radio', 'checkbox' ], true );
 
@@ -112,6 +119,8 @@ final class WapfMapper {
 		}
 
 		$placement = self::map_placement( $wapf, $overrides, $notes, $needs_review );
+		$image_rule_mode = 'rules';
+		$image_rules = self::map_gallery_images( $wapf, $fields, $legacy_ids, $notes, $needs_review, $image_rule_mode );
 
 		$group = FieldGroup::normalize(
 			[
@@ -119,6 +128,8 @@ final class WapfMapper {
 				'rule_groups'     => $placement,
 				'mark_required'   => (bool) ( $wapf['layout']['mark_required'] ?? true ),
 				'labels_position' => ( $wapf['layout']['labels_position'] ?? 'above' ),
+				'image_rules'     => $image_rules,
+				'image_rule_mode' => $image_rule_mode,
 			]
 		);
 
@@ -127,6 +138,83 @@ final class WapfMapper {
 			'notes'        => $notes,
 			'needs_review' => $needs_review,
 		];
+	}
+
+	/** Map WAPF's rules and last-changed-field gallery image modes. */
+	private static function map_gallery_images( array $wapf, array $fields, array $legacy_ids, array &$notes, bool &$needs_review, string &$mode ): array {
+		$layout = is_array( $wapf['layout'] ?? null ) ? $wapf['layout'] : [];
+		if ( empty( $layout['enable_gallery_images'] ) ) {
+			return [];
+		}
+		$mode = 'last' === ( $layout['swap_type'] ?? 'rules' ) ? 'last' : 'rules';
+		if ( ! in_array( $layout['swap_type'] ?? 'rules', [ 'rules', 'last' ], true ) ) {
+			$notes[] = 'WAPF gallery images use an unsupported mode and were not imported.';
+			$needs_review = true;
+			return [];
+		}
+		$source_images = $layout['gallery_images'] ?? [];
+		if ( ! is_array( $source_images ) ) {
+			$notes[] = 'WAPF gallery image rules are malformed and were not imported.';
+			$needs_review = true;
+			return [];
+		}
+		if ( count( $source_images ) > 64 ) {
+			$notes[] = 'WAPF gallery image rules exceed OPF\'s 64-rule import limit; excess rules were not imported.';
+			$needs_review = true;
+		}
+		$field_by_id = [];
+		foreach ( $fields as $field ) {
+			$field_by_id[ (string) $field['id'] ] = $field;
+		}
+		$rules = [];
+		foreach ( array_slice( $source_images, 0, 64 ) as $source_image ) {
+			if ( ! is_array( $source_image ) || ! is_scalar( $source_image['url'] ?? null ) || ! is_array( $source_image['values'] ?? null ) ) {
+				$notes[] = 'A malformed WAPF gallery image rule was skipped.';
+				$needs_review = true;
+				continue;
+			}
+			$url = trim( (string) $source_image['url'] );
+			if ( '' === $url || strlen( $url ) > 2048 || preg_match( '/[\x00-\x20\x7F]/', $url ) || ! preg_match( '#^(?:https?://[^/\s]+|/(?!/))#i', $url ) ) {
+				$notes[] = 'A WAPF gallery image URL was invalid and its rule was skipped.';
+				$needs_review = true;
+				continue;
+			}
+			$conditions = [];
+			if ( count( $source_image['values'] ) > 32 ) {
+				$notes[] = 'A WAPF gallery image rule exceeds OPF\'s 32-condition import limit and was skipped.';
+				$needs_review = true;
+				continue;
+			}
+			$malformed = false;
+			foreach ( array_slice( $source_image['values'], 0, 32 ) as $source_value ) {
+				if ( ! is_array( $source_value ) || ! is_scalar( $source_value['field'] ?? null ) || ! is_scalar( $source_value['value'] ?? null ) ) {
+					$malformed = true;
+					break;
+				}
+				$field_id = $legacy_ids[ (string) $source_value['field'] ] ?? '';
+				$value = trim( (string) $source_value['value'] );
+				$field = $field_by_id[ $field_id ] ?? null;
+				$choice_slugs = is_array( $field ) ? array_map( 'strval', array_column( $field['choices'] ?? [], 'slug' ) ) : [];
+				$toggle_value = is_array( $field ) && 'toggle' === $field['type'] && in_array( $value, [ '0', '1' ], true );
+				if ( ! $field || ! in_array( $field['type'], [ 'select', 'radio', 'checkbox', 'swatch', 'toggle' ], true ) || '' === $value || ( '*' !== $value && ! $toggle_value && ! in_array( $value, $choice_slugs, true ) ) ) {
+					$conditions = [];
+					break;
+				}
+				$conditions[] = [ 'field' => $field_id, 'value' => $value ];
+			}
+			if ( $malformed ) {
+				$notes[] = 'A malformed WAPF gallery image condition caused its entire rule to be skipped.';
+				$needs_review = true;
+				continue;
+			}
+			if ( ! $conditions ) {
+				$notes[] = 'A WAPF gallery image rule had no usable field values and was skipped.';
+				$needs_review = true;
+				continue;
+			}
+			$rules[] = [ 'target_url' => $url, 'conditions' => $conditions ];
+		}
+		return $rules;
 	}
 
 	/**

@@ -131,9 +131,11 @@ final class Renderer {
 	 * @param array<int,array{id:int,title:string,lang:string,group:FieldGroup}> $groups Groups.
 	 */
 	private static function registry( array $groups ): array {
-		$registry = [];
+		$registry = [ '_opf_image_rules' => [], '_opf_image_rule_modes' => [] ];
 		foreach ( $groups as $entry ) {
 			$gid = (string) $entry['id'];
+			$registry['_opf_image_rules'][ $gid ] = $entry['group']->data['image_rules'] ?? [];
+			$registry['_opf_image_rule_modes'][ $gid ] = $entry['group']->data['image_rule_mode'] ?? 'rules';
 			foreach ( $entry['group']->data['fields'] as $field ) {
 				$registry[ $gid ][ $field['id'] ] = [
 					'type'         => $field['type'],

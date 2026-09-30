@@ -115,13 +115,62 @@ final class FieldGroup {
 			}
 		}
 
-		return [
+		$normalized = [
 			'schema'       => self::SCHEMA,
 			'fields'       => $fields,
 			'rule_groups'  => $rule_groups,
 			'mark_required' => (bool) ( $data['mark_required'] ?? true ),
 			'labels_position' => ( $data['labels_position'] ?? 'above' ) === 'below' ? 'below' : 'above',
 		];
+		$image_rules = self::normalize_image_rules( $data['image_rules'] ?? [], $fields );
+		if ( $image_rules ) {
+			$normalized['image_rules'] = $image_rules;
+			if ( 'last' === ( $data['image_rule_mode'] ?? '' ) ) {
+				$normalized['image_rule_mode'] = 'last';
+			}
+		}
+		return $normalized;
+	}
+
+	/** Normalize bounded product-gallery image rules (AND within each rule). */
+	public static function normalize_image_rules( $raw_rules, array $fields = [] ): array {
+		if ( ! is_array( $raw_rules ) ) {
+			return [];
+		}
+		$allowed_fields = [];
+		foreach ( $fields as $field ) {
+			if ( ! is_array( $field ) || ! in_array( $field['type'] ?? '', [ 'select', 'radio', 'checkbox', 'swatch', 'toggle' ], true ) ) {
+				continue;
+			}
+			$values = 'toggle' === $field['type'] ? [ '0', '1' ] : array_map( 'strval', array_column( $field['choices'] ?? [], 'slug' ) );
+			$allowed_fields[ (string) $field['id'] ] = array_fill_keys( $values, true );
+		}
+		$rules = [];
+		foreach ( array_slice( $raw_rules, 0, 64 ) as $raw_rule ) {
+			if ( ! is_array( $raw_rule ) || ! is_string( $raw_rule['target_url'] ?? null ) ) {
+				continue;
+			}
+			$url = trim( $raw_rule['target_url'] );
+			if ( '' === $url || strlen( $url ) > 2048 || preg_match( '/[\x00-\x20\x7F]/', $url ) || ! preg_match( '#^(?:https?://[^/\s]+|/(?!/))#i', $url ) ) {
+				continue;
+			}
+			$conditions = [];
+			foreach ( array_slice( is_array( $raw_rule['conditions'] ?? null ) ? $raw_rule['conditions'] : [], 0, 32 ) as $condition ) {
+				if ( ! is_array( $condition ) || ! is_scalar( $condition['field'] ?? null ) || ! is_scalar( $condition['value'] ?? null ) ) {
+					continue;
+				}
+				$field_id = strtolower( preg_replace( '/[^a-zA-Z0-9_-]/', '', (string) $condition['field'] ) );
+				$value = trim( (string) $condition['value'] );
+				if ( '' === $field_id || ! isset( $allowed_fields[ $field_id ] ) || '' === $value || strlen( $value ) > 256 || ( '*' !== $value && ! isset( $allowed_fields[ $field_id ][ $value ] ) ) ) {
+					continue;
+				}
+				$conditions[] = [ 'field' => $field_id, 'value' => $value ];
+			}
+			if ( $conditions ) {
+				$rules[] = [ 'target_url' => $url, 'conditions' => $conditions ];
+			}
+		}
+		return $rules;
 	}
 
 	/**

@@ -541,6 +541,83 @@ const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}
 };
 
 
+const imageAttributes = [ 'src', 'srcset', 'sizes', 'alt', 'data-large_image', 'data-large_image_width', 'data-large_image_height' ];
+const imageSnapshots = new WeakMap();
+const lastChangedImageField = new Map();
+
+const resolveProductImageRule = ( rules, values, mode = 'rules', changedField = null ) => {
+	for ( let index = ( rules || [] ).length - 1; index >= 0; index-- ) {
+		const rule = rules[ index ];
+		if ( ( rule.conditions || [] ).length && rule.conditions.every( ( condition ) => {
+			if ( '*' === condition.value ) return true;
+			if ( 'last' === mode && condition.field !== changedField ) return false;
+			const current = values[ condition.field ];
+			return Array.isArray( current ) ? current.map( String ).includes( String( condition.value ) ) : current != null && String( current ) === String( condition.value );
+		} ) ) return rule;
+	}
+	return null;
+};
+
+const updateProductImage = ( doc, evaluations ) => {
+	const gallery = doc.querySelector( '.woocommerce-product-gallery' );
+	const slides = gallery ? Array.from( gallery.querySelectorAll( '.woocommerce-product-gallery__image' ) ) : [];
+	let target = null;
+	for ( const item of evaluations ) {
+		const rule = resolveProductImageRule( item.rules, item.values, item.mode, item.changedField );
+		if ( rule ) { target = rule.target_url; break; }
+	}
+	const activeSlide = gallery && gallery.querySelector( '.flex-active-slide' );
+	const activeIndex = activeSlide ? slides.indexOf( activeSlide ) : 0;
+	const image = slides[ activeIndex ]?.querySelector( 'img' ) || doc.querySelector( '.woocommerce-product-gallery img' );
+	if ( ! image ) return;
+	const stateKey = gallery || image;
+	if ( ! imageSnapshots.has( stateKey ) ) {
+		const save = ( img ) => {
+			const link = img.closest( 'a' );
+			const attrs = {};
+			imageAttributes.forEach( ( name ) => { attrs[ name ] = img.getAttribute( name ); } );
+			return { img, attrs, link, href: link ? link.getAttribute( 'href' ) : null };
+		};
+		imageSnapshots.set( stateKey, { index: activeIndex, images: ( slides.length ? slides : [ { querySelector: () => image } ] ).map( ( slide ) => save( slide.querySelector( 'img' ) ) ) } );
+	}
+	const snapshot = imageSnapshots.get( stateKey );
+	const restore = () => snapshot.images.forEach( ( saved ) => {
+		imageAttributes.forEach( ( name ) => saved.attrs[ name ] === null ? saved.img.removeAttribute( name ) : saved.img.setAttribute( name, saved.attrs[ name ] ) );
+		if ( saved.link ) saved.href === null ? saved.link.removeAttribute( 'href' ) : saved.link.setAttribute( 'href', saved.href );
+	} );
+	if ( ! target ) {
+		restore();
+		if ( gallery && snapshot.index !== activeIndex ) gallery.querySelectorAll( '.flex-control-nav a' )[ snapshot.index ]?.click();
+		return;
+	}
+	const targetIndex = slides.findIndex( ( slide ) => {
+		const img = slide.querySelector( 'img' );
+		return [ img.currentSrc, img.getAttribute( 'src' ), img.getAttribute( 'data-large_image' ), img.closest( 'a' )?.getAttribute( 'href' ) ].some( ( value ) => {
+			try { return value && new URL( value, doc.location.href ).href === new URL( target, doc.location.href ).href; } catch ( error ) { return false; }
+		} );
+	} );
+	if ( targetIndex >= 0 ) {
+		restore();
+		if ( targetIndex !== activeIndex ) gallery.querySelectorAll( '.flex-control-nav a' )[ targetIndex ]?.click();
+		return;
+	}
+	restore();
+	image.setAttribute( 'src', target );
+	image.removeAttribute( 'srcset' );
+	image.removeAttribute( 'sizes' );
+	image.setAttribute( 'data-large_image', target );
+	const link = image.closest( 'a' );
+	if ( link ) link.setAttribute( 'href', target );
+};
+
+const initialImageField = ( groupEl ) => {
+	for ( const fieldEl of groupEl.querySelectorAll( '[data-opf-field]' ) ) {
+		if ( fieldEl.classList.contains( 'opf-hide' ) || ! fieldEl.querySelector( '.opf-input' ) ) continue;
+		return String( fieldEl.getAttribute( 'data-opf-field' ) );
+	}
+	return null;
+};
+
 const writeTotals = () => {
   const totalsEl = document.querySelector('.opf-product-totals, .wapf-product-totals');
   if (!totalsEl) return;
@@ -550,6 +627,7 @@ const writeTotals = () => {
   const qty = Math.max(1, parseInt(qtyInput && qtyInput.value, 10) || 1);
 
   let optionsTotal = 0;
+  const productImageEvaluations = [];
   document.querySelectorAll('[data-opf-group]').forEach((groupEl) => {
     const gid = groupEl.getAttribute('data-opf-group');
     const values = {};
@@ -570,6 +648,15 @@ const writeTotals = () => {
         values[fid] = '';
       }
     });
+    const rules = ( window.OPF_IMAGE_RULES || {} )[ gid ] || [];
+    let changedField = lastChangedImageField.get( gid );
+    if ( undefined === changedField ) changedField = initialImageField( groupEl );
+    productImageEvaluations.push({
+		values,
+		rules,
+		mode: ( window.OPF_IMAGE_RULE_MODES || {} )[ gid ] || 'rules',
+		changedField,
+	});
     fields.forEach((fieldEl) => {
       const fid = fieldEl.getAttribute('data-opf-field');
       const def = (window.OPF_FIELDS || {})[gid]?.[fid];
@@ -581,6 +668,7 @@ const writeTotals = () => {
       optionsTotal += addon;
     });
   });
+	updateProductImage( document, productImageEvaluations );
 
   const productTotal = base * qty;
   const grand = productTotal + optionsTotal;
@@ -597,14 +685,17 @@ const initTotals = () => {
   const container = document.querySelector('[data-opf-fields]');
   if (!container) return;
   let timer = null;
-  container.addEventListener('input', () => {
+  const schedule = ( event ) => {
+    if ( 'change' === event.type && event.target?.closest ) {
+      const field = event.target.closest( '[data-opf-field]' );
+      const group = field?.closest( '[data-opf-group]' );
+      if ( field && group ) lastChangedImageField.set( group.getAttribute( 'data-opf-group' ), field.getAttribute( 'data-opf-field' ) );
+    }
     clearTimeout(timer);
     timer = setTimeout(writeTotals, 50);
-  });
-  container.addEventListener('change', () => {
-    clearTimeout(timer);
-    timer = setTimeout(writeTotals, 50);
-  });
+  };
+  container.addEventListener('input', schedule);
+  container.addEventListener('change', schedule);
   writeTotals();
 };
 

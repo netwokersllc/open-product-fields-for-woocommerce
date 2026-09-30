@@ -81,6 +81,22 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( [ '199813' ], $rules[0]['terms'] );
 	}
 
+	public function test_imports_wapf_last_changed_gallery_mode(): void {
+		$mapped = WapfMapper::map( [
+			'layout' => [
+				'enable_gallery_images' => true,
+				'swap_type' => 'last',
+				'gallery_images' => [ [ 'source' => 'upload', 'url' => 'https://shop.example/red.jpg', 'id' => '101', 'values' => [ [ 'field' => 'finish-id', 'value' => 'red' ] ] ] ],
+			],
+			'fields' => [ [ 'id' => 'finish-id', 'label' => 'Finish', 'type' => 'select', 'options' => [ 'choices' => [ [ 'slug' => 'red', 'label' => 'Red' ] ] ] ] ],
+			'rule_groups' => [],
+		] );
+
+		$this->assertFalse( $mapped['needs_review'] );
+		$this->assertSame( 'last', $mapped['group']['image_rule_mode'] );
+		$this->assertSame( [ [ 'target_url' => 'https://shop.example/red.jpg', 'conditions' => [ [ 'field' => 'finish', 'value' => 'red' ] ] ] ], $mapped['group']['image_rules'] );
+	}
+
 	public function test_empty_condition_flags_needs_review_not_match_all(): void {
 		$wapf = [
 			'fields' => [

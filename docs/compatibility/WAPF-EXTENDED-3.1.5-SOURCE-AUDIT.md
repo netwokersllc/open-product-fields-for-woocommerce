@@ -86,6 +86,30 @@ for the complete edition scope. Paths are relative to
 | Vendor settings, licensing, and update boundary | `includes/classes/class-licensing.php`; `includes/controllers/class-admin-controller.php`; `includes/controllers/class-extended-controller.php`; `includes/classes/class-config.php` | The admin exposes global labels, upload/date behavior and date format, summary/design settings, product price display and plugin license/update UI. Extended controllers add fields/date/formula/weight/linked-product options on top of the shared Pro settings framework. Licensed distribution/update behavior is separate from OPF's source behavior and does not enter the FOSS compatibility license decision. |
 | Developer extension API | PHP `apply_filters()`, `do_action()`, and `do_action_ref_array()` calls across plugin PHP files; `includes/api/api-helpers.php` | A PHP-token scan of every installed 3.1.5 PHP file found 89 unique literal `wapf/...` filter names across 110 call sites, 8 direct `wapf/...` action names, and 1 `wapf/...` `do_action_ref_array` name. It also found one legacy `wapf_...` filter, three legacy `wapf_...` actions, and a dynamic `wapf/setting/{name}` filter family. The package has 12 global helper functions. Hook names cover field registration/rendering, validation, formula/pricing, cart/order, upload, linked products, admin screens, and integrations. Helper API is explicitly labeled beta in source and spans settings, custom formula functions, field-group display/lookups, cart/order reads, and field-group serialization. Counts do not define a stable documented API. Current-package signatures/arguments and OPF compatibility remain open. |
 
+### Installed 3.1.5 product-gallery image switching
+
+The admin view `views/admin/settings/gallery-image.php` offers `rules` and
+`last` modes. Rules mode evaluates combinations of field/value pairs and uses
+the last matching row. Last mode evaluates the most recently changed field and
+its selected value; WAPF's frontend (`assets/js/frontend.min.js`) passes the
+changed field ID to the matcher, which rejects non-wildcard conditions tied to
+another field. A field change without a matching image restores the product or
+variation image. The product view serializes `swap_type` and gallery rules from
+the group model as `data-wapf-st` and `data-wapf-gi`.
+
+OPF maps both modes, remaps legacy field IDs, validates image URLs and field
+values, and preserves the mode through the group schema and frontend registry.
+The frontend tracks the changed OPF field, applies the matching image, and
+restores the base image when the latest field has no match. Unit coverage is
+added for mapper output, matching, and restoration. It does not yet replace the
+existing real-browser check of rules mode, and Extended 3.2.1 source/runtime
+behavior remains unaudited.
+
+Sources: installed `views/admin/settings/gallery-image.php`,
+`includes/classes/class-field-groups.php`, `includes/models/class-fieldgroup.php`,
+`views/frontend/field-group.php`, and `assets/js/frontend.min.js`; OPF's
+`WapfMapper`, `FieldGroup`, `Renderer`, and frontend asset.
+
 This source map covers the installed package's subsystem boundaries. It does
 not assert that OPF matches each behavior: capability equivalence, migration
 semantics, runtime integrations, and current 3.2.1/3.2.2 release differences

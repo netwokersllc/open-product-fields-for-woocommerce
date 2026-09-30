@@ -32,9 +32,9 @@ The 132 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 | Status | Rows | Meaning for the gate |
 | --- | ---: | --- |
 | Baseline supported | 8 | Promising baseline only; not accepted as proof |
-| Supported | 18 | Evidence recorded; still subject to current-source reconciliation |
+| Supported | 17 | Evidence recorded; still subject to current-source reconciliation |
 | Supported with documented difference | 11 | Needs explicit non-regression review and acceptance |
-| Partial | 81 | Material parity or proof remains |
+| Partial | 82 | Material parity or proof remains |
 | Gap | 11 | Known absent in the current OPF tree |
 | Needs audit | 3 | Card-quantity conditionals, date-picker accessibility, and whether WAPF registers its bundled Bookings adapter need source review |
 | **Total** | **132** | **G1 and G2 remain open** |
@@ -46,8 +46,11 @@ remain provisional against installed 3.1.5 source and current public docs; the
 current licensed package has not been source-audited. These are row counts, not a
 feature-weighted percent. The 3.1.5 source audit does not satisfy G1 because
 the official current Extended target is 3.2.1, the Pro changelog separately
-lists 3.2.2, and bundled Pro behavior is also in scope. No implementation
-slice starts until G1 passes.
+lists 3.2.2, and bundled Pro behavior is also in scope. G1 remains the gate for
+claiming parity and release readiness. Bounded implementation may proceed from
+installed-source behavior or official documentation when semantics are clear;
+affected rows remain partial until reconciled against current source and the
+required lifecycle proof is recorded.
 
 The changelog crosswalk found two missing capability rows: conditional settings
 for card quantity inputs and date-picker accessibility. Both now have explicit
