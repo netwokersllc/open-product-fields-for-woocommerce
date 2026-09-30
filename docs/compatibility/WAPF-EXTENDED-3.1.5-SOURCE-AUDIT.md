@@ -122,7 +122,14 @@ call site. Therefore WAPF Extended 3.1.5 does not load this adapter through
 its own bootstrap, despite the adapter implementation and Wombat's published
 Bookings compatibility claim. This is a proven 3.1.5 source/marketing conflict,
 not proof about Extended 3.2.1. The current licensed package must resolve it
-before the `WAPF-PRODUCT-BOOKINGS` row can leave `needs audit`.
+before the `WAPF-PRODUCT-BOOKINGS` row can leave `needs audit`. Wombat's
+current premium compatibility table lists YITH Booking & Appointment as a
+code integration, but does not list WooCommerce Bookings. The page says it
+does not guarantee third-party compatibility beyond its listed integrations
+and that many unlisted plugins may still work, so this omission narrows the
+published evidence but does not prove incompatibility. The current table and
+the older generic compatibility claim remain in tension with the unregistered
+3.1.5 adapter; exact 3.2.1 runtime source is still required.
 
 | Source adapter | Detected behavior | Ledger mapping |
 | --- | --- | --- |
