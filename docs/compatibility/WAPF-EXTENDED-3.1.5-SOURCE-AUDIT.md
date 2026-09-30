@@ -231,14 +231,14 @@ evaluator is `SW_WAPF_PRO\Includes\Classes\Conditions::check()` in
 | Source keys and behavior | Source implementation | Ledger row |
 | --- | --- | --- |
 | `auth` / `!auth`: logged in / logged out | `is_user_logged_in()` | `WAPF-RULE-AUTH` (new row) |
-| `role` / `!role`: user has / does not have a selected role | `get_editable_roles()` populates the builder; `wp_get_current_user()->roles` is checked server-side | `WAPF-RULE-ROLE` (new row) |
-| `product` / `!product`: selected products | Product lookup condition and Woo product IDs | `WAPF-RULE-PRODUCT` |
-| `product_var` / `!product_var`: selected variations | Variation lookup and product relationship | `WAPF-RULE-VARIATION` |
+| `role` / `!role`: user has / does not have a selected role | `Helper::get_all_roles()` wraps `get_editable_roles()` for the builder; `Conditions::user_has_role()` checks `wp_get_current_user()->roles` server-side | `WAPF-RULE-ROLE` (new row) |
+| `products` / `!products`: selected products | These are the builder keys; evaluator also accepts `product` / `!product` and checks Woo product IDs | `WAPF-RULE-PRODUCT` |
+| `product_var` / `!product_var`: selected variations | Builder exposes both; evaluator's switch routes both keys to the same positive `is_product_variation(...) === true` result, so the visible `!product_var` path does not appear to invert in 3.1.5 source | `WAPF-RULE-VARIATION` |
 | `product_cats` / `!product_cats`: product categories | Product/category membership; legacy `product_cat` values are normalized | `WAPF-RULE-CATEGORY` |
 | `patts` / `!patts`: attribute terms, optionally any term via `*` | Product attribute resolver | `WAPF-RULE-ATTRIBUTE` |
 | `p_tags` / `!p_tags`: product tags | Product-tag resolver | `WAPF-RULE-TAG` |
 | `product_type` / `!product_type`: simple, variable, or grouped | Product-type resolver; 3.2 later filters admin choices to active/allowed types | `WAPF-RULE-TYPE` |
-| `lang` / `!lang`: current language | `Helper::get_available_languages()` and `get_current_language()` support Polylang and WPML; `Conditions::current_language_is()` compares the selected language | `WAPF-RULE-LANGUAGE` (new row) |
+| `lang`: current language | Builder exposes positive equality only when WPML or Polylang languages are available; evaluator also accepts `!lang` for not-equal, though the current builder does not offer it. Resolver compares Polylang locale or WPML language code | `WAPF-RULE-LANGUAGE` (new row) |
 
 The Free and installed OPF group-assignment rows already cover product,
 variation, category, attribute, tag, type, and exclusion targeting. The Pro
@@ -248,6 +248,12 @@ but no login-state, role, or group-language condition in its builder/evaluator;
 the ledger therefore records those three as gaps. The exact latest-package
 source is still required to confirm that these 3.1.5 keys and semantics remain
 unchanged in Extended 3.2.1.
+
+The field-group placement registry contains no date/time or scheduling rule;
+scheduled groups use WordPress's native `future` post status and publish
+event. Quantity-based rules are handled separately by `Fields::is_valid_rule()`
+when the rule subject is `qty`; no quantity condition is registered in this
+group-placement builder.
 
 ### Installed 3.1.5 field visibility conditions
 
