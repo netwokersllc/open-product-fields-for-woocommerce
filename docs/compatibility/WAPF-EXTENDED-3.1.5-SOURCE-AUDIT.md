@@ -59,11 +59,17 @@ for the complete edition scope. Paths are relative to
 | WooCommerce and theme/plugin adapters | `includes/controllers/class-integrations-controller.php`; `includes/classes/integrations/class-*.php` | Conditional adapters are registered for WooCommerce Subscriptions, WOOCS/FOX, Aelia, Woo Discount Rules, YITH Request a Quote, Tiered Pricing Table, WooCommerce Bookings, product tables, quick view, and named themes (Astra, Flatsome, Woodmart). Each adapter changes specific hooks for product type, price/currency, coupon, cart display, gallery, or quantity behavior; these are not one generic compatibility guarantee. |
 | Localization and translation integration | `languages/sw-wapf.pot`; `languages/sw-wapf-*.mo`; `wpml-config.xml`; `includes/controllers/class-admin-controller.php`; `class-wapf.php` | Strings use the `sw-wapf` text domain with a POT and bundled locale catalogs. WAPF registers its global group post type for Polylang; WPML config marks selected admin text options, while the WPML guide describes translation of group CPTs and product/variation fields. |
 | Vendor settings, licensing, and update boundary | `includes/classes/class-licensing.php`; `includes/controllers/class-admin-controller.php`; `includes/controllers/class-extended-controller.php`; `includes/classes/class-config.php` | The admin exposes global labels, upload/date behavior and date format, summary/design settings, product price display and plugin license/update UI. Extended controllers add fields/date/formula/weight/linked-product options on top of the shared Pro settings framework. Licensed distribution/update behavior is separate from OPF's source behavior and does not enter the FOSS compatibility license decision. |
+| Developer extension API | PHP `apply_filters()` / `do_action()` calls under `includes/`, `extend/`, and `class-wapf.php` | Static source inventory found 92 unique literal `wapf/...` filter names and 8 unique literal `wapf/...` action names in the installed 3.1.5 package. Names cover field registration/rendering, validation, formula/pricing, cart/order, upload, linked products, admin screens, and integrations. Some names may be deprecated or internal call sites; counts do not define a stable documented API. Current-package signatures/arguments and OPF compatibility remain open. Official changelogs document individual developer hooks over time, including child-product query and cart-pricing filters. |
 
 This source map covers the installed package's subsystem boundaries. It does
 not assert that OPF matches each behavior: capability equivalence, migration
 semantics, runtime integrations, and current 3.2.1/3.2.2 release differences
 remain tracked as separate acceptance work.
+
+The 3.1.5 literal-hook inventory seeds `WAPF-DEVELOPER-HOOKS` in the ledger;
+it does not prove every hook is public, supported, or unchanged in 3.2.1. OPF's
+separately namespaced filters need an explicit compatibility contract and
+documentation before this row can count as parity.
 
 ## WAPF Free 1.7.1 source and edition boundary
 
