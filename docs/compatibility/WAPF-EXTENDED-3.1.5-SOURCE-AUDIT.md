@@ -59,7 +59,7 @@ for the complete edition scope. Paths are relative to
 | WooCommerce and theme/plugin adapters | `includes/controllers/class-integrations-controller.php`; 12 files under `includes/classes/integrations/` | The controller registers eight plugin adapters and three theme adapters. A WooCommerce Bookings adapter class also exists, but is absent from the controller's registry and no instantiation call exists in the package search; its effective runtime status is unresolved. Exact source scope recorded below. |
 | Localization and translation integration | `languages/sw-wapf.pot`; `languages/sw-wapf-*.mo`; `wpml-config.xml`; `includes/controllers/class-admin-controller.php`; `class-wapf.php` | Strings use the `sw-wapf` text domain with a POT and bundled locale catalogs. WAPF registers its global group post type for Polylang; WPML config marks selected admin text options, while the WPML guide describes translation of group CPTs and product/variation fields. |
 | Vendor settings, licensing, and update boundary | `includes/classes/class-licensing.php`; `includes/controllers/class-admin-controller.php`; `includes/controllers/class-extended-controller.php`; `includes/classes/class-config.php` | The admin exposes global labels, upload/date behavior and date format, summary/design settings, product price display and plugin license/update UI. Extended controllers add fields/date/formula/weight/linked-product options on top of the shared Pro settings framework. Licensed distribution/update behavior is separate from OPF's source behavior and does not enter the FOSS compatibility license decision. |
-| Developer extension API | PHP `apply_filters()` / `do_action()` calls under `includes/`, `extend/`, and `class-wapf.php`; `includes/api/api-helpers.php` | Static source inventory found 92 unique literal `wapf/...` filter names, 8 unique literal `wapf/...` action names, and 12 global helper functions in installed 3.1.5. Hook names cover field registration/rendering, validation, formula/pricing, cart/order, upload, linked products, admin screens, and integrations. Helper API is explicitly labeled beta in source and spans settings, custom formula functions, field-group display/lookups, cart/order reads, and field-group serialization. Counts do not define a stable documented API. Current-package signatures/arguments and OPF compatibility remain open. |
+| Developer extension API | PHP `apply_filters()`, `do_action()`, and `do_action_ref_array()` calls across plugin PHP files; `includes/api/api-helpers.php` | A PHP-token scan of every installed 3.1.5 PHP file found 89 unique literal `wapf/...` filter names across 110 call sites, 8 direct `wapf/...` action names, and 1 `wapf/...` `do_action_ref_array` name. It also found one legacy `wapf_...` filter, three legacy `wapf_...` actions, and a dynamic `wapf/setting/{name}` filter family. The package has 12 global helper functions. Hook names cover field registration/rendering, validation, formula/pricing, cart/order, upload, linked products, admin screens, and integrations. Helper API is explicitly labeled beta in source and spans settings, custom formula functions, field-group display/lookups, cart/order reads, and field-group serialization. Counts do not define a stable documented API. Current-package signatures/arguments and OPF compatibility remain open. |
 
 This source map covers the installed package's subsystem boundaries. It does
 not assert that OPF matches each behavior: capability equivalence, migration
@@ -67,9 +67,10 @@ semantics, runtime integrations, and current 3.2.1/3.2.2 release differences
 remain tracked as separate acceptance work.
 
 The 3.1.5 literal-hook inventory seeds `WAPF-DEVELOPER-HOOKS` in the ledger;
-it does not prove every hook is public, supported, or unchanged in 3.2.1. OPF's
-separately namespaced filters need an explicit compatibility contract and
-documentation before this row can count as parity.
+the prior 92-filter/8-action count was incomplete and is superseded by the
+token-scan count above. It does not prove every hook is public, supported, or
+unchanged in 3.2.1. OPF's separately namespaced filters need an explicit
+compatibility contract and documentation before this row can count as parity.
 
 The beta helper API is a separate capability from action/filter extension
 points. OPF's current global functions are lifecycle bootstrap/activation
