@@ -58,7 +58,8 @@ CSV tables can be imported and managed under **WooCommerce → Lookup tables**.
 Two-field grids use the top row as the first formula dimension and column A as
 the second; cell A1 supplies the name, or the filename is used when A1 is empty.
 Combination lists use the filename as their table name, with one field per
-column and price in the final column. Select the list layout when its first
+column and price in the final column. A list's optional heading row is skipped
+when its last cell is `Price`. Select the list layout when its first
 field value could be mistaken for a table name by automatic detection.
 Re-uploading a table name replaces it.
 Imports are stored in the non-autoloaded `opf_lookup_tables` option. Code

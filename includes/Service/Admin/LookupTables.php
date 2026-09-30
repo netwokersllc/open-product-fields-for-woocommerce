@@ -51,7 +51,7 @@ final class LookupTables {
 				<p><input id="opf-lookup-csv" type="file" name="opf_lookup_csv" accept=".csv,text/csv" required /></p>
 				<p><label for="opf-lookup-format"><strong><?php esc_html_e( 'CSV layout', 'open-product-fields-for-woocommerce' ); ?></strong></label></p>
 				<p><select id="opf-lookup-format" name="opf_lookup_format"><option value="auto"><?php esc_html_e( 'Detect automatically', 'open-product-fields-for-woocommerce' ); ?></option><option value="grid"><?php esc_html_e( 'Two-field grid', 'open-product-fields-for-woocommerce' ); ?></option><option value="list"><?php esc_html_e( 'Combination list', 'open-product-fields-for-woocommerce' ); ?></option></select></p>
-				<p class="description"><?php esc_html_e( 'A grid may name the table in cell A1 or leave A1 empty to use the filename. List tables always use the filename. Select Combination list if its first field value could be mistaken for a table name. Re-uploading a name replaces that table. Maximum: 10 MiB and 100,000 cells.', 'open-product-fields-for-woocommerce' ); ?></p>
+				<p class="description"><?php esc_html_e( 'A grid may name the table in cell A1 or leave A1 empty to use the filename. List tables always use the filename and may include a heading row ending in Price. Select Combination list if its first field value could be mistaken for a table name. Re-uploading a name replaces that table. Maximum: 10 MiB and 100,000 cells.', 'open-product-fields-for-woocommerce' ); ?></p>
 				<?php submit_button( __( 'Upload lookup table', 'open-product-fields-for-woocommerce' ) ); ?>
 			</form>
 			<h2><?php esc_html_e( 'Imported tables', 'open-product-fields-for-woocommerce' ); ?></h2>

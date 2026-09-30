@@ -29,6 +29,14 @@ final class LookupTableCsvTest extends TestCase {
 		LookupTableCsv::parse( "500,Glossy,30\n500,Glossy,31\n", 'duplicate.csv' );
 	}
 
+	public function test_wapf_combination_list_skips_its_field_headers_and_price_header(): void {
+		$csv = "Quantity,Paper size,Paper Type,Price\n500,4x6,Glossy,30\n500,4x6,Matte,34\n1000,8x10,Matte,62\n";
+		$table = LookupTableCsv::parse( $csv, 'postcards.csv' );
+		$this->assertSame( 3, $table['dimensions'] );
+		$this->assertSame( 34.0, $table['table'][500]['4x6']['Matte'] );
+		$this->assertSame( 62.0, $table['table'][1000]['8x10']['Matte'] );
+	}
+
 	public function test_explicit_list_layout_supports_text_values_that_look_like_table_names(): void {
 		$table = LookupTableCsv::parse( "red,200,100,12\nblue,200,100,14\n", 'colors.csv', 'list' );
 		$this->assertSame( 3, $table['dimensions'] );

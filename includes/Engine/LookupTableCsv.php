@@ -68,7 +68,9 @@ final class LookupTableCsv {
 		}
 
 		$first = $rows[0][0];
-		$is_grid = 'grid' === $format || ( 'auto' === $format && ( '' === $first || ( preg_match( '/^[a-z0-9_]+$/i', $first ) && ! is_numeric( $first ) ) ) );
+		$last_header = strtolower( (string) end( $rows[0] ) );
+		$is_list_header = 'price' === $last_header;
+		$is_grid = 'grid' === $format || ( 'auto' === $format && ! $is_list_header && ( '' === $first || ( preg_match( '/^[a-z0-9_]+$/i', $first ) && ! is_numeric( $first ) ) ) );
 		$name = self::table_name( $is_grid && '' !== $first ? $first : pathinfo( $filename, PATHINFO_FILENAME ) );
 		if ( $is_grid ) {
 			return self::parse_grid( $rows, $name );
@@ -97,6 +99,12 @@ final class LookupTableCsv {
 
 	/** @return array{name:string,dimensions:int,table:array<mixed>} */
 	private static function parse_list( array $rows, string $name ): array {
+		if ( 'price' === strtolower( (string) end( $rows[0] ) ) ) {
+			array_shift( $rows );
+		}
+		if ( ! $rows ) {
+			throw new \InvalidArgumentException( 'A combination list needs at least one data row.' );
+		}
 		$dimensions = count( $rows[0] ) - 1;
 		if ( $dimensions < 1 ) {
 			throw new \InvalidArgumentException( 'A list table needs at least one field and a price column.' );
