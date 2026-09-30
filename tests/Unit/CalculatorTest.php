@@ -72,6 +72,12 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( 0.0, Calculator::evaluate_formula( 'round()', 10.0, 1, 0.0 ) );
 	}
 
+	public function test_wapf_checked_function_counts_validated_multiselect_values(): void {
+		$this->assertSame( 7.0, Calculator::evaluate_formula( 'checked(material) + 5', 10.0, 1, 0.0, '', null, [ 'material' => [ 'red', 'blue' ] ] ) );
+		$this->assertSame( 5.0, Calculator::evaluate_formula( 'checked(material) + 5', 10.0, 1, 0.0, '', null, [ 'material' => [] ] ) );
+		$this->assertSame( 5.0, Calculator::evaluate_formula( 'checked(material) + 5', 10.0, 1, 0.0, '', null, [ 'material' => 'red' ] ) );
+	}
+
 	public function test_formula_safety_garbage_yields_zero(): void {
 		$this->assertSame( 0.0, Calculator::evaluate_formula( 'system("rm -rf /")', 10.0, 1, 0.0 ) );
 		$this->assertSame( 0.0, Calculator::evaluate_formula( '[price] *', 10.0, 1, 0.0 ) );

@@ -153,6 +153,18 @@ final class Calculator {
 		// WAPF separates function arguments with semicolons; accept commas too
 		// for native OPF formulas and existing extension callbacks.
 		$formula = str_replace( ';', ',', $formula );
+		$formula = preg_replace_callback(
+			'/\bchecked\s*\(\s*([a-zA-Z0-9_-]+)\s*\)/i',
+			static function ( array $match ) use ( $field_values ): string {
+				$value = $field_values[ $match[1] ] ?? $field_values[ strtolower( $match[1] ) ] ?? null;
+				if ( ! is_array( $value ) ) {
+					return '0';
+				}
+				$selected = array_filter( $value, static fn( $item ): bool => is_scalar( $item ) && '' !== (string) $item );
+				return (string) count( $selected );
+			},
+			$formula
+		);
 		$today = $today ?? ( function_exists( 'current_time' ) ? current_time( 'Y-m-d' ) : gmdate( 'Y-m-d' ) );
 		if ( ! self::is_formula_iso_date( $today ) ) {
 			$today = gmdate( 'Y-m-d' );

@@ -27,3 +27,9 @@ test('invalid WAPF numeric function calls fail closed', () => {
 	assert.equal(context.__evalFormula('pow(2)', 10, 1, 0, ''), 0);
 	assert.equal(context.__evalFormula('round()', 10, 1, 0, ''), 0);
 });
+
+test('WAPF checked(field ID) previews selected multi-select choices', () => {
+	assert.equal(context.__evalFormula('checked(material) * 5', 10, 1, 0, '', { material: ['red', 'blue'] }), 10);
+	assert.equal(context.__evalFormula('checked(material)', 10, 1, 0, '', { material: [] }), 0);
+	assert.equal(context.__evalFormula('checked(material)', 10, 1, 0, '', { material: 'red' }), 0);
+});

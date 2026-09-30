@@ -467,6 +467,10 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
   };
   const expr = String(formula)
     .replace(/;/g, ',')
+    .replace(/\bchecked\s*\(\s*([a-z0-9_-]+)\s*\)/gi, (_, fieldId) => {
+      const value = fieldValues[fieldId] ?? fieldValues[String(fieldId).toLowerCase()];
+      return String(Array.isArray(value) ? value.filter((item) => item != null && String(item) !== '').length : 0);
+    })
     .replace(/\b(acf_option|acf)\s*\(\s*([a-z0-9_-]+)\s*\)/gi, (_, type, name) => {
       const values = window.OPF_ACF_VALUES || {};
       const value = Number(values[`${type.toLowerCase()}:${name.toLowerCase()}`]);
