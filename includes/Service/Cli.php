@@ -65,6 +65,69 @@ final class Cli {
 	}
 
 	/**
+	 * Import one JSON payload copied from WAPF Tools.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <file>
+	 * : Path to a WAPF Tools JSON payload (maximum 5 MiB).
+	 *
+	 * --title=<title>
+	 * : Title for the new OPF draft.
+	 *
+	 * [--product=<id>]
+	 * : Attach the draft to one existing WooCommerce product.
+	 *
+	 * [--commit]
+	 * : Create a draft. Without this flag, only report the mapping.
+	 *
+	 * [--format=<format>]
+	 * : Output format: table (default) or json.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp opf import-wapf-json /tmp/wapf-fields.json --title="Imported fields"
+	 *     wp opf import-wapf-json /tmp/wapf-fields.json --title="Imported fields" --product=123 --commit
+	 *
+	 * @param array<int,string>    $args       Positional args.
+	 * @param array<string,string> $assoc_args Flags.
+	 */
+	public function import_wapf_json( array $args, array $assoc_args = [] ): void {
+		if ( 1 !== count( $args ) ) {
+			\WP_CLI::error( 'Provide exactly one WAPF JSON file path.' );
+		}
+		if ( empty( $assoc_args['title'] ) ) {
+			\WP_CLI::error( 'Provide --title for the new OPF draft.' );
+		}
+		$product_id = 0;
+		if ( isset( $assoc_args['product'] ) ) {
+			$product_id = filter_var( $assoc_args['product'], FILTER_VALIDATE_INT, [ 'options' => [ 'min_range' => 1 ] ] );
+			if ( false === $product_id ) {
+				\WP_CLI::error( '--product must be a positive integer.' );
+			}
+		}
+		try {
+			$prepared = WapfJsonFileImporter::inspect_file( $args[0] );
+			$report = WapfJsonFileImporter::run( $prepared, $assoc_args['title'], isset( $assoc_args['commit'] ), (int) $product_id );
+		} catch ( \InvalidArgumentException $exception ) {
+			\WP_CLI::error( $exception->getMessage() );
+		} catch ( \RuntimeException $exception ) {
+			\WP_CLI::error( $exception->getMessage() );
+		}
+		if ( 'json' === ( $assoc_args['format'] ?? 'table' ) ) {
+			\WP_CLI::log( wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) );
+		} else {
+			\WP_CLI::line( sprintf( 'Result: %s', $report['result'] ) );
+			\WP_CLI::line( sprintf( 'Fields: %d', $report['fields'] ?? 0 ) );
+			\WP_CLI::line( 'Status: draft; review required before publishing.' );
+			foreach ( $report['notes'] as $note ) {
+				\WP_CLI::line( '  Review: ' . $note );
+			}
+		}
+		\WP_CLI::success( 'WAPF JSON import inspection complete.' );
+	}
+
+	/**
 	 * Summarize OPF field groups.
 	 *
 	 * @param array<int,string>    $args       Positional args.
