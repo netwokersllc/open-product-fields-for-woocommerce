@@ -154,8 +154,15 @@
 			model.fields.splice( index, 1 );
 			rerender();
 		} } );
+		var duplicate = el( 'button', { class: 'button opf-b-duplicate', type: 'button', text: 'Duplicate', title: 'Duplicate field', onclick: function () {
+			var copy = JSON.parse( JSON.stringify( field ) );
+			copy.id = uniqueId( ( field.id || 'field' ) + '-copy' );
+			model.fields.splice( index + 1, 0, copy );
+			rerender();
+		} } );
+		var actions = el( 'div', { class: 'opf-b-field-actions' }, [ duplicate, remove ] );
 
-		var head = el( 'div', { class: 'opf-b-field-head' }, [ label, typeSel, desc, req, remove ] );
+		var head = el( 'div', { class: 'opf-b-field-head' }, [ label, typeSel, desc, req, actions ] );
 		var card = el( 'div', { class: 'opf-b-field' }, [ head ] );
 
 		if ( field.choices.length ) {
