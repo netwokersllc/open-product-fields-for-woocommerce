@@ -255,6 +255,19 @@ event. Quantity-based rules are handled separately by `Fields::is_valid_rule()`
 when the rule subject is `qty`; no quantity condition is registered in this
 group-placement builder.
 
+### Installed 3.1.5 rule-combination semantics
+
+Both placement and field visibility use OR across rule groups and AND among
+rules within one group. `Conditions::is_field_group_valid_for_product()`
+returns true on the first valid `rules_groups` entry; its
+`is_rule_group_valid()` returns false on the first failed rule. For field
+visibility, `Fields::should_field_be_filled_out()` returns true on the first
+`conditionals` entry whose `validate_rules()` passes; `validate_rules()` also
+fails on the first failed rule. No field conditionals means the field is
+visible, no field-group placement rules means the group is global, and an
+empty rule group passes. The admin field UI explicitly separates groups with
+“or”.
+
 ### Installed 3.1.5 field visibility conditions
 
 `Config::get_field_visibility_conditions()` registers built-in field
