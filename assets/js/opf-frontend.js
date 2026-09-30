@@ -157,6 +157,13 @@ const initDatePicker = ( fieldEl, input ) => {
 	wrapper.append( toggle, panel );
 	fieldEl.appendChild( wrapper );
 	let visibleMonth = ( input.value || new Date().toISOString().slice( 0, 10 ) ).slice( 0, 7 ) + '-01';
+	const displayDate = ( isoDate ) => {
+		const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec( isoDate );
+		if ( ! match ) return 'Choose date';
+		const values = { yyyy: match[1], yy: match[1].slice( -2 ), mm: match[2], m: String( Number( match[2] ) ), dd: match[3], d: String( Number( match[3] ) ) };
+		const format = input.dataset.opfDateFormat || 'mm-dd-yyyy';
+		return format.replace( /yyyy|yy|mm|m|dd|d/gi, ( token ) => values[token.toLowerCase()] || token );
+	};
 	const weekStart = Math.min( 6, Math.max( 0, Number( input.dataset.opfWeekStart || 0 ) ) );
 	const render = () => {
 		grid.textContent = '';
@@ -197,7 +204,7 @@ const initDatePicker = ( fieldEl, input ) => {
 				input.dispatchEvent( new Event( 'change', { bubbles: true } ) );
 				panel.hidden = true;
 				toggle.setAttribute( 'aria-expanded', 'false' );
-				toggle.textContent = isoDate;
+				toggle.textContent = displayDate( isoDate );
 				toggle.focus();
 			} );
 			row.appendChild( choice );
@@ -209,7 +216,7 @@ const initDatePicker = ( fieldEl, input ) => {
 		}
 		if ( row.children.length ) grid.appendChild( row );
 		status.textContent = grid.querySelector( 'button:not(:disabled)' ) ? '' : 'No selectable dates this month.';
-		toggle.textContent = input.value || 'Choose date';
+		toggle.textContent = input.value ? displayDate( input.value ) : 'Choose date';
 	};
 	input.opfRenderDateCalendar = render;
 	const changeMonth = ( amount ) => {

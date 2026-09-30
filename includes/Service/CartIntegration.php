@@ -14,6 +14,8 @@
 
 namespace OPF\Service;
 
+use OPF\Engine\DateFormat;
+
 use OPF\Engine\Calculator;
 use OPF\Engine\Evaluator;
 use OPF\Engine\FieldGroup;
@@ -341,6 +343,10 @@ final class CartIntegration {
 	 * @param string|array        $raw   Stored value.
 	 */
 	private static function display_value( array $field, $raw ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- called from visible_selections().
+		if ( 'date' === $field['type'] ) {
+			$format = get_option( 'opf_date_format', get_option( 'wapf_date_format', DateFormat::DEFAULT_FORMAT ) );
+			return DateFormat::format( (string) $raw, $format );
+		}
 		if ( 'toggle' === $field['type'] ) {
 			return '1' === $raw
 				? __( 'Yes', 'open-product-fields-for-woocommerce' )

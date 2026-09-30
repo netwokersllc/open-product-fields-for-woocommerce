@@ -41,6 +41,7 @@ require_once OPF_DIR . 'includes/Autoloader.php';
 
 use OPF\Service\Admin\Builder;
 use OPF\Service\Admin\ImportPage;
+use OPF\Service\Admin\Settings;
 use OPF\Service\Assets;
 use OPF\Service\CartIntegration;
 use OPF\Service\Cli;
@@ -87,6 +88,7 @@ function opf_boot(): void {
 	Importer::init();
 	Builder::init();
 	ImportPage::init();
+	Settings::init();
 	MetaPrettifier::init();
 
 	if ( defined( 'WP_CLI' ) && WP_CLI ) {
