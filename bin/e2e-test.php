@@ -152,8 +152,14 @@ foreach ( $product_groups_api as $product_group_api ) {
 	}
 }
 check( 'group API: product group lookup', $product_group_found && opf_product_has_options( $matched_product ) );
+$asset_api = wp_styles();
+do_action( 'wp_enqueue_scripts' );
 $rendered_api = opf_display_field_groups_for_product( $matched_product );
 check( 'group API: product fields render to HTML', is_string( $rendered_api ) && false !== strpos( $rendered_api, 'Delivery speed' ) );
+ob_start();
+wp_script_modules()->print_enqueued_script_modules();
+$module_markup = ob_get_clean();
+check( 'group API: renderer enqueues frontend module and styles', false !== strpos( $module_markup, 'opf-frontend' ) && in_array( 'opf-frontend', $asset_api->queue, true ) );
 
 // ------------------------------------------------- classic add-to-cart path.
 $_POST['opf'] = [
