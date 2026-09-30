@@ -69,6 +69,9 @@ final class Woocs {
 		if ( isset( $currency['decimals'] ) && is_numeric( $currency['decimals'] ) ) {
 			$options['decimals'] = max( 0, min( 8, (int) $currency['decimals'] ) );
 		}
+		if ( ! empty( $currency['hide_cents'] ) ) {
+			$options['decimals'] = 0;
+		}
 		if ( isset( $currency['position'] ) ) {
 			switch ( (string) $currency['position'] ) {
 				case 'right':
@@ -105,6 +108,54 @@ final class Woocs {
 		return [ 'base' => $base, 'rate' => is_finite( $rate ) && $rate > 0 ? $rate : 1.0 ];
 	}
 
+	/** Match WOOCS' fixed-price gate for the selected currency. */
+	public static function has_fixed_price( bool $enabled, string $current, string $default, $regular_price, $sale_price ): bool {
+		if ( ! $enabled || '' === $current || '' === $default || 0 === strcasecmp( $current, $default ) ) {
+			return false;
+		}
+		foreach ( [ $regular_price, $sale_price ] as $price ) {
+			if ( is_numeric( $price ) && is_finite( (float) $price ) && (float) $price > 0 ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** Keep a WOOCS fixed price in its selected currency instead of multiplying it by the rate. */
+	public static function selected_price_context( float $store_price, float $selected_price, float $rate, bool $fixed_price ): array {
+		return $fixed_price ? self::display_context( $selected_price, 1.0 ) : self::display_context( $store_price, $rate );
+	}
+
+	/** Resolve whether the selected product has a configured WOOCS fixed price. */
+	public static function product_has_fixed_price( $product ): bool {
+		$woocs = $GLOBALS['WOOCS'] ?? null;
+		if ( ! $product instanceof \WC_Product || ! is_object( $woocs ) || ! isset( $woocs->current_currency, $woocs->default_currency ) || ! function_exists( 'get_option' ) || ! function_exists( 'get_post_meta' ) ) {
+			return false;
+		}
+		$enabled = 1 === (int) get_option( 'woocs_is_fixed_enabled', 0 );
+		$currency = (string) $woocs->current_currency;
+		$product_id = (int) $product->get_id();
+		return self::has_fixed_price(
+			$enabled,
+			$currency,
+			(string) $woocs->default_currency,
+			get_post_meta( $product_id, '_woocs_regular_price_' . $currency, true ),
+			get_post_meta( $product_id, '_woocs_sale_price_' . $currency, true )
+		);
+	}
+
+	/** Product price context used by formula previews and live totals. */
+	public static function product_context( $product ): array {
+		if ( ! $product instanceof \WC_Product ) {
+			return self::display_context( 0.0, 1.0 );
+		}
+		$store_price = (float) $product->get_price( 'edit' );
+		$rate = self::rate();
+		$fixed_price = self::product_has_fixed_price( $product );
+		$selected_price = $fixed_price ? (float) $product->get_price() : $store_price;
+		return self::selected_price_context( $store_price, $selected_price, $rate, $fixed_price );
+	}
+
 	/**
 	 * Add the selected-currency base and rate to Woo's variation response.
 	 *
@@ -118,7 +169,12 @@ final class Woocs {
 		if ( ! self::is_converted_currency() || ! $variation instanceof \WC_Product ) {
 			return $data;
 		}
-		$context = self::display_context( (float) $variation->get_price( 'edit' ), $rate );
+		$fixed_price = self::product_has_fixed_price( $product );
+		$store_price = (float) $variation->get_price( 'edit' );
+		$selected_price = isset( $data['display_price'] ) && is_numeric( $data['display_price'] )
+			? (float) $data['display_price']
+			: (float) $variation->get_price();
+		$context = self::selected_price_context( $store_price, $selected_price, $rate, $fixed_price );
 		$data['opf_currency_base'] = $context['base'];
 		$data['opf_currency_rate'] = $context['rate'];
 		return $data;

@@ -27,4 +27,17 @@ final class WoocsIntegrationTest extends TestCase {
 		$this->assertSame( [ 'base' => 100.0, 'rate' => 2.5 ], Woocs::display_context( 100.0, 2.5 ) );
 		$this->assertSame( [ 'base' => 100.0, 'rate' => 1.0 ], Woocs::display_context( 100.0, NAN ) );
 	}
+
+	public function test_fixed_currency_prices_are_used_only_when_enabled_for_a_non_default_currency(): void {
+		$this->assertTrue( Woocs::has_fixed_price( true, 'EUR', 'USD', '49.00', '' ) );
+		$this->assertTrue( Woocs::has_fixed_price( true, 'EUR', 'USD', '', '39.00' ) );
+		$this->assertFalse( Woocs::has_fixed_price( false, 'EUR', 'USD', '49.00', '' ) );
+		$this->assertFalse( Woocs::has_fixed_price( true, 'USD', 'USD', '49.00', '' ) );
+		$this->assertFalse( Woocs::has_fixed_price( true, 'EUR', 'USD', '0', '-1' ) );
+	}
+
+	public function test_fixed_currency_price_is_not_converted_twice(): void {
+		$this->assertSame( [ 'base' => 49.0, 'rate' => 1.0 ], Woocs::selected_price_context( 100.0, 49.0, 0.92, true ) );
+		$this->assertSame( [ 'base' => 100.0, 'rate' => 0.92 ], Woocs::selected_price_context( 100.0, 49.0, 0.92, false ) );
+	}
 }

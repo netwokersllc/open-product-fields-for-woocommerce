@@ -112,7 +112,7 @@ final class Renderer {
 
 		Assets::enqueue_frontend( self::registry( $groups ) );
 
-		$base_price = (float) $product->get_price( 'edit' );
+		$base_price = (float) Woocs::product_context( $product )['base'];
 		$gids       = [];
 
 		echo '<div class="opf-fields" data-opf-fields="' . esc_attr( (string) count( $groups ) ) . '"><div class="opf" id="opf_' . esc_attr( (string) $product->get_id() ) . '"><div class="opf-wrapper">';
@@ -501,7 +501,7 @@ final class Renderer {
 		) {
 			$data_tax = 1;
 		}
-		$currency = Woocs::display_context( (float) $product->get_price( 'edit' ), Woocs::rate() );
+		$currency = Woocs::product_context( $product );
 		echo '<div class="opf-product-totals' . esc_attr( $hidden ) . '" style="' . ( self::show_totals() ? '' : 'display:none;' ) . '" data-product-id="' . esc_attr( (string) $product->get_id() ) . '" data-product-type="' . esc_attr( $product->get_type() ) . '" data-product-price="' . esc_attr( (string) $currency['base'] ) . '" data-opf-currency-rate="' . esc_attr( (string) $currency['rate'] ) . '" data-tax="' . esc_attr( (string) $data_tax ) . '"><div class="opf--inner">';
 		echo '<div><span>' . esc_html( $i18n['product_total'] ) . '</span> <span class="opf-total opf-product-total price amount"></span></div>';
 		echo '<div><span>' . esc_html( $i18n['options_total'] ) . '</span> <span class="opf-total opf-options-total price amount"></span></div>';

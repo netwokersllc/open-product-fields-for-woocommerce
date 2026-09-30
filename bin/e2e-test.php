@@ -189,17 +189,41 @@ $prior_woocs = $GLOBALS['WOOCS'] ?? null;
 $GLOBALS['WOOCS'] = new class {
 	public string $current_currency = 'EUR';
 	public string $default_currency = 'USD';
-	public function get_currencies(): array { return [ 'USD' => [ 'rate' => 1 ], 'EUR' => [ 'rate' => 0.92, 'symbol' => '€', 'decimals' => 2, 'position' => 'right_space', 'separators' => '3' ] ]; }
+	public array $currency_table = [ 'USD' => [ 'rate' => 1 ], 'EUR' => [ 'rate' => 0.92, 'symbol' => '€', 'decimals' => 2, 'position' => 'right_space', 'separators' => '3' ] ];
+	public function get_currencies(): array { return $this->currency_table; }
 };
 $currency_html = opf_display_field_groups_for_product( $matched_product );
 check( 'WOOCS: totals keep base-currency input and expose selected rate', false !== strpos( $currency_html, 'data-product-price="100" data-opf-currency-rate="0.92"' ) );
 $currency_options = OPF\Service\Integrations\Woocs::display_options();
 check( 'WOOCS: selected symbol, placement, precision, and separators are exposed', ( $currency_options['symbol'] ?? '' ) === '€' && ( $currency_options['format'] ?? '' ) === '{price} {symbol}' && ( $currency_options['decimals'] ?? -1 ) === 2 && ( $currency_options['thousand'] ?? '' ) === ' ' && ( $currency_options['decimal'] ?? '' ) === ',' );
+$GLOBALS['WOOCS']->currency_table['EUR']['hide_cents'] = true;
+check( 'WOOCS: hide-cents setting overrides currency precision', ( OPF\Service\Integrations\Woocs::display_options()['decimals'] ?? -1 ) === 0 );
 $e2e_variation = new WC_Product_Variation();
 $e2e_variation->set_regular_price( '75' );
 $e2e_variation->set_price( '75' );
 $e2e_variation_data = OPF\Service\Integrations\Woocs::variation_currency_data( [], $matched_product, $e2e_variation );
 check( 'WOOCS: variable product preview uses the selected variation base and rate', ( $e2e_variation_data['opf_currency_base'] ?? 0 ) === 75.0 && ( $e2e_variation_data['opf_currency_rate'] ?? 0 ) === 0.92 );
+$prior_fixed_setting = get_option( 'woocs_is_fixed_enabled', false );
+$prior_fixed_price = get_post_meta( $matched_product->get_id(), '_woocs_regular_price_EUR', true );
+update_option( 'woocs_is_fixed_enabled', 1 );
+update_post_meta( $matched_product->get_id(), '_woocs_regular_price_EUR', '49.00' );
+$prior_product_price = $matched_product->get_price( 'edit' );
+$matched_product->set_price( '49.00' );
+$fixed_product_context = OPF\Service\Integrations\Woocs::product_context( $matched_product );
+check( 'WOOCS: simple fixed price uses selected price with unit display rate', $fixed_product_context === [ 'base' => 49.0, 'rate' => 1.0 ] );
+$matched_product->set_price( (string) $prior_product_price );
+$fixed_variation_data = OPF\Service\Integrations\Woocs::variation_currency_data( [ 'display_price' => 62.5 ], $matched_product, $e2e_variation );
+check( 'WOOCS: fixed selected-currency variation price is not converted twice', ( $fixed_variation_data['opf_currency_base'] ?? 0 ) === 62.5 && ( $fixed_variation_data['opf_currency_rate'] ?? 0 ) === 1.0 );
+if ( false === $prior_fixed_setting ) {
+	delete_option( 'woocs_is_fixed_enabled' );
+} else {
+	update_option( 'woocs_is_fixed_enabled', $prior_fixed_setting );
+}
+if ( '' === $prior_fixed_price ) {
+	delete_post_meta( $matched_product->get_id(), '_woocs_regular_price_EUR' );
+} else {
+	update_post_meta( $matched_product->get_id(), '_woocs_regular_price_EUR', $prior_fixed_price );
+}
 if ( null === $prior_woocs ) {
 	unset( $GLOBALS['WOOCS'] );
 } else {
