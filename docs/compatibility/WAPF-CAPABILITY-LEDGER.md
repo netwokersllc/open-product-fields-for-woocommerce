@@ -287,7 +287,8 @@ matrix remain in the full-release ledger and are not dropped from OPF 1.0.
 
 ## Compatibility-matrix ledger
 
-The following compact entries reserve the documented WAPF matrix entries. WAPF labels:
+The following entries mirror all 46 integrations in the current official WAPF
+compatibility matrix. WAPF labels:
 `I` integrated, `A` author integrated, `T` tested, `C` code, `P` partly
 integrated. Every OPF status is `needs audit`; OPF must not inherit WAPF's
 label. All sources are `INTEGRATIONS` and every fixture is
@@ -325,6 +326,8 @@ label. All sources are `INTEGRATIONS` and every fixture is
 | `WAPF-COMPAT-FEATURED-VIDEOS` | Featured Videos | T | Media adapter |
 | `WAPF-COMPAT-CADDY` | Caddy Smart Side Cart | T | Cart adapter |
 | `WAPF-COMPAT-PAYPAL` | Payment Plugin for PayPal | A | Payments adapter |
+| `WAPF-COMPAT-AELIA` | Aelia WooCommerce Currency Switcher | I | Currency adapter (`WAPF-CURRENCY-AELIA`) |
+| `WAPF-COMPAT-FOX` | FOX – Currency Switcher Professional for WooCommerce | I | Currency adapter (`WAPF-CURRENCY-FOX`) |
 | `WAPF-COMPAT-SHOPTIMIZER` | Shoptimizer | T | Theme adapter |
 | `WAPF-COMPAT-STOREFRONT` | Storefront | T | Theme adapter |
 | `WAPF-COMPAT-FLATSOME` | Flatsome | I | Theme adapter |
