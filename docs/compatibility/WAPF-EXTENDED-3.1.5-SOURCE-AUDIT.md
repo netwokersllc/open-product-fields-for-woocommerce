@@ -71,6 +71,58 @@ it does not prove every hook is public, supported, or unchanged in 3.2.1. OPF's
 separately namespaced filters need an explicit compatibility contract and
 documentation before this row can count as parity.
 
+### Installed 3.1.5 field-definition registry
+
+`SW_WAPF_Config::get_field_definitions()` in
+`includes/classes/class-config.php` contains 31 unique definition keys across
+its frontend/admin definitions. Repeated keys are shared by those modes, not
+additional field types. This is the exact source-level mapping to the current
+ledger families:
+
+| Registry keys | Ledger family |
+| --- | --- |
+| `text`, `textarea`, `number`, `email`, `url`, `select`, `checkboxes`, `radio`, `true-false` | `WAPF-FIELD-TEXT`, `WAPF-FIELD-TEXTAREA`, `WAPF-FIELD-NUMBER`, `WAPF-FIELD-EMAIL`, `WAPF-FIELD-URL`, `WAPF-FIELD-SELECT`, `WAPF-FIELD-CHECKBOX`, `WAPF-FIELD-RADIO`, `WAPF-FIELD-TOGGLE` |
+| `image-swatch`, `multi-image-swatch`, `image-swatch-qty`, `color-swatch`, `multi-color-swatch`, `text-swatch`, `multi-text-swatch` | `WAPF-FIELD-SWATCH-IMAGE`, `WAPF-FIELD-SWATCH-MULTI`, `WAPF-FIELD-IMAGE-QUANTITIES`, `WAPF-FIELD-SWATCH-COLOUR` |
+| `card`, `vcard` | `WAPF-FIELD-CARDS` |
+| `products-checkbox`, `products-radio`, `products-dropdown`, `products-image`, `products-card`, `products-vcard`, `products-vcard-qty`, `products-card-qty` | `WAPF-FIELD-CHILD-PRODUCTS` and its category-pricing and image-zoom rows |
+| `file` | `WAPF-FIELD-UPLOAD`, `WAPF-UPLOAD-AJAX-UI` |
+| `p`, `img`, `section`, `sectionend` | `WAPF-FIELD-CONTENT-TEXT`, `WAPF-FIELD-CONTENT-IMAGE`, `WAPF-FIELD-SECTION` |
+
+Two related registrations are conditional or owned by other controllers and
+must not be omitted from the full inventory: date is added only when the
+`wapf_datepicker` setting is enabled; Extended registers `calc` through
+`wapf/field_types` in `class-extended-controller.php`.
+
+HTML and shortcode support are not separate WAPF field types. Free 1.7.1
+registers `content` (with legacy `paragraph`) and stores plain text in
+`p_content`; `class-field-groups.php` sanitizes the value as text and the
+renderer escapes it. The Free field-options description explicitly presents
+HTML and shortcodes as Pro upgrade behavior. Pro/Extended registers the `p`
+“Text & HTML” field using the same `p_content` option, applies a minimal HTML
+allowlist, then calls `do_shortcode()`. The `paragraph.php` view explicitly
+exists to take over the Free paragraph view. The official field-types guide
+also describes content fields and shortcodes as capabilities, not distinct
+field types. These are three separately trackable edition behaviors—Free plain
+text, Pro limited HTML, and Pro shortcode execution—but all map to the same
+content-field data path. They are represented by `WAPF-FIELD-CONTENT-TEXT`,
+`WAPF-FIELD-CONTENT-HTML`, and `WAPF-FIELD-SHORTCODE`; none should be
+described or imported as a standalone WAPF `html` or `shortcode` field type.
+
+OPF's ledger previously mislabeled the content rows as separate WAPF admin
+field types and assumed a WAPF `shortcode` type during import. The row mapping
+is corrected in the ledger: Free `content`/legacy `paragraph` is plain
+text, while Pro HTML and shortcode behaviors use the `p` content type and
+`p_content` option. Migration parity remains open until that payload is mapped
+and verified.
+
+`SW_WAPF_Config::get_pricing_options()` separately registers the general
+`fixed`, `qt`, `p`, `percent`, and `fx` price types; text-like fields add
+`char`/`charq`, while number and image-quantity fields add `nr`/`nrq`. These
+map to the flat, quantity-flat, percentage, quantity-percentage, formula,
+character-count and numeric-value pricing rows in the ledger. This closes the
+installed 3.1.5 registry inventory only; equivalence and current 3.2.1 changes
+remain release- and behavior-level audit work.
+
 ## WAPF Free 1.7.1 source and edition boundary
 
 The current WordPress.org source page lists Free 1.7.1; its plugin header and
