@@ -49,7 +49,7 @@ final class Assets {
 	 *
 	 * @param array<string,mixed> $registry Field metadata for the client.
 	 */
-	public static function enqueue_frontend( array $registry = [] ): void {
+	public static function enqueue_frontend( array $registry = [], array $acf_values = [] ): void {
 		if ( function_exists( 'wp_enqueue_script_module' ) ) {
 			wp_enqueue_script_module( 'opf-frontend' );
 		} else {
@@ -68,6 +68,7 @@ final class Assets {
 			];
 			wp_print_inline_script_tag(
 				'window.OPF_FIELDS = ' . wp_json_encode( $registry, JSON_UNESCAPED_UNICODE ) . ';'
+				. 'window.OPF_ACF_VALUES = ' . wp_json_encode( $acf_values ) . ';'
 				. 'window.OPF_DATE_FORMAT = ' . wp_json_encode( $date_format ) . ';'
 				. 'window.OPF_TODAY = ' . wp_json_encode( $today ) . ';'
 				. 'window.OPF_PRICE_DISPLAY = ' . wp_json_encode( $display_options, JSON_UNESCAPED_UNICODE ) . ';'

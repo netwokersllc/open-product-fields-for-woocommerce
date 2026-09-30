@@ -111,7 +111,10 @@ final class Renderer {
 			return;
 		}
 
-		Assets::enqueue_frontend( self::registry( $groups, $product->get_id() ) );
+		Assets::enqueue_frontend(
+			self::registry( $groups ),
+			ACFFormula::values_for_groups( $groups, $product->get_id() )
+		);
 
 		$base_price = (float) Woocs::product_context( $product )['base'];
 		$gids       = [];
@@ -161,7 +164,7 @@ final class Renderer {
 	 *
 	 * @param array<int,array{id:int,title:string,lang:string,group:FieldGroup}> $groups Groups.
 	 */
-	private static function registry( array $groups, int $product_id ): array {
+	private static function registry( array $groups ): array {
 		$registry = [];
 		foreach ( $groups as $entry ) {
 			$gid = (string) $entry['id'];
@@ -178,8 +181,8 @@ final class Renderer {
 								'pricing'  => [
 									'type'        => $c['pricing']['type'],
 									'amount'      => (float) $c['pricing']['amount'],
-								'formula'     => ACFFormula::resolve( (string) $c['pricing']['formula'], $product_id ),
-								'formula_raw' => ACFFormula::resolve( (string) ( $c['pricing']['formula_raw'] ?? '' ), $product_id ),
+								'formula'     => (string) $c['pricing']['formula'],
+								'formula_raw' => (string) ( $c['pricing']['formula_raw'] ?? '' ),
 								],
 							];
 						},
@@ -188,8 +191,8 @@ final class Renderer {
 					'pricing'      => [
 						'type'       => $field['pricing']['type'],
 						'amount'     => (float) $field['pricing']['amount'],
-						'formula'    => ACFFormula::resolve( (string) ( $field['pricing']['formula'] ?? '' ), $product_id ),
-						'formula_raw' => ACFFormula::resolve( (string) ( $field['pricing']['formula_raw'] ?? '' ), $product_id ),
+						'formula'    => (string) ( $field['pricing']['formula'] ?? '' ),
+						'formula_raw' => (string) ( $field['pricing']['formula_raw'] ?? '' ),
 						'per_unit'   => ! empty( $field['pricing']['per_unit'] ),
 					],
 				];

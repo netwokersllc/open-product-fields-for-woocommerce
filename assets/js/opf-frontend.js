@@ -466,6 +466,13 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
     return { weekday: date.getUTCDay(), month };
   };
   const expr = String(formula)
+    .replace(/\b(acf_option|acf)\s*\(\s*([a-z0-9_-]+)\s*\)/gi, (_, type, name) => {
+      const values = window.OPF_ACF_VALUES || {};
+      const value = Number(values[`${type.toLowerCase()}:${name.toLowerCase()}`]);
+      if (!Number.isFinite(value)) return '0';
+      const literal = value.toFixed(14).replace(/0+$/, '').replace(/\.$/, '');
+      return literal === '' || literal === '-0' ? '0' : literal;
+    })
     .replace(/\[price\]/gi, ' P ')
     .replace(/\[qty\]/gi, ' Q ')
     .replace(/\[addons\]|\[options_total\]/gi, ' A ')
@@ -680,16 +687,21 @@ const initVariationCurrency = () => {
   if (!totalsEl || !form || !window.jQuery) return;
   const originalBase = totalsEl.getAttribute('data-product-price');
   const originalRate = totalsEl.getAttribute('data-opf-currency-rate') || '1';
+  const originalAcfValues = window.OPF_ACF_VALUES || {};
   window.jQuery(form)
     .on('found_variation.opfCurrency', (_event, variation) => {
-      if (!variation || !Number.isFinite(Number(variation.opf_currency_base)) || !Number.isFinite(Number(variation.opf_currency_rate))) return;
-      totalsEl.setAttribute('data-product-price', String(variation.opf_currency_base));
-      totalsEl.setAttribute('data-opf-currency-rate', String(variation.opf_currency_rate));
+      if (!variation) return;
+      if (variation.opf_acf_values) window.OPF_ACF_VALUES = variation.opf_acf_values;
+      if (Number.isFinite(Number(variation.opf_currency_base)) && Number.isFinite(Number(variation.opf_currency_rate))) {
+        totalsEl.setAttribute('data-product-price', String(variation.opf_currency_base));
+        totalsEl.setAttribute('data-opf-currency-rate', String(variation.opf_currency_rate));
+      }
       writeTotals();
     })
     .on('reset_data.opfCurrency', () => {
       totalsEl.setAttribute('data-product-price', originalBase);
       totalsEl.setAttribute('data-opf-currency-rate', originalRate);
+      window.OPF_ACF_VALUES = originalAcfValues;
       writeTotals();
     });
 };
