@@ -53,23 +53,39 @@ final class GroupDuplication {
 		}
 
 		check_admin_referer( self::nonce_action( $post_id ) );
+		$new_id = self::create_copy( $post );
+		if ( is_wp_error( $new_id ) ) {
+			$error_code = $new_id->get_error_code();
+			$response   = 'opf_forbidden' === $error_code ? 403 : ( 'opf_save_failed' === $error_code ? 500 : 400 );
+			wp_die( esc_html( $new_id->get_error_message() ), '', [ 'response' => $response ] );
+		}
+
+		$edit_url = get_edit_post_link( $new_id, 'url' ) ?: admin_url( 'edit.php?post_type=opf_field_group' );
+		wp_safe_redirect( $edit_url );
+		exit;
+	}
+
+	/**
+	 * Create the published copy after enforcing the same capabilities as the UI.
+	 *
+	 * @return int|\WP_Error New post ID or a safe error.
+	 */
+	public static function create_copy( \WP_Post $post ) {
+		if ( 'opf_field_group' !== $post->post_type ) {
+			return new \WP_Error( 'opf_wrong_post_type', __( 'Only field groups can be duplicated.', 'open-product-fields-for-woocommerce' ) );
+		}
 		if ( ! self::can_duplicate( $post ) ) {
-			wp_die( esc_html__( 'You are not allowed to duplicate this field group.', 'open-product-fields-for-woocommerce' ), '', [ 'response' => 403 ] );
+			return new \WP_Error( 'opf_forbidden', __( 'You are not allowed to duplicate this field group.', 'open-product-fields-for-woocommerce' ) );
 		}
 
 		try {
 			$group = FieldGroups::group_from_post( $post );
-		} catch ( \Throwable $error ) {
-			$group = null;
-		}
-		if ( ! $group ) {
-			wp_die( esc_html__( 'This field group cannot be duplicated because its data is invalid.', 'open-product-fields-for-woocommerce' ), '', [ 'response' => 400 ] );
-		}
-
-		try {
+			if ( ! $group ) {
+				return new \WP_Error( 'opf_invalid_group', __( 'This field group cannot be duplicated because its data is invalid.', 'open-product-fields-for-woocommerce' ) );
+			}
 			$data = FieldGroupDuplicator::duplicate( $group->data );
 		} catch ( \Throwable $error ) {
-			wp_die( esc_html__( 'Could not create unique field IDs for this copy.', 'open-product-fields-for-woocommerce' ), '', [ 'response' => 500 ] );
+			return new \WP_Error( 'opf_invalid_group', __( 'Could not prepare this field group for duplication.', 'open-product-fields-for-woocommerce' ) );
 		}
 
 		$new_id = FieldGroups::save(
@@ -80,12 +96,7 @@ final class GroupDuplication {
 				'status' => 'publish',
 			]
 		);
-		if ( ! $new_id ) {
-			wp_die( esc_html__( 'Could not save the duplicated field group.', 'open-product-fields-for-woocommerce' ), '', [ 'response' => 500 ] );
-		}
-
-		wp_safe_redirect( get_edit_post_link( $new_id, 'url' ) );
-		exit;
+		return $new_id ?: new \WP_Error( 'opf_save_failed', __( 'Could not save the duplicated field group.', 'open-product-fields-for-woocommerce' ) );
 	}
 
 	private static function can_duplicate( \WP_Post $post ): bool {
