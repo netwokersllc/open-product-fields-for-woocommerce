@@ -230,9 +230,9 @@ or bundled Pro contents.
 | Extended 3.2.1: WordPress 7.0 admin CSS fixes | G4 supported-platform/admin compatibility | Release compatibility behavior; verify current admin screens at the claimed WordPress floor and WordPress 7.0. |
 | Pro 3.2.2: blank Product Fields admin-page fix | G1 package-inclusion check; G4 admin reliability | No separate customer capability row. Inspect the exact Extended archive to determine whether it includes the fix, then verify the Product Fields screen loads. |
 
-This review found two candidate capability rows missing from the current
-125-row edition inventory: card quantity conditional settings and date-picker
-accessibility. Keep the inventory count provisional until these rows are added
-and classified. The official descriptions do not disclose their exact setting
+This review found two capability rows missing from the prior edition
+inventory: card quantity conditional settings and date-picker accessibility.
+Both are now explicit `needs audit` rows in the ledger, bringing the edition
+scope to 127. The official descriptions do not disclose their exact setting
 keys or complete behavior, so only the licensed current package can close
 those source questions.
