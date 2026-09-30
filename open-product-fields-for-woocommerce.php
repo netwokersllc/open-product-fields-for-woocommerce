@@ -40,6 +40,8 @@ define( 'OPF_URL', plugin_dir_url( __FILE__ ) );
 require_once OPF_DIR . 'includes/Autoloader.php';
 require_once OPF_DIR . 'includes/api/formula-functions.php';
 require_once OPF_DIR . 'includes/api/field-groups.php';
+require_once OPF_DIR . 'includes/api/settings.php';
+require_once OPF_DIR . 'includes/api/cart-orders.php';
 
 use OPF\Service\Admin\Builder;
 use OPF\Service\Admin\ImportPage;

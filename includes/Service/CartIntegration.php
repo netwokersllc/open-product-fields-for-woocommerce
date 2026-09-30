@@ -300,7 +300,7 @@ final class CartIntegration {
 	 *
 	 * @param \WC_Product         $product Product.
 	 * @param array<int|string, array<string, mixed>> $values Stored values.
-	 * @return array<int,array{label:string,value:string}>
+	 * @return array<int,array{group_id:int,field_id:string,label:string,value:string,raw_value:mixed,type:string}>
 	 */
 	public static function visible_selections( \WC_Product $product, array $values ): array {
 		$out = [];
@@ -326,8 +326,12 @@ final class CartIntegration {
 				$value = self::display_value( $field, $raw );
 				if ( '' !== $value ) {
 					$out[] = [
-						'label' => $field['label'],
-						'value' => $value,
+						'group_id' => (int) $entry['id'],
+						'field_id' => (string) $fid,
+						'label'    => $field['label'],
+						'value'    => $value,
+						'raw_value' => $raw,
+						'type'     => (string) $field['type'],
 					];
 				}
 			}
@@ -387,11 +391,15 @@ final class CartIntegration {
 			return;
 		}
 
-		$values = $cart_item[ self::ITEM_KEY ];
-		foreach ( self::visible_selections( $product, $values ) as $selection ) {
+		$values     = $cart_item[ self::ITEM_KEY ];
+		$selections = self::visible_selections( $product, $values );
+		foreach ( $selections as $selection ) {
 			$item->add_meta_data( $selection['label'], $selection['value'] );
 		}
 		$item->add_meta_data( '_opf_fields', wp_json_encode( $values, JSON_UNESCAPED_UNICODE ), true );
+		if ( $selections ) {
+			$item->add_meta_data( '_opf_fields_snapshot', wp_json_encode( $selections, JSON_UNESCAPED_UNICODE ), true );
+		}
 	}
 
 	/**
@@ -403,6 +411,7 @@ final class CartIntegration {
 	 */
 	public static function hidden_order_meta( array $keys ): array {
 		$keys[] = '_opf_fields';
+		$keys[] = '_opf_fields_snapshot';
 		// Otros plugins que ensucian el display de órdenes
 		$keys = array_merge( $keys, [
 			'_nova_start_url',
