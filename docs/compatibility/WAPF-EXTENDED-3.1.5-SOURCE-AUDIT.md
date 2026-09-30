@@ -71,6 +71,8 @@ the prior 92-filter/8-action count was incomplete and is superseded by the
 token-scan count above. It does not prove every hook is public, supported, or
 unchanged in 3.2.1. OPF's separately namespaced filters need an explicit
 compatibility contract and documentation before this row can count as parity.
+The exact installed hook names, call argument counts, and source locations are
+listed in the [3.1.5 hook manifest](WAPF-EXTENDED-3.1.5-HOOK-MANIFEST.md).
 
 The beta helper API is a separate capability from action/filter extension
 points. OPF's current global functions are lifecycle bootstrap/activation
