@@ -130,6 +130,11 @@ and that many unlisted plugins may still work, so this omission narrows the
 published evidence but does not prove incompatibility. The current table and
 the older generic compatibility claim remain in tension with the unregistered
 3.1.5 adapter; exact 3.2.1 runtime source is still required.
+This is separate from Wombat's YITH Booking & Appointment entry: its current
+compatibility table marks that integration as `Code`, and the linked recipe
+requires a valid license key to reveal a custom snippet for the site's
+`functions.php`. It is not a bundled WAPF adapter in the 3.1.5 registry, and
+the gated snippet's behavior cannot be audited from the public instructions.
 
 | Source adapter | Detected behavior | Ledger mapping |
 | --- | --- | --- |

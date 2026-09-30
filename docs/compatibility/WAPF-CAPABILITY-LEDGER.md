@@ -319,7 +319,7 @@ label. All sources are `INTEGRATIONS` and every fixture is
 | `WAPF-COMPAT-RESTAURANT` | WooCommerce Restaurant Ordering | C | Ordering adapter |
 | `WAPF-COMPAT-SUBSCRIPTIONS` | WooCommerce Subscriptions | I | Subscription adapter |
 | `WAPF-COMPAT-WP-ALL-EXPORT` | WP All Export | T | Export adapter |
-| `WAPF-COMPAT-YITH-BOOKING` | YITH Booking & Appointment | C | Booking adapter |
+| `WAPF-COMPAT-YITH-BOOKING` | YITH Booking & Appointment | C | License-gated external snippet (not bundled in 3.1.5 adapter map) |
 | `WAPF-COMPAT-YITH-QUOTE` | YITH Request a Quote | I | Quote adapter |
 | `WAPF-COMPAT-YITH-QUICK-VIEW` | YITH WooCommerce Quick View | C | Quick-view adapter |
 | `WAPF-COMPAT-ADVANCED-SHIPPING` | Advanced Shipping Rates | A | Shipping adapter |
