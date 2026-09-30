@@ -69,6 +69,25 @@ const isVisible = ( field, values ) => {
 	return hasShow ? showPass : true;
 };
 
+const dateSiteClock = ( input ) => {
+	const serverEpoch = Number( input.dataset.opfDateSiteEpoch );
+	if ( ! Number.isFinite( serverEpoch ) ) return null;
+	if ( ! input.dataset.opfDateClientEpoch ) input.dataset.opfDateClientEpoch = String( Date.now() );
+	const now = new Date( serverEpoch * 1000 + Date.now() - Number( input.dataset.opfDateClientEpoch ) );
+	const timeZone = input.dataset.opfDateTimezone || 'UTC';
+	try {
+		const parts = new Intl.DateTimeFormat( 'en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' } ).formatToParts( now );
+		const part = ( type ) => ( parts.find( ( item ) => item.type === type ) || {} ).value || '';
+		return { date: part( 'year' ) + '-' + part( 'month' ) + '-' + part( 'day' ), time: part( 'hour' ) + ':' + part( 'minute' ) + ':' + part( 'second' ) };
+	} catch ( error ) {
+		const match = timeZone.match( /^([+-])(\d{2}):(\d{2})$/ );
+		if ( ! match ) return null;
+		const offset = ( Number( match[2] ) * 60 + Number( match[3] ) ) * ( '-' === match[1] ? -1 : 1 );
+		const shifted = new Date( now.getTime() + offset * 60000 );
+		return { date: shifted.toISOString().slice( 0, 10 ), time: shifted.toISOString().slice( 11, 19 ) };
+	}
+};
+
 const dateIsBlocked = ( input, isoDate ) => {
 	if ( ( input.min && isoDate < input.min ) || ( input.max && isoDate > input.max ) ) return true;
 	const date = new Date( isoDate + 'T00:00:00Z' );
@@ -76,7 +95,7 @@ const dateIsBlocked = ( input, isoDate ) => {
 	const weekdays = JSON.parse( input.dataset.opfDisabledWeekdays || '[]' );
 	if ( weekdays.includes( date.getUTCDay() ) ) return true;
 	const monthDay = isoDate.slice( 5 );
-	return JSON.parse( input.dataset.opfDisabledDates || '[]' ).some( ( rule ) => {
+	const dateRuleBlocks = JSON.parse( input.dataset.opfDisabledDates || '[]' ).some( ( rule ) => {
 		const parts = String( rule ).trim().split( /\s+/ );
 		if ( 1 === parts.length ) return parts[0] === isoDate || parts[0] === monthDay;
 		let [ start, end ] = parts;
@@ -87,6 +106,14 @@ const dateIsBlocked = ( input, isoDate ) => {
 		if ( /^\d{2}-\d{2}$/.test( end ) ) end = isoDate.slice( 0, 4 ) + '-' + end;
 		return start <= isoDate && isoDate <= end;
 	} );
+	if ( dateRuleBlocks ) return true;
+	const cutoff = input.dataset.opfDateCutoff;
+	if ( cutoff ) {
+		const clock = dateSiteClock( input );
+		if ( ! clock ) return true;
+		if ( isoDate === clock.date && clock.time > cutoff + ':00' ) return true;
+	}
+	return false;
 };
 
 const initDatePicker = ( fieldEl, input ) => {
@@ -184,6 +211,7 @@ const initDatePicker = ( fieldEl, input ) => {
 		status.textContent = grid.querySelector( 'button:not(:disabled)' ) ? '' : 'No selectable dates this month.';
 		toggle.textContent = input.value || 'Choose date';
 	};
+	input.opfRenderDateCalendar = render;
 	const changeMonth = ( amount ) => {
 		const month = new Date( visibleMonth + 'T00:00:00Z' );
 		month.setUTCMonth( month.getUTCMonth() + amount );
@@ -241,6 +269,13 @@ const initDatePicker = ( fieldEl, input ) => {
 		render();
 	} );
 	render();
+	if ( input.dataset.opfDateCutoff && window.setInterval && ! input.opfDateCutoffTimer ) {
+		input.opfDateCutoffTimer = window.setInterval( () => {
+			if ( ! panel.hidden ) render();
+			if ( input.value ) input.setCustomValidity( dateIsBlocked( input, input.value ) ? 'This date is unavailable.' : '' );
+		}, 15000 );
+		window.addEventListener( 'pagehide', () => window.clearInterval( input.opfDateCutoffTimer ), { once: true } );
+	}
 };
 
 const init = () => {

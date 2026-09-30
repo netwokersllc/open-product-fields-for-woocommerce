@@ -373,6 +373,12 @@ final class Renderer {
 				if ( ! empty( $field['disabled_dates'] ) ) {
 					$date_attrs .= ' data-opf-disabled-dates="' . esc_attr( wp_json_encode( array_values( $field['disabled_dates'] ) ) ) . '"';
 				}
+				if ( isset( $field['cutoff_time'] ) ) {
+					$current = function_exists( 'current_datetime' ) ? current_datetime() : new \DateTimeImmutable( 'now', new \DateTimeZone( 'UTC' ) );
+					$date_attrs .= ' data-opf-date-cutoff="' . esc_attr( $field['cutoff_time'] ) . '"';
+					$date_attrs .= ' data-opf-date-site-epoch="' . esc_attr( (string) $current->getTimestamp() ) . '"';
+					$date_attrs .= ' data-opf-date-timezone="' . esc_attr( function_exists( 'wp_timezone_string' ) ? wp_timezone_string() : 'UTC' ) . '"';
+				}
 				echo '<input type="date" value="" ' . $shared . $date_attrs . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
 				break;
 			case 'toggle':

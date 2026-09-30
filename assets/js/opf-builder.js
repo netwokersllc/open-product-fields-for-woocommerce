@@ -189,6 +189,12 @@
 				} );
 				dateBounds.appendChild( input );
 			} );
+			var cutoffInput = el( 'input', { class: 'opf-b-input', type: 'time', value: field.cutoff_time || '', placeholder: 'Disable today after' } );
+			cutoffInput.addEventListener( 'input', function () {
+				if ( cutoffInput.value ) field.cutoff_time = cutoffInput.value;
+				else delete field.cutoff_time;
+			} );
+			dateBounds.appendChild( cutoffInput );
 			var disabledWeekdays = el( 'input', { class: 'opf-b-input', type: 'text', value: Array.isArray( field.disabled_weekdays ) ? field.disabled_weekdays.join( ', ' ) : '', placeholder: 'Disabled weekdays (0=Sun … 6=Sat)' } );
 			disabledWeekdays.addEventListener( 'input', function () {
 				var days = disabledWeekdays.value.split( ',' ).map( function ( value ) { return value.trim(); } ).filter( Boolean );

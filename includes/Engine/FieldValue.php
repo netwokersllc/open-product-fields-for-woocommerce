@@ -233,6 +233,9 @@ final class FieldValue {
 			if ( self::matches_disabled_date( $value, $field['disabled_dates'] ?? [] ) ) {
 				return [ sprintf( '"%s" contains a disallowed date.', $label ) ];
 			}
+			if ( isset( $field['cutoff_time'] ) && $value === $current->format( 'Y-m-d' ) && $current->format( 'H:i:s' ) > $field['cutoff_time'] . ':00' ) {
+				return [ sprintf( '"%s" is no longer available for today.', $label ) ];
+			}
 		}
 
 		return [];

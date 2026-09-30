@@ -255,6 +255,16 @@ final class FieldGroup {
 				}
 				$normalized['disabled_dates'] = array_values( array_unique( $disabled_dates ) );
 			}
+			if ( array_key_exists( 'cutoff_time', $field ) && '' !== $field['cutoff_time'] ) {
+				if ( ! is_string( $field['cutoff_time'] ) ) {
+					throw new \InvalidArgumentException( 'Date cutoff time must be a string in 24-hour HH:MM format.' );
+				}
+				$cutoff = trim( $field['cutoff_time'] );
+				if ( ! preg_match( '/^(?:[01]\d|2[0-3]):[0-5]\d$/', $cutoff ) ) {
+					throw new \InvalidArgumentException( 'Date cutoff time must use 24-hour HH:MM format.' );
+				}
+				$normalized['cutoff_time'] = $cutoff;
+			}
 		}
 		return $normalized;
 	}
