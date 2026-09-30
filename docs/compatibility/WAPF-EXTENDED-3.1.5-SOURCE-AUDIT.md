@@ -65,6 +65,31 @@ not assert that OPF matches each behavior: capability equivalence, migration
 semantics, runtime integrations, and current 3.2.1/3.2.2 release differences
 remain tracked as separate acceptance work.
 
+## WAPF Free 1.7.1 source and edition boundary
+
+The current WordPress.org source page lists Free 1.7.1; its plugin header and
+readme agree. The inspected WordPress.org archive contains 79 files (53 PHP,
+20 translation catalogs, 2 JS, and 2 CSS files). This is a public, GPL-licensed
+source baseline separate from the production server, where the Extended
+package is installed and the standalone Free plugin is absent. Archive
+SHA-256: `b1852652a2c966a2419f7f2d7059ad97b296e1e136785f252260bafc2513e283`.
+
+| Free subsystem | 1.7.1 source | Audited behavior and edition boundary |
+| --- | --- | --- |
+| Field registry | `includes/classes/class-fields.php::get_field_types()`; `views/frontend/fields/*.php` | Ten types are marked Free in the registry: text, textarea, number, email, URL, select, true/false, checkboxes, radio, and paragraph/content. The same registry marks file, date, image/color/text swatches, cards, image quantities, calculation, child products, HTML/shortcodes, image, and section as Pro. Extended fields register through the paid package's `wapf/field_types` filter. |
+| Free pricing boundary | `includes/classes/class-fields.php::get_pricing_options()`; `pricing_value()`; `do_pricing()` | The Free package exposes only `fixed` flat-fee pricing. The same registry marks quantity-flat, formula, percentage, numeric-value, and character-count pricing as Pro-only. Choice pricing is resolved by submitted choice slug; the server computes its add-on from validated values. |
+| Core field validation and conditions | `includes/classes/class-fields.php`; `includes/classes/class-conditions.php`; `includes/classes/class-field-groups.php` | Values are type-sanitized (textarea, number, email, true/false and choices have dedicated paths); required state depends on field conditions; selection values are matched to configured choice slugs. Free conditions include the documented value/empty/checked tests; Pro-only rule operators and product/user targets are marked separately in source configuration. |
+| Product groups and persistence | `includes/classes/class-field-groups.php`; `includes/controllers/class-admin-controller.php`; `includes/controllers/class-product-controller.php` | Global field-group CPT records and product-local `_wapf_fieldgroup` data have separate load/save paths. Product and variation rendering, product assignment, conditions, and field values are resolved before storefront output. Free supports simple/variable products and Ajax variation selection; targeting exact variations is Pro-only. |
+| Cart/order lifecycle | `includes/controllers/class-product-controller.php`; `includes/classes/class-fields.php`; `includes/classes/class-woocommerce-service.php` | The controller renders on product pages, validates required fields at add-to-cart, stores structured `_wapf_meta` data, applies server-side add-on prices before totals, displays values on cart/checkout, persists order-item metadata, and restores saved values for order-again. The Free package intentionally disables WooCommerce Ajax add-to-cart when fields are present; the premium package adds integrations for supported Ajax product-page implementations. |
+| Admin, options, and localization | `includes/controllers/class-admin-controller.php`; `includes/classes/class-wapf-list-table.php`; `includes/classes/class-l10n.php`; `languages/`; `wpml-config.xml` | Admin supports product-local and global group editing, assignment rules and global add-to-cart text settings. The package ships its own POT/locale catalogs and WPML configuration. The WordPress.org feature page describes Free UI translations and marks subscriptions/multicurrency, variation-specific fields, advanced pricing, and richer targeting as paid boundaries. |
+
+Official Free source and boundary references: [WordPress.org plugin page and
+changelog](https://wordpress.org/plugins/advanced-product-fields-for-woocommerce/)
+and [official Pro/Extended tier comparison](https://www.studiowombat.com/knowledge-base/whats-the-difference-between-each-version/).
+This Free source audit plus the installed Extended 3.1.5/Pro map documents the
+available code baselines; it does not replace the still-open source audit of
+current Extended 3.2.1 and Pro 3.2.2 packages.
+
 ## Current target version gap
 
 This document audits the installed 3.1.5 package only. The current official
