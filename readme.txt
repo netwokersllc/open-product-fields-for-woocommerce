@@ -28,6 +28,7 @@ This plugin is 100% free and open source (GPLv2 or later). No license keys, no n
 * Works on classic product pages AND block-based cart/checkout (Store API)
 * Per-field order-item metadata stored through WooCommerce's order-item API; compatible with declared HPOS support
 * Migration tool: imports the supported WAPF field types and flags unsupported fields or repeaters for review; it can recover corrupted legacy payloads (`wp opf import-wapf`)
+* Draft import for one WAPF Tools JSON payload (`wp opf import-wapf-json`); placement and unsupported conditions/options require review before publishing
 * Optional legacy-markup compatibility mode for migrations from themes that expect WAPF-style classes and attributes
 * REST API (`opf/v1`) and dependency-free JavaScript builder
 * Zero asset weight on pages without fields; no jQuery
