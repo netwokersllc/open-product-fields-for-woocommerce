@@ -29,16 +29,16 @@ Official add-on product pages list these package versions as of 2026-09-30:
 [Image Upload 1.3.2](https://www.studiowombat.com/plugin/apf-image-upload-addon/),
 [URL Prefill 1.0.7](https://www.studiowombat.com/plugin/apf-url-addon/),
 [Live Content Preview 4.0.1](https://www.studiowombat.com/plugin/live-content-preview-add-on/),
-[Layered Images 2.2.1](https://www.studiowombat.com/plugin/layered-images-add-on/),
+[Layered Images 2.2.5](https://www.studiowombat.com/plugin/layered-images-add-on/changelog/),
 and [Lookup Table 1.1.0](https://www.studiowombat.com/plugin/lookup-table-add-on/).
 These listings set version targets; they do not replace archive/hash
 verification or source review.
 
 ## Progress now
 
-The current ledger tracks 152 rows: 133 Free/Pro/Extended rows (including
-three “All versions” rows) plus 19 add-on lifecycle/feature rows covering six
-add-ons. Current source audits may identify more distinct capabilities, so 152
+The current ledger tracks 165 rows: 133 Free/Pro/Extended rows (including
+three “All versions” rows) plus 32 add-on lifecycle/feature rows covering six
+add-ons. Current source audits may identify more distinct capabilities, so 165
 is not a final feature count. Current recorded status:
 
 | Status | Rows | Meaning for the gate |
@@ -46,13 +46,13 @@ is not a final feature count. Current recorded status:
 | Baseline supported | 8 | Promising baseline only; not accepted as proof |
 | Supported | 22 | Evidence recorded; still subject to current-source reconciliation |
 | Supported with documented difference | 12 | Needs explicit non-regression review and acceptance |
-| Partial | 104 | Material parity or proof remains |
+| Partial | 117 | Material parity or proof remains |
 | Gap | 3 | Known absent in the current OPF tree |
 | Needs audit | 3 | Card-quantity conditionals, date-picker accessibility, and whether WAPF registers its bundled Bookings adapter need source review |
-| **Total** | **152** | **G1 and G2 remain open** |
+| **Total** | **165** | **G1 and G2 remain open** |
 
 Extended-only rows: 28 total; 2 supported, 4 supported with a documented
-difference, 20 partial, 2 needs audit. All 152 currently tracked core and
+difference, 20 partial, 2 needs audit. All 165 currently tracked core and
 add-on rows have a ledger status; this closes current known-gap classification,
 not complete feature inventory or source freeze. Source review may add rows.
 Several statuses
