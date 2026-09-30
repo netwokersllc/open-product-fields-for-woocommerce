@@ -18,6 +18,28 @@ defined( 'ABSPATH' ) || exit;
 
 final class Calculator {
 
+	/** @var array<string,callable> Request-local extension functions. */
+	private static array $formula_functions = [];
+
+	/**
+	 * Register a pure numeric formula function for this request.
+	 *
+	 * Callbacks receive evaluated float arguments and formula context. Their
+	 * result must be numeric and finite; unsafe or invalid results make the
+	 * containing formula evaluate to zero.
+	 *
+	 * @param string   $name     ASCII function name.
+	 * @param callable $callback Callback receiving (float[] $args, array $context).
+	 */
+	public static function add_formula_function( string $name, callable $callback ): bool {
+		$name = strtolower( $name );
+		if ( ! preg_match( '/^[a-z_][a-z0-9_]{0,31}$/', $name ) || in_array( $name, [ 'today', 'dow', 'month', 'p', 'q', 'a', 'v' ], true ) ) {
+			return false;
+		}
+		self::$formula_functions[ $name ] = $callback;
+		return true;
+	}
+
 	/**
 	 * Compute the per-unit addon price for a field selection.
 	 *
@@ -138,13 +160,21 @@ final class Calculator {
 			$formula
 		);
 		$vars = [ 'P' => $price, 'Q' => (float) $qty, 'A' => $addons, 'V' => (float) $val ];
+		$context = [
+			'price'        => $price,
+			'quantity'     => $qty,
+			'addons'       => $addons,
+			'value'        => $val,
+			'today'        => $today,
+			'field_values' => $field_values,
+		];
 
 		$tokens = self::tokenize( $formula, $vars );
 		if ( null === $tokens ) {
 			return 0.0;
 		}
 		$pos   = 0;
-		$value = self::parse_expression( $tokens, $pos );
+		$value = self::parse_expression( $tokens, $pos, $context );
 		if ( null === $value || $pos < count( $tokens ) ) {
 			return 0.0;
 		}
@@ -228,7 +258,7 @@ final class Calculator {
 	 * Tokenize. A variable letter is valid only as a standalone token.
 	 *
 	 * @param array<string,float> $vars Variable values.
-	 * @return array<int,array{t:string,v:float}>|null
+	 * @return array<int,array{t:string,v:float|string}>|null
 	 */
 	private static function tokenize( string $formula, array $vars ): ?array {
 		$tokens = [];
@@ -245,12 +275,21 @@ final class Calculator {
 				$i++;
 				continue;
 			}
+			if ( preg_match( '/^[a-z_][a-z0-9_]*/i', substr( $formula, $i ), $function ) ) {
+				$name = strtolower( $function[0] );
+				if ( ! isset( self::$formula_functions[ $name ] ) ) {
+					return null;
+				}
+				$tokens[] = [ 't' => 'fn', 'v' => $name ];
+				$i       += strlen( $function[0] );
+				continue;
+			}
 			if ( preg_match( '/\d+(?:\.\d+)?/', substr( $formula, $i ), $m ) && ( '.' === $ch || ctype_digit( $ch ) ) ) {
 				$tokens[] = [ 't' => 'num', 'v' => (float) $m[0] ];
 				$i       += strlen( $m[0] );
 				continue;
 			}
-			if ( false !== strpos( '+-*/()', $ch ) && 1 === strlen( $ch ) ) {
+			if ( false !== strpos( '+-*/(),', $ch ) && 1 === strlen( $ch ) ) {
 				$tokens[] = [ 't' => $ch, 'v' => 0.0 ];
 				$i++;
 				continue;
@@ -263,15 +302,16 @@ final class Calculator {
 	/**
 	 * expression := term (('+'|'-') term)*
 	 *
-	 * @param array<int,array{t:string,v:float}> $tokens Tokens.
-	 * @param int                            $pos    Cursor (by reference).
+	 * @param array<int,array{t:string,v:float|string}> $tokens Tokens.
+	 * @param int                                       $pos    Cursor (by reference).
+	 * @param array<string,mixed>                       $context Formula context.
 	 */
-	private static function parse_expression( array $tokens, int &$pos ): ?float {
-		$value = self::parse_term( $tokens, $pos );
+	private static function parse_expression( array $tokens, int &$pos, array $context ): ?float {
+		$value = self::parse_term( $tokens, $pos, $context );
 		while ( null !== $value && $pos < count( $tokens ) && in_array( $tokens[ $pos ]['t'], [ '+', '-' ], true ) ) {
 			$op = $tokens[ $pos ]['t'];
 			$pos++;
-			$right = self::parse_term( $tokens, $pos );
+			$right = self::parse_term( $tokens, $pos, $context );
 			if ( null === $right ) {
 				return null;
 			}
@@ -283,15 +323,16 @@ final class Calculator {
 	/**
 	 * term := factor (('*'|'/') factor)*
 	 *
-	 * @param array<int,array{t:string,v:float}> $tokens Tokens.
-	 * @param int                            $pos    Cursor (by reference).
+	 * @param array<int,array{t:string,v:float|string}> $tokens Tokens.
+	 * @param int                                       $pos    Cursor (by reference).
+	 * @param array<string,mixed>                       $context Formula context.
 	 */
-	private static function parse_term( array $tokens, int &$pos ): ?float {
-		$value = self::parse_factor( $tokens, $pos );
+	private static function parse_term( array $tokens, int &$pos, array $context ): ?float {
+		$value = self::parse_factor( $tokens, $pos, $context );
 		while ( null !== $value && $pos < count( $tokens ) && in_array( $tokens[ $pos ]['t'], [ '*', '/' ], true ) ) {
 			$op = $tokens[ $pos ]['t'];
 			$pos++;
-			$right = self::parse_factor( $tokens, $pos );
+			$right = self::parse_factor( $tokens, $pos, $context );
 			if ( null === $right || ( '/' === $op && 0.0 === $right ) ) {
 				return null;
 			}
@@ -303,10 +344,11 @@ final class Calculator {
 	/**
 	 * factor := number | '(' expression ')' | '-' factor
 	 *
-	 * @param array<int,array{t:string,v:float}> $tokens Tokens.
-	 * @param int                            $pos    Cursor (by reference).
+	 * @param array<int,array{t:string,v:float|string}> $tokens Tokens.
+	 * @param int                                       $pos    Cursor (by reference).
+	 * @param array<string,mixed>                       $context Formula context.
 	 */
-	private static function parse_factor( array $tokens, int &$pos ): ?float {
+	private static function parse_factor( array $tokens, int &$pos, array $context ): ?float {
 		if ( $pos >= count( $tokens ) ) {
 			return null;
 		}
@@ -315,9 +357,45 @@ final class Calculator {
 			$pos++;
 			return $token['v'];
 		}
+		if ( 'fn' === $token['t'] ) {
+			$pos++;
+			if ( $pos >= count( $tokens ) || '(' !== $tokens[ $pos ]['t'] ) {
+				return null;
+			}
+			$pos++;
+			$args = [];
+			if ( $pos >= count( $tokens ) || ')' === $tokens[ $pos ]['t'] ) {
+				return null;
+			}
+			while ( $pos < count( $tokens ) ) {
+				if ( count( $args ) >= 20 ) {
+					return null;
+				}
+				$argument = self::parse_expression( $tokens, $pos, $context );
+				if ( null === $argument ) {
+					return null;
+				}
+				$args[] = $argument;
+				if ( $pos < count( $tokens ) && ',' === $tokens[ $pos ]['t'] ) {
+					$pos++;
+					continue;
+				}
+				break;
+			}
+			if ( $pos >= count( $tokens ) || ')' !== $tokens[ $pos ]['t'] ) {
+				return null;
+			}
+			$pos++;
+			try {
+				$result = call_user_func( self::$formula_functions[ $token['v'] ], $args, $context );
+			} catch ( \Throwable $exception ) {
+				return null;
+			}
+			return is_numeric( $result ) && is_finite( (float) $result ) ? (float) $result : null;
+		}
 		if ( '(' === $token['t'] ) {
 			$pos++;
-			$value = self::parse_expression( $tokens, $pos );
+			$value = self::parse_expression( $tokens, $pos, $context );
 			if ( null === $value || $pos >= count( $tokens ) || ')' !== $tokens[ $pos ]['t'] ) {
 				return null;
 			}
@@ -326,7 +404,7 @@ final class Calculator {
 		}
 		if ( '-' === $token['t'] ) {
 			$pos++;
-			$value = self::parse_factor( $tokens, $pos );
+			$value = self::parse_factor( $tokens, $pos, $context );
 			return null === $value ? null : -$value;
 		}
 		return null;

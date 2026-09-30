@@ -51,6 +51,35 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( 0.0, Calculator::evaluate_formula( '1 / 0', 10.0, 1, 0.0 ) );
 	}
 
+	public function test_registered_formula_functions_receive_numeric_arguments_and_context(): void {
+		$this->assertTrue( opf_add_formula_function( 'opf_test_twice', static function ( array $args, array $context ): float {
+			return 2 * $args[0] + $context['quantity'];
+		} ) );
+		$this->assertTrue( opf_add_formula_function( 'opf_test_sum', static function ( array $args ): float {
+			return array_sum( $args );
+		} ) );
+
+		$this->assertSame( 29.0, Calculator::evaluate_formula( 'opf_test_twice([price] + opf_test_sum(1, 2))', 10.0, 3, 0.0 ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'opf_test_twice(1 / 0)', 10.0, 3, 0.0 ) );
+		$field = [ 'type' => 'text', 'choices' => [], 'pricing' => [ 'type' => 'formula', 'amount' => 0, 'formula' => 'opf_test_twice([price])' ] ];
+		$this->assertSame( 22.0, Calculator::field_addon( $field, 'selected', [ 'price' => 10, 'qty' => 2 ] ) );
+	}
+
+	public function test_formula_function_registration_rejects_invalid_or_reserved_names_and_fails_closed(): void {
+		$callback = static function (): float {
+			return 4.0;
+		};
+		$this->assertFalse( opf_add_formula_function( 'bad-name', $callback ) );
+		$this->assertFalse( opf_add_formula_function( 'today', $callback ) );
+		$this->assertFalse( opf_add_formula_function( 'p', $callback ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'unregistered(2)', 10.0, 1, 0.0 ) );
+
+		$this->assertTrue( opf_add_formula_function( 'opf_test_invalid_result', static function () {
+			return INF;
+		} ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'opf_test_invalid_result(2)', 10.0, 1, 0.0 ) );
+	}
+
 	public function test_wapf_date_formula_functions_match_weekday_month_and_today_semantics(): void {
 		$this->assertSame( 2.0, Calculator::evaluate_formula( "dow('01-10-2023')", 10.0, 1, 0.0 ) );
 		$this->assertSame( 3.0, Calculator::evaluate_formula( "month('03-01-2023')", 10.0, 1, 0.0 ) );
