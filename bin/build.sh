@@ -12,7 +12,9 @@ rsync -a --delete \
 	--exclude='.phpunit.result.cache' \
 	--exclude='vendor/' \
 	--exclude='tests/' \
-	--exclude='bin/run-all-tests.sh' \
+	--exclude='bin/' \
+	--exclude='docs/' \
+	--exclude='composer.json' \
 	--exclude='phpunit.xml.dist' \
 	--exclude='composer.lock' \
 	--exclude='bin/build.sh' \
