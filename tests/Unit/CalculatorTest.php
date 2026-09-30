@@ -116,6 +116,8 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( 0.0, Calculator::evaluate_formula( 'lookuptable(formula_test; height; width)', 10.0, 1, 0.0, '', null, [ 'height' => '130', 'width' => '210' ] ) );
 		$this->assertFalse( opf_register_lookup_table( 'bad-name', [ 1 => 2 ] ) );
 		$this->assertFalse( opf_register_lookup_table( 'invalid_price', [ 'red' => 'not a price' ] ) );
+		$this->assertTrue( opf_register_lookup_table( '7_table', [ 'red' => 9 ] ) );
+		$this->assertSame( 9.0, Calculator::evaluate_formula( 'lookuptable(7_table; color)', 10.0, 1, 0.0, '', null, [ 'color' => 'red' ] ) );
 	}
 
 	public function test_only_lookup_tables_referenced_by_the_page_registry_are_exposed(): void {

@@ -32,3 +32,9 @@ if ( ! function_exists( 'get_option' ) ) {
 		return $GLOBALS['opf_test_options'][ $option ] ?? $default;
 	}
 }
+if ( ! function_exists( 'update_option' ) ) {
+	function update_option( string $option, $value, $autoload = null ): bool {
+		$GLOBALS['opf_test_options'][ $option ] = $value;
+		return true;
+	}
+}
