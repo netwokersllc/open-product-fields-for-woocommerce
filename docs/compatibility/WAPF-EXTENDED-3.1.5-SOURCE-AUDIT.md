@@ -164,6 +164,19 @@ ledger families:
 | `file` | `WAPF-FIELD-UPLOAD`, `WAPF-UPLOAD-AJAX-UI` |
 | `p`, `img`, `section`, `sectionend` | `WAPF-FIELD-CONTENT-TEXT`, `WAPF-FIELD-CONTENT-IMAGE`, `WAPF-FIELD-SECTION` |
 
+The 3.1.5 condition registry disambiguates the later “cards with quantity
+inputs” changelog item. Ordinary `card`/`vcard` choices have selection
+conditions; `image-swatch-qty` separately has `empty`, `!empty`,
+`==contains`, and `!=contains` quantity conditions. The product field
+registry marks `products-card-qty` and `products-vcard-qty` as quantity
+selector variants of linked child products. The best source-based mapping for
+the ambiguous 3.1.6 changelog phrase is therefore quantity-enabled
+child-product cards (`WAPF-FIELD-CHILD-PRODUCTS`), not ordinary choice cards or
+image swatches. This is an inference from the 3.1.5 type registry and
+changelog wording, not source confirmation of the 3.1.6 feature. The installed
+3.1.5 source establishes baseline control types only; it does not establish
+the new options, their stored representation, or evaluator behavior.
+
 Two related registrations are conditional or owned by other controllers and
 must not be omitted from the full inventory: date is added only when the
 `wapf_datepicker` setting is enabled; Extended registers `calc` through
@@ -341,7 +354,7 @@ or bundled Pro contents.
 
 | Release change | Existing ledger row(s) or release gate | Audit disposition |
 | --- | --- | --- |
-| Extended 3.1.6: card quantity fields gain conditional options | `WAPF-FIELD-CARDS-QUANTITY-CONDITIONALS`, `WAPF-RULE-CONDITIONAL` | Dedicated ledger row exists and remains `needs audit`; current package source must establish the exact controls, stored keys, and evaluation behavior. |
+| Extended 3.1.6: card quantity fields gain conditional options | `WAPF-FIELD-CARDS-QUANTITY-CONDITIONALS`, `WAPF-FIELD-CHILD-PRODUCTS`, `WAPF-RULE-CONDITIONAL` | Interpreted as quantity-enabled child-product cards (`products-card-qty`, `products-vcard-qty`), distinct from `card`/`vcard` and `image-swatch-qty` in 3.1.5. Dedicated ledger row remains `needs audit`; 3.2.1 source must establish exact controls, stored keys, and evaluation behavior. |
 | Extended 3.1.6: select tax calculation fix | `WAPF-COMMERCE-TAX` | Covered as a tax behavior; exact current-package path and regression remain unverified. |
 | Extended 3.1.7: upload/order-admin deletion and output hardening | `WAPF-FIELD-UPLOAD`; G4 security | Audit authorization, file ownership, path handling, and escaped output in current source; verify independently before release. |
 | Extended 3.1.7: text-swatch corner-radius persistence | `WAPF-FIELD-SWATCH-TEXT` | Covered; compare setting round-trip against the current package. |
