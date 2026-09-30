@@ -102,6 +102,16 @@ This Free source audit plus the installed Extended 3.1.5/Pro map documents the
 available code baselines; it does not replace the still-open source audit of
 current Extended 3.2.1 and Pro 3.2.2 packages.
 
+## Published runtime compatibility floors
+
+The Free 1.7.1 readme/plugin header declares WordPress 4.5+, PHP 7.0+, and
+WooCommerce 6.0+. The current paid product page declares WordPress 6.0+, PHP
+7.1+, and WooCommerce 7.0+. The installed Extended 3.1.5 header still says
+WooCommerce 4.9+, while its current changelog says 3.1.7 raised the minimum to
+7.0; the licensed 3.2.1 archive is needed to confirm its final metadata. These
+declared support ranges are part of the compatibility baseline, alongside
+capability parity.
+
 ## Current target version gap
 
 This document audits the installed 3.1.5 package only. The current official
