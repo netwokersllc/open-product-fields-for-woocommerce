@@ -119,7 +119,13 @@ final class Cli {
 		} else {
 			\WP_CLI::line( sprintf( 'Result: %s', $report['result'] ) );
 			\WP_CLI::line( sprintf( 'Fields: %d', $report['fields'] ?? 0 ) );
-			\WP_CLI::line( 'Status: draft; review required before publishing.' );
+			if ( 'draft-created' === $report['result'] ) {
+				\WP_CLI::line( 'Status: draft; review required before publishing.' );
+			} elseif ( 'dry-run' === $report['result'] ) {
+				\WP_CLI::line( 'Status: dry run; no draft was written.' );
+			} else {
+				\WP_CLI::line( 'Status: no changes written; inspect the result above.' );
+			}
 			foreach ( $report['notes'] as $note ) {
 				\WP_CLI::line( '  Review: ' . $note );
 			}
