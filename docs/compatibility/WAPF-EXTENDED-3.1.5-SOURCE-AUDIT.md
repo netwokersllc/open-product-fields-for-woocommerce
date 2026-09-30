@@ -30,11 +30,10 @@ and [Extended changelog](https://www.studiowombat.com/plugin/advanced-product-fi
 | `WAPF-PRICE-FORMULA-WEIGHT`, `WAPF-COMMERCE-WEIGHT` | `includes/controllers/class-extended-controller.php`, `includes/classes/class-fields.php`, `includes/classes/class-cart.php`, `includes/controllers/class-linked-products-controller.php` | Field and choice settings store `weight`; quantity fields can store weight per quantity. Before Woo totals, selected values are resolved against the source field group and weight expressions accept `[qty]` and `[x]`. Values use WooCommerce's configured weight unit; linked products retain their own product weight. |
 | `WAPF-PRICE-FORMULA-ADVANCED`, `WAPF-PRICE-FORMULA-TEXT-COMPARE`, `WAPF-PRICE-FORMULA-CHECKED`, `WAPF-PRICE-FORMULA-FIELD-STATE`, `WAPF-PRICE-FORMULA-SUM-QTY`, `WAPF-PRICE-FORMULA-TRIG`, `WAPF-PRICE-FORMULA-DATE`, `WAPF-PRICE-FORMULA-DOW`, `WAPF-PRICE-FORMULA-MONTH`, `WAPF-PRICE-FORMULA-CUSTOM-VARIABLE` | `includes/controllers/class-public-controller.php`, `includes/classes/class-config.php`, `includes/classes/class-helper.php`, `includes/classes/class-fields.php`, `includes/classes/class-field-groups.php`, `extend/formulas.php`, `extend/date.php`, `views/admin/variable-builder.php` | Core supplies `min`, `max`, `len`, and `lookuptable`; Extended registers `round`, `abs`, `floor`, `ceil`, `sqrt`, `cos`, `sin`, `tan`, `pow`, `sumQty`, `checked`, `files`, `if`, `or`, `and`, plus `today`, `datediff`, `dow`, and `month`. Formula arguments are semicolon-delimited; formula text comparisons are unquoted; `checked`, `files`, and `sumQty` take field IDs. Saved groups carry formula definitions and custom variables. PHP runtime and public formula-definition metadata are both in scope. |
 
-The matching [capability ledger](WAPF-CAPABILITY-LEDGER.md) contains 26
-Extended-tier rows. This audit closes source discovery for those rows only;
-it does not claim OPF parity. Each row's implementation, import, and
-commerce evidence remains governed by its ledger status. Pro-only details,
-the six separate add-ons, and compatibility entries remain in the full OPF
-1.0 objective.
+These findings seed the Extended entries in the [capability
+ledger](WAPF-CAPABILITY-LEDGER.md). This source audit does not claim OPF
+parity; implementation, import, and commerce evidence must be established
+separately for each capability. Pro details, the six separate add-ons, and
+compatibility entries remain in the full OPF 1.0 objective.
 
 Official formula inventory: [formula function reference](https://www.studiowombat.com/knowledge-base/formula-functions-reference/).
