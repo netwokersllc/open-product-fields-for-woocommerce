@@ -62,6 +62,9 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( 5.0, Calculator::evaluate_formula( 'max(1; 4; 2) + min(1; 4; 2)', 10.0, 1, 0.0 ) );
 		$this->assertSame( 13.0, Calculator::evaluate_formula( 'pow(3; 2) + sqrt(16)', 10.0, 1, 0.0 ) );
 		$this->assertSame( -0.7, Calculator::evaluate_formula( 'round(1.25; 1) + round(-1.5)', 10.0, 1, 0.0 ) );
+		$this->assertSame( 1.01, Calculator::evaluate_formula( 'round(1.005; 2)', 10.0, 1, 0.0 ) );
+		$this->assertSame( 2.68, Calculator::evaluate_formula( 'round(2.675; 2)', 10.0, 1, 0.0 ) );
+		$this->assertSame( 100.0, Calculator::evaluate_formula( 'round(125; -2)', 10.0, 1, 0.0 ) );
 		$this->assertEqualsWithDelta( 1.0, Calculator::evaluate_formula( 'sin(0) + cos(0) + tan(0)', 10.0, 1, 0.0 ), 0.000000001 );
 	}
 

@@ -659,7 +659,14 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
         const precision = args.length === 2 ? Math.trunc(args[1]) : 0;
         const factor = Math.pow(10, precision);
         if (!Number.isFinite(factor) || factor === 0) return args[0];
-        return Math.sign(args[0]) * Math.round(Math.abs(args[0]) * factor) / factor;
+        const shiftDecimal = (number, exponent) => {
+          const parts = String(number).toLowerCase().split('e');
+          const currentExponent = parts.length > 1 ? Number(parts[1]) : 0;
+          return Number(`${parts[0]}e${currentExponent + exponent}`);
+        };
+        const shifted = shiftDecimal(Math.abs(args[0]), precision);
+        if (!Number.isFinite(shifted)) return args[0];
+        return Math.sign(args[0]) * Math.round(shifted) / factor;
       }
       if (name === 'sin' && oneArg) return Math.sin(args[0]);
       if (name === 'sqrt' && oneArg) return Math.sqrt(args[0]);

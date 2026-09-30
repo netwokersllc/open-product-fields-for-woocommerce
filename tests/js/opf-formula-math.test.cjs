@@ -19,6 +19,10 @@ test('WAPF numeric formula functions match the server parser and accept semicolo
 	assert.equal(evaluate('max(1; 4; 2) + min(1; 4; 2)'), 5);
 	assert.equal(evaluate('pow(3; 2) + sqrt(16)'), 13);
 	assert.equal(evaluate('round(1.25; 1) + round(-1.5)'), -0.7);
+	assert.equal(evaluate('round(1.005; 2)'), 1.01);
+	assert.equal(evaluate('round(2.675; 2)'), 2.68);
+	assert.equal(evaluate('round(-1.005; 2)'), -1.01);
+	assert.equal(evaluate('round(125; -2)'), 100);
 	assert.ok(Math.abs(evaluate('sin(0) + cos(0) + tan(0)') - 1) < 1e-12);
 });
 
