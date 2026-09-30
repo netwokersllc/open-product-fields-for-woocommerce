@@ -21,3 +21,15 @@ if ( ! function_exists( 'opf_add_formula_function' ) ) {
 		return \OPF\Engine\Calculator::add_formula_function( $name, $callback );
 	}
 }
+
+if ( ! function_exists( 'opf_register_lookup_table' ) ) {
+	/**
+	 * Register a request-local nested numeric lookup table for formula pricing.
+	 *
+	 * @param string              $name  ASCII table identifier.
+	 * @param array<string|int,mixed> $table Nested dimensions ending in finite numeric prices.
+	 */
+	function opf_register_lookup_table( string $name, array $table ): bool {
+		return \OPF\Engine\LookupTables::register( $name, $table );
+	}
+}

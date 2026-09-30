@@ -30,6 +30,29 @@ non-numeric results, non-finite results, malformed arguments, and division by
 zero make the formula return zero. Callbacks run during server-side pricing,
 so they should be deterministic and avoid side effects.
 
+## Lookup-table formulas
+
+Register a request-local lookup table using nested maps. Each map level is one
+formula dimension; the leaf is a finite numeric price:
+
+```php
+opf_register_lookup_table( 'size_price', [
+	100 => [ 200 => 76, 220 => 78 ],
+	120 => [ 200 => 80, 220 => 82 ],
+] );
+```
+
+Use the table with the field IDs in matching dimension order:
+`lookuptable(size_price; height_field_id; width_field_id)`. Categorical values
+require an exact key. Numeric values use an exact key when present, otherwise
+the next higher numeric key. Missing dimensions return zero. A valid later
+registration with the same name replaces the previous table; invalid
+registrations return `false` and leave it unchanged.
+
+Only tables referenced by formulas in the current product's rendered field
+registry are included in browser preview data. Their contents are public on
+those product pages; do not register secret or cost-only data.
+
 ## Field groups
 
 - `opf_get_field_group_by_id( $id )` returns a readable published group (or a

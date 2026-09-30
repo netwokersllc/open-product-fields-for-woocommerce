@@ -68,6 +68,7 @@ final class Assets {
 			];
 			wp_print_inline_script_tag(
 				'window.OPF_FIELDS = ' . wp_json_encode( $registry, JSON_UNESCAPED_UNICODE ) . ';'
+				. 'window.OPF_LOOKUP_TABLES = ' . wp_json_encode( \OPF\Engine\LookupTables::for_registry( $registry ), JSON_UNESCAPED_UNICODE ) . ';'
 				. 'window.OPF_ACF_VALUES = ' . wp_json_encode( $acf_values ) . ';'
 				. 'window.OPF_DATE_FORMAT = ' . wp_json_encode( $date_format ) . ';'
 				. 'window.OPF_TODAY = ' . wp_json_encode( $today ) . ';'

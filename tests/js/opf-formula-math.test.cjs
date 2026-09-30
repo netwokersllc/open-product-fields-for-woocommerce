@@ -6,7 +6,14 @@ const vm = require('node:vm');
 
 const sourcePath = path.join(__dirname, '..', '..', 'assets', 'js', 'opf-frontend.js');
 const context = {
-	window: {},
+	window: {
+		OPF_LOOKUP_TABLES: {
+			formula_test: {
+				100: { 200: 76, 220: 78 },
+				120: { 200: 80, 220: 82 },
+			},
+		},
+	},
 	document: { readyState: 'loading', addEventListener() {}, querySelector() { return null; } },
 	console,
 };
@@ -60,4 +67,11 @@ test('WAPF if/and/or and comparisons work with nested numeric and field conditio
 	assert.equal(evaluate('if([field.color] = [field.finish]; 5; 9)', { color: 'Blue', finish: 'Blue' }), 5);
 	assert.equal(evaluate('if([field.color] > Blue; 10; 20)', { color: 'Red' }), 10);
 	assert.equal(evaluate('if([field.color] <= [field.finish]; 10; 20)', { color: 'Blue', finish: 'Blue' }), 10);
+});
+
+test('WAPF lookuptable resolves registered dimensions in order and rounds numeric values up', () => {
+	const evaluate = (formula, values) => context.__evalFormula(formula, 10, 1, 0, '', values);
+	assert.equal(evaluate('lookuptable(formula_test; height; width)', { height: '100', width: '200' }), 76);
+	assert.equal(evaluate('lookuptable(formula_test; height; width)', { height: '110', width: '210' }), 82);
+	assert.equal(evaluate('lookuptable(formula_test; height; width)', { height: '130', width: '210' }), 0);
 });

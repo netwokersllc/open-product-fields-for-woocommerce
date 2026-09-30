@@ -7,6 +7,7 @@ namespace OPF\Tests\Unit;
 
 use OPF\Engine\Calculator;
 use OPF\Engine\FormulaFunctions;
+use OPF\Engine\LookupTables;
 use PHPUnit\Framework\TestCase;
 
 final class CalculatorTest extends TestCase {
@@ -102,6 +103,32 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( 5.0, Calculator::evaluate_formula( 'if([field.color] = [field.finish]; 5; 9)', 10.0, 1, 0.0, '', null, [ 'color' => 'Blue', 'finish' => 'Blue' ] ) );
 		$this->assertSame( 10.0, Calculator::evaluate_formula( 'if([field.color] > Blue; 10; 20)', 10.0, 1, 0.0, '', null, [ 'color' => 'Red' ] ) );
 		$this->assertSame( 10.0, Calculator::evaluate_formula( 'if([field.color] <= [field.finish]; 10; 20)', 10.0, 1, 0.0, '', null, [ 'color' => 'Blue', 'finish' => 'Blue' ] ) );
+	}
+
+	public function test_wapf_lookuptable_formula_uses_field_order_and_rounds_numeric_dimensions_up(): void {
+		FormulaFunctions::init();
+		$this->assertTrue( opf_register_lookup_table( 'formula_test', [
+			100 => [ 200 => 76, 220 => 78 ],
+			120 => [ 200 => 80, 220 => 82 ],
+		] ) );
+		$this->assertSame( 76.0, Calculator::evaluate_formula( 'lookuptable(formula_test; height; width)', 10.0, 1, 0.0, '', null, [ 'height' => '100', 'width' => '200' ] ) );
+		$this->assertSame( 82.0, Calculator::evaluate_formula( 'lookuptable(formula_test; height; width)', 10.0, 1, 0.0, '', null, [ 'height' => '110', 'width' => '210' ] ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'lookuptable(formula_test; height; width)', 10.0, 1, 0.0, '', null, [ 'height' => '130', 'width' => '210' ] ) );
+		$this->assertFalse( opf_register_lookup_table( 'bad-name', [ 1 => 2 ] ) );
+		$this->assertFalse( opf_register_lookup_table( 'invalid_price', [ 'red' => 'not a price' ] ) );
+	}
+
+	public function test_only_lookup_tables_referenced_by_the_page_registry_are_exposed(): void {
+		$this->assertTrue( opf_register_lookup_table( 'page_price', [ 'small' => 12 ] ) );
+		$this->assertTrue( opf_register_lookup_table( 'private_price', [ 'small' => 999 ] ) );
+		$tables = LookupTables::for_registry( [
+			'group' => [
+				'field' => [
+					'pricing' => [ 'formula' => 'lookuptable(page_price; size)' ],
+				],
+			],
+		] );
+		$this->assertSame( [ 'page_price' ], array_keys( $tables ) );
 	}
 
 	public function test_formula_safety_garbage_yields_zero(): void {

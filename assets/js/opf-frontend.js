@@ -538,6 +538,33 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
       const value = fieldValues[fieldId] ?? fieldValues[String(fieldId).toLowerCase()];
       return String(Array.isArray(value) ? value.filter((item) => item != null && String(item) !== '').length : 0);
     })
+    .replace(/\blookuptable\s*\(([^()]*)\)/gi, (_, rawArgs) => {
+      const args = rawArgs.split(',').map((part) => part.trim());
+      if (args.length < 2) return '0';
+      const name = args.shift().toLowerCase();
+      let node = (window.OPF_LOOKUP_TABLES || {})[name];
+      if (!node) return '0';
+      for (const fieldId of args) {
+        const value = fieldValues[fieldId] ?? fieldValues[String(fieldId).toLowerCase()];
+        if (value == null || Array.isArray(value)) return '0';
+        const key = String(value);
+        if (Object.prototype.hasOwnProperty.call(node, key)) {
+          node = node[key];
+          continue;
+        }
+        const numericValue = Number(value);
+        if (!Number.isFinite(numericValue)) return '0';
+        const candidate = Object.keys(node)
+          .filter((candidateKey) => Number.isFinite(Number(candidateKey)) && Number(candidateKey) >= numericValue)
+          .sort((left, right) => Number(left) - Number(right))[0];
+        if (candidate === undefined) return '0';
+        node = node[candidate];
+      }
+      const price = Number(node);
+      if (!Number.isFinite(price)) return '0';
+      const literal = Number.isInteger(price) ? String(price) : price.toFixed(14).replace(/0+$/, '').replace(/\.$/, '');
+      return /^(?:\d+\.?\d*|\.\d+)$/.test(literal) ? literal : '0';
+    })
     .replace(/\b(acf_option|acf)\s*\(\s*([a-z0-9_-]+)\s*\)/gi, (_, type, name) => {
       const values = window.OPF_ACF_VALUES || {};
       const value = Number(values[`${type.toLowerCase()}:${name.toLowerCase()}`]);

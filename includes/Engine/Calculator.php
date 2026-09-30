@@ -194,6 +194,23 @@ final class Calculator {
 		// for native OPF formulas and existing extension callbacks.
 		$formula = str_replace( ';', ',', $formula );
 		$formula = preg_replace_callback(
+			'/\blookuptable\s*\(([^()]*)\)/i',
+			static function ( array $match ) use ( $field_values ): string {
+				$args = array_map( 'trim', explode( ',', $match[1] ) );
+				if ( count( $args ) < 2 ) {
+					return '0';
+				}
+				$name  = array_shift( $args );
+				$price = LookupTables::lookup( $name, $args, $field_values );
+				if ( null === $price ) {
+					return '0';
+				}
+				$literal = rtrim( rtrim( sprintf( '%.14F', $price ), '0' ), '.' );
+				return '' === $literal || '-0' === $literal ? '0' : $literal;
+			},
+			$formula
+		);
+		$formula = preg_replace_callback(
 			'/\bchecked\s*\(\s*([a-zA-Z0-9_-]+)\s*\)/i',
 			static function ( array $match ) use ( $field_values ): string {
 				$value = $field_values[ $match[1] ] ?? $field_values[ strtolower( $match[1] ) ] ?? null;
