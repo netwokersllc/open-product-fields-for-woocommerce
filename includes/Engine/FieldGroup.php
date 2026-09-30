@@ -186,7 +186,7 @@ final class FieldGroup {
 			$field_id = 'field';
 		}
 
-		return [
+		$normalized = [
 			'id'           => $field_id,
 			'label'        => (string) ( $field['label'] ?? '' ),
 			'description'  => (string) ( $field['description'] ?? '' ),
@@ -199,6 +199,31 @@ final class FieldGroup {
 			'pricing'      => $pricing,
 			'conditionals' => $conditionals,
 		];
+
+		if ( 'date' === $type ) {
+			foreach ( [ 'min_date', 'max_date' ] as $key ) {
+				if ( ! array_key_exists( $key, $field ) ) {
+					continue;
+				}
+				if ( ! is_string( $field[ $key ] ) ) {
+					throw new \InvalidArgumentException( sprintf( 'Date field %s must be a string.', $key ) );
+				}
+				$boundary = trim( $field[ $key ] );
+				if ( '' === $boundary ) {
+					continue;
+				}
+				if ( ! FieldValue::is_date_boundary( $boundary ) ) {
+					throw new \InvalidArgumentException( sprintf( 'Date field %s must be YYYY-MM-DD or a WAPF relative period such as 7d or 1y 9m 3d.', $key ) );
+				}
+				$normalized[ $key ] = $boundary;
+			}
+			$min_date = isset( $normalized['min_date'] ) ? FieldValue::resolve_date_boundary( $normalized['min_date'] ) : null;
+			$max_date = isset( $normalized['max_date'] ) ? FieldValue::resolve_date_boundary( $normalized['max_date'] ) : null;
+			if ( null !== $min_date && null !== $max_date && $min_date > $max_date ) {
+				throw new \InvalidArgumentException( 'Date minimum cannot exceed its maximum.' );
+			}
+		}
+		return $normalized;
 	}
 
 	/**

@@ -17,6 +17,7 @@ namespace OPF\Service;
 
 use OPF\Engine\Evaluator;
 use OPF\Engine\FieldGroup;
+use OPF\Engine\FieldValue;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -349,7 +350,13 @@ final class Renderer {
 				echo '<input type="number" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
 				break;
 			case 'date':
-				echo '<input type="date" value="" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
+				$date_attrs = '';
+				foreach ( [ 'min_date' => 'min', 'max_date' => 'max' ] as $key => $attribute ) {
+					if ( isset( $field[ $key ] ) && null !== ( $date = FieldValue::resolve_date_boundary( (string) $field[ $key ] ) ) ) {
+						$date_attrs .= ' ' . $attribute . '="' . esc_attr( $date ) . '"';
+					}
+				}
+				echo '<input type="date" value="" ' . $shared . $date_attrs . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
 				break;
 			case 'toggle':
 				echo '<input type="hidden" name="' . esc_attr( $name ) . '" value="0" />';

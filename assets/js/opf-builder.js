@@ -172,6 +172,18 @@
 			card.appendChild( list );
 			card.appendChild( addChoice );
 		}
+		if ( 'date' === field.type ) {
+			var dateBounds = el( 'div', { class: 'opf-b-constraints' } );
+			[ [ 'min_date', 'Minimum date (2026-12-31 or 7d)' ], [ 'max_date', 'Maximum date (2026-12-31 or 1y 2m)' ] ].forEach( function ( setting ) {
+				var input = el( 'input', { class: 'opf-b-input', type: 'text', value: field[ setting[ 0 ] ] || '', placeholder: setting[ 1 ] } );
+				input.addEventListener( 'input', function () {
+					if ( input.value.trim() ) field[ setting[ 0 ] ] = input.value.trim();
+					else delete field[ setting[ 0 ] ];
+				} );
+				dateBounds.appendChild( input );
+			} );
+			card.appendChild( dateBounds );
+		}
 
 		return card;
 	}
