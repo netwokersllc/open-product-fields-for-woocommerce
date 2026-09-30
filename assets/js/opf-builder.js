@@ -151,8 +151,7 @@
 		} );
 
 		var remove = el( 'button', { class: 'button button-link-delete', type: 'button', text: 'Delete field', onclick: function () {
-			model.fields.splice( index, 1 );
-			rerender();
+			deleteField( index );
 		} } );
 		var duplicate = el( 'button', { class: 'button opf-b-duplicate', type: 'button', text: 'Duplicate', title: 'Duplicate field', onclick: function () {
 			var copy = JSON.parse( JSON.stringify( field ) );
@@ -221,6 +220,25 @@
 		}
 
 		return card;
+	}
+
+	function deleteField( index ) {
+		var removed = model.fields[ index ];
+		if ( ! removed ) {
+			return;
+		}
+		model.fields.forEach( function ( field ) {
+			field.conditionals = ( field.conditionals || [] ).map( function ( conditional ) {
+				conditional.rules = ( conditional.rules || [] ).filter( function ( rule ) {
+					return rule.field !== removed.id;
+				} );
+				return conditional;
+			} ).filter( function ( conditional ) {
+				return conditional.rules.length > 0;
+			} );
+		} );
+		model.fields.splice( index, 1 );
+		rerender();
 	}
 
 	function in_array( needle, haystack ) {

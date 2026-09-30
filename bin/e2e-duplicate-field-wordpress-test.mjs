@@ -26,7 +26,14 @@ const fixture = {
 			pricing: { type: 'formula', amount: 0, formula: '[price] + checked(e2e-size-copy)', formula_raw: '' },
 			conditionals: [],
 		},
-		{ id: 'e2e-size-copy', label: 'Collision guard', type: 'text', required: false, choices: [], conditionals: [], pricing: { type: 'none', amount: 0, formula: '' } },
+		{
+			id: 'e2e-size-copy', label: 'Collision guard', type: 'text', required: false, choices: [],
+			conditionals: [
+				{ action: 'show', logic: 'all', rules: [ { field: 'e2e-size', operator: 'is', value: 'large' }, { field: 'external-trigger', operator: 'is', value: 'yes' } ] },
+				{ action: 'hide', logic: 'any', rules: [ { field: 'e2e-size', operator: 'is', value: 'small' } ] },
+			],
+			pricing: { type: 'none', amount: 0, formula: '' },
+		},
 	],
 	rule_groups: [],
 };
@@ -90,6 +97,13 @@ try {
 	check('REST save persists all fields with a fresh ID that avoids collisions', fields.length === 3 && fields[1].id !== fields[0].id && fields[1].id !== fields[2].id && fields[1].id === 'e2e-size-copy-2');
 	check('copy retains source settings and choices while edits stay independent', fields[0].label === 'Size' && fields[1].label === 'Custom size' && fields[1].description === fields[0].description && JSON.stringify(fields[1].choices) === JSON.stringify(fields[0].choices));
 	check('source formula and sibling field stay unchanged', fields[0].pricing.formula === '[price] + checked(e2e-size-copy)' && fields[2].id === 'e2e-size-copy');
+	await page.locator('.opf-b-field').first().locator('.button-link-delete').click();
+	check('WordPress editor removes the selected field', await page.locator('.opf-b-field').count() === 2);
+	await page.locator('.opf-b-toolbar button').nth(1).click();
+	await page.waitForFunction(() => document.querySelector('#opf-b-status')?.textContent === 'Saved.', null, { timeout: 10000 });
+	const afterDeleteEncoded = wp(`$p=get_post(${fixtureId}); echo base64_encode($p->post_content);`);
+	const afterDelete = JSON.parse(Buffer.from(afterDeleteEncoded, 'base64').toString('utf8'));
+	check('WordPress REST deletion saves without dangling or empty conditional rules', afterDelete.fields.length === 2 && afterDelete.fields[1].conditionals.length === 1 && afterDelete.fields[1].conditionals[0].rules.length === 1 && afterDelete.fields[1].conditionals[0].rules[0].field === 'external-trigger');
 	check('browser has no uncaught errors', errors.length === 0);
 	if ( errors.length ) console.log(errors.join('\n'));
 } finally {

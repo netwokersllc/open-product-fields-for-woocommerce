@@ -28,7 +28,14 @@ const initial = {
 			pricing: { type: 'formula', amount: 0, formula: '[price] + 3' },
 			custom: { nested: [ 1, { keep: true } ] },
 		},
-		{ id: 'finish-copy', label: 'Existing ID collision', type: 'text', required: false, choices: [], conditionals: [], pricing: { type: 'none', amount: 0, formula: '' } },
+		{
+			id: 'finish-copy', label: 'Existing ID collision', type: 'text', required: false, choices: [],
+			conditionals: [
+				{ action: 'show', logic: 'all', rules: [ { field: 'finish', operator: 'is', value: 'matte' }, { field: 'other', operator: 'is', value: 'yes' } ] },
+				{ action: 'hide', logic: 'any', rules: [ { field: 'finish', operator: 'is', value: 'glossy' } ] },
+			],
+			pricing: { type: 'none', amount: 0, formula: '' },
+		},
 	],
 	rule_groups: [],
 };
@@ -62,6 +69,12 @@ const copy = saved[1];
 check('copy preserves every field setting while receiving a collision-free ID', copy.id === 'finish-copy-2' && copy.label === 'Finish (Copy)' && JSON.stringify({ ...copy, id: sourceField.id, label: sourceField.label }) === JSON.stringify(sourceField));
 await page.locator('.opf-b-field').nth(1).locator('.opf-b-label').fill('Custom finish');
 check('source label remains unchanged after copy edit', await page.locator('.opf-b-field').first().locator('.opf-b-label').inputValue() === 'Finish');
+await page.locator('.opf-b-field').first().locator('.button-link-delete').click();
+check('deleting a field removes it and leaves the other fields', await page.locator('.opf-b-field').count() === 2);
+await page.locator('.opf-b-toolbar button').nth(1).click();
+await page.waitForFunction(() => window.__opfSavedPayloads.length === 2);
+const afterDelete = await page.evaluate(() => window.__opfSavedPayloads[1].data.fields);
+check('delete removes dangling rules and drops condition groups left empty', afterDelete.length === 2 && afterDelete[1].conditionals.length === 1 && afterDelete[1].conditionals[0].rules.length === 1 && afterDelete[1].conditionals[0].rules[0].field === 'other');
 check('no uncaught builder errors', errors.length === 0);
 if ( errors.length ) console.log(errors.join('\n'));
 await browser.close();
