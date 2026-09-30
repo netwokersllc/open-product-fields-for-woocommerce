@@ -2,9 +2,11 @@
 
 **Target:** match or exceed the current WAPF Extended edition, which includes
 WAPF Pro core plus Extended features. The official Extended changelog currently
-lists 3.2.1; the separate Pro changelog lists 3.2.2. Audit the latest Extended
-archive together with the latest bundled/core fixes, including whether Pro's
-3.2.2 admin fix is present in Extended 3.2.1.
+lists 3.2.1; the separate Pro changelog lists 3.2.2. The available-source audit
+and published changelog crosswalk are complete. The licensed current archive
+is unavailable on this server, so behavior not disclosed by public sources is
+identified on its affected ledger row and is not a project-wide implementation
+hold.
 Separately sold add-ons are outside this 1.0 target. Production has WAPF
 Extended 3.1.5 installed but inactive; that installed source is evidence for
 the production baseline, not the current parity target.
@@ -107,16 +109,16 @@ marketplace requirements are reviewed against the exact release commit.
 | Order | Work package | Current state | Scope and required output | Exit condition |
 | --- | --- | --- | --- | --- |
 | 0 | Freeze current source and edition scope | **G1 complete for available evidence; row-level implementation continues** | Audit installed Extended 3.1.5, bundled Pro source, public Free 1.7.1, official tier/marketing claims, and all published changelog changes through Extended 3.2.1 / Pro 3.2.2. The current paid archive is absent, so package-only internals stay explicit per row; do not block unrelated implementation. Continue closing import/export, integration, PHP helper, targeting, platform-floor, and developer API parity from available evidence. Keep the six add-ons excluded. | **G1:** available-source scope mapped, public changes crosswalked, and version-specific unknowns bounded to affected rows. |
-| 1 | Migration and data fidelity | **Active for source-confirmed mappings; 3.2.1-only cases remain gated** | Close every row whose gap includes WAPF import/export, legacy IDs, conditions, field/choice settings, global variables, formulas, or review-required mappings. Use real anonymized exports where available plus source-derived fixtures for absent field types. Unknown semantics must remain visibly review-required, never silently dropped. | Every in-scope importable row round-trips or maps equivalently; unsupported legacy data is reported for review; migration proof is attached to its ledger row. |
+| 1 | Migration and data fidelity | **Active** | Close every row whose gap includes WAPF import/export, legacy IDs, conditions, field/choice settings, global variables, formulas, or review-required mappings. Use real anonymized exports where available plus source-derived fixtures for absent field types. Unknown semantics must remain visibly review-required, never silently dropped. | Every in-scope importable row round-trips or maps equivalently; unsupported legacy data is reported for review; migration proof is attached to its ledger row. |
 | 2 | Shared field/value and rule engines | **Active for documented/source-confirmed behavior** | Close core field input, defaults, required/constraints, conditional logic, repeaters, dates, calculations, formula functions/variables, and price/weight evaluation. Implement shared semantics once where possible, and keep browser previews aligned with server-authoritative validation and totals. | Each affected ledger row has passing focused coverage for normalization, valid/invalid submitted values, conditional visibility, and pricing/weight where relevant; no client-only behavior is counted as parity. |
 | 3 | Extended field experiences | **Active for documented/source-confirmed behavior** | Close cards and main-image switching, child/linked products (specific and category sources, fixed/none category price type), image choices with quantity limits/zoom, date policies/cutoffs, calculation display and price modes, and formula-driven weight. | Admin save/reload and keyboard-accessible product-page behavior match the audited source contract; each field's stored/imported state and invalid-input behavior are covered. |
-| 4 | WooCommerce lifecycle and integrations | **Active where contract is documented; current-package differences remain gated** | Close pricing/tax/coupons/currency, classic and Store API carts, cart editing, stock and parent-child quantity/removal, checkout/order metadata, order-again, refunds/restocks, and each claimed theme/plugin integration. | Every applicable row has end-to-end evidence through the relevant storefront, server validation, cart, checkout/order, and restore/refund paths. No integration is claimed from static markup alone. |
+| 4 | WooCommerce lifecycle and integrations | **Active** | Close pricing/tax/coupons/currency, classic and Store API carts, cart editing, stock and parent-child quantity/removal, checkout/order metadata, order-again, refunds/restocks, and each claimed theme/plugin integration. | Every applicable row has end-to-end evidence through the relevant storefront, server validation, cart, checkout/order, and restore/refund paths. No integration is claimed from static markup alone. |
 | 5 | Admin, display, and accessibility parity | **Active against available source/docs; current-package-only details remain gated** | Close global/product settings, builder usability, field-group listing/search/scheduling, visual design, price summaries/hints, translations, screen-reader/keyboard behavior, and responsive layouts against current docs/source. | Every UI row has admin save/reload and browser evidence; accessibility and responsive acceptance criteria are recorded in the ledger. |
 | 6 | Ledger closure and release candidate | **Not started; depends on WP1–5** | Review all 132 edition rows with a fresh reviewer; resolve or explicitly document every difference; security/privacy, supported WordPress/WooCommerce/PHP versions, upgrade/uninstall, packaging, docs, changelog, rollback, and marketplace requirements. Add a release-candidate manifest and reproducible verification record. | **G2:** no baseline-supported/partial/gap/needs-audit rows and no unaccepted difference. **G3:** applicable commerce proofs pass. **G4:** release checklist passes before 1.0 tag/publication. |
 
 Packages 1–5 proceed in the listed order using the best available evidence.
 Features whose semantics are established by available source/docs move
-through implementation and proof; any 3.2.1-only question stays explicitly
+through implementation and proof; an undisclosed package-specific detail stays
 scoped to its ledger row and does not gate unrelated work. A package can split into small
 public commits, but its ledger row and proof must close before moving to the
 next package. Cross-cutting fixes can be included with the active package when
@@ -135,9 +137,10 @@ source has established the actual remaining scope.
 
 ## Non-negotiable release goalposts
 
-1. **G1 source freeze:** current Extended 3.2.1 behavior, bundled Pro 3.2.2
-   fixes, and all 132 edition rows understood before further parity
-   implementation.
+1. **G1 source freeze:** available installed source, public Free source, current
+   marketing/tier claims, published changelogs, and all 132 edition rows are
+   mapped. Unpublished current-package details remain bounded to affected rows;
+   G1 is complete for the available evidence and does not block implementation.
 2. **G2 capability parity:** every edition row supported or has a reviewed,
    explicitly accepted difference; zero baseline-only, partial, gap, or
    needs-audit rows.
