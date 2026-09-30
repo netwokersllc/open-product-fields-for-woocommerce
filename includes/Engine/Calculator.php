@@ -144,8 +144,8 @@ final class Calculator {
 	/**
 	 * Safely evaluate a formula expression.
 	 *
-	 * Supports arithmetic tokens plus WAPF `dow()`, `month()`, `today()`, and
-	 * validated [field.{id}] date references. No eval() — recursive descent
+	 * Supports arithmetic tokens plus WAPF `datediff()`, `dow()`, `month()`,
+	 * `today()`, and validated [field.{id}] date references. No eval() — recursive descent
 	 * parser. Syntax errors and invalid dates fail closed to zero.
 	 */
 	public static function evaluate_formula( string $formula, float $price, int $qty, float $addons, string $val = '', ?string $today = null, array $field_values = [], int $product_id = 0 ): float {
@@ -170,6 +170,22 @@ final class Calculator {
 			$today = gmdate( 'Y-m-d' );
 		}
 		$formula = preg_replace( '/today\s*\(\s*\)/i', '__OPF_TODAY__', $formula );
+		$formula = preg_replace_callback(
+			'/\bdatediff\s*\(([^()]*)\)/i',
+			static function ( array $match ) use ( $val, $today, $field_values ): string {
+				$args = self::split_formula_arguments( $match[1] );
+				if ( 2 !== count( $args ) ) {
+					return '0';
+				}
+				$start = self::parse_formula_date( $args[0], $val, $field_values, $today );
+				$end   = self::parse_formula_date( $args[1], $val, $field_values, $today );
+				if ( null === $start || null === $end ) {
+					return '0';
+				}
+				return (string) ( ( $end->getTimestamp() - $start->getTimestamp() ) / 86400 );
+			},
+			$formula
+		);
 		$formula = preg_replace_callback(
 			'/\b(dow|month)\s*\(([^()]*)\)/i',
 			static function ( array $match ) use ( $val, $today, $field_values ): string {
@@ -208,6 +224,30 @@ final class Calculator {
 		// Negatives allowed here (formulas may offset other addons); the
 		// final addon total is clamped at the field_addon boundary.
 		return is_finite( $value ) ? (float) $value : 0.0;
+	}
+
+	/** Split formula arguments while preserving commas inside quoted date text. */
+	private static function split_formula_arguments( string $arguments ): array {
+		$parts = [];
+		$start = 0;
+		$quote = '';
+		for ( $i = 0, $length = strlen( $arguments ); $i < $length; $i++ ) {
+			$char = $arguments[ $i ];
+			if ( '' !== $quote ) {
+				if ( $char === $quote ) {
+					$quote = '';
+				}
+				continue;
+			}
+			if ( "'" === $char || '"' === $char ) {
+				$quote = $char;
+			} elseif ( ',' === $char ) {
+				$parts[] = trim( substr( $arguments, $start, $i - $start ) );
+				$start   = $i + 1;
+			}
+		}
+		$parts[] = trim( substr( $arguments, $start ) );
+		return $parts;
 	}
 
 	/** Resolve a WAPF date function argument to a strictly validated date. */

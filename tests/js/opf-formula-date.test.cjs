@@ -16,6 +16,10 @@ vm.createContext(context);
 vm.runInContext(`${fs.readFileSync(sourcePath, 'utf8')}\nglobalThis.__evalFormula = evalFormula; globalThis.__choiceOrFieldAddon = choiceOrFieldAddon;`, context);
 
 test('WAPF date formula functions use Sunday-zero weekdays and one-based months', () => {
+	assert.equal(context.__evalFormula("datediff('2023-01-01'; '2023-01-11')", 10, 1, 0, ''), 10);
+	assert.equal(context.__evalFormula("datediff('2023-01-11'; '2023-01-01')", 10, 1, 0, ''), -10);
+	assert.equal(context.__evalFormula('datediff(today(); [field.end])', 10, 1, 0, '', { end: '2026-06-16' }), 1);
+	assert.equal(context.__evalFormula("datediff('not-a-date'; '2023-01-11')", 10, 1, 0, ''), 0);
 	assert.equal(context.__evalFormula("dow('01-10-2023')", 10, 1, 0, ''), 2);
 	assert.equal(context.__evalFormula("month('03-01-2023')", 10, 1, 0, ''), 3);
 	assert.equal(context.__evalFormula("dow('2024-01-01')", 10, 1, 0, ''), 1);

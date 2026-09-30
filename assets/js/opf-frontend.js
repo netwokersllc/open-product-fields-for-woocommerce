@@ -463,7 +463,7 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
     date.setUTCHours(0, 0, 0, 0);
     date.setUTCFullYear(year, month - 1, day);
     if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
-    return { weekday: date.getUTCDay(), month };
+    return { weekday: date.getUTCDay(), month, timestamp: date.getTime() };
   };
   const expr = String(formula)
     .replace(/;/g, ',')
@@ -482,6 +482,27 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
     .replace(/\[qty\]/gi, ' Q ')
     .replace(/\[addons\]|\[options_total\]/gi, ' A ')
     .replace(/today\s*\(\s*\)/gi, '__OPF_TODAY__')
+    .replace(/\bdatediff\s*\(([^()]*)\)/gi, (_, rawArgs) => {
+      const args = [];
+      let start = 0;
+      let quote = '';
+      for (let index = 0; index < rawArgs.length; index++) {
+        const char = rawArgs[index];
+        if (quote) {
+          if (char === quote) quote = '';
+        } else if (char === "'" || char === '"') {
+          quote = char;
+        } else if (char === ',') {
+          args.push(rawArgs.slice(start, index).trim());
+          start = index + 1;
+        }
+      }
+      args.push(rawArgs.slice(start).trim());
+      if (args.length !== 2) return '0';
+      const startDate = resolveFormulaDate(args[0]);
+      const endDate = resolveFormulaDate(args[1]);
+      return startDate && endDate ? String((endDate.timestamp - startDate.timestamp) / 86400000) : '0';
+    })
     .replace(/\b(dow|month)\s*\(([^()]*)\)/gi, (_, fn, rawDate) => {
       const date = resolveFormulaDate(rawDate);
       return date ? String(fn.toLowerCase() === 'dow' ? date.weekday : date.month) : '0';

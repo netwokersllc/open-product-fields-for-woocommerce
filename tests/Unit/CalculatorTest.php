@@ -116,6 +116,10 @@ final class CalculatorTest extends TestCase {
 	}
 
 	public function test_wapf_date_formula_functions_match_weekday_month_and_today_semantics(): void {
+		$this->assertSame( 10.0, Calculator::evaluate_formula( "datediff('2023-01-01'; '2023-01-11')", 10.0, 1, 0.0 ) );
+		$this->assertSame( -10.0, Calculator::evaluate_formula( "datediff('2023-01-11'; '2023-01-01')", 10.0, 1, 0.0 ) );
+		$this->assertSame( 1.0, Calculator::evaluate_formula( 'datediff(today(); [field.end])', 10.0, 1, 0.0, '', '2024-02-28', [ 'end' => '2024-02-29' ] ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( "datediff('not-a-date'; '2023-01-11')", 10.0, 1, 0.0 ) );
 		$this->assertSame( 2.0, Calculator::evaluate_formula( "dow('01-10-2023')", 10.0, 1, 0.0 ) );
 		$this->assertSame( 3.0, Calculator::evaluate_formula( "month('03-01-2023')", 10.0, 1, 0.0 ) );
 		$this->assertSame( 1.0, Calculator::evaluate_formula( "dow('2024-01-01')", 10.0, 1, 0.0 ) );
