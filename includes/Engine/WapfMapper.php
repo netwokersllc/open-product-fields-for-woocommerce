@@ -35,6 +35,7 @@ final class WapfMapper {
 		'image-swatch'  => 'swatch',
 		'content'       => 'paragraph',
 		'paragraph'     => 'paragraph',
+		'img'           => 'image',
 	];
 
 	/**
@@ -98,6 +99,8 @@ final class WapfMapper {
 					'pricing'      => self::map_field_pricing( $wapf_field ),
 					'conditionals' => self::map_conditionals( $wapf_field, $notes, $seen_ids ),
 					'content'      => (string) ( $wapf_field['options']['p_content'] ?? '' ),
+					'image_url'    => (string) ( $wapf_field['image'] ?? $wapf_field['options']['image'] ?? '' ),
+					'attachment_id' => (int) ( $wapf_field['attachment'] ?? $wapf_field['options']['attachment'] ?? 0 ),
 				]
 			);
 

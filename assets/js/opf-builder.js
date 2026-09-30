@@ -19,7 +19,7 @@
 	model.fields = model.fields || [];
 	model.rule_groups = model.rule_groups || [];
 
-	var TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'paragraph' ];
+	var TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'paragraph', 'image' ];
 	var PRICING = [ 'none', 'fixed', 'percent', 'formula' ];
 
 	function el( tag, attrs, children ) {
@@ -177,6 +177,36 @@
 				field.content = content.value;
 			} );
 			card.appendChild( content );
+		}
+		if ( 'image' === field.type ) {
+			field.image_url = field.image_url || '';
+			field.attachment_id = parseInt( field.attachment_id, 10 ) || 0;
+			field.alt_text = field.alt_text || '';
+			field.required = false;
+			field.choices = [];
+			field.pricing = { type: 'none', amount: 0, formula: '' };
+			var imageUrl = el( 'input', { class: 'opf-b-input opf-b-image-url', type: 'url', value: field.image_url, placeholder: 'https://example.com/image.jpg' } );
+			imageUrl.addEventListener( 'input', function () {
+				field.image_url = imageUrl.value;
+				field.attachment_id = 0;
+			} );
+			var altText = el( 'input', { class: 'opf-b-input opf-b-image-alt', value: field.alt_text, placeholder: 'Alternative text' } );
+			altText.addEventListener( 'input', function () { field.alt_text = altText.value; } );
+			var mediaButton = el( 'button', { class: 'button opf-b-image-select', type: 'button', text: field.attachment_id ? 'Change image' : 'Choose image' } );
+			mediaButton.addEventListener( 'click', function () {
+				if ( ! window.wp || ! window.wp.media ) return;
+				var frame = window.wp.media( { title: 'Choose image', button: { text: 'Use image' }, library: { type: 'image' }, multiple: false } );
+				frame.on( 'select', function () {
+					var selected = frame.state().get( 'selection' ).first().toJSON();
+					field.attachment_id = parseInt( selected.id, 10 ) || 0;
+					field.image_url = selected.url || '';
+					rerender();
+				} );
+				frame.open();
+			} );
+			var imageControls = el( 'div', { class: 'opf-b-image-controls' }, [ mediaButton, imageUrl, altText ] );
+			if ( field.image_url ) imageControls.appendChild( el( 'img', { class: 'opf-b-image-preview', src: field.image_url, alt: field.alt_text } ) );
+			card.appendChild( imageControls );
 		}
 
 		if ( field.choices.length ) {

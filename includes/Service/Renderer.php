@@ -38,6 +38,7 @@ final class Renderer {
 		'checkbox' => 'checkbox',
 		'swatch'   => 'text-swatch',
 		'paragraph' => 'content',
+		'image'     => 'img',
 	];
 
 	/**
@@ -241,7 +242,7 @@ final class Renderer {
 		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-opf-field="' . esc_attr( $fid ) . '" style="width:' . esc_attr( (string) $field['width'] ) . '%;" for="' . esc_attr( $fid ) . '">';
 
 		echo '<div class="opf-field-label">';
-		if ( 'paragraph' === $field['type'] ) {
+		if ( in_array( $field['type'], [ 'paragraph', 'image' ], true ) ) {
 			echo '<span>' . esc_html( $field['label'] ) . '</span>';
 		} else {
 			echo '<label';
@@ -264,6 +265,8 @@ final class Renderer {
 
 		if ( 'paragraph' === $field['type'] ) {
 			echo '<div class="opf-field-content">' . nl2br( esc_html( $field['content'] ) ) . '</div>';
+		} elseif ( 'image' === $field['type'] ) {
+			self::render_content_image( $field );
 		} elseif ( in_array( $field['type'], [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {
 			self::render_choices( $gid, $name, $field, $base_price );
 		} else {
@@ -272,6 +275,29 @@ final class Renderer {
 
 		echo '</div>';
 		echo '</div>';
+	}
+
+	/**
+	 * Render WAPF-style static image content without creating a submitted value.
+	 *
+	 * @param array<string,mixed> $field Normalized image field.
+	 */
+	private static function render_content_image( array $field ): void {
+		$image = '';
+		if ( $field['attachment_id'] > 0 && function_exists( 'wp_get_attachment_image' ) ) {
+			$attributes = [ 'class' => 'opf-field-content-image' ];
+			if ( '' !== $field['alt_text'] ) {
+				$attributes['alt'] = $field['alt_text'];
+			}
+			$image = (string) wp_get_attachment_image( $field['attachment_id'], 'full', false, $attributes );
+		}
+		if ( '' !== $image ) {
+			echo $image; // WordPress returns escaped attachment markup.
+			return;
+		}
+		if ( '' !== $field['image_url'] ) {
+			echo '<img class="opf-field-content-image" src="' . esc_url( $field['image_url'] ) . '" alt="' . esc_attr( $field['alt_text'] ) . '" />';
+		}
 	}
 
 	/**

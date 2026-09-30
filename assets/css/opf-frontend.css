@@ -29,6 +29,12 @@
 .opf-field--hidden,
 .opf-hide { display: none; }
 
+.opf-field-img .opf-field-content-image {
+	display: block;
+	max-width: 100%;
+	height: auto;
+}
+
 .opf-field__label {
 	display: flex;
 	flex-direction: column;

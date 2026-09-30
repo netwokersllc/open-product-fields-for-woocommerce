@@ -88,6 +88,15 @@ OPF\Service\FieldGroups::flush_cache();
 
 check( 'fixtures: products created', $matched_id > 0 && $unmatched_id > 0 );
 
+$e2e_image_upload = wp_upload_bits( 'opf-e2e-reference.png', null, base64_decode( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lWQAAAAASUVORK5CYII=' ) );
+$e2e_image_attachment_id = 0;
+if ( empty( $e2e_image_upload['error'] ) ) {
+	$e2e_image_attachment_id = (int) wp_insert_attachment(
+		[ 'post_mime_type' => 'image/png', 'post_title' => 'OPF E2E reference image', 'post_status' => 'inherit' ],
+		$e2e_image_upload['file']
+	);
+}
+
 // ------------------------------------------------------------ field group.
 $group_data = [
 	'fields'  => [
@@ -113,6 +122,15 @@ $group_data = [
 			'pricing' => [ 'type' => 'fixed', 'amount' => 8.0, 'formula' => '' ],
 			'conditionals' => [ [ 'action' => 'show', 'logic' => 'all', 'rules' => [ [ 'field' => 'delivery', 'operator' => 'is', 'value' => 'plus' ] ] ] ],
 			'width' => 100, 'choices' => [],
+		],
+		[
+			'id' => 'reference-image', 'label' => 'Reference image', 'type' => 'image',
+			'image_url' => 'https://example.test/reference.png', 'attachment_id' => $e2e_image_attachment_id, 'alt_text' => 'Product reference',
+			'conditionals' => [ [ 'action' => 'show', 'logic' => 'all', 'rules' => [ [ 'field' => 'delivery', 'operator' => 'is', 'value' => 'plus' ] ] ] ],
+		],
+		[
+			'id' => 'remote-image', 'label' => 'Remote image', 'type' => 'image',
+			'image_url' => 'https://example.test/remote.png', 'alt_text' => 'Remote reference',
 		],
 		[
 			'id'          => 'boost_note',
@@ -164,6 +182,9 @@ do_action( 'wp_enqueue_scripts' );
 $rendered_api = opf_display_field_groups_for_product( $matched_product );
 check( 'group API: product fields render to HTML', is_string( $rendered_api ) && false !== strpos( $rendered_api, 'Delivery speed' ) );
 check( 'paragraph: sanitized plain text renders conditionally', false !== strpos( $rendered_api, 'opf-field-content field-notice opf-hide' ) && false !== strpos( $rendered_api, 'Use carefully' ) && false !== strpos( $rendered_api, 'Plain text only.' ) && false === strpos( $rendered_api, '<script>alert(1)</script>' ) );
+$image_src = $e2e_image_attachment_id ? wp_get_attachment_image_url( $e2e_image_attachment_id, 'full' ) : 'https://example.test/reference.png';
+check( 'image: attachment renders conditionally without a form control', false !== strpos( $rendered_api, 'opf-field-img field-reference-image opf-hide' ) && false !== strpos( $rendered_api, 'src="' . esc_attr( $image_src ) . '"' ) && false !== strpos( $rendered_api, 'alt="Product reference"' ) );
+check( 'image: safe external image URL renders as an escaped source', false !== strpos( $rendered_api, 'src="https://example.test/remote.png"' ) && false !== strpos( $rendered_api, 'alt="Remote reference"' ) );
 ob_start();
 wp_script_modules()->print_enqueued_script_modules();
 $module_markup = ob_get_clean();
@@ -174,6 +195,7 @@ $_POST['opf'] = [
 	(string) $gid => [
 		'delivery'   => 'plus',
 		'notice'     => 'Injected cart text',
+		'reference-image' => 'Injected cart image value',
 		'boost_note' => '', // hidden under delivery=plus → stripped.
 	],
 ];
@@ -188,6 +210,7 @@ check( 'classic: item added', false !== $item_key );
 $cart_item = $cart->get_cart_item( $item_key );
 check( 'classic: values attached', ( $cart_item['opf_fields'][ (string) $gid ]['delivery'] ?? '' ) === 'plus' );
 check( 'paragraph: submitted value never enters cart', ! isset( $cart_item['opf_fields'][ (string) $gid ]['notice'] ) );
+check( 'image: submitted value never enters cart', ! isset( $cart_item['opf_fields'][ (string) $gid ]['reference-image'] ) );
 check( 'classic: hidden field stripped', ! isset( $cart_item['opf_fields'][ (string) $gid ]['boost_note'] ) );
 check( 'classic: base price stored', abs( (float) $cart_item['opf_base_price'] - 100.0 ) < 0.001 );
 $cart_api = opf_get_custom_fields_in_cart();
@@ -459,6 +482,9 @@ if ( $probe_item ) {
 // ------------------------------------------------------------------ wrapup.
 $cart->empty_cart();
 wc_clear_notices();
+if ( $e2e_image_attachment_id ) {
+	wp_delete_attachment( $e2e_image_attachment_id, true );
+}
 
 WP_CLI::log( '' );
 if ( $failures > 0 ) {

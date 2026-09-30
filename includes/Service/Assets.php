@@ -103,6 +103,7 @@ final class Assets {
 		if ( ! $screen || ! in_array( $screen->post_type, [ 'opf_field_group' ], true ) || ! str_contains( $hook, 'post.php' ) && ! str_contains( $hook, 'post-new.php' ) ) {
 			return;
 		}
+		wp_enqueue_media();
 		wp_enqueue_style( 'opf-builder', OPF_URL . 'assets/css/opf-builder.css', [], OPF_VERSION );
 		wp_enqueue_script( 'opf-builder', OPF_URL . 'assets/js/opf-builder.js', [ 'wp-element', 'wp-components', 'wp-data', 'wp-api-fetch', 'wp-i18n' ], OPF_VERSION, true );
 	}

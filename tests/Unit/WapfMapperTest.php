@@ -83,6 +83,23 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( 'none', $mapped['group']['fields'][0]['pricing']['type'] );
 	}
 
+	public function test_maps_wapf_informative_image_url_and_attachment_fields(): void {
+		$wapf = $this->swatch_group();
+		$wapf['fields'] = [
+			[ 'id' => 'image-url', 'label' => 'URL image', 'type' => 'img', 'image' => 'https://cdn.example.test/product.png' ],
+			[ 'id' => 'image-attachment', 'label' => 'Media image', 'type' => 'img', 'options' => [ 'attachment' => 42 ] ],
+		];
+		$mapped = WapfMapper::map( $wapf );
+
+		$this->assertFalse( $mapped['needs_review'] );
+		$this->assertSame( [ 'image', 'image' ], array_column( $mapped['group']['fields'], 'type' ) );
+		$this->assertSame( 'https://cdn.example.test/product.png', $mapped['group']['fields'][0]['image_url'] );
+		$this->assertSame( 0, $mapped['group']['fields'][0]['attachment_id'] );
+		$this->assertSame( 42, $mapped['group']['fields'][1]['attachment_id'] );
+		$this->assertFalse( $mapped['group']['fields'][0]['required'] );
+		$this->assertSame( 'none', $mapped['group']['fields'][0]['pricing']['type'] );
+	}
+
 	public function test_maps_product_tag_placement(): void {
 		$mapped = WapfMapper::map( $this->swatch_group() );
 		$this->assertSame( 'product_tag', $mapped['group']['rule_groups'][0]['rules'][0]['subject'] );

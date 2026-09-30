@@ -22,7 +22,7 @@ final class FieldGroup {
 	/**
 	 * Supported field types.
 	 */
-	public const FIELD_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'paragraph' ];
+	public const FIELD_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'paragraph', 'image' ];
 
 	/**
 	 * Supported pricing types.
@@ -206,6 +206,24 @@ final class FieldGroup {
 			$normalized['choices']  = [];
 			$normalized['pricing']  = [ 'type' => 'none', 'amount' => 0.0, 'formula' => '' ];
 			$normalized['content']  = $content;
+		}
+		if ( 'image' === $type ) {
+			$image_url = trim( (string) ( $field['image_url'] ?? '' ) );
+			if ( function_exists( 'esc_url_raw' ) ) {
+				$image_url = esc_url_raw( $image_url, [ 'http', 'https' ] );
+			} else {
+				$parts = $image_url ? parse_url( $image_url ) : false;
+				if ( false === $parts || isset( $parts['scheme'] ) && ! in_array( strtolower( $parts['scheme'] ), [ 'http', 'https' ], true ) || str_starts_with( $image_url, '//' ) || preg_match( '/[\x00-\x20"<>]/', $image_url ) ) {
+					$image_url = '';
+				}
+			}
+			$normalized['required']      = false;
+			$normalized['choices']       = [];
+			$normalized['pricing']       = [ 'type' => 'none', 'amount' => 0.0, 'formula' => '' ];
+			$normalized['image_url']     = $image_url;
+			$normalized['attachment_id'] = max( 0, (int) ( $field['attachment_id'] ?? 0 ) );
+			$alt_text = (string) ( $field['alt_text'] ?? '' );
+			$normalized['alt_text'] = function_exists( 'sanitize_text_field' ) ? sanitize_text_field( $alt_text ) : trim( strip_tags( $alt_text ) );
 		}
 
 		if ( 'date' === $type ) {

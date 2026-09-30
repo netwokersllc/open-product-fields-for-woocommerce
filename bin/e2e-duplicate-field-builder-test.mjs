@@ -49,6 +49,15 @@ await page.evaluate((model) => {
 	mount.dataset.previewRest = '/wp-json/opf/v1/preview';
 	mount.dataset.model = JSON.stringify(model);
 	window.__opfSavedPayloads = [];
+	window.wp = { media: (options) => {
+		const handlers = {};
+		return {
+			on: (name, callback) => { handlers[name] = callback; },
+			state: () => ({ get: () => ({ first: () => ({ toJSON: () => ({ id: 77, url: 'https://cdn.example.test/chosen.png' }) }) }) }),
+			open: () => handlers.select(),
+			options,
+		};
+	} };
 	window.fetch = async (_url, options) => {
 		window.__opfSavedPayloads.push(JSON.parse(options.body));
 		return { json: async () => ({ id: 31 }) };
@@ -88,6 +97,19 @@ await page.waitForFunction(() => window.__opfSavedPayloads.length === 3);
 const withParagraph = await page.evaluate(() => window.__opfSavedPayloads[2].data.fields);
 const savedParagraph = withParagraph[withParagraph.length - 1];
 check('paragraph save persists content as a non-required, non-priced field', savedParagraph.type === 'paragraph' && savedParagraph.content === 'Read this first' && savedParagraph.required === false && savedParagraph.pricing.type === 'none' && savedParagraph.choices.length === 0);
+
+await page.locator('.opf-b-toolbar button').first().click();
+const image = page.locator('.opf-b-field').last();
+await image.locator('select.opf-b-input').selectOption('image');
+check('image type offers URL and WordPress media picker', await image.locator('.opf-b-image-url').count() === 1 && await image.locator('.opf-b-image-select').count() === 1);
+await image.locator('.opf-b-image-select').click();
+check('media selection stores attachment identity and fallback URL', await image.locator('.opf-b-image-url').inputValue() === 'https://cdn.example.test/chosen.png' && await image.locator('.opf-b-image-preview').count() === 1);
+await image.locator('.opf-b-image-alt').fill('Chosen sample');
+await page.locator('.opf-b-toolbar button').nth(1).click();
+await page.waitForFunction(() => window.__opfSavedPayloads.length === 4);
+const withImage = await page.evaluate(() => window.__opfSavedPayloads[3].data.fields);
+const savedImage = withImage[withImage.length - 1];
+check('image save persists attachment, safe fallback URL, and alt text', savedImage.type === 'image' && savedImage.attachment_id === 77 && savedImage.image_url === 'https://cdn.example.test/chosen.png' && savedImage.alt_text === 'Chosen sample' && savedImage.required === false && savedImage.pricing.type === 'none');
 check('no uncaught builder errors', errors.length === 0);
 if ( errors.length ) console.log(errors.join('\n'));
 await browser.close();

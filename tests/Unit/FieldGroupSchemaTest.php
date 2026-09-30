@@ -63,4 +63,20 @@ final class FieldGroupSchemaTest extends TestCase {
 		$this->assertFalse( $field['required'] );
 		$this->assertSame( 'none', $field['pricing']['type'] );
 	}
+
+	public function test_image_is_static_with_safe_url_and_attachment_reference(): void {
+		$field = FieldGroup::normalize_field(
+			[
+				'id' => 'hero', 'type' => 'image', 'image_url' => 'javascript:alert(1)', 'attachment_id' => '42',
+				'alt_text' => 'Sample image', 'required' => true, 'pricing' => [ 'type' => 'fixed', 'amount' => 4 ],
+			]
+		);
+
+		$this->assertSame( 'image', $field['type'] );
+		$this->assertSame( '', $field['image_url'] );
+		$this->assertSame( 42, $field['attachment_id'] );
+		$this->assertSame( 'Sample image', $field['alt_text'] );
+		$this->assertFalse( $field['required'] );
+		$this->assertSame( 'none', $field['pricing']['type'] );
+	}
 }
