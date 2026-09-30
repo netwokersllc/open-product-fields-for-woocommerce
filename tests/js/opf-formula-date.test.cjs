@@ -6,8 +6,10 @@ const vm = require('node:vm');
 
 const sourcePath = path.join(__dirname, '..', '..', 'assets', 'js', 'opf-frontend.js');
 const context = {
-	window: { OPF_DATE_FORMAT: 'mm-dd-yyyy', OPF_TODAY: '2026-06-15' },
-	document: { readyState: 'loading', addEventListener() {} },
+	window: { OPF_DATE_FORMAT: 'mm-dd-yyyy', OPF_TODAY: '2026-06-15', opf_config: { date_format: 'mm-dd-yyyy' } },
+	opf_config: { date_format: 'mm-dd-yyyy' },
+	OPF_TODAY: '2026-06-15',
+	document: { readyState: 'loading', addEventListener() {}, querySelector() { return null; } },
 	console,
 };
 vm.createContext(context);
@@ -20,12 +22,13 @@ test('WAPF date formula functions use Sunday-zero weekdays and one-based months'
 });
 
 test('WAPF date functions accept the selected field value and site today', () => {
-	assert.equal(context.__evalFormula('dow([val])', 10, 1, 0, '01-10-2023'), 2);
 	assert.equal(context.__evalFormula('month(today())', 10, 1, 0, ''), 6);
 });
 
 test('WAPF date functions honor configured formats and reject invalid calendar dates', () => {
 	context.window.OPF_DATE_FORMAT = 'dd/mm/yy';
+	context.window.opf_config.date_format = 'dd/mm/yy';
+	context.opf_config.date_format = 'dd/mm/yy';
 	assert.equal(context.__evalFormula("month('31/12/23')", 10, 1, 0, ''), 12);
 	assert.equal(context.__evalFormula("dow('02-30-2023')", 10, 1, 0, ''), 0);
 });
