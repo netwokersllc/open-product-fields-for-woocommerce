@@ -274,7 +274,7 @@ or bundled Pro contents.
 
 | Release change | Existing ledger row(s) or release gate | Audit disposition |
 | --- | --- | --- |
-| Extended 3.1.6: card quantity fields gain conditional options | `WAPF-FIELD-CARDS`, `WAPF-RULE-CONDITIONAL` | The existing card row calls quantity input behavior unverified. Add a distinct `WAPF-FIELD-CARDS-QUANTITY-CONDITIONALS` row before G1 closes so quantity-specific rule options cannot be lost inside the general cards row. |
+| Extended 3.1.6: card quantity fields gain conditional options | `WAPF-FIELD-CARDS-QUANTITY-CONDITIONALS`, `WAPF-RULE-CONDITIONAL` | Dedicated ledger row exists and remains `needs audit`; current package source must establish the exact controls, stored keys, and evaluation behavior. |
 | Extended 3.1.6: select tax calculation fix | `WAPF-COMMERCE-TAX` | Covered as a tax behavior; exact current-package path and regression remain unverified. |
 | Extended 3.1.7: upload/order-admin deletion and output hardening | `WAPF-FIELD-UPLOAD`; G4 security | Audit authorization, file ownership, path handling, and escaped output in current source; verify independently before release. |
 | Extended 3.1.7: text-swatch corner-radius persistence | `WAPF-FIELD-SWATCH-TEXT` | Covered; compare setting round-trip against the current package. |
@@ -292,7 +292,7 @@ or bundled Pro contents.
 | Extended 3.2: skip validation for unsupported product types | G3 server validation and product-type lifecycle | Performance/validation behavior, not a standalone customer capability row; verify unsupported types fail closed without imposing WAPF's skipped validation path on supported types. |
 | Extended 3.2: iOS upload validation scroll | `WAPF-UPLOAD-AJAX-UI`; G3 browser proof | Covered as an upload error-focus behavior; verify on a real iOS browser before claiming parity. |
 | Extended 3.2.1: zoom for image+quantity and linked-product images | `WAPF-FIELD-IMAGE-QUANTITY-ZOOM`, `WAPF-FIELD-CHILD-PRODUCTS-IMAGE-ZOOM` | Both rows exist; compare current setting keys, defaults, hover and keyboard-focus behavior. |
-| Extended 3.2.1: date-picker accessibility improvement | `WAPF-FIELD-DATE` | The general date row is too broad to independently accept this release capability. Add `WAPF-DATE-ACCESSIBILITY` before G1 closes, then compare names, focus order, keyboard controls and announcements against the exact package. |
+| Extended 3.2.1: date-picker accessibility improvement | `WAPF-DATE-ACCESSIBILITY` | Dedicated ledger row exists and remains `needs audit`; compare names, focus order, keyboard controls, and announcements against the exact package. |
 | Extended 3.2.1: auto-update fix | G4 packaging/update reliability | Release reliability rather than a storefront feature row; inspect updater code and verify package update behavior without exposing license data. |
 | Extended 3.2.1: disabled-days persistence fix | `WAPF-DATE-WEEKDAYS` | Covered; compare saved defaults and reload behavior in the current package. |
 | Extended 3.2.1: option-discount tax fix | `WAPF-COMMERCE-TAX` | Covered; current tax/coupon interaction needs source and commerce-path proof. |
