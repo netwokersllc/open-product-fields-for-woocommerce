@@ -33,7 +33,37 @@ and [Extended changelog](https://www.studiowombat.com/plugin/advanced-product-fi
 These findings seed the Extended entries in the [capability
 ledger](WAPF-CAPABILITY-LEDGER.md). This source audit does not claim OPF
 parity; implementation, import, and commerce evidence must be established
-separately for each capability. Pro details, the six separate add-ons, and
-compatibility entries remain in the full OPF 1.0 objective.
+separately for each capability. Pro is included because the Extended edition
+bundles it. Six separately sold add-ons and compatibility entries remain
+tracked separately and are outside this edition's 1.0 parity gate.
 
 Official formula inventory: [formula function reference](https://www.studiowombat.com/knowledge-base/formula-functions-reference/).
+
+## Current target version gap
+
+This document audits the installed 3.1.5 package only. The current official
+Extended changelog now lists 3.2.1, released 27 June 2026. The live site's
+inactive 3.1.5 copy is a useful source baseline, but it cannot establish current
+target behavior by itself. The 3.2.1 distribution source is not present in the
+audited installation, so source-level review of the intervening releases is
+still open. Do not use the 3.1.5 audit as the source-audit exit gate.
+
+The official changelog delta that must be reconciled into the ledger is:
+
+| Version | Published capability or behavior changes | Audit implications |
+| --- | --- | --- |
+| 3.1.6 | Cards with quantity inputs gained additional conditional-logic options; select tax handling was fixed | Inspect card quantity condition controls and saved settings, then compare selected-option tax behavior |
+| 3.1.7 | Upload and order-admin deletion security hardening; text-swatch corner-radius persistence fix; informational calculation result-format fix; modern uploader enabled by default | Inspect upload and order-admin authorization, corner-radius serialization, calculation result formatting, and uploader defaults |
+| 3.2 | True/false and checkbox switch presentation; checkbox columns; field-group title search; number step and whole/decimal validation; formula weight; styled-control accessibility; negative options-total formatting; active product-type condition filtering; upload validation fix | Inspect setting keys/defaults, server validation, formula-weight parsing, keyboard/screen-reader behavior, and the admin query/filter contract |
+| Extended 3.2.1 | Image zoom for image+quantity and linked-product image fields; date-picker accessibility; disabled-days save fix; option-discount tax fix | Inspect zoom controls/data, date control semantics and persistence, and option-tax calculations |
+| Pro 3.2.2 | Fixed a blank Product Fields admin page | Extended includes Pro features, but the versioned Extended package source must establish whether this Pro patch is bundled |
+
+Sources: [official Extended changelog](https://www.studiowombat.com/plugin/advanced-product-fields-for-woocommerce-extended/changelog/),
+[official Pro changelog](https://www.studiowombat.com/plugin/advanced-product-fields-for-woocommerce/changelog/),
+and [official edition comparison](https://www.studiowombat.com/knowledge-base/whats-the-difference-between-each-version/).
+The edition comparison confirms Extended includes Pro; the audit gate therefore
+covers both Pro-core and Extended-only behavior. Pro's latest changelog is
+3.2.2 while Extended's is 3.2.1, so exact package inclusion is an open
+source-audit question. Six separately sold add-ons remain out of this scope.
+This is a changelog-based release-delta review, not source-level verification
+of the current 3.2.1/3.2.2 packages.
