@@ -73,6 +73,28 @@ accepted progress. The next action is to place the licensed 3.2.1 ZIP in this
 plugin's audit inputs (or supply an authorized source directory); do not send a
 license key or fetch a paid package through an account without authorization.
 
+## FOSS and package audit (G4, partial)
+
+Current source evidence:
+
+- `LICENSE`, the committed plugin header, and committed `readme.txt` declare
+  GPL-2.0-or-later.
+- `composer.json` has no runtime library dependencies; PHPUnit and its
+  transitive packages are development-only and declare MIT/BSD licenses.
+- No separate third-party JS/CSS payloads were found under `assets/`.
+- `bin/build.sh` excludes `vendor/`, tests, and development files. This is
+  consistent with the zero-runtime-dependency manifest, but the final archive
+  still needs a contents/runtime inspection.
+- Public `HEAD` plugin version and readme stable tag both say 0.1.0. The current
+  dirty `open-product-fields-for-woocommerce.php` changes its header and
+  `OPF_VERSION` to 0.1.1 while `readme.txt` remains at 0.1.0. Preserve that
+  work; align metadata before making a release package.
+
+This is not a completed provenance review: no file-by-file authorship/license
+audit or reproducible release archive has been accepted. G4 stays open until
+source provenance, bundled notices, build output, version metadata, and
+marketplace requirements are reviewed against the exact release commit.
+
 ## Ordered work packages
 
 | Order | Work package | Current state | Scope and required output | Exit condition |
@@ -112,7 +134,8 @@ source has established the actual remaining scope.
 3. **G3 commerce proof:** relevant browser, server, cart/Store API,
    checkout/order, stock, restore, tax, and pricing lifecycles verified.
 4. **G4 release readiness:** security, accessibility, compatibility,
-   migration/rollback, packaging, docs, and publication gates passed.
+   migration/rollback, FOSS source/dependency/asset provenance, aligned version
+   metadata, inspected package contents, docs, and publication gates passed.
 
 No single goalpost can be waived by a passing aggregate test or a marketing
 feature list. A change in WAPF target version or inclusion of separate add-ons
