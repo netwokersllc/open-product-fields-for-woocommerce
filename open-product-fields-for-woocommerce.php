@@ -51,6 +51,7 @@ use OPF\Service\CartIntegration;
 use OPF\Service\Cli;
 use OPF\Service\FieldGroups;
 use OPF\Service\Importer;
+use OPF\Engine\FormulaFunctions;
 use OPF\Service\Integrations\Woocs;
 use OPF\Service\Integrations\Acf;
 use OPF\Service\MetaPrettifier;
@@ -88,6 +89,7 @@ function opf_boot(): void {
 		return;
 	}
 
+	FormulaFunctions::init();
 	Renderer::init();
 	CartIntegration::init();
 	Assets::init();

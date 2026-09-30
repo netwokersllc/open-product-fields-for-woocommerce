@@ -150,6 +150,9 @@ final class Calculator {
 	 */
 	public static function evaluate_formula( string $formula, float $price, int $qty, float $addons, string $val = '', ?string $today = null, array $field_values = [], int $product_id = 0 ): float {
 		$formula = ACFFormula::resolve( $formula, max( 0, $product_id ) );
+		// WAPF separates function arguments with semicolons; accept commas too
+		// for native OPF formulas and existing extension callbacks.
+		$formula = str_replace( ';', ',', $formula );
 		$today = $today ?? ( function_exists( 'current_time' ) ? current_time( 'Y-m-d' ) : gmdate( 'Y-m-d' ) );
 		if ( ! self::is_formula_iso_date( $today ) ) {
 			$today = gmdate( 'Y-m-d' );
