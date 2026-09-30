@@ -259,6 +259,7 @@ final class CartIntegration {
 						'qty'    => $quantity,
 						'addons' => $per_unit,
 						'field_values' => $group_values,
+						'product_id' => $product->get_id(),
 					]
 				);
 			}

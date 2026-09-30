@@ -16,6 +16,7 @@
 namespace OPF\Service;
 
 use OPF\Service\Integrations\Woocs;
+use OPF\Engine\ACFFormula;
 use OPF\Engine\Evaluator;
 use OPF\Engine\FieldGroup;
 use OPF\Engine\FieldValue;
@@ -110,7 +111,7 @@ final class Renderer {
 			return;
 		}
 
-		Assets::enqueue_frontend( self::registry( $groups ) );
+		Assets::enqueue_frontend( self::registry( $groups, $product->get_id() ) );
 
 		$base_price = (float) Woocs::product_context( $product )['base'];
 		$gids       = [];
@@ -119,7 +120,7 @@ final class Renderer {
 
 		foreach ( $groups as $entry ) {
 			$gids[] = (string) $entry['id'];
-			self::render_group( $entry['id'], $entry['title'], $entry['group'], $base_price );
+			self::render_group( $entry['id'], $entry['title'], $entry['group'], $base_price, $product->get_id() );
 		}
 
 		echo '<input type="hidden" value="' . esc_attr( implode( ',', $gids ) ) . '" name="opf_field_groups"/>';
@@ -160,7 +161,7 @@ final class Renderer {
 	 *
 	 * @param array<int,array{id:int,title:string,lang:string,group:FieldGroup}> $groups Groups.
 	 */
-	private static function registry( array $groups ): array {
+	private static function registry( array $groups, int $product_id ): array {
 		$registry = [];
 		foreach ( $groups as $entry ) {
 			$gid = (string) $entry['id'];
@@ -177,8 +178,8 @@ final class Renderer {
 								'pricing'  => [
 									'type'        => $c['pricing']['type'],
 									'amount'      => (float) $c['pricing']['amount'],
-									'formula'     => (string) $c['pricing']['formula'],
-									'formula_raw' => (string) ( $c['pricing']['formula_raw'] ?? '' ),
+								'formula'     => ACFFormula::resolve( (string) $c['pricing']['formula'], $product_id ),
+								'formula_raw' => ACFFormula::resolve( (string) ( $c['pricing']['formula_raw'] ?? '' ), $product_id ),
 								],
 							];
 						},
@@ -187,8 +188,8 @@ final class Renderer {
 					'pricing'      => [
 						'type'       => $field['pricing']['type'],
 						'amount'     => (float) $field['pricing']['amount'],
-						'formula'    => (string) ( $field['pricing']['formula'] ?? '' ),
-						'formula_raw' => (string) ( $field['pricing']['formula_raw'] ?? '' ),
+						'formula'    => ACFFormula::resolve( (string) ( $field['pricing']['formula'] ?? '' ), $product_id ),
+						'formula_raw' => ACFFormula::resolve( (string) ( $field['pricing']['formula_raw'] ?? '' ), $product_id ),
 						'per_unit'   => ! empty( $field['pricing']['per_unit'] ),
 					],
 				];
@@ -205,7 +206,7 @@ final class Renderer {
 	 * @param FieldGroup $group      Group data.
 	 * @param float      $base_price Base unit price.
 	 */
-	public static function render_group( $gid, string $title, FieldGroup $group, float $base_price ): void {
+	public static function render_group( $gid, string $title, FieldGroup $group, float $base_price, int $product_id = 0 ): void {
 		// Seed conditionals with default selections.
 		$values = [];
 		foreach ( $group->data['fields'] as $field ) {
@@ -215,7 +216,7 @@ final class Renderer {
 		echo '<div class="opf-field-group label-' . esc_attr( 'above' === $group->data['labels_position'] ? 'above' : 'below' ) . '" data-group="' . esc_attr( (string) $gid ) . '" data-variables="[]" data-opf-group="' . esc_attr( (string) $gid ) . '">';
 
 		foreach ( $group->data['fields'] as $field ) {
-			self::render_field( $gid, $field, $values, $base_price );
+			self::render_field( $gid, $field, $values, $base_price, $product_id );
 		}
 
 		echo '</div>';
@@ -229,7 +230,7 @@ final class Renderer {
 	 * @param array<string,mixed> $values     Seeded values (for conditional state).
 	 * @param float               $base_price Base unit price.
 	 */
-	private static function render_field( string $gid, array $field, array $values, float $base_price ): void {
+	private static function render_field( string $gid, array $field, array $values, float $base_price, int $product_id ): void {
 		$fid      = $field['id'];
 		$name     = sprintf( 'opf[%s][%s]', $gid, $fid );
 		$hidden   = ! Evaluator::is_visible( $field, $values );
@@ -362,7 +363,7 @@ final class Renderer {
 				esc_attr( $choice['label'] ),
 				$field['required'] ? ' required' : '',
 				$choice['selected'] ? ' checked' : '',
-				self::pricing_attrs( $choice['pricing'] )
+				self::pricing_attrs( $choice['pricing'], $product_id )
 			);
 
 			echo '<div class="' . esc_attr( implode( ' ', $swatch_classes ) ) . '">';
@@ -386,12 +387,12 @@ final class Renderer {
 	 *
 	 * @param array<string,mixed> $pricing Pricing block.
 	 */
-	private static function pricing_attrs( array $pricing ): string {
+	private static function pricing_attrs( array $pricing, int $product_id ): string {
 		if ( 'none' === $pricing['type'] ) {
 			return '';
 		}
 		$price = 'formula' === $pricing['type']
-			? (string) ( $pricing['formula_raw'] ?? $pricing['formula'] )
+			? ACFFormula::resolve( (string) ( $pricing['formula_raw'] ?? $pricing['formula'] ), $product_id )
 			: (string) (float) $pricing['amount'];
 		$type  = 'formula' === $pricing['type'] ? 'fx' : $pricing['type'];
 		return sprintf( ' data-opf-pricetype="%s" data-opf-price="%s"', esc_attr( $type ), esc_attr( $price ) );
