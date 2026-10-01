@@ -1,5 +1,5 @@
 <?php
-/** Prove Extended 3.1.5 parses OPF image-swatch WXR data. */
+/** Prove Extended 3.1.5 parses OPF image-swatch and section WXR data. */
 
 if ( ! defined( 'WP_CLI' ) || ! WP_CLI || '1' !== getenv( 'OPF_IMAGE_SWATCH_WXR_E2E' ) ) {
 	throw new RuntimeException( 'Run in a disposable WordPress clone with OPF_IMAGE_SWATCH_WXR_E2E=1.' );
@@ -30,9 +30,9 @@ if ( ! class_exists( 'WP_Import' ) ) {
 	WP_CLI::error( 'Install WordPress Importer before running this proof.' );
 }
 
-$title = 'OPF Extended image swatch WXR fixture';
+$title = 'OPF Extended image swatch and section WXR fixture';
 if ( get_page_by_title( $title, OBJECT, 'wapf_product' ) ) {
-	WP_CLI::error( 'Image-swatch fixture already exists; refusing to modify it.' );
+	WP_CLI::error( 'Image-swatch and section fixture already exists; refusing to modify it.' );
 }
 $attachment_ids = get_posts( [ 'post_type' => 'attachment', 'post_status' => 'inherit', 'posts_per_page' => 50, 'fields' => 'ids' ] );
 $attachment_id = 0;
@@ -96,6 +96,21 @@ try {
 			'type' => 'content_image',
 			'image_url' => 'https://example.test/fabric-guide.jpg',
 			'image_id' => 481,
+		], [
+			'id' => 'section-outer',
+			'label' => 'Outer section',
+			'type' => 'section',
+			'css_class' => 'opf-e2e-section',
+		], [
+			'id' => 'section-inner',
+			'label' => 'Inner section',
+			'type' => 'section',
+		], [
+			'id' => 'section-inner-end',
+			'type' => 'section_end',
+		], [
+			'id' => 'section-outer-end',
+			'type' => 'section_end',
 		] ] ] ),
 	] ], [ 'site_url' => home_url(), 'site_title' => get_bloginfo( 'name' ) ] );
 	$wxr_path = tempnam( get_temp_dir(), 'opf-image-wxr-' );
@@ -120,6 +135,10 @@ try {
 	$multi_color_choice = $multi_color_options['choices'][0] ?? [];
 	$paragraph = $target->fields[2] ?? null;
 	$content_image = $target->fields[3] ?? null;
+	$section_outer = $target->fields[4] ?? null;
+	$section_inner = $target->fields[5] ?? null;
+	$section_inner_end = $target->fields[6] ?? null;
+	$section_outer_end = $target->fields[7] ?? null;
 	$checks = [
 		'image-swatch type parsed' => $field && 'image-swatch' === $field->type,
 		'image URL and attachment reference parsed' => 'https://example.test/oak.jpg' === ( $choice['image'] ?? '' ) && $attachment_id === (int) ( $choice['attachment'] ?? 0 ),
@@ -128,6 +147,7 @@ try {
 		'multi-color type, selection bounds, layout, and color parsed' => $multi_color && 'multi-color-swatch' === $multi_color->type && 1 === (int) ( $multi_color_options['min_choices'] ?? 0 ) && 2 === (int) ( $multi_color_options['max_choices'] ?? 0 ) && 'rounded' === ( $multi_color_options['layout'] ?? '' ) && 36 === (int) ( $multi_color_options['size'] ?? 0 ) && '#123456' === ( $multi_color_choice['color'] ?? '' ),
 		'Extended p content type preserves basic HTML and shortcodes' => $paragraph && 'p' === $paragraph->type && '<strong>Special offer</strong> [site_name]' === ( $paragraph->options['p_content'] ?? '' ),
 		'WAPF img content preserves image URL and attachment reference' => $content_image && 'img' === $content_image->type && 'https://example.test/fabric-guide.jpg' === ( $content_image->options['image'] ?? '' ) && 481 === (int) ( $content_image->options['attachment'] ?? 0 ),
+		'nested section markers and custom class parse' => $section_outer && 'section' === $section_outer->type && 'opf-e2e-section' === $section_outer->class && $section_inner && 'section' === $section_inner->type && $section_inner_end && 'sectionend' === $section_inner_end->type && $section_outer_end && 'sectionend' === $section_outer_end->type,
 	];
 	foreach ( $checks as $label => $passed ) {
 		WP_CLI::log( ( $passed ? 'PASS ' : 'FAIL ' ) . $label );
@@ -135,7 +155,7 @@ try {
 	if ( in_array( false, $checks, true ) ) {
 		throw new RuntimeException( 'WAPF Extended swatch WXR parse failed.' );
 	}
-	WP_CLI::success( 'WAPF Extended image and multi-color swatch WXR round trip passed.' );
+	WP_CLI::success( 'WAPF Extended image, multi-color swatch, and nested section WXR round trip passed.' );
 } finally {
 	$matches = get_posts( [ 'post_type' => 'wapf_product', 'post_status' => 'any', 'posts_per_page' => -1, 'fields' => 'ids', 'title' => $title ] );
 	foreach ( $matches as $post_id ) {
