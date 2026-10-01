@@ -38,6 +38,7 @@ final class Renderer {
 		'checkbox' => 'checkbox',
 		'swatch'   => 'text-swatch',
 		'paragraph' => 'content',
+		'content_image' => 'content-image',
 	];
 
 	/**
@@ -215,6 +216,23 @@ final class Renderer {
 		}
 
 		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-opf-field="' . esc_attr( $fid ) . '" style="width:' . esc_attr( (string) $field['width'] ) . '%;" for="' . esc_attr( $fid ) . '">';
+		if ( 'content_image' === $field['type'] ) {
+			$rendered_image = false;
+			$attachment_id = (int) ( $field['image_id'] ?? 0 );
+			if ( $attachment_id > 0 && function_exists( 'wp_get_attachment_image' ) ) {
+				$image = wp_get_attachment_image( $attachment_id, 'full', false, [ 'alt' => (string) $field['label'], 'loading' => 'lazy', 'decoding' => 'async' ] );
+				if ( is_string( $image ) && '' !== $image ) {
+					echo '<div class="opf-field-content-image">' . $image . '</div>';
+					$rendered_image = true;
+				}
+			}
+			$src = (string) ( $field['image_url'] ?? '' );
+			if ( ! $rendered_image && '' !== $src ) {
+				echo '<div class="opf-field-content-image"><img src="' . esc_url( $src ) . '" alt="' . esc_attr( (string) $field['label'] ) . '" loading="lazy" decoding="async" style="max-width:100%;height:auto;" /></div>';
+			}
+			echo '</div>';
+			return;
+		}
 		if ( 'paragraph' === $field['type'] ) {
 			$content = esc_html( $field['content'] );
 			if ( 'html' === ( $field['content_format'] ?? 'plain' ) && function_exists( 'wp_kses' ) ) {

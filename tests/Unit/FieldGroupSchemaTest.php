@@ -77,6 +77,21 @@ final class FieldGroupSchemaTest extends TestCase {
 		FieldGroup::normalize_field( [ 'id' => 'offer', 'type' => 'paragraph', 'content_format' => 'script' ] );
 	}
 
+	public function test_content_image_is_static_and_rejects_unsafe_image_references(): void {
+		$field = FieldGroup::normalize_field( [
+			'id' => 'fabric-guide', 'type' => 'content_image', 'image_url' => 'https://example.test/fabric.jpg',
+			'image_id' => '481', 'required' => true, 'pricing' => [ 'type' => 'fixed', 'amount' => 5 ],
+		] );
+		$this->assertSame( 'content_image', $field['type'] );
+		$this->assertFalse( $field['required'] );
+		$this->assertSame( 'none', $field['pricing']['type'] );
+		$this->assertSame( 'https://example.test/fabric.jpg', $field['image_url'] );
+		$this->assertSame( 481, $field['image_id'] );
+
+		$unsafe = FieldGroup::normalize_field( [ 'id' => 'bad', 'type' => 'content_image', 'image_url' => 'javascript:alert(1)' ] );
+		$this->assertSame( '', $unsafe['image_url'] );
+	}
+
 	public function test_image_choices_preserve_safe_url_and_positive_attachment_id(): void {
 		$field = FieldGroup::normalize_field( [
 			'id' => 'finish',

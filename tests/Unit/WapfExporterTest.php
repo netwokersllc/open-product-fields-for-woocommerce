@@ -101,6 +101,18 @@ final class WapfExporterTest extends TestCase {
 		] ] ] ) );
 	}
 
+	public function test_exports_informative_image_as_wapf_img_with_media_references(): void {
+		$payload = WapfExporter::build_payload( FieldGroup::normalize( [ 'fields' => [ [
+			'id' => 'fabric-guide', 'label' => 'Fabric guide', 'type' => 'content_image',
+			'image_url' => 'https://example.test/fabric.jpg', 'image_id' => 481,
+		] ] ] ) );
+
+		$this->assertSame( 'img', $payload['fields'][0]['type'] );
+		$this->assertSame( 'https://example.test/fabric.jpg', $payload['fields'][0]['image'] );
+		$this->assertSame( 481, $payload['fields'][0]['attachment'] );
+		$this->assertFalse( $payload['fields'][0]['required'] );
+	}
+
 	public function test_exports_logged_in_and_logged_out_placement(): void {
 		$group = FieldGroup::normalize( [ 'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'user_auth', 'operator' => 'not_in', 'terms' => [ 'logged_in' ] ] ] ] ] ] );
 		$payload = WapfExporter::build_payload( $group );

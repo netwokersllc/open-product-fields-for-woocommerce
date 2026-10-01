@@ -131,5 +131,21 @@ namespace OPF\Tests\Unit {
 			$this->assertArrayHasKey( 'table', $GLOBALS['opf_test_content_allowed_html'] );
 			$this->assertArrayHasKey( 'img', $GLOBALS['opf_test_content_allowed_html'] );
 		}
+
+		public function test_content_image_renders_safe_url_as_non_submittable_content(): void {
+			$group = new FieldGroup( [ 'fields' => [ [
+				'id' => 'fabric-guide', 'label' => 'Fabric guide', 'type' => 'content_image',
+				'image_url' => 'https://example.test/fabric.jpg',
+				'required' => true, 'pricing' => [ 'type' => 'fixed', 'amount' => 9 ],
+			] ] ] );
+			ob_start();
+			Renderer::render_group( '17', 'Fabric', $group, 10.0 );
+			$html = (string) ob_get_clean();
+
+			$this->assertStringContainsString( 'src="https://example.test/fabric.jpg"', $html );
+			$this->assertStringContainsString( 'alt="Fabric guide"', $html );
+			$this->assertStringNotContainsString( 'name="opf[17][fabric-guide]"', $html );
+			$this->assertStringNotContainsString( 'data-opf-price', $html );
+		}
 	}
 }

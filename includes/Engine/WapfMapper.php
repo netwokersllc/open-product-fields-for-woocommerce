@@ -41,6 +41,7 @@ final class WapfMapper {
 		'content'       => 'paragraph',
 		'paragraph'     => 'paragraph',
 		'p'             => 'paragraph',
+		'img'            => 'content_image',
 	];
 
 	/**
@@ -122,6 +123,8 @@ final class WapfMapper {
 			$color_swatch_settings = in_array( $wapf_type, [ 'color-swatch', 'multi-color-swatch' ], true ) ? self::map_color_swatch_settings( $wapf_field, $notes, $needs_review ) : [];
 			$selection_limits = in_array( $wapf_type, [ 'multi-text-swatch', 'multi-image-swatch', 'multi-color-swatch' ], true ) ? self::map_swatch_selection_limits( $wapf_field, $notes, $needs_review ) : [];
 			$content = '';
+			$image_url = '';
+			$image_id = 0;
 			$content_format = 'plain';
 			$process_shortcodes = false;
 			if ( 'paragraph' === self::TYPE_MAP[ $wapf_type ] ) {
@@ -134,6 +137,12 @@ final class WapfMapper {
 					$needs_review = true;
 					$content = function_exists( 'sanitize_textarea_field' ) ? sanitize_textarea_field( $content ) : strip_tags( $content );
 				}
+			}
+			if ( 'img' === $wapf_type ) {
+				$raw_image_url = $wapf_field['options']['image'] ?? $wapf_field['image'] ?? null;
+				$raw_image_id = $wapf_field['options']['attachment'] ?? $wapf_field['attachment'] ?? null;
+				$image_url = is_scalar( $raw_image_url ) ? (string) $raw_image_url : '';
+				$image_id = is_scalar( $raw_image_id ) ? (int) $raw_image_id : 0;
 			}
 
 			$field = FieldGroup::normalize_field(
@@ -152,6 +161,8 @@ final class WapfMapper {
 					'pricing'      => self::map_field_pricing( $wapf_field, $notes, $needs_review ),
 					'conditionals' => self::map_conditionals( $wapf_field, $notes, $opf_ids_by_wapf_id, $needs_review ),
 					'content'      => $content,
+					'image_url'    => $image_url,
+					'image_id'     => $image_id,
 					'content_format' => $content_format,
 					'process_shortcodes' => $process_shortcodes,
 				], $image_swatch_settings, $color_swatch_settings, $selection_limits )
@@ -169,6 +180,10 @@ final class WapfMapper {
 
 			if ( in_array( $wapf_type, [ 'image-swatch', 'multi-image-swatch' ], true ) ) {
 				$notes[] = sprintf( 'field "%s" is an image swatch; choice media references are imported, but image files are not bundled and attachment IDs may need remapping on the destination site.', (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' ) );
+				$needs_review = true;
+			}
+			if ( 'img' === $wapf_type && ! empty( $field['image_id'] ) ) {
+				$notes[] = sprintf( 'field "%s" uses a site-local image attachment ID; verify or remap the attachment on the destination site.', (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' ) );
 				$needs_review = true;
 			}
 

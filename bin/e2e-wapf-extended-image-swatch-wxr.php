@@ -90,6 +90,12 @@ try {
 			'content_format' => 'html',
 			'process_shortcodes' => true,
 			'content' => '<strong>Special offer</strong> [site_name]',
+		], [
+			'id' => 'guide-image',
+			'label' => 'Fabric guide',
+			'type' => 'content_image',
+			'image_url' => 'https://example.test/fabric-guide.jpg',
+			'image_id' => 481,
 		] ] ] ),
 	] ], [ 'site_url' => home_url(), 'site_title' => get_bloginfo( 'name' ) ] );
 	$wxr_path = tempnam( get_temp_dir(), 'opf-image-wxr-' );
@@ -113,6 +119,7 @@ try {
 	$multi_color_options = $multi_color ? (array) $multi_color->options : [];
 	$multi_color_choice = $multi_color_options['choices'][0] ?? [];
 	$paragraph = $target->fields[2] ?? null;
+	$content_image = $target->fields[3] ?? null;
 	$checks = [
 		'image-swatch type parsed' => $field && 'image-swatch' === $field->type,
 		'image URL and attachment reference parsed' => 'https://example.test/oak.jpg' === ( $choice['image'] ?? '' ) && $attachment_id === (int) ( $choice['attachment'] ?? 0 ),
@@ -120,6 +127,7 @@ try {
 		'responsive counts and full-image option parsed' => 4 === (int) ( $options['items_per_row'] ?? 0 ) && 2 === (int) ( $options['items_per_row_tablet'] ?? 0 ) && 1 === (int) ( $options['items_per_row_mobile'] ?? 0 ) && ! empty( $options['large_image'] ),
 		'multi-color type, selection bounds, layout, and color parsed' => $multi_color && 'multi-color-swatch' === $multi_color->type && 1 === (int) ( $multi_color_options['min_choices'] ?? 0 ) && 2 === (int) ( $multi_color_options['max_choices'] ?? 0 ) && 'rounded' === ( $multi_color_options['layout'] ?? '' ) && 36 === (int) ( $multi_color_options['size'] ?? 0 ) && '#123456' === ( $multi_color_choice['color'] ?? '' ),
 		'Extended p content type preserves basic HTML and shortcodes' => $paragraph && 'p' === $paragraph->type && '<strong>Special offer</strong> [site_name]' === ( $paragraph->options['p_content'] ?? '' ),
+		'WAPF img content preserves image URL and attachment reference' => $content_image && 'img' === $content_image->type && 'https://example.test/fabric-guide.jpg' === ( $content_image->options['image'] ?? '' ) && 481 === (int) ( $content_image->options['attachment'] ?? 0 ),
 	];
 	foreach ( $checks as $label => $passed ) {
 		WP_CLI::log( ( $passed ? 'PASS ' : 'FAIL ' ) . $label );

@@ -19,7 +19,7 @@
 	model.fields = model.fields || [];
 	model.rule_groups = model.rule_groups || [];
 
-	var TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'paragraph' ];
+	var TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'paragraph', 'content_image' ];
 	var PRICING = [ 'none', 'fixed', 'percent', 'formula' ];
 
 	function el( tag, attrs, children ) {
@@ -294,10 +294,12 @@
 	}
 
 	function fieldCard( field, index ) {
-		if ( 'paragraph' === field.type ) {
+		if ( [ 'paragraph', 'content_image' ].includes( field.type ) ) {
 			field.required = false;
 			field.choices = [];
 			field.pricing = { type: 'none', amount: 0, formula: '' };
+		}
+		if ( 'paragraph' === field.type ) {
 			field.content = field.content || '';
 		}
 		var label = el( 'input', { class: 'opf-b-input opf-b-label', value: field.label, placeholder: 'Field label' } );
@@ -314,7 +316,7 @@
 		} ) );
 		typeSel.addEventListener( 'change', function () {
 			field.type = typeSel.value;
-			if ( 'paragraph' === field.type ) {
+			if ( [ 'paragraph', 'content_image' ].includes( field.type ) ) {
 				field.required = false;
 				field.choices = [];
 				field.pricing = { type: 'none', amount: 0, formula: '' };
@@ -326,8 +328,8 @@
 		} );
 
 		var req = el( 'input', { type: 'checkbox', title: 'Required' } );
-		req.checked = 'paragraph' !== field.type && !! field.required;
-		req.disabled = 'paragraph' === field.type;
+		req.checked = ! [ 'paragraph', 'content_image' ].includes( field.type ) && !! field.required;
+		req.disabled = [ 'paragraph', 'content_image' ].includes( field.type );
 		req.addEventListener( 'change', function () {
 			field.required = req.checked;
 		} );
@@ -374,6 +376,11 @@
 				processShortcodes.addEventListener( 'change', function () { field.process_shortcodes = processShortcodes.checked; } );
 				card.appendChild( labeledControl( 'Process WordPress shortcodes', processShortcodes ) );
 			}
+		}
+		if ( 'content_image' === field.type ) {
+			var contentImageUrl = el( 'input', { class: 'opf-b-input', type: 'url', value: field.image_url || '', placeholder: 'Image URL (https or local path)', 'aria-label': 'Content image URL' } );
+			contentImageUrl.addEventListener( 'input', function () { field.image_url = contentImageUrl.value; } );
+			card.appendChild( labeledControl( 'Informative image URL', contentImageUrl ) );
 		}
 
 		if ( field.choices.length || in_array( field.type, [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {

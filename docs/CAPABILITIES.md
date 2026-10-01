@@ -10,7 +10,7 @@ validation paths.
 
 | Area | Implemented behavior |
 | --- | --- |
-| Field types | `text`, `textarea`, `email`, `url`, `number`, `date`, `toggle`, `select`, `radio`, `checkbox`, text/image/color `swatch` (single or multiple selection), and static `paragraph` (plain text or restricted HTML with optional shortcodes) |
+| Field types | `text`, `textarea`, `email`, `url`, `number`, `date`, `toggle`, `select`, `radio`, `checkbox`, text/image/color `swatch` (single or multiple selection), static `paragraph` (plain text or restricted HTML with optional shortcodes), and informative `content_image` |
 | Email | Browser email input plus server-side rejection of malformed non-empty values |
 | Toggle | Boolean input stored as `1` when checked and `0` when unchecked; a required toggle must be checked |
 | Choice behavior | Defaults, disabled choices, single-select controls, and multiple checkbox selections |
@@ -21,7 +21,7 @@ validation paths.
 | Commerce flow | Classic product-form add to cart plus Store API add to cart; cart, block cart/checkout display, order-item storage, and order-again restoration |
 | WooCommerce features | The plugin declares compatibility with HPOS and cart/checkout blocks |
 | Administration | Field-group builder, authenticated `opf/v1` REST endpoints, WAPF import command, WP-CLI OPF archive export/import, and limited WAPF Tools JSON export |
-| WAPF import | Maps supported field types and pricing, including Free `content` / `paragraph` text and Extended `p` content with restricted HTML and optional shortcode processing, `true-false` toggles, group `auth` / `!auth`, `role` / `!role`, `lang` / `!lang` rules, and field-condition operators `==`, `!=`, `==contains`, `!=contains`, `gt`, `lt`, `empty`, and `!empty`. HTML in Free paragraph payloads is stripped and flagged for review; unsupported types, repeaters, and pricing remain review-required. |
+| WAPF import | Maps supported field types and pricing, including Free `content` / `paragraph` text, Extended `p` content with restricted HTML and optional shortcode processing, and informative `img` content with URL/attachment references, plus `true-false` toggles, group `auth` / `!auth`, `role` / `!role`, `lang` / `!lang` rules, and field-condition operators `==`, `!=`, `==contains`, `!=contains`, `gt`, `lt`, `empty`, and `!empty`. HTML in Free paragraph payloads is stripped and flagged for review; site-local image attachments are flagged to review/remap; unsupported types, repeaters, and pricing remain review-required. |
 | OPF archive migration | `wp opf import-archive <file>` validates a versioned export with a 5 MiB and 500-group limit, defaults to dry-run, rejects data the installed schema would drop, and imports repeated-safe groups. Portability warnings force affected groups to draft. Isolated WordPress round-trip proof remains open. |
 | WAPF Tools JSON export | `wp opf export --group=<id> --format=wapf-json` exports one group in WAPF's `fields`, `conditions`, `layout`, and `variables` shape. Unsupported or lossy settings stop export; site-local placement IDs still need destination review. |
 | WAPF WXR export | `wp opf export --all|--group=<id> --format=wapf-wxr --output=<file>` exports WAPF-compatible global groups as WordPress WXR for **Tools → Import → WordPress**. Unsupported or lossy groups stop export. OPF placement, media, language assignments, and OPF-only settings need destination review. |

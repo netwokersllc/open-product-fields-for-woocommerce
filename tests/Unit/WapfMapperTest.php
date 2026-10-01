@@ -191,6 +191,20 @@ final class WapfMapperTest extends TestCase {
 		$this->assertTrue( $field['process_shortcodes'] );
 	}
 
+	public function test_maps_wapf_informative_image_url_and_attachment(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'img-1', 'label' => 'Fabric guide', 'type' => 'img',
+			'options' => [ 'image' => 'https://example.test/fabric.jpg', 'attachment' => 481 ],
+		] ] ] );
+		$field = $mapped['group']['fields'][0];
+
+		$this->assertSame( 'content_image', $field['type'] );
+		$this->assertSame( 'https://example.test/fabric.jpg', $field['image_url'] );
+		$this->assertSame( 481, $field['image_id'] );
+		$this->assertTrue( $mapped['needs_review'] );
+		$this->assertStringContainsString( 'remap the attachment', implode( ' ', $mapped['notes'] ) );
+	}
+
 	public function test_html_in_plain_wapf_content_is_preserved_as_text_and_flagged_for_review(): void {
 		$mapped = WapfMapper::map( [
 			'fields' => [ [ 'id' => 'intro', 'label' => '', 'type' => 'content', 'options' => [ 'p_content' => '<strong>Care</strong>' ] ] ],

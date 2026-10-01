@@ -84,7 +84,7 @@ final class WapfWxrExporter {
 	/** Convert WAPF's raw JSON-import shape into its serialized FieldGroup model. */
 	private static function serialized_field_group( array $payload, int $source_id ): array {
 		$fields = [];
-		$option_keys = [ 'choices', 'placeholder', 'default', 'p_content', 'minimum', 'maximum', 'min_choices', 'max_choices', 'large_image', 'label_pos', 'layout', 'size', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile' ];
+		$option_keys = [ 'choices', 'placeholder', 'default', 'p_content', 'image', 'attachment', 'minimum', 'maximum', 'min_choices', 'max_choices', 'large_image', 'label_pos', 'layout', 'size', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile' ];
 		foreach ( (array) ( $payload['fields'] ?? [] ) as $field ) {
 			$options = [];
 			foreach ( $option_keys as $key ) {

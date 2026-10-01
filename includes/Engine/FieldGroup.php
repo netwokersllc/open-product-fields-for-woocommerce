@@ -22,7 +22,7 @@ final class FieldGroup {
 	/**
 	 * Supported field types.
 	 */
-	public const FIELD_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'paragraph' ];
+	public const FIELD_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'paragraph', 'content_image' ];
 
 	/**
 	 * Supported pricing types.
@@ -230,6 +230,20 @@ final class FieldGroup {
 			$normalized['required'] = false;
 			$normalized['choices'] = [];
 			$normalized['pricing'] = self::normalize_pricing( [] );
+		}
+		if ( 'content_image' === $type ) {
+			$normalized['required'] = false;
+			$normalized['choices'] = [];
+			$normalized['pricing'] = self::normalize_pricing( [] );
+			$image_url = is_string( $field['image_url'] ?? null ) ? trim( $field['image_url'] ) : '';
+			if ( strlen( $image_url ) > 2048 || preg_match( '/[\x00-\x20\x7F]/', $image_url ) || ! preg_match( '#^(?:https?://[^/\s]+|/(?!/))#i', $image_url ) ) {
+				$image_url = '';
+			}
+			$normalized['image_url'] = $image_url;
+			$image_id = filter_var( $field['image_id'] ?? null, FILTER_VALIDATE_INT );
+			if ( false !== $image_id && null !== $image_id && $image_id > 0 ) {
+				$normalized['image_id'] = $image_id;
+			}
 		}
 		if ( 'swatch' === $type ) {
 			$style = $field['swatch_style'] ?? 'text';

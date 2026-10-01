@@ -149,6 +149,26 @@ final class WapfWxrExporterTest extends TestCase {
 		$this->assertSame( '<strong>Special</strong> [site_name]', $group['fields'][0]['options']['p_content'] );
 	}
 
+	public function test_wxr_preserves_informative_image_type_url_and_attachment(): void {
+		$xml = WapfWxrExporter::build_document( [ [
+			'id' => 96, 'title' => 'Informative image',
+			'data' => [ 'schema' => 1, 'fields' => [ [
+				'id' => 'fabric-guide', 'label' => 'Fabric guide', 'type' => 'content_image',
+				'image_url' => 'https://example.test/fabric.jpg', 'image_id' => 481,
+			] ], 'rule_groups' => [] ],
+		] ], [ 'site_url' => 'https://example.test', 'site_title' => 'Example Store' ] );
+		$document = new \DOMDocument();
+		$this->assertTrue( $document->loadXML( $xml ) );
+		$xpath = new \DOMXPath( $document );
+		$xpath->registerNamespace( 'content', 'http://purl.org/rss/1.0/modules/content/' );
+		$content = $xpath->query( '/rss/channel/item/content:encoded' )->item( 0 )->textContent;
+		$group = unserialize( $content, [ 'allowed_classes' => false ] );
+
+		$this->assertSame( 'img', $group['fields'][0]['type'] );
+		$this->assertSame( 'https://example.test/fabric.jpg', $group['fields'][0]['options']['image'] );
+		$this->assertSame( 481, $group['fields'][0]['options']['attachment'] );
+	}
+
 	public function test_requires_valid_site_url_and_source_group_identity(): void {
 		$this->expectException( \InvalidArgumentException::class );
 		$this->expectExceptionMessage( 'source site URL' );
