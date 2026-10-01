@@ -36,8 +36,8 @@ The 132 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 | Baseline supported | 8 | Promising baseline only; not accepted as proof |
 | Supported | 18 | Evidence recorded and accepted as complete under the row-count rule |
 | Supported with documented difference | 7 | Needs explicit non-regression review and acceptance |
-| Partial | 96 | Material parity or proof remains |
-| Gap | 3 | Known absent in the current OPF tree |
+| Partial | 97 | Material parity or proof remains |
+| Gap | 2 | Known absent in the current OPF tree |
 | Needs audit | 0 | Available source, marketing claims, and every published release delta are mapped; exact release details remain scoped to partial rows |
 | **Total** | **132** | **G1 complete for available evidence; G2 remains open** |
 
@@ -49,6 +49,12 @@ commerce lifecycle remain unverified. Aelia base/formula/cart/browser
 conversion is implemented and passed a disposable Woo test against a fake API
 contract, but the commercial plugin, linked-product conversion, and a wired
 pricing-hint path remain unverified. Neither row counts as supported.
+
+FOX is now `partial` because the existing WOOCS adapter passes an official
+FOX API contract test. WAPF's registry and FOX's own compatibility instructions
+identify that shared adapter. Real FOX package, browser, cart, and checkout
+proof remains open, including percentage double-conversion and fixed-price/formula
+behavior; see [FOX contract evidence](FOX-CURRENCY-CONTRACT.md).
 
 Extended-only rows: 28 total; 2 supported, 4 supported with a documented
 difference, 22 partial, and no known gaps. All 132 edition rows have a ledger status. The
