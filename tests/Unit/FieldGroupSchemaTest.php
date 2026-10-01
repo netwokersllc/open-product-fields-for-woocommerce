@@ -47,4 +47,49 @@ final class FieldGroupSchemaTest extends TestCase {
 
 		$this->assertSame( 'date', $group['fields'][0]['type'] );
 	}
+
+	public function test_duplicate_remaps_internal_field_references_and_formula_tokens(): void {
+		$result = FieldGroup::duplicate(
+			[
+				'fields' => [
+					[
+						'id' => 'length',
+						'label' => 'Length',
+						'type' => 'number',
+						'pricing' => [ 'type' => 'formula', 'formula' => '[field.length] + [field.length-extra] + [price.width]', 'formula_raw' => '[field.length] + [price.width]' ],
+						'choices' => [ [ 'slug' => 'custom', 'label' => 'Custom', 'pricing' => [ 'type' => 'formula', 'formula' => '[price.width]' ] ] ],
+						'conditionals' => [ [ 'action' => 'show', 'logic' => 'all', 'rules' => [ [ 'field' => 'width', 'operator' => 'is', 'value' => 'long' ] ] ] ],
+					],
+					[ 'id' => 'width', 'label' => 'Width', 'type' => 'select', 'choices' => [ [ 'slug' => 'long', 'label' => 'Long' ] ] ],
+				],
+			]
+		);
+
+		$this->assertSame( [ 'length' => 'length-copy', 'width' => 'width-copy' ], $result['field_id_map'] );
+		$this->assertSame( 'length-copy', $result['group']['fields'][0]['id'] );
+		$this->assertSame( '[field.length-copy] + [field.length-extra] + [price.width-copy]', $result['group']['fields'][0]['pricing']['formula'] );
+		$this->assertSame( '[field.length-copy] + [price.width-copy]', $result['group']['fields'][0]['pricing']['formula_raw'] );
+		$this->assertSame( '[price.width-copy]', $result['group']['fields'][0]['choices'][0]['pricing']['formula'] );
+		$this->assertSame( 'width-copy', $result['group']['fields'][0]['conditionals'][0]['rules'][0]['field'] );
+		$this->assertSame( [ 'long' ], array_column( $result['group']['fields'][1]['choices'], 'slug' ) );
+	}
+
+	public function test_duplicate_ids_uses_collision_free_suffixes(): void {
+		$result = FieldGroup::duplicate(
+			[
+				'fields' => [
+					[ 'id' => 'length', 'label' => 'First', 'type' => 'text' ],
+					[ 'id' => 'length-copy', 'label' => 'Existing copy', 'type' => 'text' ],
+				],
+			]
+		);
+
+		$this->assertSame( [ 'length' => 'length-copy-2', 'length-copy' => 'length-copy-copy' ], $result['field_id_map'] );
+	}
+
+	public function test_duplicate_rejects_repeated_source_field_ids(): void {
+		$this->expectException( InvalidArgumentException::class );
+
+		FieldGroup::duplicate( [ 'fields' => [ [ 'id' => 'same', 'label' => 'A' ], [ 'id' => 'same', 'label' => 'B' ] ] ] );
+	}
 }

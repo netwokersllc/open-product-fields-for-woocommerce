@@ -30,6 +30,100 @@ final class FieldGroups {
 	 */
 	public static function init(): void {
 		add_action( 'init', [ __CLASS__, 'register_cpt' ] );
+		add_filter( 'post_row_actions', [ __CLASS__, 'duplicate_row_action' ], 10, 2 );
+		add_action( 'admin_post_opf_duplicate_field_group', [ __CLASS__, 'handle_duplicate' ] );
+		add_action( 'admin_notices', [ __CLASS__, 'duplicate_notice' ] );
+	}
+
+	/**
+	 * Add a nonce-protected duplicate action to published field groups.
+	 *
+	 * @param array<string,string> $actions Row actions.
+	 * @param \WP_Post              $post    Current post.
+	 * @return array<string,string>
+	 */
+	public static function duplicate_row_action( array $actions, \WP_Post $post ): array {
+		if ( 'opf_field_group' !== $post->post_type || 'publish' !== $post->post_status ) {
+			return $actions;
+		}
+		$post_type = get_post_type_object( 'opf_field_group' );
+		if ( ! $post_type || ! current_user_can( 'edit_post', $post->ID ) || ! current_user_can( $post_type->cap->create_posts ) || ! current_user_can( $post_type->cap->publish_posts ) ) {
+			return $actions;
+		}
+
+		$url = add_query_arg(
+			[ 'action' => 'opf_duplicate_field_group', 'post_id' => $post->ID ],
+			admin_url( 'admin-post.php' )
+		);
+		$url = wp_nonce_url( $url, 'opf_duplicate_field_group_' . $post->ID );
+		$actions['duplicate'] = sprintf(
+			'<a href="%1$s" aria-label="%2$s">%3$s</a>',
+			esc_url( $url ),
+			esc_attr( sprintf( __( 'Duplicate “%s”', 'open-product-fields-for-woocommerce' ), $post->post_title ) ),
+			esc_html__( 'Duplicate', 'open-product-fields-for-woocommerce' )
+		);
+		return $actions;
+	}
+
+	/**
+	 * Create a published copy after validating the source and capabilities.
+	 */
+	public static function handle_duplicate(): void {
+		$post_id = isset( $_GET['post_id'] ) ? absint( $_GET['post_id'] ) : 0;
+		if ( ! $post_id ) {
+			wp_die( esc_html__( 'Invalid field group.', 'open-product-fields-for-woocommerce' ) );
+		}
+		check_admin_referer( 'opf_duplicate_field_group_' . $post_id );
+
+		$post = get_post( $post_id );
+		$post_type = get_post_type_object( 'opf_field_group' );
+		if ( ! $post || 'opf_field_group' !== $post->post_type || 'publish' !== $post->post_status || ! $post_type ) {
+			wp_die( esc_html__( 'This field group cannot be duplicated.', 'open-product-fields-for-woocommerce' ) );
+		}
+		if ( ! current_user_can( 'edit_post', $post_id ) || ! current_user_can( $post_type->cap->create_posts ) || ! current_user_can( $post_type->cap->publish_posts ) ) {
+			wp_die( esc_html__( 'You are not allowed to duplicate this field group.', 'open-product-fields-for-woocommerce' ) );
+		}
+
+		$group = self::group_from_post( $post );
+		if ( ! $group ) {
+			wp_die( esc_html__( 'The field group data is invalid.', 'open-product-fields-for-woocommerce' ) );
+		}
+		try {
+			$duplicate = FieldGroup::duplicate( $group->data );
+		} catch ( \InvalidArgumentException $error ) {
+			wp_die( esc_html__( 'The field group contains duplicate field IDs and cannot be copied safely.', 'open-product-fields-for-woocommerce' ) );
+		}
+
+		$new_id = self::save(
+			0,
+			$duplicate['group'],
+			[
+				'title'  => sprintf( __( '%s (Copy)', 'open-product-fields-for-woocommerce' ), $post->post_title ),
+				'status' => 'publish',
+			]
+		);
+		if ( ! $new_id ) {
+			wp_die( esc_html__( 'The field group copy could not be saved.', 'open-product-fields-for-woocommerce' ) );
+		}
+
+		if ( function_exists( 'pll_get_post_language' ) && function_exists( 'pll_set_post_language' ) ) {
+			$language = pll_get_post_language( $post_id, 'slug' );
+			if ( is_string( $language ) && '' !== $language ) {
+				pll_set_post_language( $new_id, $language );
+			}
+		}
+
+		wp_safe_redirect( admin_url( 'edit.php?post_type=opf_field_group&opf_duplicated=1' ) );
+		exit;
+	}
+
+	/** Show the success notice after returning to the group list. */
+	public static function duplicate_notice(): void {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || 'edit-opf_field_group' !== $screen->id || empty( $_GET['opf_duplicated'] ) ) {
+			return;
+		}
+		printf( '<div class="notice notice-success is-dismissible"><p>%s</p></div>', esc_html__( 'Field group duplicated.', 'open-product-fields-for-woocommerce' ) );
 	}
 
 	/**

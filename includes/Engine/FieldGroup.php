@@ -305,6 +305,79 @@ final class FieldGroup {
 	}
 
 	/**
+	 * Clone normalized group data and remap references between its fields.
+	 *
+	 * @param array<string,mixed> $data Group data.
+	 * @return array{group:array<string,mixed>,field_id_map:array<string,string>}
+	 */
+	public static function duplicate( array $data ): array {
+		$group = self::normalize( $data );
+		$ids = array_column( $group['fields'], 'id' );
+		if ( count( array_unique( $ids ) ) !== count( $ids ) ) {
+			throw new \InvalidArgumentException( 'Cannot duplicate a field group with repeated field IDs.' );
+		}
+
+		$used_ids = array_fill_keys( $ids, true );
+		$id_map = [];
+		foreach ( $ids as $field_id ) {
+			$base = substr( $field_id, 0, 48 ) . '-copy';
+			$new_id = $base;
+			$suffix = 2;
+			while ( isset( $used_ids[ $new_id ] ) ) {
+				$new_id = $base . '-' . $suffix;
+				$suffix++;
+			}
+			$used_ids[ $new_id ] = true;
+			$id_map[ $field_id ] = $new_id;
+		}
+
+		foreach ( $group['fields'] as &$field ) {
+			$field['id'] = $id_map[ $field['id'] ];
+			foreach ( $field['conditionals'] as &$conditional ) {
+				foreach ( $conditional['rules'] as &$rule ) {
+					if ( isset( $id_map[ $rule['field'] ] ) ) {
+						$rule['field'] = $id_map[ $rule['field'] ];
+					}
+				}
+				unset( $rule );
+			}
+			unset( $conditional );
+
+			$field['pricing'] = self::duplicate_pricing_references( $field['pricing'], $id_map );
+			foreach ( $field['choices'] as &$choice ) {
+				$choice['pricing'] = self::duplicate_pricing_references( $choice['pricing'], $id_map );
+			}
+			unset( $choice );
+		}
+		unset( $field );
+
+		return [ 'group' => $group, 'field_id_map' => $id_map ];
+	}
+
+	/**
+	 * Remap recognized field tokens in a pricing block.
+	 *
+	 * @param array<string,mixed> $pricing Pricing data.
+	 * @param array<string,string> $id_map Field ID map.
+	 * @return array<string,mixed>
+	 */
+	private static function duplicate_pricing_references( array $pricing, array $id_map ): array {
+		foreach ( [ 'formula', 'formula_raw' ] as $key ) {
+			if ( ! isset( $pricing[ $key ] ) || ! is_string( $pricing[ $key ] ) ) {
+				continue;
+			}
+			$pricing[ $key ] = (string) preg_replace_callback(
+				'~\\[(field|price)\\.([A-Za-z0-9_-]+)\\]~',
+				static function ( array $match ) use ( $id_map ): string {
+					return isset( $id_map[ $match[2] ] ) ? '[' . $match[1] . '.' . $id_map[ $match[2] ] . ']' : $match[0];
+				},
+				$pricing[ $key ]
+			);
+		}
+		return $pricing;
+	}
+
+	/**
 	 * Does any field in this group carry pricing?
 	 */
 	public function is_priced(): bool {
