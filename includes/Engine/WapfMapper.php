@@ -160,8 +160,8 @@ final class WapfMapper {
 					'placeholder'  => (string) ( $wapf_field['options']['placeholder'] ?? '' ),
 					'swatch_style' => in_array( $wapf_type, [ 'image-swatch', 'multi-image-swatch' ], true ) ? 'image' : ( in_array( $wapf_type, [ 'color-swatch', 'multi-color-swatch' ], true ) ? 'color' : 'text' ),
 					'multiple'     => in_array( $wapf_type, [ 'multi-text-swatch', 'multi-image-swatch', 'multi-color-swatch' ], true ),
-					'choices'      => $has_choices ? self::map_choices( $wapf_field, $notes, $needs_review ) : [],
-					'pricing'      => self::map_field_pricing( $wapf_field, $notes, $needs_review ),
+					'choices'      => $has_choices ? self::map_choices( $wapf_field, $notes, $needs_review, $opf_ids_by_wapf_id ) : [],
+					'pricing'      => self::map_field_pricing( $wapf_field, $notes, $needs_review, $opf_ids_by_wapf_id ),
 					'conditionals' => self::map_conditionals( $wapf_field, $notes, $opf_ids_by_wapf_id, $needs_review ),
 					'content'      => $content,
 					'image_url'    => $image_url,
@@ -317,7 +317,7 @@ final class WapfMapper {
 	 * @param string[]            $notes      Collector.
 	 * @return array<int,array>
 	 */
-	private static function map_choices( array $wapf_field, array &$notes, bool &$needs_review ): array {
+	private static function map_choices( array $wapf_field, array &$notes, bool &$needs_review, array $opf_ids_by_wapf_id ): array {
 		$choices = [];
 		foreach ( ( $wapf_field['options']['choices'] ?? [] ) as $choice ) {
 			if ( ! is_array( $choice ) ) {
@@ -343,7 +343,8 @@ final class WapfMapper {
 					$pricing = [ 'type' => 'percent', 'amount' => (float) $amt, 'formula' => '' ];
 					break;
 				case 'fx':
-					$formula = self::normalize_formula( (string) $amt );
+					$formula_raw = self::map_formula_references( (string) $amt, $opf_ids_by_wapf_id, $notes, $needs_review, (string) ( $choice['label'] ?? $slug ) );
+					$formula = null === $formula_raw ? null : self::normalize_formula( $formula_raw );
 					if ( null === $formula ) {
 						$notes[] = sprintf( 'choice "%s" formula could not be translated: %s', $choice['label'] ?? $slug, (string) $amt );
 						$needs_review = true;
@@ -351,7 +352,7 @@ final class WapfMapper {
 					} else {
 						// formula_raw keeps the legacy expression (incl. its qty
 						// factor) for the theme's live-total display math.
-						$pricing = [ 'type' => 'formula', 'amount' => 0.0, 'formula' => $formula, 'formula_raw' => (string) $amt, 'per_unit' => true ];
+						$pricing = [ 'type' => 'formula', 'amount' => 0.0, 'formula' => $formula, 'formula_raw' => $formula_raw, 'per_unit' => true ];
 					}
 					break;
 				case 'none':
@@ -506,7 +507,8 @@ final class WapfMapper {
 	 * WAPF normalized per-unit results by dividing by quantity, so formulas
 	 * in the wild end with "* [qty]" to compensate. OPF is per-unit, so a
 	 * trailing quantity multiplication is stripped. Variables map 1:1
-	 * ([price], [options_total]→[addons], [qty], [val]).
+	 * ([price], [options_total]→[addons], [qty], [val]); source field IDs
+	 * are remapped to the destination IDs before the expression is stored.
 	 */
 	public static function normalize_formula( string $formula ): ?string {
 		$formula = trim( $formula );
@@ -531,8 +533,11 @@ final class WapfMapper {
 		if ( '' === $formula ) {
 			return null;
 		}
-		// Validate by round-tripping through the safe evaluator with sample vars.
+		// Validate supported arithmetic after replacing known dynamic inputs with
+		// numeric probes; the runtime still evaluates the saved expression safely.
 		$probe = str_replace( [ '[price]', '[qty]', '[addons]', '[val]' ], '1', $formula );
+		$probe = preg_replace( '/\[(?:field|price)\.[a-zA-Z0-9_-]+\]/i', '1', $probe );
+		$probe = preg_replace( '/\b(?:checked|files|sumQty)\s*\(\s*[a-zA-Z0-9_-]+\s*\)/i', '1', $probe );
 		if ( preg_match( '/[^0-9+\-*\/().\s]/', $probe ) ) {
 			return null;
 		}
@@ -545,7 +550,8 @@ final class WapfMapper {
 	 * @param array<string,mixed> $wapf_field WAPF field.
 	 * @return array<string,mixed>
 	 */
-	private static function map_field_pricing( array $wapf_field, array &$notes, bool &$needs_review ): array {
+	private static function map_field_pricing( array $wapf_field, array &$notes, bool &$needs_review, array $opf_ids_by_wapf_id ): array {
+		$label = (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' );
 		$pricing = $wapf_field['pricing'] ?? [];
 		if ( ! is_array( $pricing ) || empty( $pricing['enabled'] ) ) {
 			return [ 'type' => 'none', 'amount' => 0.0, 'formula' => '' ];
@@ -560,17 +566,66 @@ final class WapfMapper {
 			case 'p':
 				return [ 'type' => 'percent', 'amount' => $amt, 'formula' => '' ];
 			case 'fx':
-				$formula = self::normalize_formula( (string) ( $pricing['amount'] ?? '' ) );
+				$formula_raw = self::map_formula_references( (string) ( $pricing['amount'] ?? '' ), $opf_ids_by_wapf_id, $notes, $needs_review, $label );
+				$formula = null === $formula_raw ? null : self::normalize_formula( $formula_raw );
 				if ( null !== $formula ) {
 					return [ 'type' => 'formula', 'amount' => 0.0, 'formula' => $formula ];
 				}
-				$notes[] = sprintf( 'field "%s" formula could not be translated: %s', (string) ( $wapf_field['label'] ?? '?' ), (string) ( $pricing['amount'] ?? '' ) );
+				$notes[] = sprintf( 'field "%s" formula could not be translated: %s', $label, (string) ( $pricing['amount'] ?? '' ) );
 				$needs_review = true;
-				break;
+				return [ 'type' => 'none', 'amount' => 0.0, 'formula' => '' ];
 		}
 		$notes[] = sprintf( 'field "%s" uses pricing type "%s" which is not supported.', (string) ( $wapf_field['label'] ?? '?' ), $type );
 		$needs_review = true;
 		return [ 'type' => 'none', 'amount' => 0.0, 'formula' => '' ];
+	}
+
+	/** Remap field IDs in WAPF formula variables without changing unrelated text. */
+	private static function map_formula_references( string $formula, array $opf_ids_by_wapf_id, array &$notes, bool &$needs_review, string $label ): ?string {
+		$unmapped = [];
+		$review_references = [];
+		$formula = preg_replace_callback(
+			'/\[(field|price)\.([a-zA-Z0-9_-]+)\]/i',
+			static function ( array $match ) use ( $opf_ids_by_wapf_id, &$unmapped, &$review_references ): string {
+				$source_id = $match[2];
+				if ( ! isset( $opf_ids_by_wapf_id[ $source_id ] ) || ! is_string( $opf_ids_by_wapf_id[ $source_id ] ) ) {
+					$unmapped[] = $source_id;
+					return $match[0];
+				}
+				if ( 'price' === strtolower( $match[1] ) ) {
+					$review_references[] = '[price.' . $opf_ids_by_wapf_id[ $source_id ] . ']';
+				}
+				return '[' . strtolower( $match[1] ) . '.' . $opf_ids_by_wapf_id[ $source_id ] . ']';
+			},
+			$formula
+		);
+		$formula = preg_replace_callback(
+			'/\b(checked|files|sumQty)\s*\(\s*([a-zA-Z0-9_-]+)\s*\)/i',
+			static function ( array $match ) use ( $opf_ids_by_wapf_id, &$unmapped, &$review_references ): string {
+				$source_id = $match[2];
+				if ( ! isset( $opf_ids_by_wapf_id[ $source_id ] ) || ! is_string( $opf_ids_by_wapf_id[ $source_id ] ) ) {
+					$unmapped[] = $source_id;
+					return $match[0];
+				}
+				if ( ! in_array( strtolower( $match[1] ), [ 'checked' ], true ) ) {
+					$review_references[] = strtolower( $match[1] ) . '(' . $opf_ids_by_wapf_id[ $source_id ] . ')';
+				}
+				return $match[1] . '(' . $opf_ids_by_wapf_id[ $source_id ] . ')';
+			},
+			$formula
+		);
+		if ( $unmapped ) {
+			$unmapped = array_values( array_unique( $unmapped ) );
+			$notes[] = sprintf( 'field "%s" formula references unavailable or ambiguous WAPF field IDs (%s); pricing needs review.', $label, implode( ', ', $unmapped ) );
+			$needs_review = true;
+			return null;
+		}
+		if ( $review_references ) {
+			$review_references = array_values( array_unique( $review_references ) );
+			$notes[] = sprintf( 'field "%s" formula contains references whose runtime behavior is not implemented yet (%s); pricing needs review.', $label, implode( ', ', $review_references ) );
+			$needs_review = true;
+		}
+		return is_string( $formula ) ? $formula : null;
 	}
 
 	/**

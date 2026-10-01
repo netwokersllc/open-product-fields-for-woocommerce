@@ -409,6 +409,75 @@ final class WapfMapperTest extends TestCase {
 		$this->assertNull( WapfMapper::normalize_formula( '' ) );
 	}
 
+	public function test_formula_field_references_map_to_destination_ids_including_later_fields(): void {
+		$mapped = WapfMapper::map( [
+			'fields' => [
+				[
+					'id' => 'choice-src',
+					'label' => 'Plan',
+					'type' => 'text-swatch',
+					'options' => [
+						'choices' => [
+							[ 'slug' => 'custom', 'label' => 'Custom', 'pricing_type' => 'fx', 'pricing_amount' => '[field.weight-src] + checked(choice-src) * [qty]' ],
+						],
+					],
+				],
+				[
+					'id' => 'weight-src',
+					'label' => 'Weight',
+					'type' => 'number',
+					'pricing' => [ 'enabled' => true, 'type' => 'fx', 'amount' => '[field.choice-src] * [qty]' ],
+				],
+			],
+		] );
+
+		$mapped_choice = $mapped['group']['fields'][0]['choices'][0];
+		$this->assertFalse( $mapped['needs_review'] );
+		$this->assertSame( 'formula', $mapped_choice['pricing']['type'] );
+		$this->assertSame( '[field.weight] + checked(plan) * [qty]', $mapped_choice['pricing']['formula_raw'] );
+		$this->assertSame( '[field.weight] + checked(plan)', $mapped_choice['pricing']['formula'] );
+		$this->assertSame( 4.0, \OPF\Engine\Calculator::evaluate_formula( $mapped_choice['pricing']['formula'], 10.0, 1, 0.0, '', null, [ 'weight' => '4' ] ) );
+		$this->assertSame( '', $mapped['group']['fields'][1]['pricing']['formula_raw'] );
+		$this->assertSame( '[field.plan]', $mapped['group']['fields'][1]['pricing']['formula'] );
+	}
+
+	public function test_formula_reference_to_unavailable_field_is_flagged_for_review(): void {
+		$mapped = WapfMapper::map( [
+			'fields' => [
+				[
+					'id' => 'choice-src',
+					'label' => 'Plan',
+					'type' => 'text-swatch',
+					'options' => [ 'choices' => [ [ 'slug' => 'custom', 'label' => 'Custom', 'pricing_type' => 'fx', 'pricing_amount' => '[field.missing] * 2' ] ] ],
+				],
+			],
+		] );
+
+		$this->assertTrue( $mapped['needs_review'] );
+		$this->assertSame( 'none', $mapped['group']['fields'][0]['choices'][0]['pricing']['type'] );
+		$this->assertStringContainsString( 'unavailable or ambiguous WAPF field IDs', implode( ' ', $mapped['notes'] ) );
+	}
+
+	public function test_formula_references_without_runtime_support_are_preserved_and_flagged(): void {
+		$mapped = WapfMapper::map( [
+			'fields' => [
+				[
+					'id' => 'choice-src',
+					'label' => 'Plan',
+					'type' => 'select',
+					'options' => [ 'choices' => [ [ 'slug' => 'custom', 'label' => 'Custom', 'pricing_type' => 'fx', 'pricing_amount' => '[price.weight-src] + files(weight-src) * [qty]' ] ] ],
+				],
+				[ 'id' => 'weight-src', 'label' => 'Weight', 'type' => 'number' ],
+			],
+		] );
+		$pricing = $mapped['group']['fields'][0]['choices'][0]['pricing'];
+
+		$this->assertTrue( $mapped['needs_review'] );
+		$this->assertSame( '[price.weight] + files(weight) * [qty]', $pricing['formula_raw'] );
+		$this->assertSame( '[price.weight] + files(weight)', $pricing['formula'] );
+		$this->assertStringContainsString( 'runtime behavior is not implemented yet', implode( ' ', $mapped['notes'] ) );
+	}
+
 	public function test_field_ids_are_stable_and_unique(): void {
 		$wapf = [
 			'fields' => [
