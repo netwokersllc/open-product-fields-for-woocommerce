@@ -24,13 +24,13 @@ const isVisible = ( field, values ) => {
 	const rulePasses = ( rule ) => {
 		const value = values[ rule.field ];
 		const actual = Array.isArray( value )
-			? value.join( ', ' )
+			? value.flat( Infinity ).map( String ).filter( ( item ) => item.trim() !== '' ).join( ', ' )
 			: String( value ?? '' );
 		const expect = String( rule.value ?? '' );
 		switch ( rule.operator ) {
 			case 'is':
 				return Array.isArray( value )
-					? value.includes( expect )
+					? value.flat( Infinity ).includes( expect )
 					: actual === expect;
 			case 'is_not':
 				return ! rulePasses( { ...rule, operator: 'is' } );
@@ -291,6 +291,108 @@ const init = () => {
 	document.querySelectorAll( '[data-opf-group]' ).forEach( ( groupEl ) => {
 		const gid = groupEl.getAttribute( 'data-opf-group' );
 		const registry = REGISTRY[ gid ] || {};
+		const readInstanceValue = ( instance, def ) => {
+			if ( def.type === 'toggle' ) {
+				const checkbox = instance.querySelector( 'input[type="checkbox"]' );
+				return checkbox && checkbox.checked ? '1' : '0';
+			}
+			if ( [ 'checkbox', 'swatch' ].includes( def.type ) && ( def.type === 'checkbox' || def.multiple ) ) {
+				return Array.from( instance.querySelectorAll( 'input[type="checkbox"]:checked' ) ).map( ( input ) => input.value );
+			}
+			const checked = instance.querySelector( 'input:checked' );
+			const input = checked || instance.querySelector( 'input:not([type="hidden"]), textarea, select' );
+			return input ? input.value : '';
+		};
+		const readFieldValue = ( fieldEl, def ) => fieldEl.matches( '[data-opf-repeat="button"]' )
+			? Array.from( fieldEl.querySelectorAll( '[data-opf-repeat-instance]' ) ).map( ( instance ) => readInstanceValue( instance, def ) )
+			: readInstanceValue( fieldEl, def );
+		const updateRequiredRepeaters = () => {
+			groupEl.querySelectorAll( '[data-opf-repeat="button"].opf-required' ).forEach( ( repeater ) => {
+				const def = registry[ repeater.dataset.opfField ] || {};
+				if ( def.type !== 'checkbox' && !( def.type === 'swatch' && def.multiple ) ) return;
+				const minimum = Number( def.min_choices || 1 );
+				repeater.querySelectorAll( '[data-opf-repeat-instance]' ).forEach( ( instance ) => {
+					const inputs = Array.from( instance.querySelectorAll( 'input[type="checkbox"]' ) );
+					const invalid = inputs.filter( ( input ) => input.checked ).length < minimum;
+					inputs.forEach( ( input, index ) => input.setCustomValidity( invalid && index === 0 ? 'Select the required choices in every repeated row.' : '' ) );
+				} );
+			} );
+		};
+
+		groupEl.querySelectorAll( '[data-opf-repeat="button"]' ).forEach( ( repeater ) => {
+			const rows = repeater.querySelector( '.opf-field-repeat__rows' );
+			const first = rows && rows.querySelector( '[data-opf-repeat-instance]' );
+			if ( ! rows || ! first ) return;
+			const template = first.cloneNode( true );
+			const max = Math.max( 1, Number( repeater.dataset.opfRepeatMax ) || 10000 );
+			const update = () => {
+				const instances = Array.from( rows.querySelectorAll( '[data-opf-repeat-instance]' ) );
+				instances.forEach( ( instance, index ) => {
+					let remove = instance.querySelector( ':scope > .opf-field-repeat__remove' );
+					if ( ! remove ) {
+						remove = document.createElement( 'button' );
+						remove.type = 'button';
+						remove.className = 'opf-field-repeat__remove';
+						remove.textContent = 'Remove';
+						instance.appendChild( remove );
+					}
+					remove.setAttribute( 'aria-label', 'Remove row ' + ( index + 1 ) );
+					remove.disabled = instances.length <= 1;
+					instance.querySelectorAll( '[name]' ).forEach( ( input ) => {
+						input.name = input.name.replace( /\[\d+\](\[\])?$/, '[' + index + ']$1' );
+					} );
+					instance.querySelectorAll( '[id]' ).forEach( ( element ) => {
+						element.id = element.id.replace( /-repeat-\d+/, '-repeat-' + index );
+					} );
+					instance.querySelectorAll( 'label[for]' ).forEach( ( label ) => {
+						label.htmlFor = label.htmlFor.replace( /-repeat-\d+/, '-repeat-' + index );
+					} );
+				} );
+				const add = repeater.querySelector( '.opf-field-repeat__add' );
+				if ( add ) add.disabled = instances.length >= max;
+			};
+			const resetClone = ( clone ) => {
+				clone.querySelectorAll( '.opf-date-picker' ).forEach( ( picker ) => picker.remove() );
+				clone.querySelectorAll( 'input' ).forEach( ( input ) => {
+					if ( input.type === 'hidden' ) {
+						input.value = '0';
+					} else if ( input.type === 'checkbox' || input.type === 'radio' ) {
+						input.checked = false;
+					} else {
+						input.value = '';
+					}
+				} );
+				clone.querySelectorAll( 'textarea' ).forEach( ( input ) => { input.value = ''; } );
+				clone.querySelectorAll( 'select' ).forEach( ( input ) => { input.selectedIndex = 0; } );
+				clone.querySelectorAll( '.opf-checked' ).forEach( ( element ) => element.classList.remove( 'opf-checked' ) );
+				const remove = clone.querySelector( ':scope > .opf-field-repeat__remove' );
+				if ( remove ) remove.remove();
+			};
+			repeater.addEventListener( 'click', ( event ) => {
+				if ( event.target.closest( '.opf-field-repeat__add' ) ) {
+					if ( rows.querySelectorAll( '[data-opf-repeat-instance]' ).length >= max ) return;
+					const clone = template.cloneNode( true );
+					resetClone( clone );
+					rows.appendChild( clone );
+					const dateInput = clone.querySelector( 'input[type="date"]' );
+					if ( dateInput ) initDatePicker( clone, dateInput );
+					update();
+					const def = registry[ repeater.dataset.opfField ] || {};
+					values[ repeater.dataset.opfField ] = readFieldValue( repeater, def );
+					updateRequiredRepeaters();
+					refresh();
+				} else if ( event.target.closest( '.opf-field-repeat__remove' ) ) {
+					if ( rows.querySelectorAll( '[data-opf-repeat-instance]' ).length <= 1 ) return;
+					event.target.closest( '[data-opf-repeat-instance]' ).remove();
+					update();
+					const def = registry[ repeater.dataset.opfField ] || {};
+					values[ repeater.dataset.opfField ] = readFieldValue( repeater, def );
+					updateRequiredRepeaters();
+					refresh();
+				}
+			} );
+			update();
+		} );
 		const fields = groupEl.querySelectorAll( '[data-opf-field]' );
 
 		const values = {};
@@ -300,20 +402,19 @@ const init = () => {
 			const fid = fieldEl.getAttribute( 'data-opf-field' );
 			fieldDefs[ fid ] = registry[ fid ] || { type: 'text', conditionals: [] };
 
-			const input = fieldEl.querySelector( 'input, textarea, select' );
-			if ( input ) {
-				values[ fid ] = input.type === 'checkbox'
-					? Array.from(
-							groupEl.querySelectorAll(
-								'[data-opf-field="' + fid + '"] input:checked'
-							)
-						).map( ( c ) => c.value )
-					: input.value;
-			}
+			values[ fid ] = readFieldValue( fieldEl, fieldDefs[ fid ] );
 		} );
+		updateRequiredRepeaters();
 		fields.forEach( ( fieldEl ) => {
-			const input = fieldEl.querySelector( 'input[type="date"]' );
-			if ( input ) initDatePicker( fieldEl, input );
+			if ( fieldEl.matches( '[data-opf-repeat="button"]' ) ) {
+				fieldEl.querySelectorAll( '[data-opf-repeat-instance]' ).forEach( ( instance ) => {
+					const input = instance.querySelector( 'input[type="date"]' );
+					if ( input ) initDatePicker( instance, input );
+				} );
+			} else {
+				const input = fieldEl.querySelector( 'input[type="date"]' );
+				if ( input ) initDatePicker( fieldEl, input );
+			}
 		} );
 
 		const refresh = () => {
@@ -367,7 +468,8 @@ const init = () => {
 			}
 			if ( input.type === 'checkbox' && input.name.endsWith( '[]' ) && fieldDefs[ fid ] && fieldDefs[ fid ].type === 'swatch' ) {
 				const maxChoices = Number( fieldDefs[ fid ].max_choices || 0 );
-				const checked = groupEl.querySelectorAll( '[data-opf-field="' + fid + '"] input:checked' ).length;
+				const choiceScope = input.closest( '[data-opf-repeat-instance]' ) || fieldEl;
+				const checked = choiceScope.querySelectorAll( 'input:checked' ).length;
 				if ( input.checked && maxChoices && checked > maxChoices ) {
 					input.checked = false;
 					input.setCustomValidity( 'Select no more than ' + maxChoices + ' options.' );
@@ -375,20 +477,15 @@ const init = () => {
 					groupEl.querySelectorAll( '[data-opf-field="' + fid + '"] input[type="checkbox"]' ).forEach( ( choiceInput ) => choiceInput.setCustomValidity( '' ) );
 				}
 			}
-			if ( fieldDefs[ fid ] && fieldDefs[ fid ].type === 'toggle' ) {
+			if ( fieldDefs[ fid ] && fieldDefs[ fid ].type === 'toggle' && ! fieldEl.matches( '[data-opf-repeat="button"]' ) ) {
 				values[ fid ] = input.checked ? '1' : '0';
-			} else if ( input.type === 'checkbox' && input.name.endsWith( '[]' ) ) {
-				values[ fid ] = Array.from(
-					groupEl.querySelectorAll(
-						'[data-opf-field="' + fid + '"] input:checked'
-					)
-				).map( ( c ) => c.value );
 			} else {
-				values[ fid ] = input.value;
+				values[ fid ] = readFieldValue( fieldEl, fieldDefs[ fid ] );
 			}
 			if ( input.type === 'radio' || input.type === 'checkbox' ) {
 				syncChecked();
 			}
+			updateRequiredRepeaters();
 			refresh();
 		} );
 
@@ -568,9 +665,17 @@ const writeTotals = () => {
     const fields = groupEl.querySelectorAll('[data-opf-field]');
     fields.forEach((fieldEl) => {
       const fid = fieldEl.getAttribute('data-opf-field');
+      const repeatRows = fieldEl.matches('[data-opf-repeat="button"]') ? Array.from(fieldEl.querySelectorAll('[data-opf-repeat-instance]')) : null;
       const checked = groupEl.querySelector(`[data-opf-field="${fid}"] input:checked`);
       const anyInput = fieldEl.querySelector('input:not([type=checkbox]):not([type=radio]):not([type=hidden]), textarea, select');
-      if (checked && checked.type === 'checkbox') {
+      if (repeatRows) {
+        values[fid] = repeatRows.map((row) => {
+          const rowChecked = row.querySelector('input:checked');
+          if (rowChecked && rowChecked.type === 'checkbox') return Array.from(row.querySelectorAll('input:checked')).map((choice) => choice.value);
+          const rowInput = rowChecked || row.querySelector('input:not([type=hidden]), textarea, select');
+          return rowInput ? rowInput.value : '';
+        });
+      } else if (checked && checked.type === 'checkbox') {
         values[fid] = Array.from(
           groupEl.querySelectorAll(`[data-opf-field="${fid}"] input:checked`)
         ).map((c) => c.value);
@@ -589,7 +694,10 @@ const writeTotals = () => {
       // conditional visibility: hidden fields contribute nothing
       const container = fieldEl;
       if (container.hasAttribute('hidden')) return;
-      const addon = choiceOrFieldAddon(def, values[fid], base, qty, optionsTotal, values[fid] && typeof values[fid] === 'string' ? values[fid] : '', values);
+      const value = values[fid];
+      const addon = fieldEl.matches('[data-opf-repeat="button"]')
+        ? value.reduce((sum, rowValue) => sum + choiceOrFieldAddon(def, rowValue, base, qty, optionsTotal + sum, typeof rowValue === 'string' ? rowValue : '', values), 0)
+        : choiceOrFieldAddon(def, value, base, qty, optionsTotal, value && typeof value === 'string' ? value : '', values);
       optionsTotal += addon;
     });
   });

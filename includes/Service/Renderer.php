@@ -139,6 +139,7 @@ final class Renderer {
 			foreach ( $entry['group']->data['fields'] as $field ) {
 				$registry[ $gid ][ $field['id'] ] = [
 					'type'         => $field['type'],
+					'repeat'       => $field['repeat'] ?? null,
 					'multiple'     => ! empty( $field['multiple'] ),
 					'min_choices'  => $field['min_choices'] ?? null,
 					'max_choices'  => $field['max_choices'] ?? null,
@@ -197,7 +198,11 @@ final class Renderer {
 				}
 				continue;
 			}
-			self::render_field( $gid, $field, $values, $base_price );
+			if ( ! empty( $field['repeat']['enabled'] ) ) {
+				self::render_repeated_field( $gid, $field, $values, $base_price );
+			} else {
+				self::render_field( $gid, $field, $values, $base_price );
+			}
 		}
 		while ( $open_sections > 0 ) {
 			echo '</div>';
@@ -230,9 +235,47 @@ final class Renderer {
 	 * @param array<string,mixed> $values     Seeded values (for conditional state).
 	 * @param float               $base_price Base unit price.
 	 */
-	private static function render_field( string $gid, array $field, array $values, float $base_price ): void {
+	private static function render_repeated_field( string $gid, array $field, array $values, float $base_price ): void {
+		$fid = (string) $field['id'];
+		$repeat = $field['repeat'];
+		if ( 'button' !== ( $repeat['mode'] ?? '' ) || ! in_array( $field['type'], [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch' ], true ) ) {
+			echo '<div class="opf-field-container opf-field-repeat opf-field-repeat--unsupported" data-opf-field="' . esc_attr( $fid ) . '">';
+			echo '<div class="opf-field-label"><span>' . esc_html( $field['label'] ) . '</span></div>';
+			$message = 'button' === ( $repeat['mode'] ?? '' )
+				? __( 'This repeated field type is not available yet.', 'open-product-fields-for-woocommerce' )
+				: __( 'This quantity-based repeated field is not available yet.', 'open-product-fields-for-woocommerce' );
+			echo '<p class="opf-field-repeat__notice">' . esc_html( $message ) . '</p></div>';
+			return;
+		}
+		$hidden = ! Evaluator::is_visible( $field, $values );
+		$classes = [ 'opf-field-container', 'opf-field-repeat', 'field-' . $fid ];
+		if ( '' !== $field['css_class'] ) {
+			$classes[] = $field['css_class'];
+		}
+		if ( $field['required'] ) {
+			$classes[] = 'opf-required';
+		}
+		if ( $hidden ) {
+			$classes[] = 'opf-hide';
+		}
+		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-opf-field="' . esc_attr( $fid ) . '" data-opf-repeat="button" data-opf-repeat-max="' . esc_attr( (string) ( $repeat['max'] ?? 10000 ) ) . '" style="width:' . esc_attr( (string) $field['width'] ) . '%;">';
+		echo '<div class="opf-field-repeat__rows">';
+		$instance = $field;
+		$instance['_opf_source_id'] = $fid;
+		$instance['_opf_repeat_index'] = 0;
+		$instance['id'] = $fid . '-repeat-0';
+		self::render_field( $gid, $instance, $values, $base_price, true );
+		echo '</div><button type="button" class="opf-field-repeat__add">' . esc_html__( 'Add another', 'open-product-fields-for-woocommerce' ) . '</button>';
+		echo '<span class="screen-reader-text opf-field-repeat__status" aria-live="polite"></span></div>';
+	}
+
+	private static function render_field( string $gid, array $field, array $values, float $base_price, bool $repeat_instance = false ): void {
 		$fid      = $field['id'];
-		$name     = sprintf( 'opf[%s][%s]', $gid, $fid );
+		$source_fid = (string) ( $field['_opf_source_id'] ?? $fid );
+		$name     = sprintf( 'opf[%s][%s]', $gid, $source_fid );
+		if ( isset( $field['_opf_repeat_index'] ) ) {
+			$name .= '[' . (int) $field['_opf_repeat_index'] . ']';
+		}
 		$hidden   = ! Evaluator::is_visible( $field, $values );
 		$compat_t = self::COMPAT_TYPE_NAMES[ $field['type'] ] ?? 'text';
 
@@ -247,7 +290,8 @@ final class Renderer {
 			$classes[] = 'opf-hide';
 		}
 
-		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-opf-field="' . esc_attr( $fid ) . '" style="width:' . esc_attr( (string) $field['width'] ) . '%;" for="' . esc_attr( $fid ) . '">';
+		$repeat_attr = $repeat_instance ? ' data-opf-repeat-instance="1"' : ' data-opf-field="' . esc_attr( $fid ) . '"';
+		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '"' . $repeat_attr . ' style="width:' . esc_attr( (string) $field['width'] ) . '%;" for="' . esc_attr( $fid ) . '">';
 		if ( 'content_image' === $field['type'] ) {
 			$rendered_image = false;
 			$attachment_id = (int) ( $field['image_id'] ?? 0 );
@@ -417,7 +461,7 @@ final class Renderer {
 				esc_attr( $name . ( $multi ? '[]' : '' ) ),
 				esc_attr( $choice['slug'] ),
 				esc_attr( $choice['label'] ),
-				$field['required'] ? ' required' : '',
+				$field['required'] && ( ! $multi || ! isset( $field['_opf_repeat_index'] ) ) ? ' required' : '',
 				$choice['selected'] ? ' checked' : '',
 				self::pricing_attrs( $choice['pricing'] )
 			);
@@ -504,11 +548,12 @@ final class Renderer {
 	private static function render_input( string $name, string $gid, array $field ): void {
 		$fid = $field['id'];
 		$shared = sprintf(
-			'data-field-id="%1$s" id="opf-%2$s-%1$s"%3$s name="opf[%2$s][%1$s]" class="opf-input input-%1$s" placeholder="%4$s" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"',
+			'data-field-id="%1$s" id="opf-%2$s-%1$s"%3$s name="%5$s" class="opf-input input-%1$s" placeholder="%4$s" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"',
 			esc_attr( $fid ),
 			esc_attr( $gid ),
 			$field['required'] ? ' required' : '',
-			esc_attr( $field['placeholder'] )
+			esc_attr( $field['placeholder'] ),
+			esc_attr( $name )
 		);
 
 		switch ( $field['type'] ) {
