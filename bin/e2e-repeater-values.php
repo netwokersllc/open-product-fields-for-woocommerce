@@ -48,15 +48,44 @@ try {
 			'required' => true,
 			'repeat' => [ 'enabled' => true, 'mode' => 'button', 'max' => 3 ],
 			'pricing' => [ 'type' => 'fixed', 'amount' => 2, 'per_unit' => true ],
+		], [
+			'id' => 'meal_choice',
+			'label' => 'Meal choice',
+			'type' => 'checkbox',
+			'repeat' => [ 'enabled' => true, 'mode' => 'button', 'max' => 3 ],
+			'choices' => [
+				[ 'slug' => 'noodles', 'label' => 'Noodles' ],
+				[ 'slug' => 'soup', 'label' => 'Soup' ],
+				[ 'slug' => 'salad', 'label' => 'Salad' ],
+			],
 		] ],
 	], [ 'title' => 'OPF repeated value E2E fixture' ] );
 	$assert( $group_id > 0, 'Could not create the repeated-value E2E field group.' );
 
-	$_POST['opf'] = [ (string) $group_id => [ 'attendee_name' => [ ' Ada ', 'Grace' ] ] ];
+	$_POST['opf'] = [ (string) $group_id => [
+		'attendee_name' => [ ' Ada ', 'Grace' ],
+		'meal_choice' => [ [ 'noodles', 'soup' ], [ 'salad' ] ],
+	] ];
 	$assert( CartIntegration::validate_add_to_cart( true, $product_id, 1 ), 'Valid repeated rows were rejected.' );
 	$cart_data = CartIntegration::attach( [], $product_id );
 	$values = $cart_data[ CartIntegration::ITEM_KEY ][ (string) $group_id ]['attendee_name'] ?? null;
 	$assert( [ 'Ada', 'Grace' ] === $values, 'Repeated row sanitation or ordering failed: ' . wp_json_encode( $values ) );
+	$meal_values = $cart_data[ CartIntegration::ITEM_KEY ][ (string) $group_id ]['meal_choice'] ?? null;
+	$assert( [ [ 'noodles', 'soup' ], [ 'salad' ] ] === $meal_values, 'Repeated multi-choice row sanitation failed: ' . wp_json_encode( $meal_values ) );
+	$selections = CartIntegration::visible_selections( wc_get_product( $product_id ), $cart_data[ CartIntegration::ITEM_KEY ] );
+	$assert( [
+		[ 'label' => 'Attendee name', 'value' => '1. Ada; 2. Grace' ],
+		[ 'label' => 'Meal choice', 'value' => '1. Noodles, Soup; 2. Salad' ],
+	] === $selections, 'Repeated cart/order display did not retain row grouping: ' . wp_json_encode( $selections ) );
+	$order_item = new WC_Order_Item_Product();
+	$order = new WC_Order();
+	$order_cart_item = [ 'data' => wc_get_product( $product_id ), CartIntegration::ITEM_KEY => $cart_data[ CartIntegration::ITEM_KEY ] ];
+	CartIntegration::persist_order_item( $order_item, 'opf-repeat-fixture', $order_cart_item, $order );
+	$assert( '1. Ada; 2. Grace' === $order_item->get_meta( 'Attendee name', true ), 'Repeated field values were not added to order display metadata.' );
+	$order_values = json_decode( $order_item->get_meta( '_opf_fields', true ), true );
+	$assert( $cart_data[ CartIntegration::ITEM_KEY ] === $order_values, 'Structured repeated values were not persisted to the order item.' );
+	$restored = CartIntegration::restore_order_again( [], $order_item, $order );
+	$assert( $cart_data[ CartIntegration::ITEM_KEY ] === ( $restored[ CartIntegration::ITEM_KEY ] ?? null ), 'Order-again did not restore repeated values.' );
 	$addon = CartIntegration::addons_per_unit( wc_get_product( $product_id ), $cart_data[ CartIntegration::ITEM_KEY ], 10.0, 1 );
 	$assert( 4.0 === $addon, 'Repeated row pricing was not summed: ' . (string) $addon );
 
@@ -68,7 +97,7 @@ try {
 	$assert( ! CartIntegration::validate_add_to_cart( true, $product_id, 1 ), 'More than the configured button maximum was accepted.' );
 	wc_clear_notices();
 
-	echo "ok repeated row sanitation, required-row validation, maximum enforcement, and price summation\n";
+	echo "ok repeated row sanitation/order, cart and order display, order-again restore, required-row validation, maximum enforcement, and price summation\n";
 } finally {
 	if ( $had_post_before ) {
 		$_POST['opf'] = $post_before;

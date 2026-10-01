@@ -324,11 +324,23 @@ final class CartIntegration {
 					continue;
 				}
 				$raw = $group_values[ $fid ];
-				if ( '' === $raw || [] === $raw ) {
+				if ( ! empty( $field['repeat']['enabled'] ) ) {
+					$display_rows = [];
+					foreach ( (array) $raw as $index => $row ) {
+						if ( null === $row || '' === $row || [] === $row ) {
+							continue;
+						}
+						$row_display = self::display_value( $field, $row );
+						if ( '' !== $row_display ) {
+							$display_rows[] = sprintf( '%d. %s', $index + 1, $row_display );
+						}
+					}
+					$value = implode( '; ', $display_rows );
+				} elseif ( '' === $raw || [] === $raw ) {
 					continue;
+				} else {
+					$value = self::display_value( $field, $raw );
 				}
-
-				$value = self::display_value( $field, $raw );
 				if ( '' !== $value ) {
 					$out[] = [
 						'label' => $field['label'],
