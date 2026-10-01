@@ -19,7 +19,7 @@
 	model.fields = model.fields || [];
 	model.rule_groups = model.rule_groups || [];
 
-	var TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch' ];
+	var TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'paragraph' ];
 	var PRICING = [ 'none', 'fixed', 'percent', 'formula' ];
 
 	function el( tag, attrs, children ) {
@@ -252,6 +252,12 @@
 	}
 
 	function fieldCard( field, index ) {
+		if ( 'paragraph' === field.type ) {
+			field.required = false;
+			field.choices = [];
+			field.pricing = { type: 'none', amount: 0, formula: '' };
+			field.content = field.content || '';
+		}
 		var label = el( 'input', { class: 'opf-b-input opf-b-label', value: field.label, placeholder: 'Field label' } );
 		label.addEventListener( 'input', function ( e ) {
 			field.label = e.target.value;
@@ -266,6 +272,11 @@
 		} ) );
 		typeSel.addEventListener( 'change', function () {
 			field.type = typeSel.value;
+			if ( 'paragraph' === field.type ) {
+				field.required = false;
+				field.choices = [];
+				field.pricing = { type: 'none', amount: 0, formula: '' };
+			}
 			if ( in_array( field.type, [ 'swatch', 'select', 'radio', 'checkbox' ] ) && ! field.choices.length ) {
 				field.choices = [ { slug: 'option-1', label: 'Option 1', selected: false, disabled: false, pricing: { type: 'none', amount: 0, formula: '' } } ];
 			}
@@ -273,7 +284,8 @@
 		} );
 
 		var req = el( 'input', { type: 'checkbox', title: 'Required' } );
-		req.checked = !! field.required;
+		req.checked = 'paragraph' !== field.type && !! field.required;
+		req.disabled = 'paragraph' === field.type;
 		req.addEventListener( 'change', function () {
 			field.required = req.checked;
 		} );
@@ -298,6 +310,12 @@
 		var head = el( 'div', { class: 'opf-b-field-head' }, [ label, typeSel, desc, req, duplicate, remove ] );
 		var card = el( 'div', { class: 'opf-b-field' }, [ head ] );
 		card.appendChild( conditionalEditor( field ) );
+		if ( 'paragraph' === field.type ) {
+			var content = el( 'textarea', { class: 'opf-b-input opf-b-paragraph-content', rows: 4, 'aria-label': 'Paragraph content' } );
+			content.value = field.content || '';
+			content.addEventListener( 'input', function () { field.content = content.value; } );
+			card.appendChild( el( 'label', { class: 'opf-b-paragraph-label', text: 'Paragraph content' }, [ content ] ) );
+		}
 
 		if ( field.choices.length ) {
 			var addChoice = el( 'button', { class: 'button', text: '+ Add choice', onclick: function () {

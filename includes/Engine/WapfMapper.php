@@ -34,6 +34,9 @@ final class WapfMapper {
 		'checkbox'      => 'checkbox',
 		'text-swatch'   => 'swatch',
 		'image-swatch'  => 'swatch',
+		'content'       => 'paragraph',
+		'paragraph'     => 'paragraph',
+		'p'             => 'paragraph',
 	];
 
 	/**
@@ -111,6 +114,15 @@ final class WapfMapper {
 			$field_id = $opf_ids_by_index[ $index ];
 
 			$has_choices = in_array( self::TYPE_MAP[ $wapf_type ], [ 'swatch', 'select', 'radio', 'checkbox' ], true );
+			$content = '';
+			if ( 'paragraph' === self::TYPE_MAP[ $wapf_type ] ) {
+				$content = (string) ( $wapf_field['options']['p_content'] ?? $wapf_field['p_content'] ?? '' );
+				if ( preg_match( '/<\/?[a-z][^>]*>/i', $content ) ) {
+					$notes[] = sprintf( 'field "%s" contains HTML; the plain-text paragraph was imported with markup removed.', (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' ) );
+					$needs_review = true;
+					$content = function_exists( 'sanitize_textarea_field' ) ? sanitize_textarea_field( $content ) : strip_tags( $content );
+				}
+			}
 
 			$field = FieldGroup::normalize_field(
 				[
@@ -125,8 +137,19 @@ final class WapfMapper {
 					'choices'      => $has_choices ? self::map_choices( $wapf_field, $notes, $needs_review ) : [],
 					'pricing'      => self::map_field_pricing( $wapf_field, $notes, $needs_review ),
 					'conditionals' => self::map_conditionals( $wapf_field, $notes, $opf_ids_by_wapf_id, $needs_review ),
+					'content'      => $content,
 				]
 			);
+			if ( 'paragraph' === $field['type'] ) {
+				if ( ! empty( $wapf_field['required'] ) ) {
+					$notes[] = sprintf( 'field "%s" is static content; its required setting was removed.', (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' ) );
+					$needs_review = true;
+				}
+				if ( ! empty( $wapf_field['pricing']['enabled'] ) ) {
+					$notes[] = sprintf( 'field "%s" is static content; its field pricing was removed.', (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' ) );
+					$needs_review = true;
+				}
+			}
 
 			if ( ! empty( $wapf_field['clone']['enabled'] ) ) {
 				$notes[]      = sprintf( 'field "%s" uses WAPF clone (repeatable fields) which OPF does not support yet.', $field['label'] );

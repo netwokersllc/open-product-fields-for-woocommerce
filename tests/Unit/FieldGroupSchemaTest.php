@@ -48,6 +48,22 @@ final class FieldGroupSchemaTest extends TestCase {
 		$this->assertSame( 'date', $group['fields'][0]['type'] );
 	}
 
+	public function test_paragraph_is_static_text_without_submission_or_pricing(): void {
+		$group = FieldGroup::normalize( [ 'fields' => [ [
+			'id' => 'care-note',
+			'label' => 'Care note',
+			'type' => 'paragraph',
+			'content' => "Wash cold.\nDo not bleach.",
+			'required' => true,
+			'pricing' => [ 'type' => 'fixed', 'amount' => 9 ],
+		] ] ] );
+
+		$this->assertSame( 'paragraph', $group['fields'][0]['type'] );
+		$this->assertSame( "Wash cold.\nDo not bleach.", $group['fields'][0]['content'] );
+		$this->assertFalse( $group['fields'][0]['required'] );
+		$this->assertSame( 'none', $group['fields'][0]['pricing']['type'] );
+	}
+
 	public function test_duplicate_remaps_internal_field_references_and_formula_tokens(): void {
 		$result = FieldGroup::duplicate(
 			[

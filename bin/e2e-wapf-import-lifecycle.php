@@ -54,6 +54,16 @@ $make_payload = static function ( string $prefix, string $label ): array {
 				'options' => [ 'choices' => [] ],
 				'pricing' => [ 'enabled' => false, 'type' => 'fixed', 'amount' => 0 ],
 			],
+			[
+				'id' => $prefix . '_paragraph',
+				'label' => '',
+				'type' => 'content',
+				'options' => [ 'p_content' => 'Static setup instructions.' ],
+				'required' => false,
+				'conditionals' => [],
+				'clone' => [ 'enabled' => false ],
+				'pricing' => [ 'enabled' => false, 'type' => 'fixed', 'amount' => 0 ],
+			],
 		],
 		'rule_groups' => [],
 	];
@@ -172,9 +182,11 @@ try {
 	$assert( 'select' === ( $global_data['fields'][0]['type'] ?? '' ) && 'Allow' === ( $global_data['fields'][0]['choices'][0]['label'] ?? '' ) && 3.0 === (float) ( $global_data['fields'][0]['choices'][0]['pricing']['amount'] ?? 0 ), 'Global choice and pricing data did not survive mapping: ' . wp_json_encode( $global_data['fields'][0] ?? null ) );
 	$assert( 'text' === ( $global_data['fields'][1]['type'] ?? '' ) && 'Global note' === ( $global_data['fields'][1]['label'] ?? '' ), 'Global conditional field data did not survive persistence.' );
 	$assert( $global_data['fields'][0]['id'] === ( $global_data['fields'][1]['conditionals'][0]['rules'][0]['field'] ?? '' ) && 'allow' === ( $global_data['fields'][1]['conditionals'][0]['rules'][0]['value'] ?? '' ), 'Global conditional field reference was not remapped.' );
+	$assert( 'paragraph' === ( $global_data['fields'][2]['type'] ?? '' ) && 'Static setup instructions.' === ( $global_data['fields'][2]['content'] ?? '' ), 'Global WAPF paragraph content did not survive import.' );
 	$assert( 'select' === ( $local_data['fields'][0]['type'] ?? '' ) && 'Allow' === ( $local_data['fields'][0]['choices'][0]['label'] ?? '' ) && 3.0 === (float) ( $local_data['fields'][0]['choices'][0]['pricing']['amount'] ?? 0 ), 'Local choice and pricing data did not survive mapping.' );
 	$assert( 'Local note' === ( $local_data['fields'][1]['label'] ?? '' ), 'Local conditional field data did not survive persistence.' );
 	$assert( $local_data['fields'][0]['id'] === ( $local_data['fields'][1]['conditionals'][0]['rules'][0]['field'] ?? '' ) && 'allow' === ( $local_data['fields'][1]['conditionals'][0]['rules'][0]['value'] ?? '' ), 'Local conditional field reference was not remapped.' );
+	$assert( 'paragraph' === ( $local_data['fields'][2]['type'] ?? '' ) && 'Static setup instructions.' === ( $local_data['fields'][2]['content'] ?? '' ), 'Local WAPF paragraph content did not survive import.' );
 	$local_rule = $local_data['rule_groups'][0]['rules'][0] ?? [];
 	$assert( 'product' === ( $local_rule['subject'] ?? '' ) && [ (string) $product_id ] === ( $local_rule['terms'] ?? [] ), 'Local group was not attached to its source product.' );
 	$review_post = get_post( $review_opf_id );

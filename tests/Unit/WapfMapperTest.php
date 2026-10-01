@@ -67,6 +67,30 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( 15.5, $field['choices'][3]['pricing']['amount'] );
 	}
 
+	public function test_maps_free_content_and_legacy_paragraph_fields_as_static_text(): void {
+		$mapped = WapfMapper::map( [
+			'fields' => [
+				[ 'id' => 'intro', 'label' => '', 'type' => 'content', 'options' => [ 'p_content' => "First line\nSecond line" ], 'pricing' => [ 'enabled' => false ] ],
+				[ 'id' => 'legacy-intro', 'label' => '', 'type' => 'paragraph', 'p_content' => 'Legacy plain text', 'pricing' => [ 'enabled' => false ] ],
+			],
+		] );
+
+		$this->assertFalse( $mapped['needs_review'] );
+		$this->assertSame( [ 'paragraph', 'paragraph' ], array_column( $mapped['group']['fields'], 'type' ) );
+		$this->assertSame( "First line\nSecond line", $mapped['group']['fields'][0]['content'] );
+		$this->assertSame( 'Legacy plain text', $mapped['group']['fields'][1]['content'] );
+	}
+
+	public function test_html_in_plain_wapf_content_is_preserved_as_text_and_flagged_for_review(): void {
+		$mapped = WapfMapper::map( [
+			'fields' => [ [ 'id' => 'intro', 'label' => '', 'type' => 'content', 'options' => [ 'p_content' => '<strong>Care</strong>' ] ] ],
+		] );
+
+		$this->assertTrue( $mapped['needs_review'] );
+		$this->assertStringContainsString( 'contains HTML', $mapped['notes'][0] );
+		$this->assertSame( 'Care', $mapped['group']['fields'][0]['content'] );
+	}
+
 	public function test_maps_product_tag_placement(): void {
 		$mapped = WapfMapper::map( $this->swatch_group() );
 		$this->assertSame( 'product_tag', $mapped['group']['rule_groups'][0]['rules'][0]['subject'] );

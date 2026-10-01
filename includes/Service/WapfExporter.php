@@ -24,7 +24,7 @@ final class WapfExporter {
 		self::assert_keys( $group, [ 'schema', 'fields', 'rule_groups', 'mark_required', 'labels_position' ], 'group' );
 		foreach ( ( $group['fields'] ?? [] ) as $field ) {
 			if ( is_array( $field ) ) {
-				self::assert_keys( $field, [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], 'field' );
+				self::assert_keys( $field, [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'content', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], 'field' );
 			}
 		}
 		foreach ( ( $group['rule_groups'] ?? [] ) as $rule_group ) {
@@ -74,11 +74,11 @@ final class WapfExporter {
 
 	/** @param array<string,mixed> $field */
 	private static function map_field( array $field, array $field_ids, array $field_types ): array {
-		self::assert_keys( $field, [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], 'field' );
+		self::assert_keys( $field, [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'content', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], 'field' );
 		$type_map = [
 			'text' => 'text', 'textarea' => 'textarea', 'email' => 'email', 'url' => 'url',
 			'number' => 'number', 'toggle' => 'true-false', 'select' => 'select',
-			'radio' => 'radio', 'checkbox' => 'checkboxes', 'swatch' => 'text-swatch',
+			'radio' => 'radio', 'checkbox' => 'checkboxes', 'swatch' => 'text-swatch', 'paragraph' => 'content',
 		];
 		$type = $field['type'];
 		if ( ! isset( $type_map[ $type ] ) ) {
@@ -111,6 +111,12 @@ final class WapfExporter {
 		}
 		if ( 'date' === $type ) {
 			throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve OPF date-field settings.' );
+		}
+		if ( 'paragraph' === $type ) {
+			if ( preg_match( '/<\/?[a-z][^>]*>/i', $field['content'] ) ) {
+				throw new \InvalidArgumentException( 'WAPF Free sanitizes paragraph content; HTML cannot be exported without loss.' );
+			}
+			$out['p_content'] = $field['content'];
 		}
 		if ( in_array( $type, [ 'select', 'radio', 'checkbox', 'swatch' ], true ) ) {
 			$out['choices'] = [];

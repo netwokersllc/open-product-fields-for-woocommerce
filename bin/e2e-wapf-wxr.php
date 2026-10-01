@@ -61,6 +61,12 @@ try {
 					[ 'rules' => [ [ 'field' => 'wxr-finish', 'operator' => 'is', 'value' => 'linen' ] ] ],
 				],
 			],
+			[
+				'id' => 'wxr-paragraph',
+				'label' => '',
+				'type' => 'paragraph',
+				'content' => "Wipe with a soft cloth.\nAvoid bleach.",
+			],
 		],
 	] );
 	$source_id = OPF\Service\FieldGroups::save( 0, $data, [ 'title' => $title, 'status' => 'publish' ] );
@@ -110,18 +116,22 @@ try {
 	}
 	$target_id = (int) $matches[0];
 	$target = SW_WAPF\Includes\Classes\Field_Groups::get_by_id( $target_id );
-	if ( ! $target || 'wapf_product' !== $target->type || 2 !== count( $target->fields ) ) {
-		throw new RuntimeException( 'WAPF could not parse the imported group and both fields.' );
+	if ( ! $target || 'wapf_product' !== $target->type || 3 !== count( $target->fields ) ) {
+		throw new RuntimeException( 'WAPF could not parse the imported group and its three fields.' );
 	}
 	$finish = $target->fields[0];
 	$personalization = $target->fields[1];
+	$paragraph = $target->fields[2];
 	if ( 'select' !== $finish->type || 'fixed' !== ( $finish->options['choices'][0]['pricing_type'] ?? '' ) || 2.5 !== (float) ( $finish->options['choices'][0]['pricing_amount'] ?? 0 ) ) {
 		throw new RuntimeException( 'WAPF did not preserve the select choice and its fixed pricing.' );
 	}
 	if ( 'text' !== $personalization->type || 1 !== count( $personalization->conditionals ) ) {
 		throw new RuntimeException( 'WAPF did not preserve the conditional text field.' );
 	}
-	echo "ok WXR export, WordPress Importer, WAPF group parsing, choice pricing, and field conditional\n";
+	if ( 'content' !== $paragraph->type || "Wipe with a soft cloth.\nAvoid bleach." !== ( $paragraph->options['p_content'] ?? '' ) ) {
+		throw new RuntimeException( 'WAPF did not preserve the static paragraph content.' );
+	}
+	echo "ok WXR export, WordPress Importer, WAPF group parsing, choice pricing, conditionals, and paragraph content\n";
 } finally {
 	$matches = get_posts( [
 		'post_type' => 'wapf_product',

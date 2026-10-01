@@ -37,6 +37,7 @@ final class Renderer {
 		'radio'    => 'radio',
 		'checkbox' => 'checkbox',
 		'swatch'   => 'text-swatch',
+		'paragraph' => 'content',
 	];
 
 	/**
@@ -211,6 +212,11 @@ final class Renderer {
 		}
 
 		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-opf-field="' . esc_attr( $fid ) . '" style="width:' . esc_attr( (string) $field['width'] ) . '%;" for="' . esc_attr( $fid ) . '">';
+		if ( 'paragraph' === $field['type'] ) {
+			echo '<div class="opf-field-content">' . esc_html( $field['content'] ) . '</div>';
+			echo '</div>';
+			return;
+		}
 
 		echo '<div class="opf-field-label"><label';
 		if ( ! in_array( $field['type'], [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {

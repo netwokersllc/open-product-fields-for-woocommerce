@@ -244,6 +244,9 @@ final class CartIntegration {
 			$group_values = (array) $values[ $gid ];
 
 			foreach ( $group->data['fields'] as $field ) {
+				if ( 'paragraph' === $field['type'] ) {
+					continue;
+				}
 				$fid = $field['id'];
 				if ( ! array_key_exists( $fid, $group_values ) ) {
 					continue;
@@ -475,6 +478,9 @@ final class CartIntegration {
 			}
 
 			foreach ( $group->data['fields'] as $field ) {
+				if ( 'paragraph' === $field['type'] ) {
+					continue;
+				}
 				$fid = $field['id'];
 				if ( ! isset( $raw[ $gid ][ $fid ] ) ) {
 					continue;

@@ -58,6 +58,25 @@ final class WapfExporterTest extends TestCase {
 		$this->assertSame( '!p_tags', $payload['conditions'][0]['rules'][1]['condition'] );
 	}
 
+	public function test_exports_paragraph_as_wapf_content_with_plain_p_content(): void {
+		$payload = WapfExporter::build_payload( FieldGroup::normalize( [
+			'fields' => [ [ 'id' => 'care-note', 'label' => '', 'type' => 'paragraph', 'content' => "Wash cold.\nDo not bleach." ] ],
+		] ) );
+
+		$this->assertSame( 'content', $payload['fields'][0]['type'] );
+		$this->assertSame( "Wash cold.\nDo not bleach.", $payload['fields'][0]['p_content'] );
+		$this->assertFalse( $payload['fields'][0]['required'] );
+		$this->assertFalse( $payload['fields'][0]['pricing']['enabled'] );
+	}
+
+	public function test_refuses_lossy_html_in_free_wapf_paragraph_export(): void {
+		$this->expectException( \InvalidArgumentException::class );
+		$this->expectExceptionMessage( 'sanitizes paragraph content' );
+		WapfExporter::build_payload( FieldGroup::normalize( [
+			'fields' => [ [ 'id' => 'care-note', 'type' => 'paragraph', 'content' => '<strong>Wash cold</strong>' ] ],
+		] ) );
+	}
+
 	public function test_exports_logged_in_and_logged_out_placement(): void {
 		$group = FieldGroup::normalize( [ 'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'user_auth', 'operator' => 'not_in', 'terms' => [ 'logged_in' ] ] ] ] ] ] );
 		$payload = WapfExporter::build_payload( $group );
