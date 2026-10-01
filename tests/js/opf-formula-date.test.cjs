@@ -13,7 +13,7 @@ const context = {
 	console,
 };
 vm.createContext(context);
-vm.runInContext(`${fs.readFileSync(sourcePath, 'utf8')}\nglobalThis.__evalFormula = evalFormula; globalThis.__choiceOrFieldAddon = choiceOrFieldAddon;`, context);
+vm.runInContext(`${fs.readFileSync(sourcePath, 'utf8')}\nglobalThis.__evalFormula = evalFormula; globalThis.__choiceOrFieldAddon = choiceOrFieldAddon; globalThis.__writeTotals = writeTotals;`, context);
 
 test('WAPF date formula functions use Sunday-zero weekdays and one-based months', () => {
 	assert.equal(context.__evalFormula("dow('01-10-2023')", 10, 1, 0, ''), 2);
@@ -51,6 +51,58 @@ test('WAPF date functions accept the selected field value and site today', () =>
 		type: 'select',
 		choices: [{ slug: 'selected', pricing: { type: 'formula', formula: '[price.plan] + 1' } }],
 	}, 'selected', 10, 1, 0, 'selected', {}, { plan: [5, 6] }), 12);
+});
+
+test('browser totals resolve prior-group prices and treat hidden references as zero', () => {
+	const makeField = (id, value, type, hidden = false) => {
+		const input = { value, type: 'radio', checked: true };
+		return {
+			getAttribute(name) { return 'data-opf-field' === name ? id : null; },
+			hasAttribute(name) { return 'hidden' === name && hidden; },
+			matches() { return false; },
+			closest() { return null; },
+			querySelector(selector) {
+				if ('input:checked' === selector) return null;
+				return type === 'text' && selector.startsWith('input:not(') ? input : null;
+			},
+			querySelectorAll() { return []; },
+		};
+	};
+	const plan = makeField('plan', 'premium', 'select');
+	const fee = makeField('fee', 'selected', 'text');
+	const group = (id, fields, choices) => ({
+		getAttribute() { return id; },
+		querySelectorAll(selector) { return '[data-opf-field]' === selector ? fields : []; },
+		querySelector(selector) {
+			const match = selector.match(/data-opf-field="([^"]+)"/);
+			return match && choices[match[1]] ? choices[match[1]] : null;
+		},
+	});
+	const groups = [group('a', [plan], { plan: { value: 'premium', type: 'radio', checked: true } }), group('b', [fee], {})];
+	const totals = Object.fromEntries(['product', 'options', 'grand'].map((name) => [name, { innerHTML: '' }]));
+	const totalsEl = {
+		getAttribute(name) { return 'data-product-price' === name ? '10' : null; },
+		querySelector(selector) {
+			if (selector.includes('opf-product-total')) return totals.product;
+			if (selector.includes('opf-options-total')) return totals.options;
+			if (selector.includes('opf-grand-total')) return totals.grand;
+			return null;
+		},
+	};
+	context.window.OPF_FIELDS = {
+		a: { plan: { type: 'select', choices: [{ slug: 'premium', pricing: { type: 'fixed', amount: 5 } }] } },
+		b: { fee: { type: 'text', pricing: { type: 'formula', formula: '[price.plan] + 1' } } },
+	};
+	context.document.querySelector = (selector) => selector.includes('product-totals') ? totalsEl : null;
+	context.document.querySelectorAll = () => groups;
+	context.__writeTotals();
+	assert.equal(totals.options.innerHTML, '$11.00');
+	assert.equal(totals.grand.innerHTML, '$21.00');
+
+	plan.hasAttribute = (name) => 'hidden' === name;
+	context.__writeTotals();
+	assert.equal(totals.options.innerHTML, '$1.00');
+	assert.equal(totals.grand.innerHTML, '$11.00');
 });
 
 test('WAPF math, text, and conditional formula functions evaluate in browser previews', () => {
