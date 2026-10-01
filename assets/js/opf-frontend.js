@@ -334,7 +334,7 @@ const init = () => {
 					const rowLabel = instance.querySelector( '.opf-field-label span' );
 					if ( rowLabel ) {
 						const customLabel = repeatDef.repeat && repeatDef.repeat.label;
-						rowLabel.textContent = index > 0 && customLabel ? customLabel.replace( /\{n\}/g, String( index ) ) : baseLabelText;
+						rowLabel.textContent = index > 0 && customLabel ? customLabel.replace( /\{n\}/g, String( index + 1 ) ) : baseLabelText;
 					}
 					let remove = instance.querySelector( ':scope > .opf-field-repeat__remove' );
 					if ( ! remove ) {

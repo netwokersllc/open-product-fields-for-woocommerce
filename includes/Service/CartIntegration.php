@@ -333,7 +333,7 @@ final class CartIntegration {
 						if ( '' !== $row_display ) {
 							$label = (string) $field['label'];
 							if ( $index > 0 && ! empty( $field['repeat']['label'] ) ) {
-								$label = str_replace( '{n}', (string) $index, $field['repeat']['label'] );
+								$label = str_replace( '{n}', (string) ( $index + 1 ), $field['repeat']['label'] );
 							}
 							$out[] = [ 'label' => $label, 'value' => $row_display ];
 						}

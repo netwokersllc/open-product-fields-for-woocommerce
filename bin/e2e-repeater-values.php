@@ -75,7 +75,7 @@ try {
 	$selections = CartIntegration::visible_selections( wc_get_product( $product_id ), $cart_data[ CartIntegration::ITEM_KEY ] );
 	$assert( [
 		[ 'label' => 'Attendee name', 'value' => 'Ada' ],
-		[ 'label' => 'Guest 1', 'value' => 'Grace' ],
+		[ 'label' => 'Guest 2', 'value' => 'Grace' ],
 		[ 'label' => 'Meal choice', 'value' => 'Noodles, Soup' ],
 		[ 'label' => 'Meal choice', 'value' => 'Salad' ],
 	] === $selections, 'Repeated cart/order display did not retain per-row labels: ' . wp_json_encode( $selections ) );
@@ -83,7 +83,7 @@ try {
 	$order = new WC_Order();
 	$order_cart_item = [ 'data' => wc_get_product( $product_id ), CartIntegration::ITEM_KEY => $cart_data[ CartIntegration::ITEM_KEY ] ];
 	CartIntegration::persist_order_item( $order_item, 'opf-repeat-fixture', $order_cart_item, $order );
-	$assert( 'Ada' === $order_item->get_meta( 'Attendee name', true ) && 'Grace' === $order_item->get_meta( 'Guest 1', true ), 'Repeated field labels or values were not added to order display metadata.' );
+	$assert( 'Ada' === $order_item->get_meta( 'Attendee name', true ) && 'Grace' === $order_item->get_meta( 'Guest 2', true ), 'Repeated field labels or values were not added to order display metadata.' );
 	$order_values = json_decode( $order_item->get_meta( '_opf_fields', true ), true );
 	$assert( $cart_data[ CartIntegration::ITEM_KEY ] === $order_values, 'Structured repeated values were not persisted to the order item.' );
 	$restored = CartIntegration::restore_order_again( [], $order_item, $order );

@@ -51,7 +51,7 @@ const remainingName = await page.locator('[data-opf-field="name"] [data-opf-repe
 const removeDisabledAtOne = await page.locator('[data-opf-field="name"] .opf-field-repeat__remove').isDisabled();
 const addLabel = await page.locator('[data-opf-field="name"] .opf-field-repeat__add').textContent();
 const removeLabel = await page.locator('[data-opf-field="name"] .opf-field-repeat__remove').last().textContent();
-const ok = rowCount === 4 && names.join(',') === 'opf[1][name][0],opf[1][name][1]' && checkboxNames.join(',') === 'opf[1][choices][0][],opf[1][choices][0][],opf[1][choices][1][],opf[1][choices][1][]' && addDisabledAtMax && conditionalVisible && optionsTotal === '$9.00' && remainingName === 'opf[1][name][0]' && removeDisabledAtOne && addLabel === 'Add guest' && removeLabel === 'Remove guest' && rowLabels.join(',') === 'Name,Guest 1' && errors.length === 0;
+const ok = rowCount === 4 && names.join(',') === 'opf[1][name][0],opf[1][name][1]' && checkboxNames.join(',') === 'opf[1][choices][0][],opf[1][choices][0][],opf[1][choices][1][],opf[1][choices][1][]' && addDisabledAtMax && conditionalVisible && optionsTotal === '$9.00' && remainingName === 'opf[1][name][0]' && removeDisabledAtOne && addLabel === 'Add guest' && removeLabel === 'Remove guest' && rowLabels.join(',') === 'Name,Guest 2' && errors.length === 0;
 console.log(`${ok ? 'ok' : 'FAIL'} repeater add/remove, custom labels, clone label numbering, max, indexed names, conditionals, pricing, and browser errors`);
 if (!ok) console.log(JSON.stringify({ rowCount, names, checkboxNames, addDisabledAtMax, conditionalVisible, optionsTotal, remainingName, removeDisabledAtOne, addLabel, removeLabel, rowLabels, errors }));
 await browser.close();
