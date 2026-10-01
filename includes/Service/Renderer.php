@@ -670,7 +670,7 @@ final class Renderer {
 				echo '<input type="checkbox" value="1" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
 				break;
 			default:
-				echo '<input type="text" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
+				echo '<input type="text" value="' . esc_attr( (string) ( $field['default'] ?? '' ) ) . '" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
 				break;
 		}
 	}
@@ -736,6 +736,9 @@ final class Renderer {
 	 * @return string|array
 	 */
 	private static function default_value( array $field ) {
+		if ( 'text' === $field['type'] ) {
+			return (string) ( $field['default'] ?? '' );
+		}
 		if ( 'toggle' === $field['type'] ) {
 			return '0';
 		}

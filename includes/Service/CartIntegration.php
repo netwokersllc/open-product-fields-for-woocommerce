@@ -725,25 +725,27 @@ final class CartIntegration {
 			$gid   = (string) $entry['id'];
 			$group = $entry['group'];
 			$section_repeats = self::section_repeat_context( $group->data['fields'] );
-			if ( ! isset( $raw[ $gid ] ) || ! is_array( $raw[ $gid ] ) ) {
-				continue;
-			}
+			$submitted = isset( $raw[ $gid ] ) && is_array( $raw[ $gid ] ) ? $raw[ $gid ] : [];
 
 			foreach ( $group->data['fields'] as $field ) {
 				if ( in_array( $field['type'], [ 'paragraph', 'section', 'section_end' ], true ) ) {
 					continue;
 				}
 				$fid = $field['id'];
-				if ( ! isset( $raw[ $gid ][ $fid ] ) ) {
-					continue;
-				}
 				$repeat_field = $field;
 				if ( empty( $repeat_field['repeat']['enabled'] ) && isset( $section_repeats[ $fid ] ) ) {
 					$repeat_field['repeat'] = $section_repeats[ $fid ];
 				}
+				if ( ! array_key_exists( $fid, $submitted ) ) {
+					if ( 'text' === $field['type'] && empty( $repeat_field['repeat']['enabled'] ) && isset( $field['default'] ) ) {
+						$submitted[ $fid ] = $field['default'];
+					} else {
+						continue;
+					}
+				}
 				$value = ! empty( $repeat_field['repeat']['enabled'] )
-					? RepeaterField::sanitize( $repeat_field, $raw[ $gid ][ $fid ], static fn( $row ) => self::sanitize_value( $field, $row ) )
-					: self::sanitize_value( $field, $raw[ $gid ][ $fid ] );
+					? RepeaterField::sanitize( $repeat_field, $submitted[ $fid ], static fn( $row ) => self::sanitize_value( $field, $row ) )
+					: self::sanitize_value( $field, $submitted[ $fid ] );
 				if ( null !== $value ) {
 					$values[ $gid ][ $fid ] = $value;
 				}

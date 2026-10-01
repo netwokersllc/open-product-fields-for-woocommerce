@@ -225,6 +225,12 @@ final class FieldGroup {
 			'pricing'      => $pricing,
 			'conditionals' => $conditionals,
 		];
+		if ( 'text' === $type && array_key_exists( 'default', $field ) ) {
+			if ( ! is_scalar( $field['default'] ) ) {
+				throw new \InvalidArgumentException( 'Text default must be a scalar value.' );
+			}
+			$normalized['default'] = trim( preg_replace( '/[\r\n\t ]+/', ' ', strip_tags( (string) $field['default'] ) ) );
+		}
 		if ( 'paragraph' === $type ) {
 			$normalized['content'] = is_scalar( $field['content'] ?? null ) ? (string) $field['content'] : '';
 			$content_format = $field['content_format'] ?? 'plain';

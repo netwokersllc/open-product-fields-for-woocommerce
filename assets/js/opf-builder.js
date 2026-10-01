@@ -355,6 +355,18 @@
 
 		var head = el( 'div', { class: 'opf-b-field-head' }, [ label, typeSel, desc, req, duplicate, remove ] );
 		var card = el( 'div', { class: 'opf-b-field' }, [ head ] );
+		if ( 'text' === field.type ) {
+			var textSettings = el( 'div', { class: 'opf-b-constraints' } );
+			[ [ 'placeholder', 'Placeholder' ], [ 'default', 'Default value' ] ].forEach( function ( setting ) {
+				var input = el( 'input', { class: 'opf-b-input', type: 'text', value: field[ setting[ 0 ] ] == null ? '' : String( field[ setting[ 0 ] ] ), 'aria-label': setting[ 1 ] } );
+				input.addEventListener( 'input', function () {
+					if ( input.value ) field[ setting[ 0 ] ] = input.value;
+					else delete field[ setting[ 0 ] ];
+				} );
+				textSettings.appendChild( labeledControl( setting[ 1 ], input ) );
+			} );
+			card.appendChild( textSettings );
+		}
 		card.appendChild( conditionalEditor( field ) );
 		if ( REPEATABLE_TYPES.indexOf( field.type ) !== -1 || 'section' === field.type ) {
 			var isSection = 'section' === field.type;
@@ -771,7 +783,7 @@
 			model.fields.push( { id: uniqueId( 'field' ), label: '', description: '', type: 'text', required: false, width: 100, choices: [], pricing: { type: 'none', amount: 0, formula: '' }, conditionals: [] } );
 			rerender();
 		} } ),
-		el( 'button', { class: 'button', text: 'Save', onclick: save } ),
+		el( 'button', { type: 'button', class: 'button', text: 'Save', onclick: save } ),
 		el( 'button', { class: 'button', text: 'Refresh preview', onclick: preview } ),
 		el( 'span', { id: 'opf-b-status', class: 'opf-b-status' } )
 	] );

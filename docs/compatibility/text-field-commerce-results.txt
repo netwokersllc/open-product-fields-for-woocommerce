@@ -1,0 +1,24 @@
+ok fixture exists
+ok browser admin save persists label required placeholder and default
+ok browser order manifest exists
+ok browser checkout order reloads from Woo data store
+ok browser checkout text and default persisted
+ok classic required empty rejected
+ok classic required error notice
+ok classic required array rejected
+ok explicitly cleared required default rejected
+ok classic cart accepts text
+ok classic sanitized single line and omitted default captured
+ok Store API required empty rejected with empty cart
+ok Store API accepts text
+ok Store API explicit override captured
+ok Store API cart display includes text and default override
+ok Store API checkout accepted
+ok order structured text persisted
+ok order public display meta persisted
+ok order unchanged base total
+ok email get_content_html includes labels and values
+ok email get_content_plain includes labels and values
+ok order again restores exact text values
+ok order again cart preserves restored selections
+SUCCESS native text commerce lifecycle
