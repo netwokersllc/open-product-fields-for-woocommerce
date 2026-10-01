@@ -25,7 +25,7 @@ includes Pro; six separately sold add-ons are outside this Extended-edition
 target and remain separately tracked. The ledger has 138 rows: 132 for the
 Free + Pro + Extended edition scope (including 3 “All versions” rows), and 6
 for separately sold add-ons. Of the 132 edition rows, 8 are baseline-supported,
-18 supported, 10 supported with a documented difference, 89 partial, and 8
+18 supported, 9 supported with a documented difference, 89 partial, and 8
 known gaps. The 28 Extended-only rows comprise 2 supported, 3 supported with a
 documented difference, 22 partial, and 1 known gap. These are row counts, not weighted
 feature percentages; gate completion is the progress measure.
