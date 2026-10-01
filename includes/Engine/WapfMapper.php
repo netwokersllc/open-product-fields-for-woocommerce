@@ -235,7 +235,7 @@ final class WapfMapper {
 		];
 	}
 
-	/** Map WAPF clone settings while keeping unfinished runtime behavior review-required. */
+	/** Map WAPF clone settings and flag only settings without an OPF equivalent. */
 	private static function map_repeat_settings( array $wapf_field, array &$notes, bool &$needs_review ): array {
 		$clone = $wapf_field['clone'] ?? [];
 		if ( ! is_array( $clone ) || [] === $clone ) {
@@ -276,18 +276,26 @@ final class WapfMapper {
 			if ( '' === $max ) {
 				$max = RepeaterField::DEFAULT_BUTTON_ROWS;
 			}
+			foreach ( [ 'add', 'del' ] as $key ) {
+				if ( array_key_exists( $key, $clone ) && '' !== $clone[ $key ] ) {
+					$repeat[ $key ] = $clone[ $key ];
+				}
+			}
 			try {
-				$repeat = RepeaterField::normalize( [ 'enabled' => true, 'mode' => 'button', 'max' => $max ] );
+				$repeat = RepeaterField::normalize( array_merge( $repeat, [ 'max' => $max ] ) );
 			} catch ( \InvalidArgumentException $exception ) {
-				$shown_max = is_scalar( $max ) ? (string) $max : 'invalid';
-				$notes[] = sprintf( 'field "%s" has an invalid or unrepresentable button repeater maximum (%s); the repeat settings need manual review.', $label, $shown_max );
+				$notes[] = sprintf( 'field "%s" has invalid or unrepresentable button repeater settings; the repeat settings need manual review.', $label );
 				$needs_review = true;
 				$can_map_repeat = false;
 			}
 		}
 
-		if ( ! empty( $clone['add'] ) || ! empty( $clone['del'] ) || ! empty( $clone['label'] ) ) {
-			$notes[] = sprintf( 'field "%s" uses custom add/remove labels or repeat labels that OPF does not preserve yet.', $label );
+		if ( ! empty( $clone['label'] ) ) {
+			$notes[] = sprintf( 'field "%s" uses a custom repeated-field label that OPF does not preserve yet.', $label );
+			$needs_review = true;
+		}
+		if ( 'qty' === $type || 'section' === ( $wapf_field['type'] ?? '' ) ) {
+			$notes[] = sprintf( 'field "%s" uses quantity or section repeat behavior that OPF does not implement yet.', $label );
 			$needs_review = true;
 		}
 		if ( ! empty( $clone['field'] ) ) {
@@ -298,8 +306,6 @@ final class WapfMapper {
 			return [];
 		}
 
-		$notes[] = sprintf( 'field "%s" repeat mode and maximum were imported, but OPF repeat runtime is not implemented yet.', $label );
-		$needs_review = true;
 		return $repeat;
 	}
 

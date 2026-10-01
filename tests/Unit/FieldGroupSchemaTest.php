@@ -104,11 +104,13 @@ final class FieldGroupSchemaTest extends TestCase {
 
 	public function test_repeater_settings_normalize_button_and_quantity_modes(): void {
 		$button = FieldGroup::normalize_field( [ 'id' => 'name', 'type' => 'text', 'repeat' => [ 'enabled' => true, 'mode' => 'button', 'max' => 12 ] ] );
+		$custom_labels = FieldGroup::normalize_field( [ 'id' => 'guests', 'type' => 'text', 'repeat' => [ 'enabled' => true, 'mode' => 'button', 'add' => ' Add guest ', 'del' => '<b>Remove guest</b>' ] ] );
 		$default_button = FieldGroup::normalize_field( [ 'id' => 'name-default', 'type' => 'text', 'repeat' => [ 'enabled' => true, 'mode' => 'button' ] ] );
 		$quantity = FieldGroup::normalize_field( [ 'id' => 'ticket-name', 'type' => 'text', 'repeat' => [ 'enabled' => true, 'mode' => 'qty' ] ] );
 		$section = FieldGroup::normalize_field( [ 'id' => 'attendees', 'type' => 'section', 'repeat' => [ 'enabled' => true, 'mode' => 'quantity' ] ] );
 
 		$this->assertSame( [ 'enabled' => true, 'mode' => 'button', 'max' => 12 ], $button['repeat'] );
+		$this->assertSame( [ 'enabled' => true, 'mode' => 'button', 'max' => 10000, 'add' => 'Add guest', 'del' => 'Remove guest' ], $custom_labels['repeat'] );
 		$this->assertSame( [ 'enabled' => true, 'mode' => 'button', 'max' => 10000 ], $default_button['repeat'] );
 		$this->assertSame( [ 'enabled' => true, 'mode' => 'quantity' ], $quantity['repeat'] );
 		$this->assertSame( [ 'enabled' => true, 'mode' => 'quantity' ], $section['repeat'] );

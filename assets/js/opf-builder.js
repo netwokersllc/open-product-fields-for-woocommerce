@@ -388,6 +388,14 @@
 						else delete field.repeat.max;
 					} );
 					repeatSettings.appendChild( labeledControl( 'Maximum rows (blank uses 10000)', repeatMax ) );
+					[ [ 'add', 'Add button text' ], [ 'del', 'Remove button text' ] ].forEach( function ( setting ) {
+						var labelInput = el( 'input', { class: 'opf-b-input', type: 'text', maxlength: '200', value: field.repeat[ setting[ 0 ] ] || '', 'data-opf-repeat-label': field.id + ':' + setting[ 0 ] } );
+						labelInput.addEventListener( 'input', function () {
+							if ( labelInput.value.trim() ) field.repeat[ setting[ 0 ] ] = labelInput.value.trim();
+							else delete field.repeat[ setting[ 0 ] ];
+						} );
+						repeatSettings.appendChild( labeledControl( setting[ 1 ], labelInput ) );
+					} );
 				}
 			}
 			card.appendChild( repeatSettings );

@@ -325,6 +325,7 @@ const init = () => {
 			if ( ! rows || ! first ) return;
 			const template = first.cloneNode( true );
 			const max = Math.max( 1, Number( repeater.dataset.opfRepeatMax ) || 10000 );
+			const repeatDef = registry[ repeater.dataset.opfField ] || {};
 			const update = () => {
 				const instances = Array.from( rows.querySelectorAll( '[data-opf-repeat-instance]' ) );
 				instances.forEach( ( instance, index ) => {
@@ -333,7 +334,7 @@ const init = () => {
 						remove = document.createElement( 'button' );
 						remove.type = 'button';
 						remove.className = 'opf-field-repeat__remove';
-						remove.textContent = 'Remove';
+						remove.textContent = repeatDef.repeat && repeatDef.repeat.del ? repeatDef.repeat.del : 'Remove';
 						instance.appendChild( remove );
 					}
 					remove.setAttribute( 'aria-label', 'Remove row ' + ( index + 1 ) );

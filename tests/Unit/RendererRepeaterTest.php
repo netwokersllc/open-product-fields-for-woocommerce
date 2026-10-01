@@ -1,6 +1,11 @@
 <?php
 
 namespace {
+	if ( ! function_exists( '__' ) ) {
+		function __( $text, $domain = null ): string {
+			return (string) $text;
+		}
+	}
 	if ( ! function_exists( 'esc_html__' ) ) {
 		function esc_html__( $text, $domain = null ): string {
 			return esc_html( $text );
@@ -19,7 +24,7 @@ namespace OPF\Tests\Unit {
 				'id' => 'guest_name',
 				'label' => 'Guest name',
 				'type' => 'text',
-				'repeat' => [ 'enabled' => true, 'mode' => 'button', 'max' => 3 ],
+				'repeat' => [ 'enabled' => true, 'mode' => 'button', 'max' => 3, 'add' => 'Add guest' ],
 			] ] ] );
 
 			ob_start();
@@ -32,6 +37,7 @@ namespace OPF\Tests\Unit {
 			$this->assertStringContainsString( 'name="opf[17][guest_name][0]"', $html );
 			$this->assertStringContainsString( 'id="opf-17-guest_name-repeat-0"', $html );
 			$this->assertStringContainsString( 'class="opf-field-repeat__add"', $html );
+			$this->assertStringContainsString( '>Add guest</button>', $html );
 		}
 
 		public function test_checkbox_repeater_names_keep_the_per_row_array_level(): void {

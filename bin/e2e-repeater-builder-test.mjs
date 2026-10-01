@@ -42,6 +42,8 @@ await page.locator('[data-opf-repeat-max="guest_name"]').fill('2.5');
 await page.getByRole('button', { name: 'Save' }).click();
 const invalidBlocked = await page.evaluate(() => window.__opfSavedPayloads.length === 0);
 await page.locator('[data-opf-repeat-max="guest_name"]').fill('4');
+await page.locator('[data-opf-repeat-label="guest_name:add"]').fill('Add person');
+await page.locator('[data-opf-repeat-label="guest_name:del"]').fill('Remove person');
 await page.getByRole('button', { name: 'Save' }).click();
 await page.waitForFunction(() => window.__opfSavedPayloads.length === 1);
 const result = await page.evaluate(() => window.__opfSavedPayloads[0].data.fields);
@@ -49,13 +51,13 @@ const mode = await page.locator('[data-opf-repeat-mode="ticket_code"]').inputVal
 const quantityWarning = await page.locator('.opf-b-repeat-notice').count();
 const ok = defaultMax === '10000'
 	&& invalidBlocked
-	&& JSON.stringify(result[0].repeat) === JSON.stringify({ enabled: true, mode: 'button', max: 4 })
+	&& JSON.stringify(result[0].repeat) === JSON.stringify({ enabled: true, mode: 'button', max: 4, add: 'Add person', del: 'Remove person' })
 	&& JSON.stringify(result[1].repeat) === JSON.stringify({ enabled: true, mode: 'button', max: 9 })
 	&& JSON.stringify(result[2].repeat) === JSON.stringify({ enabled: true, mode: 'quantity' })
 	&& mode === 'quantity'
 	&& quantityWarning === 0
 	&& errors.length === 0;
-console.log(`${ok ? 'ok' : 'FAIL'} builder saves repeater mode/max, validates limits, and preserves imported repeat settings`);
+console.log(`${ok ? 'ok' : 'FAIL'} builder saves repeater mode, limits and labels, and preserves imported repeat settings`);
 if (!ok) console.log(JSON.stringify({ defaultMax, invalidBlocked, result, mode, quantityWarning, errors }));
 await browser.close();
 process.exit(ok ? 0 : 1);

@@ -265,7 +265,12 @@ final class Renderer {
 		$instance['_opf_repeat_index'] = 0;
 		$instance['id'] = $fid . '-repeat-0';
 		self::render_field( $gid, $instance, $values, $base_price, true );
-		echo '</div><button type="button" class="opf-field-repeat__add">' . esc_html__( 'Add another', 'open-product-fields-for-woocommerce' ) . '</button>';
+		if ( 'button' === ( $repeat['mode'] ?? 'button' ) ) {
+			$add_label = (string) ( $repeat['add'] ?? __( 'Add another', 'open-product-fields-for-woocommerce' ) );
+			echo '</div><button type="button" class="opf-field-repeat__add">' . esc_html( $add_label ) . '</button>';
+		} else {
+			echo '</div>';
+		}
 		echo '<span class="screen-reader-text opf-field-repeat__status" aria-live="polite"></span></div>';
 	}
 
