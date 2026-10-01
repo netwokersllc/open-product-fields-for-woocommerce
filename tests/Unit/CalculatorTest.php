@@ -6,6 +6,7 @@
 namespace OPF\Tests\Unit;
 
 use OPF\Engine\Calculator;
+use OPF\API;
 use PHPUnit\Framework\TestCase;
 
 final class CalculatorTest extends TestCase {
@@ -41,6 +42,47 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( 20.0, Calculator::evaluate_formula( '[price] * 0.1 + [qty] * 2', 100.0, 5, 0.0 ) );
 		$this->assertSame( 6.0, Calculator::evaluate_formula( '(2 + 4) * (3 / 3)', 0.0, 1, 0.0 ) );
 		$this->assertSame( -3.0, Calculator::evaluate_formula( '-3', 0.0, 1, 0.0 ) );
+	}
+
+	public function test_public_api_registers_safe_formula_functions_with_arguments_and_context(): void {
+		API::add_formula_function(
+			'opf_test_scale',
+			static function ( array $args, array $context ) {
+				return (float) $args[0] * (float) $args[1]
+					+ (float) $context['price']
+					+ (int) $context['qty']
+					+ (float) $context['addons']
+					+ (int) $context['product_id']
+					+ (int) $context['field_values']['count'];
+			}
+		);
+
+		$this->assertSame( 32.0, Calculator::evaluate_formula( 'opf_test_scale(2; 3)', 9.0, 2, 4.0, '', null, [ 'count' => 1 ], 10 ) );
+	}
+
+	public function test_registered_formula_functions_support_nested_calls_and_fail_closed(): void {
+		API::add_formula_function(
+			'opf_test_double',
+			static fn( array $args ) => 1 === count( $args ) ? (float) $args[0] * 2 : 'invalid'
+		);
+
+		$this->assertSame( 8.0, Calculator::evaluate_formula( 'opf_test_double(opf_test_double(2))', 10.0, 1, 0.0 ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'opf_test_double(2;3)', 10.0, 1, 0.0 ) );
+	}
+
+	public function test_public_formula_api_rejects_reserved_names_and_handles_callback_failures(): void {
+		$this->expectException( \InvalidArgumentException::class );
+		API::add_formula_function( 'today', static fn() => 1 );
+	}
+
+	public function test_formula_callback_exception_fails_closed(): void {
+		API::add_formula_function(
+			'opf_test_throw',
+			static function () {
+				throw new \RuntimeException( 'callback failure' );
+			}
+		);
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'opf_test_throw(1)', 10.0, 1, 0.0 ) );
 	}
 
 	public function test_formula_safety_garbage_yields_zero(): void {

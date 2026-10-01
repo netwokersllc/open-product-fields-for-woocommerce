@@ -132,8 +132,15 @@ facts, not a promise that Extended 3.2.1 preserves them.
 Only the last two declarations type their inputs, and only the order helper
 declares a return type. The order/cart helpers expose WAPF's `_wapf_meta` and
 `wapf` storage conventions, so matching function names alone would not provide
-API compatibility. `WAPF-DEVELOPER-PHP-API` remains a known OPF gap; current
-3.2.1 signatures and migration guarantees await the licensed package.
+API compatibility. OPF now provides documented equivalents in
+`OPF\API` (`docs/DEVELOPER-API.md`) and an isolated WooCommerce proof for
+settings, group lookup/rendering, cart values, order snapshots, and formula
+callbacks. The public API intentionally uses OPF's namespaced methods, group
+objects, and canonical storage rather than re-creating WAPF's beta globals and
+internal object shape; existing extension code requires migration. Historical
+order values created before OPF's metadata snapshot can only be resolved while
+the matching group definitions still exist. Current Extended 3.2.1 signatures
+remain unverified pending its licensed package.
 
 ### Installed 3.1.5 field-group deserialization contract
 

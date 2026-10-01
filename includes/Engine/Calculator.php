@@ -18,12 +18,20 @@ defined( 'ABSPATH' ) || exit;
 
 final class Calculator {
 
+	/** @var array<string,callable> */
+	private static array $formula_functions = [];
+
+	/** Register a trusted extension callback through OPF\API. */
+	public static function register_formula_function( string $function, callable $callback ): void {
+		self::$formula_functions[ $function ] = $callback;
+	}
+
 	/**
 	 * Compute the per-unit addon price for a field selection.
 	 *
 	 * @param array<string,mixed>      $field   Normalized field array.
 	 * @param string|array<int,string> $value   Submitted value(s) (choice slugs or raw text).
-	 * @param array{price?:float,qty?:int,addons?:float,field_values?:array<string,mixed>} $context Pricing context.
+	 * @param array{price?:float,qty?:int,addons?:float,field_values?:array<string,mixed>,product_id?:int} $context Pricing context.
 	 * @return float Per-unit addon (never negative).
 	 */
 	public static function field_addon( array $field, $value, array $context ): float {
@@ -43,7 +51,7 @@ final class Calculator {
 				foreach ( $slugs as $slug ) {
 					foreach ( $field['choices'] as $choice ) {
 						if ( $choice['slug'] === (string) $slug && ! $choice['disabled'] ) {
-							$total += self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values );
+							$total += self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ) );
 							if ( ! in_array( $field['type'], [ 'checkbox' ], true ) ) {
 								break;
 							}
@@ -55,7 +63,7 @@ final class Calculator {
 			default:
 				// Text-like fields use field-level pricing only.
 				$amount = is_scalar( $value ) ? (string) $value : '';
-				$total += self::field_pricing_addon( $field['pricing'], $amount, $price, $qty, $addons, $field_values );
+				$total += self::field_pricing_addon( $field['pricing'], $amount, $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ) );
 				break;
 		}
 
@@ -69,7 +77,7 @@ final class Calculator {
 	 *
 	 * @param array<string,mixed> $pricing Normalized choice pricing.
 	 */
-	public static function choice_addon( array $pricing, float $price, int $qty, float $addons, array $field_values = [] ): float {
+	public static function choice_addon( array $pricing, float $price, int $qty, float $addons, array $field_values = [], int $product_id = 0 ): float {
 		$qty = max( 1, $qty );
 		switch ( $pricing['type'] ) {
 			case 'fixed':
@@ -78,7 +86,7 @@ final class Calculator {
 			case 'percent':
 				return $price * ( (float) $pricing['amount'] / 100 );
 			case 'formula':
-				return self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, '', null, $field_values );
+				return self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, '', null, $field_values, $product_id );
 			default:
 				return 0.0;
 		}
@@ -90,7 +98,7 @@ final class Calculator {
 	 *
 	 * @param array<string,mixed> $pricing Normalized field pricing.
 	 */
-	public static function field_pricing_addon( array $pricing, string $value, float $price, int $qty, float $addons, array $field_values = [] ): float {
+	public static function field_pricing_addon( array $pricing, string $value, float $price, int $qty, float $addons, array $field_values = [], int $product_id = 0 ): float {
 		if ( '' === trim( $value ) ) {
 			return 0.0;
 		}
@@ -102,7 +110,7 @@ final class Calculator {
 			case 'percent':
 				return $price * ( (float) $pricing['amount'] / 100 );
 			case 'formula':
-				return self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, $value, null, $field_values );
+				return self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, $value, null, $field_values, $product_id );
 			default:
 				return 0.0;
 		}
@@ -115,7 +123,7 @@ final class Calculator {
 	 * validated [field.{id}] date references. No eval() — recursive descent
 	 * parser. Syntax errors and invalid dates fail closed to zero.
 	 */
-	public static function evaluate_formula( string $formula, float $price, int $qty, float $addons, string $val = '', ?string $today = null, array $field_values = [] ): float {
+	public static function evaluate_formula( string $formula, float $price, int $qty, float $addons, string $val = '', ?string $today = null, array $field_values = [], int $product_id = 0 ): float {
 		$today = $today ?? ( function_exists( 'current_time' ) ? current_time( 'Y-m-d' ) : gmdate( 'Y-m-d' ) );
 		if ( ! self::is_formula_iso_date( $today ) ) {
 			$today = gmdate( 'Y-m-d' );
@@ -137,6 +145,20 @@ final class Calculator {
 			[ ' P ', ' Q ', ' A ', ' A ', ' V ' ],
 			$formula
 		);
+		$formula = self::expand_formula_functions(
+			$formula,
+			[
+				'price'        => $price,
+				'qty'          => $qty,
+				'addons'       => $addons,
+				'value'        => $val,
+				'field_values' => $field_values,
+				'product_id'   => $product_id > 0 ? $product_id : null,
+			]
+		);
+		if ( null === $formula ) {
+			return 0.0;
+		}
 		$vars = [ 'P' => $price, 'Q' => (float) $qty, 'A' => $addons, 'V' => (float) $val ];
 
 		$tokens = self::tokenize( $formula, $vars );
@@ -151,6 +173,139 @@ final class Calculator {
 		// Negatives allowed here (formulas may offset other addons); the
 		// final addon total is clamped at the field_addon boundary.
 		return is_finite( $value ) ? (float) $value : 0.0;
+	}
+
+	/**
+	 * Expand registered functions into numeric literals before tokenization.
+	 * No PHP evaluation is used. Nested calls, quoted strings, and WAPF's
+	 * semicolon argument separator are parsed explicitly.
+	 *
+	 * @param array<string,mixed> $context Formula callback context.
+	 */
+	private static function expand_formula_functions( string $formula, array $context, int $depth = 0 ): ?string {
+		if ( $depth > 16 ) {
+			return null;
+		}
+
+		$out = '';
+		$length = strlen( $formula );
+		for ( $i = 0; $i < $length; ) {
+			$char = $formula[ $i ];
+			if ( '\'' === $char || '"' === $char ) {
+				$quote = $char;
+				$out  .= $char;
+				$i++;
+				while ( $i < $length ) {
+					$out .= $formula[ $i ];
+					if ( '\\' === $formula[ $i ] && $i + 1 < $length ) {
+						$out .= $formula[ $i + 1 ];
+						$i   += 2;
+						continue;
+					}
+					if ( $quote === $formula[ $i++ ] ) {
+						break;
+					}
+				}
+				continue;
+			}
+
+			if ( ctype_alpha( $char ) || '_' === $char ) {
+				$name_end = $i + 1;
+				while ( $name_end < $length && ( ctype_alnum( $formula[ $name_end ] ) || '_' === $formula[ $name_end ] ) ) {
+					$name_end++;
+				}
+				$name = strtolower( substr( $formula, $i, $name_end - $i ) );
+				$open = $name_end;
+				while ( $open < $length && ctype_space( $formula[ $open ] ) ) {
+					$open++;
+				}
+				if ( isset( self::$formula_functions[ $name ] ) && $open < $length && '(' === $formula[ $open ] ) {
+					$close = self::formula_call_end( $formula, $open );
+					if ( null === $close ) {
+						return null;
+					}
+					$inner = substr( $formula, $open + 1, $close - $open - 1 );
+					$inner = self::expand_formula_functions( $inner, $context, $depth + 1 );
+					if ( null === $inner ) {
+						return null;
+					}
+					$args = self::split_formula_arguments( $inner );
+					try {
+						$result = ( self::$formula_functions[ $name ] )( $args, $context );
+					} catch ( \Throwable $error ) {
+						return null;
+					}
+					if ( ! is_numeric( $result ) || ! is_finite( (float) $result ) ) {
+						return null;
+					}
+					$out .= sprintf( '%.14g', (float) $result );
+					$i = $close + 1;
+					continue;
+				}
+			}
+			$out .= $char;
+			$i++;
+		}
+
+		return $out;
+	}
+
+	/** Find the matching `)` while respecting nested calls and quoted text. */
+	private static function formula_call_end( string $formula, int $open ): ?int {
+		$depth = 0;
+		$quote = '';
+		$length = strlen( $formula );
+		for ( $i = $open; $i < $length; $i++ ) {
+			$char = $formula[ $i ];
+			if ( '' !== $quote ) {
+				if ( '\\' === $char ) {
+					$i++;
+				} elseif ( $quote === $char ) {
+					$quote = '';
+				}
+				continue;
+			}
+			if ( '\'' === $char || '"' === $char ) {
+				$quote = $char;
+			} elseif ( '(' === $char ) {
+				$depth++;
+			} elseif ( ')' === $char && 0 === --$depth ) {
+				return $i;
+			}
+		}
+		return null;
+	}
+
+	/** @return array<int,string> */
+	private static function split_formula_arguments( string $arguments ): array {
+		$parts = [];
+		$start = 0;
+		$depth = 0;
+		$quote = '';
+		$length = strlen( $arguments );
+		for ( $i = 0; $i < $length; $i++ ) {
+			$char = $arguments[ $i ];
+			if ( '' !== $quote ) {
+				if ( '\\' === $char ) {
+					$i++;
+				} elseif ( $quote === $char ) {
+					$quote = '';
+				}
+				continue;
+			}
+			if ( '\'' === $char || '"' === $char ) {
+				$quote = $char;
+			} elseif ( '(' === $char ) {
+				$depth++;
+			} elseif ( ')' === $char ) {
+				$depth--;
+			} elseif ( ';' === $char && 0 === $depth ) {
+				$parts[] = trim( substr( $arguments, $start, $i - $start ) );
+				$start = $i + 1;
+			}
+		}
+		$parts[] = trim( substr( $arguments, $start ) );
+		return $parts;
 	}
 
 	/** Resolve a WAPF date function argument to a strictly validated date. */

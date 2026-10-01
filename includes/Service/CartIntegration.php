@@ -262,6 +262,7 @@ final class CartIntegration {
 						'qty'    => $quantity,
 						'addons' => $per_unit,
 						'field_values' => $group_values,
+						'product_id' => $product->get_id(),
 					]
 				);
 			}
@@ -395,6 +396,8 @@ final class CartIntegration {
 			$item->add_meta_data( $selection['label'], $selection['value'] );
 		}
 		$item->add_meta_data( '_opf_fields', wp_json_encode( $values, JSON_UNESCAPED_UNICODE ), true );
+		$snapshot = \OPF\API::field_snapshot_for_product( $product, $values );
+		$item->add_meta_data( '_opf_fields_snapshot', wp_json_encode( $snapshot, JSON_UNESCAPED_UNICODE ), true );
 	}
 
 	/**
@@ -406,6 +409,7 @@ final class CartIntegration {
 	 */
 	public static function hidden_order_meta( array $keys ): array {
 		$keys[] = '_opf_fields';
+		$keys[] = '_opf_fields_snapshot';
 		// Otros plugins que ensucian el display de órdenes
 		$keys = array_merge( $keys, [
 			'_nova_start_url',
