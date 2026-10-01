@@ -614,15 +614,17 @@ if ( document.readyState === 'loading' ) {
 
 const fmtMoney = (amount) => {
   const o = (window.opf_config || {}).display_options || {};
-  const symbol = o.symbol || '$';
+  const symbol = typeof o.symbol === 'string' ? o.symbol : '$';
   const decimals = typeof o.decimals === 'number' ? o.decimals : 2;
-  const thousand = o.thousand || ',';
-  const decimal = o.decimal || '.';
+  const thousand = typeof o.thousand === 'string' ? o.thousand : ',';
+  const decimal = typeof o.decimal === 'string' ? o.decimal : '.';
   const neg = amount < 0 ? '-' : '';
   const fixed = Math.abs(amount).toFixed(decimals);
   const [intPart, fracPart] = fixed.split('.');
   const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, thousand);
-  return `${neg}${symbol}${grouped}${decimals > 0 ? decimal + fracPart.slice(0, decimals) : ''}`;
+  const price = `${grouped}${decimals > 0 ? decimal + fracPart.slice(0, decimals) : ''}`;
+  const format = o.format || (o.price_format || 'symbolprice').replace('symbol', '%1$s').replace('price', '%2$s');
+  return neg + format.replace('%1$s', symbol).replace('%2$s', price);
 };
 
 const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOverride = null, fieldPrices = {}) => {
@@ -901,6 +903,7 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
     skipWs();
     if (s[i] === '(') { i++; const v = parseExpr(); skipWs(); if (s[i] === ')') i++; return v; }
     if (s[i] === '-') { i++; return -parseFactor(); }
+    if (Object.prototype.hasOwnProperty.call(vars, s[i])) return vars[s[i++]];
     const m = /^\d+(?:\.\d+)?/.exec(s.slice(i));
     if (m) { i += m[0].length; return parseFloat(m[0]); }
     i++; // force failure on unknown token
@@ -911,21 +914,21 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
   return isFinite(out) ? out : 0;
 };
 
-const choiceAddonDisplay = (pricing, base, qty, addons, val, fieldValues = {}, fieldPrices = {}) => {
+const choiceAddonDisplay = (pricing, base, qty, addons, val, fieldValues = {}, fieldPrices = {}, formulaBase = base) => {
   const t = pricing.type;
   if (t === 'fixed') return parseFloat(pricing.amount) || 0;
   if (t === 'percent') return base * ((parseFloat(pricing.amount) || 0) / 100);
-  if (t === 'formula') return evalFormula(pricing.formula_raw || pricing.formula, base, qty, addons, val, fieldValues, null, fieldPrices);
+  if (t === 'formula') return evalFormula(pricing.formula_raw || pricing.formula, formulaBase, qty, addons, val, fieldValues, null, fieldPrices);
   return 0;
 };
 
-const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}, fieldPrices = {}) => {
+const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}, fieldPrices = {}, formulaBase = base) => {
   if (def.type === 'image_quantity') {
     const quantities = value && value._opf_type === 'image_quantity' ? value.quantities || {} : {};
     return (def.choices || []).reduce((sum, choice) => {
       const count = Math.max(0, parseInt(quantities[choice.slug], 10) || 0);
       if (!count || choice.disabled) return sum;
-      return sum + count * choiceAddonDisplay(choice.pricing || {}, base, qty, addons, '', fieldValues, fieldPrices);
+      return sum + count * choiceAddonDisplay(choice.pricing || {}, base, qty, addons, '', fieldValues, fieldPrices, formulaBase);
     }, 0);
   }
   if (def.type === 'swatch' || def.type === 'select' || def.type === 'radio' || def.type === 'checkbox') {
@@ -936,7 +939,7 @@ const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}
       const p = c.pricing || {};
       if (p.type === 'fixed') sum += parseFloat(p.amount) || 0;
       else if (p.type === 'percent') sum += base * ((parseFloat(p.amount) || 0) / 100);
-      else if (p.type === 'formula') sum += evalFormula(p.formula_raw || p.formula, base, qty, addons, val, fieldValues, null, fieldPrices);
+      else if (p.type === 'formula') sum += evalFormula(p.formula_raw || p.formula, formulaBase, qty, addons, val, fieldValues, null, fieldPrices);
     });
     return sum;
   }
@@ -944,7 +947,7 @@ const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}
   if (!String(value || '').trim()) return 0;
   if (p.type === 'fixed') return parseFloat(p.amount) || 0;
   if (p.type === 'percent') return base * ((parseFloat(p.amount) || 0) / 100);
-  if (p.type === 'formula') return evalFormula(p.formula_raw || p.formula, base, qty, addons, val, fieldValues, null, fieldPrices);
+  if (p.type === 'formula') return evalFormula(p.formula_raw || p.formula, formulaBase, qty, addons, val, fieldValues, null, fieldPrices);
   return 0;
 };
 
@@ -952,8 +955,11 @@ const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}
 const writeTotals = () => {
   const totalsEl = document.querySelector('.opf-product-totals, .wapf-product-totals');
   if (!totalsEl) return;
-  const base = parseFloat(totalsEl.getAttribute('data-product-price'));
+  const config = window.opf_config || {};
+  const base = parseFloat(config.product_base_price ?? totalsEl.getAttribute('data-product-price'));
   if (!isFinite(base)) return;
+  const formulaBase = Number.isFinite(Number(config.formula_base_price)) ? Number(config.formula_base_price) : base;
+  const rate = Number.isFinite(Number(config.currency_rate)) && Number(config.currency_rate) > 0 ? Number(config.currency_rate) : 1;
   const qtyInput = document.querySelector('form.cart input[name="quantity"], form.cart .qty');
   const qty = Math.max(1, parseInt(qtyInput && qtyInput.value, 10) || 1);
 
@@ -1056,13 +1062,13 @@ const writeTotals = () => {
             previousId,
             Array.isArray(previousPrice) ? (previousPrice[rowIndex] || 0) : previousPrice,
           ]));
-          const rowAddon = choiceOrFieldAddon(def, rowValue, base, qty, optionsTotal + sum, typeof rowValue === 'string' ? rowValue : '', valuesForFormula(fieldEl, rowIndex), clonePrices);
+          const rowAddon = choiceOrFieldAddon(def, rowValue, base, qty, optionsTotal + sum, typeof rowValue === 'string' ? rowValue : '', valuesForFormula(fieldEl, rowIndex), clonePrices, formulaBase);
           rowPrices[rowIndex] = rowAddon;
           return sum + rowAddon;
         }, 0);
         if (!Object.prototype.hasOwnProperty.call(fieldPrices, fid)) fieldPrices[fid] = rowPrices;
       } else {
-        addon = choiceOrFieldAddon(def, value, base, qty, optionsTotal, value && typeof value === 'string' ? value : '', valuesForFormula(fieldEl, sectionIndex), fieldPrices);
+        addon = choiceOrFieldAddon(def, value, base, qty, optionsTotal, value && typeof value === 'string' ? value : '', valuesForFormula(fieldEl, sectionIndex), fieldPrices, formulaBase);
         if (!Object.prototype.hasOwnProperty.call(fieldPrices, fid)) fieldPrices[fid] = addon;
       }
       optionsTotal += addon;
@@ -1073,7 +1079,7 @@ const writeTotals = () => {
   const grand = productTotal + optionsTotal;
   const fmtEl = (el, amount) => {
     if (!el) return;
-    el.innerHTML = fmtMoney(amount);
+    el.innerHTML = fmtMoney(amount * rate);
   };
   fmtEl(totalsEl.querySelector('.opf-product-total, .wapf-product-total'), productTotal);
   fmtEl(totalsEl.querySelector('.opf-options-total, .wapf-options-total'), optionsTotal);
@@ -1083,6 +1089,23 @@ const writeTotals = () => {
 const initTotals = () => {
   const container = document.querySelector('[data-opf-fields]');
   if (!container) return;
+  if (window.jQuery) {
+    const originalBase = (window.opf_config || {}).product_base_price;
+    const originalFormulaBase = (window.opf_config || {}).formula_base_price;
+    window.jQuery('form.variations_form').on('found_variation.opf', (_event, variation) => {
+      const totals = document.querySelector('.opf-product-totals, .wapf-product-totals');
+      if (!totals) return;
+      const config = window.opf_config = window.opf_config || {};
+      config.product_base_price = variation.opf_base_price ?? variation.display_price;
+      config.formula_base_price = variation.opf_formula_base_price ?? config.product_base_price;
+      writeTotals();
+    }).on('reset_data.opf', () => {
+      const config = window.opf_config = window.opf_config || {};
+      config.product_base_price = originalBase;
+      config.formula_base_price = originalFormulaBase;
+      writeTotals();
+    });
+  }
   let timer = null;
   container.addEventListener('input', () => {
     clearTimeout(timer);

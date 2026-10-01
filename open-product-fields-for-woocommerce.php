@@ -50,6 +50,7 @@ use OPF\Service\Importer;
 use OPF\Service\MetaPrettifier;
 use OPF\Service\Renderer;
 use OPF\Service\Rest;
+use OPF\Service\WoocsIntegration;
 
 /**
  * Wire the plugin up on plugins_loaded (priority 20 — after WooCommerce has
@@ -84,6 +85,7 @@ function opf_boot(): void {
 	Renderer::init();
 	CartIntegration::init();
 	Assets::init();
+	WoocsIntegration::init();
 	Rest::init();
 	Importer::init();
 	Builder::init();

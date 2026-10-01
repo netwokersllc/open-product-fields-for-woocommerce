@@ -148,6 +148,9 @@ final class Calculator {
 	 * parser. Syntax errors and invalid dates fail closed to zero.
 	 */
 	public static function evaluate_formula( string $formula, float $price, int $qty, float $addons, string $val = '', ?string $today = null, array $field_values = [], int $product_id = 0, array $field_prices = [] ): float {
+		if ( $product_id > 0 && function_exists( 'apply_filters' ) ) {
+			$price = (float) apply_filters( 'opf_formula_base_price', $price, $product_id );
+		}
 		$today = $today ?? ( function_exists( 'current_time' ) ? current_time( 'Y-m-d' ) : gmdate( 'Y-m-d' ) );
 		if ( ! self::is_formula_iso_date( $today ) ) {
 			$today = gmdate( 'Y-m-d' );

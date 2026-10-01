@@ -1,8 +1,8 @@
 <?php
 /**
- * Narrow frontend compatibility with WOOCS/FOX, based on WAPF's installed
- * WOOCS adapter. OPF continues to calculate prices in WooCommerce shop
- * currency; only the browser preview is converted for display.
+ * WOOCS/FOX bridge. OPF writes shop-currency addon prices to the cart;
+ * WOOCS owns the final cart conversion. Formula bases are read afresh so a
+ * previous OPF calculation or a converted view price cannot become a base.
  *
  * @package open-product-fields-for-woocommerce
  */
@@ -13,9 +13,112 @@ defined( 'ABSPATH' ) || exit;
 
 final class WoocsIntegration {
 
-	/** Register the currency display bridge. */
+	/** Register currency bridges without changing behavior when WOOCS is absent. */
 	public static function init(): void {
+		add_filter( 'opf_frontend_config', [ __CLASS__, 'merge_frontend_config' ] );
+		add_filter( 'opf_cart_item_base_price', [ __CLASS__, 'cart_base_price' ], 20, 3 );
+		add_filter( 'opf_formula_base_price', [ __CLASS__, 'formula_base_price' ], 10, 2 );
+		add_filter( 'woocommerce_available_variation', [ __CLASS__, 'variation_data' ], 10, 3 );
 		add_action( 'wp_footer', [ __CLASS__, 'print_frontend_config' ], 100 );
+	}
+
+	/** Return a usable active WOOCS API, or leave other currency plugins alone. */
+	private static function api() {
+		global $WOOCS;
+		return null !== self::frontend_config( $WOOCS ?? null ) ? $WOOCS : null;
+	}
+
+	private static function is_foreign_currency(): bool {
+		$api = self::api();
+		return null !== $api && 0 !== strcasecmp( (string) $api->current_currency, (string) $api->default_currency );
+	}
+
+	/** WAPF gates back-conversion on WOOCS's multiple-currency setting. */
+	public static function back_convert( float $price ): float {
+		$api = self::api();
+		$config = self::frontend_config( $api );
+		if ( null === $api || ! self::is_foreign_currency() || 1 !== (int) get_option( 'woocs_is_multiple_allowed' ) || ! is_callable( [ $api, 'back_convert' ] ) ) {
+			return $price;
+		}
+		$value = $api->back_convert( $price, $config['currency_rate'], 8 );
+		return is_numeric( $value ) && is_finite( (float) $value ) ? (float) $value : $price;
+	}
+
+	/** Recognize both fixed sale and regular prices, as WAPF does. */
+	public static function has_fixed_price( \WC_Product $product ): bool {
+		$api = self::api();
+		if ( null === $api || 1 !== (int) get_option( 'woocs_is_fixed_enabled' ) ) {
+			return false;
+		}
+		foreach ( [ 'regular', 'sale' ] as $kind ) {
+			if ( (float) get_post_meta( $product->get_id(), '_woocs_' . $kind . '_price_' . $api->current_currency, true ) > 0 ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** Fresh product prices prevent successive totals calculations compounding addons. */
+	public static function cart_base_price( float $price, \WC_Product $product, array $cart_item = [] ): float {
+		$config = self::frontend_config();
+		if ( null === $config || ! self::is_foreign_currency() ) {
+			return $price;
+		}
+		$fresh = wc_get_product( $product->get_id() );
+		return $fresh instanceof \WC_Product ? self::back_convert( (float) $fresh->get_price() ) : $price;
+	}
+
+	/** Formula [price] uses the original product base even for fixed currency prices. */
+	public static function formula_base_price( float $price, int $product_id ): float {
+		$config = self::frontend_config();
+		if ( null === $config || ! self::is_foreign_currency() ) {
+			return $price;
+		}
+		$product = wc_get_product( $product_id );
+		return $product instanceof \WC_Product ? self::original_product_price( $product ) : $price;
+	}
+
+	/** Linked-product adapters can obtain the original choice price without double conversion. */
+	public static function original_product_price( \WC_Product $product ): float {
+		$fresh = wc_get_product( $product->get_id() );
+		$price = (float) ( $fresh instanceof \WC_Product ? $fresh : $product )->get_price( 'edit' );
+		$args = [ 'qty' => 1, 'price' => $price ];
+		return 'incl' === get_option( 'woocommerce_tax_display_shop' )
+			? (float) wc_get_price_including_tax( $product, $args )
+			: (float) wc_get_price_excluding_tax( $product, $args );
+	}
+
+	/** Provide both percentage and formula bases to the variation browser lifecycle. */
+	public static function variation_data( array $data, \WC_Product $parent, \WC_Product $variation ): array {
+		if ( null !== self::frontend_config() ) {
+			$data['opf_base_price'] = self::cart_base_price( (float) $variation->get_price( 'edit' ), $variation );
+			$data['opf_formula_base_price'] = self::formula_base_price( (float) $variation->get_price( 'edit' ), $variation->get_id() );
+		}
+		return $data;
+	}
+
+	/** Active settings must exist before the frontend module computes its first total. */
+	public static function merge_frontend_config( array $config ): array {
+		$currency = self::frontend_config();
+		if ( null === $currency ) {
+			return $config;
+		}
+		$config = array_replace_recursive( $config, $currency );
+		global $product;
+		if ( $product instanceof \WC_Product ) {
+			$config['product_base_price'] = self::cart_base_price( (float) $product->get_price( 'edit' ), $product );
+			$config['formula_base_price'] = self::formula_base_price( (float) $product->get_price( 'edit' ), $product->get_id() );
+		}
+		return $config;
+	}
+
+	/** Pricing-hint bridge for extensions: frontend formulas convert in the browser. */
+	public static function pricing_hint( float $amount, \WC_Product $product, string $type, string $page = 'product' ): float {
+		$config = self::frontend_config();
+		if ( null === $config || ( 'formula' === $type && 'cart' !== $page ) || self::has_fixed_price( $product ) ) {
+			return $amount;
+		}
+		return $amount * $config['currency_rate'];
 	}
 
 	/**
@@ -114,10 +217,10 @@ final class WoocsIntegration {
 		if ( null === $config || ! function_exists( 'wp_json_encode' ) ) {
 			return;
 		}
-		$json = wp_json_encode( $config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT );
+		$json = wp_json_encode( self::merge_frontend_config( [] ), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT );
 		if ( ! is_string( $json ) ) {
 			return;
 		}
-		echo '<script>if(window.opf_config){Object.assign(window.opf_config,' . $json . ');Object.assign(window.opf_config.display_options,' . $json . '.display_options);}</script>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON is hex-escaped.
+		echo '<script>window.opf_config=Object.assign(window.opf_config||{},' . $json . ');</script>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON is hex-escaped.
 	}
 }

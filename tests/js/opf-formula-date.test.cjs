@@ -21,6 +21,12 @@ test('WAPF date formula functions use Sunday-zero weekdays and one-based months'
 	assert.equal(context.__evalFormula("dow('2024-01-01')", 10, 1, 0, ''), 1);
 });
 
+test('browser formulas resolve base, quantity, addons and entered value variables', () => {
+	assert.equal(context.__evalFormula('[price] + [qty] + [addons] + [val]', 10, 2, 3, '4'), 19);
+	assert.equal(context.__choiceOrFieldAddon({ type: 'text', pricing: { type: 'formula', formula: '[price]' } }, 'yes', 25, 1, 0, 'yes', {}, {}, 10), 10);
+	assert.equal(context.__choiceOrFieldAddon({ type: 'text', pricing: { type: 'percent', amount: 10 } }, 'yes', 25, 1, 0, 'yes', {}, {}, 10), 2.5);
+});
+
 test('sumQty reads only tagged image choice quantities and image quantity pricing multiplies per choice', () => {
 	const quantities = { _opf_type: 'image_quantity', quantities: { oak: 2, ash: 3 } };
 	assert.equal(context.__evalFormula('sumQty(images)', 10, 1, 0, '', { images: quantities }), 5);

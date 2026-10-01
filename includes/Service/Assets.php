@@ -67,7 +67,7 @@ final class Assets {
 				. 'window.OPF_TODAY = ' . wp_json_encode( $today ) . ';'
 			);
 		}
-		if ( Renderer::compat() ) {
+		if ( Renderer::compat() || null !== WoocsIntegration::frontend_config() ) {
 			// Theme integration reads this global for price formatting (opf_config; wapf_config fallback lives in the theme JS).
 			wp_print_inline_script_tag(
 				'window.opf_config = ' . wp_json_encode( self::compat_config() ) . ';'
@@ -80,7 +80,7 @@ final class Assets {
 	 * Subset of the legacy pricing-format config the theme integration reads.
 	 */
 	private static function compat_config(): array {
-		return [
+		return apply_filters( 'opf_frontend_config', [
 			'ajax'            => admin_url( 'admin-ajax.php' ),
 			'currency'        => get_woocommerce_currency(),
 			'display_options' => [
@@ -90,7 +90,7 @@ final class Assets {
 				'decimals'    => wc_get_price_decimals(),
 				'price_format' => str_replace( array( '%1$s', '%2$s' ), array( 'symbol', 'price' ), get_woocommerce_price_format() ),
 			],
-		];
+		] );
 	}
 
 	/**
