@@ -272,6 +272,26 @@ families; the latter has its own quantity-contains operators. The target
 version's exact additions, stored representation, and evaluator behavior
 remain unverified without 3.2.1 source.
 
+### Swatch types and stored options
+
+The installed `class-config.php::get_field_definitions()` defines separate
+single and multi IDs: `text-swatch`/`multi-text-swatch`,
+`image-swatch`/`multi-image-swatch`, and `color-swatch`/`multi-color-swatch`.
+The registry's `multi_select` flag is false on each single type and true on
+each multi type. The field settings use `multi_option` for the choice editor;
+all three multi types expose `min_choices` and `max_choices`. Multi-image
+swatches additionally store `label_pos`, `grid_layout`, and responsive
+`items_per_row` values, with fixed `item_width` available for the fixed grid.
+Color swatches store each choice's `color`; both color types support `layout`
+(`square`, `rounded`, `circle`), `size` (5–500px), and `label_pos` (`default`,
+`hide`, `tooltip`). `class-field-groups.php` sanitizes choice colors as text,
+while the frontend templates render those values as inline background colors.
+The multi templates submit checkbox arrays, and `class-cart.php` validates the
+multi-choice selection count against the stored limits. OPF maps the six IDs
+to one swatch schema with explicit style and cardinality, then maps them back
+to the corresponding WAPF IDs on export. OPF accepts only validated hex color
+values; other values remain review-required.
+
 Two related registrations are conditional or owned by other controllers and
 must not be omitted from the full inventory: date is added only when the
 `wapf_datepicker` setting is enabled; Extended registers `calc` through

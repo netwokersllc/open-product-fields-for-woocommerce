@@ -10,7 +10,7 @@ validation paths.
 
 | Area | Implemented behavior |
 | --- | --- |
-| Field types | `text`, `textarea`, `email`, `url`, `number`, `date`, `toggle`, `select`, `radio`, `checkbox`, text-only `swatch`, and static `paragraph` |
+| Field types | `text`, `textarea`, `email`, `url`, `number`, `date`, `toggle`, `select`, `radio`, `checkbox`, text/image/color `swatch` (single or multiple selection), and static `paragraph` |
 | Email | Browser email input plus server-side rejection of malformed non-empty values |
 | Toggle | Boolean input stored as `1` when checked and `0` when unchecked; a required toggle must be checked |
 | Choice behavior | Defaults, disabled choices, single-select controls, and multiple checkbox selections |

@@ -71,6 +71,18 @@ try {
 			'items_per_row_tablet' => 2,
 			'items_per_row_mobile' => 1,
 			'choices' => [ [ 'slug' => 'oak', 'label' => 'Oak', 'image' => 'https://example.test/oak.jpg', 'image_id' => $attachment_id ] ],
+		], [
+			'id' => 'palette',
+			'label' => 'Palette',
+			'type' => 'swatch',
+			'swatch_style' => 'color',
+			'multiple' => true,
+			'min_choices' => 1,
+			'max_choices' => 2,
+			'color_layout' => 'rounded',
+			'color_size' => 36,
+			'color_label_pos' => 'default',
+			'choices' => [ [ 'slug' => 'navy', 'label' => 'Navy', 'color' => '#123456' ] ],
 		] ] ] ),
 	] ], [ 'site_url' => home_url(), 'site_title' => get_bloginfo( 'name' ) ] );
 	$wxr_path = tempnam( get_temp_dir(), 'opf-image-wxr-' );
@@ -90,19 +102,23 @@ try {
 	$field = $target->fields[0] ?? null;
 	$options = $field ? (array) $field->options : [];
 	$choice = $options['choices'][0] ?? [];
+	$multi_color = $target->fields[1] ?? null;
+	$multi_color_options = $multi_color ? (array) $multi_color->options : [];
+	$multi_color_choice = $multi_color_options['choices'][0] ?? [];
 	$checks = [
 		'image-swatch type parsed' => $field && 'image-swatch' === $field->type,
 		'image URL and attachment reference parsed' => 'https://example.test/oak.jpg' === ( $choice['image'] ?? '' ) && $attachment_id === (int) ( $choice['attachment'] ?? 0 ),
 		'label and grid options parsed' => 'tooltip' === ( $options['label_pos'] ?? '' ) && 'flexible' === ( $options['grid_layout'] ?? '' ),
 		'responsive counts and full-image option parsed' => 4 === (int) ( $options['items_per_row'] ?? 0 ) && 2 === (int) ( $options['items_per_row_tablet'] ?? 0 ) && 1 === (int) ( $options['items_per_row_mobile'] ?? 0 ) && ! empty( $options['large_image'] ),
+		'multi-color type, selection bounds, layout, and color parsed' => $multi_color && 'multi-color-swatch' === $multi_color->type && 1 === (int) ( $multi_color_options['min_choices'] ?? 0 ) && 2 === (int) ( $multi_color_options['max_choices'] ?? 0 ) && 'rounded' === ( $multi_color_options['layout'] ?? '' ) && 36 === (int) ( $multi_color_options['size'] ?? 0 ) && '#123456' === ( $multi_color_choice['color'] ?? '' ),
 	];
 	foreach ( $checks as $label => $passed ) {
 		WP_CLI::log( ( $passed ? 'PASS ' : 'FAIL ' ) . $label );
 	}
 	if ( in_array( false, $checks, true ) ) {
-		throw new RuntimeException( 'WAPF Extended image-swatch WXR parse failed.' );
+		throw new RuntimeException( 'WAPF Extended swatch WXR parse failed.' );
 	}
-	WP_CLI::success( 'WAPF Extended image-swatch WXR round trip passed.' );
+	WP_CLI::success( 'WAPF Extended image and multi-color swatch WXR round trip passed.' );
 } finally {
 	$matches = get_posts( [ 'post_type' => 'wapf_product', 'post_status' => 'any', 'posts_per_page' => -1, 'fields' => 'ids', 'title' => $title ] );
 	foreach ( $matches as $post_id ) {

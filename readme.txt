@@ -22,7 +22,7 @@ This plugin is 100% free and open source (GPLv2 or later). No license keys, no n
 
 **Features:**
 
-* Field types: text, textarea, URL, number, select, radio, checkbox, and text-only swatches
+* Field types: text, textarea, URL, number, select, radio, checkbox, text, image, and color swatches with single or multiple selection
 * Conditional logic (show/hide fields based on other values)
 * Pricing per choice: fixed, percentage of product price, and math formulas — always computed server-side
 * Works on classic product pages AND block-based cart/checkout (Store API)
