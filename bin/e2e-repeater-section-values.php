@@ -52,6 +52,7 @@ try {
 		'fields' => [
 			[ 'id' => 'attendees', 'label' => 'Attendees', 'type' => 'section', 'repeat' => [ 'enabled' => true, 'mode' => 'quantity', 'label' => 'Guest {n}' ] ],
 			[ 'id' => 'guest_name', 'label' => 'Guest name', 'type' => 'text', 'required' => true ],
+			[ 'id' => 'guest_note', 'label' => 'Ada note', 'type' => 'text', 'required' => true, 'conditionals' => [ [ 'action' => 'show', 'logic' => 'all', 'rules' => [ [ 'field' => 'guest_name', 'operator' => 'is', 'value' => 'Ada' ] ] ] ] ],
 			[ 'id' => 'guest_meal', 'label' => 'Guest meal', 'type' => 'select', 'required' => true, 'choices' => [
 				[ 'slug' => 'soup', 'label' => 'Soup', 'pricing' => [ 'type' => 'fixed', 'amount' => 2, 'per_unit' => true ] ],
 				[ 'slug' => 'salad', 'label' => 'Salad', 'pricing' => [ 'type' => 'fixed', 'amount' => 3, 'per_unit' => true ] ],
@@ -86,6 +87,7 @@ try {
 	$cart->empty_cart();
 	$response = $add_store_item( $product_id, [ (string) $group_id => [
 		'guest_name' => [ ' Ada ', 'Grace' ],
+		'guest_note' => [ 'For Ada', '' ],
 		'guest_meal' => [ 'soup', 'salad' ],
 	] ] );
 	$assert( in_array( $response->get_status(), [ 200, 201 ], true ), 'Store API rejected valid section rows: ' . wp_json_encode( $response->get_data() ) );
@@ -105,8 +107,16 @@ try {
 	$assert( 2 === count( $selections ), 'Cart display did not retain child field rows: ' . wp_json_encode( $selections ) );
 
 	$cart->empty_cart();
+	$missing_conditional_response = $add_store_item( $product_id, [ (string) $group_id => [
+		'guest_name' => [ 'Ada', 'Grace' ],
+		'guest_meal' => [ 'soup', 'salad' ],
+	] ] );
+	$assert( 400 === $missing_conditional_response->get_status() && false !== strpos( (string) ( $missing_conditional_response->get_data()['message'] ?? '' ), '"Ada note" is required in repeated row 1.' ), 'Store API did not require a missing conditional value on its matching clone: ' . wp_json_encode( $missing_conditional_response->get_data() ) );
+
+	$cart->empty_cart();
 	$identical_response = $add_store_item( $product_id, [ (string) $group_id => [
 		'guest_name' => [ 'Ada', 'Ada' ],
+		'guest_note' => [ 'For Ada', 'For Ada' ],
 		'guest_meal' => [ 'soup', 'soup' ],
 	] ] );
 	$assert( in_array( $identical_response->get_status(), [ 200, 201 ], true ), 'Store API rejected identical quantity-section rows: ' . wp_json_encode( $identical_response->get_data() ) );
@@ -170,6 +180,7 @@ try {
 	$cart->empty_cart();
 	$invalid_choice_response = $add_store_item( $product_id, [ (string) $group_id => [
 		'guest_name' => [ 'Ada', 'Grace' ],
+		'guest_note' => [ 'For Ada', '' ],
 		'guest_meal' => [ 'soup', 'not-a-choice' ],
 	] ] );
 	$assert( 400 === $invalid_choice_response->get_status(), 'Store API accepted an invalid required section choice.' );

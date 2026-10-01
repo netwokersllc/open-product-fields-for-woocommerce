@@ -802,9 +802,6 @@ final class CartIntegration {
 				if ( in_array( $field['type'], [ 'section', 'section_end' ], true ) ) {
 					continue;
 				}
-				if ( ! Evaluator::is_visible( $field, $given ) ) {
-					continue;
-				}
 				$provided = array_key_exists( $field['id'], $given );
 				$repeat_field = $field;
 				if ( empty( $repeat_field['repeat']['enabled'] ) && isset( $section_repeats[ $field['id'] ] ) ) {
@@ -812,7 +809,19 @@ final class CartIntegration {
 				}
 				if ( ! empty( $repeat_field['repeat']['enabled'] ) ) {
 					$rows = $provided && is_array( $given[ $field['id'] ] ) ? $given[ $field['id'] ] : [];
-					$errors = array_merge( $errors, RepeaterField::validate( $repeat_field, $rows, $provided, $product_quantity ) );
+					$errors = array_merge( $errors, RepeaterField::validate(
+						$repeat_field,
+						$rows,
+						$provided,
+						$product_quantity,
+						static function ( int $row_index ) use ( $field, $group, $given, $section_repeats ): bool {
+							$clone_values = self::values_for_clone( $group->data['fields'], $given, $section_repeats, $row_index );
+							return Evaluator::is_visible( $field, $clone_values );
+						}
+					) );
+					continue;
+				}
+				if ( ! Evaluator::is_visible( $field, $given ) ) {
 					continue;
 				}
 				$value    = $provided && ! is_array( $given[ $field['id'] ] ) ? (string) $given[ $field['id'] ] : null;
@@ -835,5 +844,31 @@ final class CartIntegration {
 		}
 
 		return $errors;
+	}
+
+	/**
+	 * Build conditional values for one repeated clone while leaving non-repeated
+	 * fields at their group-wide values.
+	 *
+	 * @param array<int,array<string,mixed>> $fields          Normalized group fields.
+	 * @param array<string,mixed>             $given           Sanitized group values.
+	 * @param array<string,array<string,mixed>> $section_repeats Inherited section repeat settings.
+	 */
+	private static function values_for_clone( array $fields, array $given, array $section_repeats, int $row_index ): array {
+		$values = $given;
+		foreach ( $fields as $field ) {
+			if ( in_array( $field['type'], [ 'paragraph', 'section', 'section_end' ], true ) ) {
+				continue;
+			}
+			$repeat = ! empty( $field['repeat']['enabled'] )
+				? $field['repeat']
+				: ( $section_repeats[ $field['id'] ] ?? [] );
+			if ( empty( $repeat['enabled'] ) ) {
+				continue;
+			}
+			$rows = $given[ $field['id'] ] ?? [];
+			$values[ $field['id'] ] = is_array( $rows ) && array_key_exists( $row_index, $rows ) ? $rows[ $row_index ] : null;
+		}
+		return $values;
 	}
 }

@@ -308,6 +308,18 @@ const init = () => {
 			: fieldEl.matches( '[data-opf-repeat="button"], [data-opf-repeat="quantity"]' )
 				? Array.from( fieldEl.querySelectorAll( '.opf-field-repeat__rows > [data-opf-repeat-instance]' ) ).map( ( instance ) => readInstanceValue( instance, def ) )
 			: readInstanceValue( fieldEl, def );
+		const valuesForField = ( fieldEl ) => {
+			const instance = fieldEl.closest( '[data-opf-section-repeat] [data-opf-repeat-instance]' );
+			if ( ! instance ) return values;
+			const scoped = { ...values };
+			instance.querySelectorAll( '[data-opf-field]' ).forEach( ( scopedField ) => {
+				if ( scopedField.hasAttribute( 'data-opf-section-repeat' ) ) return;
+				const scopedId = scopedField.getAttribute( 'data-opf-field' );
+				const scopedDef = fieldDefs[ scopedId ] || registry[ scopedId ] || { type: 'text', conditionals: [] };
+				scoped[ scopedId ] = readFieldValue( scopedField, scopedDef );
+			} );
+			return scoped;
+		};
 		const updateSectionInstanceIds = ( instance, index ) => {
 			instance.querySelectorAll( '[id]' ).forEach( ( element ) => {
 				const baseId = element.dataset.opfSectionBaseId || element.id.replace( /-section-\d+$/, '' );
@@ -506,10 +518,10 @@ const init = () => {
 		} );
 
 		const refresh = () => {
-			fields.forEach( ( fieldEl ) => {
+			groupEl.querySelectorAll( '[data-opf-field]' ).forEach( ( fieldEl ) => {
 				const fid = fieldEl.getAttribute( 'data-opf-field' );
 				const def = fieldDefs[ fid ] || {};
-				const visible = isVisible( def, values );
+				const visible = isVisible( def, valuesForField( fieldEl ) );
 				fieldEl.classList.toggle( 'opf-field--hidden', ! visible );
 				fieldEl.classList.toggle( 'opf-hide', ! visible );
 				fieldEl.toggleAttribute( 'hidden', ! visible );

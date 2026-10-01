@@ -103,7 +103,7 @@ final class RepeaterField {
 	}
 
 	/** Validate repeater row count and every non-empty row. */
-	public static function validate( array $field, array $rows, bool $provided, int $product_quantity = 1 ): array {
+	public static function validate( array $field, array $rows, bool $provided, int $product_quantity = 1, ?callable $row_visible = null ): array {
 		$label = (string) ( $field['label'] ?? '' );
 		$repeat = $field['repeat'] ?? [];
 		$errors = [];
@@ -114,27 +114,30 @@ final class RepeaterField {
 			return [ sprintf( '"%s" uses a field type that cannot be repeated yet.', $label ) ];
 		}
 
-		if ( ! $provided || ! $rows ) {
-			return ! empty( $field['required'] ) ? [ sprintf( '"%s" is required in repeated row 1.', $label ) ] : [];
-		}
-
 		if ( $quantity_mode ) {
-			$expected_rows = max( 1, $product_quantity );
-			$last_index = max( array_map( 'intval', array_keys( $rows ) ) );
-			if ( $last_index + 1 !== $expected_rows || count( $rows ) > $expected_rows ) {
-				return [ sprintf( '"%s" must have exactly %d rows to match product quantity.', $label, $expected_rows ) ];
+			if ( $provided && $rows ) {
+				$expected_rows = max( 1, $product_quantity );
+				$last_index = max( array_map( 'intval', array_keys( $rows ) ) );
+				if ( $last_index + 1 !== $expected_rows || count( $rows ) > $expected_rows ) {
+					return [ sprintf( '"%s" must have exactly %d rows to match product quantity.', $label, $expected_rows ) ];
+				}
 			}
 		}
 
-		if ( ! $quantity_mode ) {
+		if ( $provided && $rows && ! $quantity_mode ) {
 			$max = (int) ( $repeat['max'] ?? self::DEFAULT_BUTTON_ROWS );
 			if ( count( $rows ) > $max ) {
 				return [ sprintf( '"%s" allows at most %d repeated rows.', $label, $max ) ];
 			}
 		}
 
-		$row_indexes = $quantity_mode ? range( 0, max( 1, $product_quantity ) - 1 ) : array_keys( $rows );
+		$row_indexes = $quantity_mode
+			? range( 0, max( 1, $product_quantity ) - 1 )
+			: ( $provided && $rows ? array_keys( $rows ) : [ 0 ] );
 		foreach ( $row_indexes as $index ) {
+			if ( null !== $row_visible && ! $row_visible( (int) $index ) ) {
+				continue;
+			}
 			$value = $rows[ $index ] ?? null;
 			$empty = null === $value || '' === $value || [] === $value || ( 'toggle' === $type && '0' === $value );
 			if ( $empty ) {
