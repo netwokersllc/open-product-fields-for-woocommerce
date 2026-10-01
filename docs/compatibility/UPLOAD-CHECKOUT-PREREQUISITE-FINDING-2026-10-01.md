@@ -63,11 +63,11 @@ or checkout lifecycle proof.
 `git ls-tree -r HEAD --name-only includes/Engine/UploadService.php
 includes/Service/UploadService.php` returned no paths.
 
-The public feature branch moved during this lane: `git ls-remote origin
-refs/heads/feat/opf-archive-import` returned
-`ed17517d3c8c50a6293c4b65e24ee012fbc154c8` at 20:28 UTC. Runtime results
-above remain pinned to the requested `f82a5c2` base; they make no claim
-about a later source revision.
+The runtime probe is pinned to source base `f82a5c2`. Subsequent reviewed
+changes on the current feature branch add disabled-choice/order-again handling,
+WAPF checkbox import mapping, and bulk choice builder UX; none adds upload
+service files or routes. Re-check the current branch before relying on this
+finding after any later upload implementation.
 
 ## Remaining acceptance paths
 

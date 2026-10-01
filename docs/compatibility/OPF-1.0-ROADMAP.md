@@ -36,8 +36,8 @@ The 132 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 | Baseline supported | 4 | Promising baseline only; not accepted as proof |
 | Supported | 5 | Fresh supported-row audit retained only independently justified evidence |
 | Supported with documented difference | 8 | Needs explicit non-regression review and acceptance |
-| Partial | 114 | Material parity or proof remains; 15 prior supported claims were withdrawn after source/test audit |
-| Gap | 1 | Known absent in the current OPF tree |
+| Partial | 112 | Material parity or proof remains; 15 prior supported claims were withdrawn after source/test audit |
+| Gap | 3 | Known absent in the current OPF tree, including both upload capability rows |
 | Needs audit | 0 | Available source, marketing claims, and every published release delta are mapped; exact release details remain scoped to partial rows |
 | **Total** | **132** | **G1 complete for available evidence; G2 remains open** |
 
@@ -118,8 +118,8 @@ separate language/API checks. Free's older platform declarations and conflicting
 WordPress floor claims also remain unresolved. The audit changes no scope or
 status counts.
 
-Extended-only rows: 28 total; 2 supported, 4 supported with a documented
-difference, 22 partial, and no known gaps. All 132 edition rows have a ledger status. The
+Extended-only rows: 28 total; 0 supported, 4 supported with a documented
+difference, 24 partial, and no known gaps, matching the capability ledger. All 132 edition rows have a ledger status. The
 available-source audit covers installed Extended 3.1.5, public Free 1.7.1,
 current tier/marketing claims, and every published Extended 3.1.6–3.2.1 and
 Pro 3.2.2 changelog change. Exact current-package details not specified in

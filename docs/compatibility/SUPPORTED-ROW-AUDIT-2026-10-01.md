@@ -46,7 +46,9 @@ capability before adjusting the denominator.
 ## Reconciled counts
 
 The 132 edition rows now record 5 supported, 8 supported with documented
-differences, 114 partial, 4 baseline-supported, and 1 gap. Strict progress is
+differences, 112 partial, 4 baseline-supported, and 3 gaps. The upload rows
+were corrected to gaps after a pinned public-branch probe found no upload
+service or REST route. Strict progress is
 5/132 accepted supported rows. The six add-on rows remain separately tracked.
 
 The five accepted rows are not a weighted measure of product completeness;
