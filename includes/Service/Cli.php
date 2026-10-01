@@ -140,7 +140,7 @@ final class Cli {
 	}
 
 	/**
-	 * Export field groups as a versioned OPF archive or WAPF Tools JSON.
+	 * Export field groups as an OPF archive, WAPF Tools JSON, or WXR transfer.
 	 *
 	 * ## OPTIONS
 	 *
@@ -154,10 +154,10 @@ final class Cli {
 	 * : Export the published groups currently matched to a WooCommerce product.
 	 *
 	 * [--output=<file>]
-	 * : Write atomically to an absolute file path. Without this option, print JSON to stdout.
+	 * : Write atomically to an absolute file path. Without this option, print the selected format to stdout.
 	 *
 	 * [--format=<format>]
-	 * : Export format: opf (default) or wapf-json. WAPF JSON requires exactly one group.
+	 * : Export format: opf (default), wapf-json, or wapf-wxr. WXR requires --all or --group.
 	 *
 	 * ## EXAMPLES
 	 *
@@ -165,14 +165,16 @@ final class Cli {
 	 *     wp opf export --group=123
 	 *     wp opf export --product=456 --output=/tmp/opf-product.json
 	 *     wp opf export --group=123 --format=wapf-json
+	 *     wp opf export --all --format=wapf-wxr --output=/tmp/wapf-groups.xml
+	 *     wp opf export --group=123 --format=wapf-wxr --output=/tmp/wapf-group.xml
 	 *
 	 * @param array<int,string>    $args       Positional args.
 	 * @param array<string,string> $assoc_args Flags.
 	 */
 	public function export( array $args, array $assoc_args = [] ): void {
 		$format = (string) ( $assoc_args['format'] ?? 'opf' );
-		if ( ! in_array( $format, [ 'opf', 'wapf-json' ], true ) ) {
-			\WP_CLI::error( 'Export format must be opf or wapf-json.' );
+		if ( ! in_array( $format, [ 'opf', 'wapf-json', 'wapf-wxr' ], true ) ) {
+			\WP_CLI::error( 'Export format must be opf, wapf-json, or wapf-wxr.' );
 		}
 		$selectors = array_values( array_filter( [
 			array_key_exists( 'all', $assoc_args ) ? 'all' : null,
@@ -183,6 +185,9 @@ final class Cli {
 			\WP_CLI::error( 'Choose exactly one selector: --all, --group=<id>, or --product=<id>.' );
 		}
 		$type = $selectors[0];
+		if ( 'wapf-wxr' === $format && ! in_array( $type, [ 'all', 'group' ], true ) ) {
+			\WP_CLI::error( 'WAPF WXR export requires --all or --group because WXR transfers global field groups.' );
+		}
 		$scope = [ 'type' => $type ];
 		$posts = [];
 		if ( 'all' === $type ) {
@@ -222,19 +227,59 @@ final class Cli {
 		}
 
 		$groups = [];
+		$site_users = get_users( [ 'number' => 1 ] );
+		$fallback_author = $site_users ? reset( $site_users ) : false;
 		foreach ( $posts as $post ) {
 			$data = json_decode( (string) $post->post_content, true );
 			if ( ! is_array( $data ) ) {
 				\WP_CLI::error( sprintf( 'Field group #%d has invalid JSON; export stopped.', (int) $post->ID ) );
+			}
+			$author = get_userdata( (int) $post->post_author );
+			if ( ! $author ) {
+				$author = $fallback_author;
 			}
 			$groups[] = [
 				'id' => (int) $post->ID,
 				'title' => (string) $post->post_title,
 				'status' => (string) $post->post_status,
 				'menu_order' => (int) $post->menu_order,
+				'date' => (string) $post->post_date,
+				'date_gmt' => (string) $post->post_date_gmt,
+				'slug' => (string) $post->post_name,
+				'author' => $author ? (string) $author->user_login : '',
 				'language' => function_exists( 'pll_get_post_language' ) ? (string) pll_get_post_language( (int) $post->ID, 'slug' ) : '',
 				'data' => $data,
 			];
+		}
+		if ( 'wapf-wxr' === $format ) {
+			try {
+				$xml = WapfWxrExporter::build_document( $groups, [
+					'site_url' => home_url(),
+					'site_title' => get_bloginfo( 'name' ),
+					'language' => get_bloginfo( 'language' ),
+				] );
+			} catch ( \InvalidArgumentException $exception ) {
+				\WP_CLI::error( $exception->getMessage() );
+			}
+			\WP_CLI::warning( 'WAPF WXR does not preserve OPF product/category/tag placement, media files, language assignments, or OPF-only settings. Review imported groups before publishing.' );
+			if ( isset( $assoc_args['output'] ) ) {
+				$path = (string) $assoc_args['output'];
+				$directory = dirname( $path );
+				if ( '/' !== substr( $path, 0, 1 ) || ! is_dir( $directory ) || ! is_writable( $directory ) ) {
+					\WP_CLI::error( 'Export path must be absolute and its parent directory must be writable.' );
+				}
+				$temp = tempnam( $directory, '.opf-export-' );
+				if ( false === $temp || false === file_put_contents( $temp, $xml, LOCK_EX ) || ! rename( $temp, $path ) ) {
+					if ( is_string( $temp ) && file_exists( $temp ) ) {
+						unlink( $temp );
+					}
+					\WP_CLI::error( 'Could not write the WAPF WXR export.' );
+				}
+				\WP_CLI::success( sprintf( 'Exported %d field group(s) as WAPF WXR to %s.', count( $groups ), $path ) );
+				return;
+			}
+			\WP_CLI::line( $xml );
+			return;
 		}
 		if ( 'wapf-json' === $format ) {
 			if ( 1 !== count( $groups ) ) {

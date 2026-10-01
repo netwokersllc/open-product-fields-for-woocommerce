@@ -108,3 +108,13 @@ run `wp opf export --group=<id> --format=wapf-json` (or select a product that
 resolves to exactly one group). Unsupported or lossy settings stop export.
 The payload omits OPF post title/status metadata; product/category/tag IDs are
 site-local and need review on the destination.
+
+To transfer WAPF-compatible global groups through WordPress's importer, run
+`wp opf export --all --format=wapf-wxr --output=/path/to/wapf-groups.xml`
+(or use `--group=<id>` to transfer one group).
+Import the XML on the destination from **Tools → Import → WordPress**. The
+export includes group titles, statuses, dates, order, fields, field conditions,
+pricing, and layout. It stops if any selected group's settings cannot be
+represented by WAPF. WXR does not carry OPF product/category/tag placement,
+media files, Polylang assignments, or OPF-only settings; review imported groups
+and configure their placement on the destination before publishing.
