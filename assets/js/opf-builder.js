@@ -324,7 +324,7 @@
 				field.pricing = { type: 'none', amount: 0, formula: '' };
 			}
 			if ( in_array( field.type, [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ] ) && ! field.choices.length ) {
-				field.choices = [ { slug: 'option-1', label: 'Option 1', selected: false, disabled: false, quantity: { default: 0, min: 0, max: 999 }, pricing: { type: 'none', amount: 0, formula: '' } } ];
+				field.choices = [ { slug: 'option-1', label: 'Option 1', selected: false, disabled: false, quantity: { default: 0, min: 0, max: 999999 }, pricing: { type: 'none', amount: 0, formula: '' } } ];
 			}
 			rerender();
 		} );
@@ -473,7 +473,7 @@
 		if ( field.choices.length || in_array( field.type, [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ], true ) ) {
 			var addChoice = el( 'button', { class: 'button', text: '+ Add choice', onclick: function () {
 				var n = field.choices.length + 1;
-				var choice = { slug: 'option-' + n, label: 'Option ' + n, selected: false, disabled: false, quantity: { default: 0, min: 0, max: 999 }, pricing: { type: 'none', amount: 0, formula: '' } };
+				var choice = { slug: 'option-' + n, label: 'Option ' + n, selected: false, disabled: false, quantity: { default: 0, min: 0, max: 999999 }, pricing: { type: 'none', amount: 0, formula: '' } };
 				if ( 'color' === field.swatch_style ) choice.color = '#FFFFFF';
 				field.choices.push( choice );
 				rerender();
@@ -487,11 +487,19 @@
 			card.appendChild( addChoice );
 		}
 		if ( 'image_quantity' === field.type ) {
+			[ [ 'min_choices', 'Minimum total quantity' ], [ 'max_choices', 'Maximum total quantity' ] ].forEach( function ( setting ) {
+				var limit = el( 'input', { class: 'opf-b-input', type: 'number', min: '0', max: '999999', value: null === field[ setting[ 0 ] ] || undefined === field[ setting[ 0 ] ] ? '' : field[ setting[ 0 ] ] } );
+				limit.addEventListener( 'input', function () {
+					if ( '' !== limit.value ) field[ setting[ 0 ] ] = Math.max( 0, Math.min( 999999, Number( limit.value ) || 0 ) );
+					else delete field[ setting[ 0 ] ];
+				} );
+				card.appendChild( labeledControl( setting[ 1 ], limit ) );
+			} );
 			field.choices.forEach( function ( choice ) {
-				choice.quantity = choice.quantity || { default: 0, min: 0, max: 999 };
+				choice.quantity = choice.quantity || { default: 0, min: 0, max: 999999 };
 				[ [ 'default', 'Default quantity' ], [ 'min', 'Minimum quantity' ], [ 'max', 'Maximum quantity' ] ].forEach( function ( setting ) {
-					var input = el( 'input', { class: 'opf-b-input', type: 'number', min: '0', max: '999', value: choice.quantity[ setting[ 0 ] ] } );
-					input.addEventListener( 'input', function () { choice.quantity[ setting[ 0 ] ] = Math.max( 0, Math.min( 999, Number( input.value ) || 0 ) ); } );
+					var input = el( 'input', { class: 'opf-b-input', type: 'number', min: '0', max: '999999', value: choice.quantity[ setting[ 0 ] ] } );
+					input.addEventListener( 'input', function () { choice.quantity[ setting[ 0 ] ] = Math.max( 0, Math.min( 999999, Number( input.value ) || 0 ) ); } );
 					card.appendChild( labeledControl( choice.label + ' — ' + setting[ 1 ], input ) );
 				} );
 			} );

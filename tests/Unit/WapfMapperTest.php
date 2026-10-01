@@ -133,7 +133,8 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( 'image_quantity', $field['type'] );
 		$this->assertFalse( $field['multiple'] );
 		$this->assertCount( 2, $field['choices'] );
-		$this->assertSame( [ 'default' => 4, 'min' => 2, 'max' => 8 ], $field['choices'][0]['quantity'] );
+		$this->assertSame( 8, $field['max_choices'] );
+		$this->assertSame( [ 'default' => 4, 'min' => 2, 'max' => 12 ], $field['choices'][0]['quantity'] );
 		$this->assertSame( [ 'default' => 0, 'min' => 0, 'max' => 5 ], $field['choices'][1]['quantity'] );
 		$this->assertSame( 481, $field['choices'][0]['image_id'] );
 		$this->assertSame( 'fixed', $field['choices'][0]['pricing']['type'] );
@@ -162,7 +163,8 @@ final class WapfMapperTest extends TestCase {
 			'id' => 'prints', 'type' => 'image-swatch-qty',
 			'options' => [ 'max_choices' => 0, 'choices' => [ [ 'slug' => 'oak', 'label' => 'Oak' ] ] ],
 		] ] ] );
-		$this->assertSame( 0, $zero_cap['group']['fields'][0]['choices'][0]['quantity']['max'] );
+		$this->assertSame( 0, $zero_cap['group']['fields'][0]['max_choices'] );
+		$this->assertSame( 999999, $zero_cap['group']['fields'][0]['choices'][0]['quantity']['max'] );
 
 		$clamped_default = WapfMapper::map( [ 'fields' => [ [
 			'id' => 'prints', 'type' => 'image-swatch-qty',
@@ -170,6 +172,20 @@ final class WapfMapperTest extends TestCase {
 		] ] ] );
 		$this->assertSame( [ 'default' => 2, 'min' => 2, 'max' => 999999 ], $clamped_default['group']['fields'][0]['choices'][0]['quantity'] );
 		$this->assertStringContainsString( 'bounds/default', implode( ' ', $clamped_default['notes'] ) );
+	}
+
+	public function test_image_quantity_import_maps_aggregate_minimum_and_maximum_without_clamping_choices(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'prints', 'type' => 'image-swatch-qty',
+			'options' => [
+				'min_choices' => '3', 'max_choices' => '8',
+				'choices' => [ [ 'slug' => 'oak', 'label' => 'Oak', 'options' => [ 'max' => 12 ] ] ],
+			],
+		] ] ] );
+
+		$field = $mapped['group']['fields'][0];
+		$this->assertSame( [ 3, 8 ], [ $field['min_choices'], $field['max_choices'] ] );
+		$this->assertSame( 12, $field['choices'][0]['quantity']['max'] );
 	}
 
 	public function test_maps_multi_color_swatches_selection_limits_and_color_choices(): void {

@@ -56,9 +56,10 @@ try {
 		'fields' => [
 			[
 				'id' => 'prints', 'label' => 'Prints', 'type' => 'image_quantity',
+				'min_choices' => 3, 'max_choices' => 8,
 				'choices' => [
-					[ 'slug' => 'oak', 'label' => 'Oak', 'image' => '/oak.png', 'quantity' => [ 'min' => 1, 'max' => 5 ], 'pricing' => [ 'type' => 'fixed', 'amount' => 2, 'per_unit' => true ] ],
-					[ 'slug' => 'ash', 'label' => 'Ash', 'image' => '/ash.png', 'quantity' => [ 'min' => 0, 'max' => 4 ], 'pricing' => [ 'type' => 'fixed', 'amount' => 3, 'per_unit' => true ] ],
+					[ 'slug' => 'oak', 'label' => 'Oak', 'image' => '/oak.png', 'quantity' => [ 'min' => 1, 'max' => 12 ], 'pricing' => [ 'type' => 'fixed', 'amount' => 2, 'per_unit' => true ] ],
+					[ 'slug' => 'ash', 'label' => 'Ash', 'image' => '/ash.png', 'quantity' => [ 'min' => 0, 'max' => 12 ], 'pricing' => [ 'type' => 'fixed', 'amount' => 3, 'per_unit' => true ] ],
 					[ 'slug' => 'disabled', 'label' => 'Disabled print', 'disabled' => true, 'quantity' => [ 'min' => 0, 'max' => 4 ], 'pricing' => [ 'type' => 'fixed', 'amount' => 100, 'per_unit' => true ] ],
 				],
 			],
@@ -72,7 +73,9 @@ try {
 	// Each Store API request must reject malformed quantities before cart insertion.
 	$invalid_cases = [
 		'below minimum' => [ 'oak' => '0', 'ash' => '3' ],
-		'above maximum' => [ 'oak' => '6', 'ash' => '3' ],
+		'above choice maximum' => [ 'oak' => '13', 'ash' => '0' ],
+		'below aggregate minimum' => [ 'oak' => '1', 'ash' => '1' ],
+		'above aggregate maximum' => [ 'oak' => '5', 'ash' => '4' ],
 		'fraction' => [ 'oak' => '2.5', 'ash' => '3' ],
 		'negative' => [ 'oak' => '-1', 'ash' => '3' ],
 		'non-numeric' => [ 'oak' => 'forged', 'ash' => '3' ],
@@ -144,19 +147,19 @@ try {
 
 	// Verify a later valid request cannot inherit invalid state or old quantities.
 	$cart->empty_cart( true );
-	$response = $add_store_item( $product_id, $group_id, [ 'oak' => '1' ] );
+	$response = $add_store_item( $product_id, $group_id, [ 'oak' => '3' ] );
 	$assert( in_array( $response->get_status(), [ 200, 201 ], true ), 'Store API rejected minimum/zero boundary quantities.' );
 	$cart->calculate_totals();
 	$boundary_item = array_values( $cart->get_cart() )[0];
-	$assert( abs( (float) $boundary_item['data']->get_price() - 13.0 ) < 0.001, 'Zero choices or stale quantities affected boundary price; expected 13.00.' );
+	$assert( abs( (float) $boundary_item['data']->get_price() - 19.0 ) < 0.001, 'Zero choices or stale quantities affected aggregate minimum boundary price; expected 19.00.' );
 	$boundary_display = CartIntegration::visible_selections( $boundary_item['data'], $boundary_item[ CartIntegration::ITEM_KEY ] );
-	$assert( 'Oak: 1' === ( $boundary_display[0]['value'] ?? '' ), 'Zero choices appeared in visible values.' );
+	$assert( 'Oak: 3' === ( $boundary_display[0]['value'] ?? '' ), 'Zero choices appeared in visible values.' );
 	$cart->empty_cart( true );
-	$response = $add_store_item( $product_id, $group_id, [ 'oak' => '5', 'ash' => '4' ] );
+	$response = $add_store_item( $product_id, $group_id, [ 'oak' => '5', 'ash' => '3' ] );
 	$assert( in_array( $response->get_status(), [ 200, 201 ], true ), 'Store API rejected maximum boundary quantities.' );
 	$cart->calculate_totals();
 	$maximum_item = array_values( $cart->get_cart() )[0];
-	$assert( abs( (float) $maximum_item['data']->get_price() - 41.0 ) < 0.001, 'Maximum boundary price did not include all nine selected images; expected 41.00.' );
+	$assert( abs( (float) $maximum_item['data']->get_price() - 37.0 ) < 0.001, 'Maximum aggregate boundary price did not include all eight selected images; expected 37.00.' );
 } finally {
 	$_POST = $post_before;
 	$cart->empty_cart( true );
@@ -180,4 +183,4 @@ try {
 
 $assert( $cart->is_empty(), 'Cleanup left cart fixtures behind.' );
 $assert( ! get_post( $product_id ) && ! get_post( $group_id ) && ! wc_get_order( $order_id ), 'Cleanup left product, group, or order fixtures behind.' );
-WP_CLI::success( 'Image quantity / sumQty lifecycle passed: 9 invalid Store API and classic cases rejected; canonical cart unit 28.00, two-unit order 56.00; labels and structured quantities persisted; zero/minimum boundary 13.00, maximum boundary 41.00; fixtures/cart cleaned.' );
+WP_CLI::success( 'Image quantity / sumQty lifecycle passed: 11 invalid Store API and classic cases rejected; aggregate min/max enforced; canonical cart unit 28.00, two-unit order 56.00; labels and structured quantities persisted; minimum boundary 19.00, maximum aggregate boundary 37.00; fixtures/cart cleaned.' );

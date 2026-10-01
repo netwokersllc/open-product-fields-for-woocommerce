@@ -900,16 +900,7 @@ final class CartIntegration {
 				}
 				if ( 'image_quantity' === $field['type'] ) {
 					$submitted = $provided && is_array( $given[ $field['id'] ] ) ? $given[ $field['id'] ] : [];
-					$quantities = $submitted['quantities'] ?? $submitted;
-					$invalid = $submitted['invalid'] ?? [];
-					foreach ( $field['choices'] as $choice ) {
-						$q = (int) ( $quantities[ $choice['slug'] ] ?? 0 );
-						if ( in_array( $choice['slug'], $invalid, true ) ) {
-							$errors[] = sprintf( '"%s" quantity is invalid.', $choice['label'] );
-						} elseif ( $q < $choice['quantity']['min'] || $q > $choice['quantity']['max'] ) {
-							$errors[] = sprintf( '"%s" quantity must be between %d and %d.', $choice['label'], $choice['quantity']['min'], $choice['quantity']['max'] );
-						}
-					}
+					$errors = array_merge( $errors, self::validate_image_quantity( $field, $submitted ) );
 					continue;
 				}
 				$value    = $provided && ! is_array( $given[ $field['id'] ] ) ? (string) $given[ $field['id'] ] : null;
@@ -931,6 +922,30 @@ final class CartIntegration {
 			}
 		}
 
+		return $errors;
+	}
+
+	/** Validate per-choice and aggregate image quantities. */
+	private static function validate_image_quantity( array $field, array $submitted ): array {
+		$errors = [];
+		$quantities = is_array( $submitted['quantities'] ?? null ) ? $submitted['quantities'] : $submitted;
+		$invalid = is_array( $submitted['invalid'] ?? null ) ? $submitted['invalid'] : [];
+		$total = 0;
+		foreach ( $field['choices'] as $choice ) {
+			$q = (int) ( $quantities[ $choice['slug'] ] ?? 0 );
+			$total += $q;
+			if ( in_array( $choice['slug'], $invalid, true ) ) {
+				$errors[] = sprintf( '"%s" quantity is invalid.', $choice['label'] );
+			} elseif ( $q < $choice['quantity']['min'] || $q > $choice['quantity']['max'] ) {
+				$errors[] = sprintf( '"%s" quantity must be between %d and %d.', $choice['label'], $choice['quantity']['min'], $choice['quantity']['max'] );
+			}
+		}
+		if ( isset( $field['min_choices'] ) && $total < $field['min_choices'] ) {
+			$errors[] = sprintf( '"%s" requires at least %d total items.', $field['label'], $field['min_choices'] );
+		}
+		if ( isset( $field['max_choices'] ) && $total > $field['max_choices'] ) {
+			$errors[] = sprintf( '"%s" allows at most %d total items.', $field['label'], $field['max_choices'] );
+		}
 		return $errors;
 	}
 

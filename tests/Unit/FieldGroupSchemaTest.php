@@ -134,6 +134,23 @@ final class FieldGroupSchemaTest extends TestCase {
 		$this->assertSame( [ 'default' => 999999, 'min' => 0, 'max' => 999999 ], $field['choices'][0]['quantity'] );
 	}
 
+	public function test_image_quantity_normalizes_aggregate_quantity_limits(): void {
+		$field = FieldGroup::normalize_field( [
+			'id' => 'prints', 'type' => 'image_quantity', 'min_choices' => '3', 'max_choices' => 8,
+			'choices' => [ [ 'slug' => 'oak', 'label' => 'Oak', 'quantity' => [ 'max' => 12 ] ] ],
+		] );
+
+		$this->assertSame( [ 3, 8 ], [ $field['min_choices'], $field['max_choices'] ] );
+		$this->assertSame( 12, $field['choices'][0]['quantity']['max'], 'The aggregate cap must not clamp a choice cap.' );
+	}
+
+	public function test_image_quantity_aggregate_minimum_cannot_exceed_maximum(): void {
+		$this->expectException( InvalidArgumentException::class );
+		FieldGroup::normalize_field( [
+			'id' => 'prints', 'type' => 'image_quantity', 'min_choices' => 9, 'max_choices' => 8,
+		] );
+	}
+
 	public function test_disabled_repeaters_are_omitted_and_button_max_must_fit_integer_range(): void {
 		$disabled = FieldGroup::normalize_field( [ 'id' => 'name', 'type' => 'text', 'repeat' => [ 'enabled' => false, 'mode' => 'button' ] ] );
 		$this->assertArrayNotHasKey( 'repeat', $disabled );

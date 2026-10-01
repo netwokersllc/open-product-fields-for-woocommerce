@@ -13,6 +13,20 @@
 
 const REGISTRY = window.OPF_FIELDS || {};
 
+const imageQuantityLimitMessage = ( def, quantities ) => {
+	const total = Object.values( quantities || {} ).reduce( ( sum, quantity ) => {
+		const parsed = Number( quantity );
+		return sum + ( Number.isInteger( parsed ) && parsed >= 0 ? parsed : 0 );
+	}, 0 );
+	if ( null !== def.min_choices && undefined !== def.min_choices && total < Number( def.min_choices ) ) {
+		return 'Choose at least ' + def.min_choices + ' items in total.';
+	}
+	if ( null !== def.max_choices && undefined !== def.max_choices && total > Number( def.max_choices ) ) {
+		return 'Choose no more than ' + def.max_choices + ' items in total.';
+	}
+	return '';
+};
+
 const isVisible = ( field, values ) => {
 	if ( ! field.conditionals || ! field.conditionals.length ) {
 		return true;
@@ -530,6 +544,15 @@ const init = () => {
 				fieldEl.classList.toggle( 'opf-field--hidden', ! visible );
 				fieldEl.classList.toggle( 'opf-hide', ! visible );
 				fieldEl.toggleAttribute( 'hidden', ! visible );
+				if ( 'image_quantity' === def.type ) {
+					const inputs = Array.from( fieldEl.querySelectorAll( '.opf-image-quantity__input' ) );
+					const enabledInputs = inputs.filter( ( input ) => ! input.disabled );
+					const quantities = {};
+					enabledInputs.forEach( ( input ) => { quantities[ input.dataset.choiceSlug ] = input.value; } );
+					const message = visible ? imageQuantityLimitMessage( def, quantities ) : '';
+					inputs.forEach( ( input ) => input.setCustomValidity( '' ) );
+					if ( enabledInputs.length ) enabledInputs[0].setCustomValidity( message );
+				}
 
 				// Accordion header: mostrar la elección actual
 				const accValue = fieldEl.querySelector( '.acc-value' );

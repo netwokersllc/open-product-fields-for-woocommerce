@@ -129,6 +129,7 @@ final class WapfMapper {
 			$image_swatch_settings = in_array( $wapf_type, [ 'image-swatch', 'multi-image-swatch' ], true ) ? self::map_image_swatch_settings( $wapf_field, $notes, $needs_review ) : [];
 			$color_swatch_settings = in_array( $wapf_type, [ 'color-swatch', 'multi-color-swatch' ], true ) ? self::map_color_swatch_settings( $wapf_field, $notes, $needs_review ) : [];
 			$selection_limits = in_array( $wapf_type, [ 'multi-text-swatch', 'multi-image-swatch', 'multi-color-swatch' ], true ) ? self::map_swatch_selection_limits( $wapf_field, $notes, $needs_review ) : [];
+			$quantity_limits = 'image-swatch-qty' === $wapf_type ? self::map_image_quantity_limits( $wapf_field, $notes, $needs_review ) : [];
 			$content = '';
 			$image_url = '';
 			$image_id = 0;
@@ -175,7 +176,7 @@ final class WapfMapper {
 					'content_format' => $content_format,
 					'process_shortcodes' => $process_shortcodes,
 					'repeat' => $repeat,
-				], $image_swatch_settings, $color_swatch_settings, $selection_limits, $date_settings )
+				], $image_swatch_settings, $color_swatch_settings, $selection_limits, $quantity_limits, $date_settings )
 			);
 			if ( 'paragraph' === $field['type'] ) {
 				if ( ! empty( $wapf_field['required'] ) ) {
@@ -536,15 +537,6 @@ final class WapfMapper {
 						$needs_review = true;
 					}
 				}
-				$field_options = is_array( $wapf_field['options'] ?? null ) ? $wapf_field['options'] : [];
-				if ( array_key_exists( 'max_choices', $field_options ) && '' !== $field_options['max_choices'] && null !== $field_options['max_choices'] ) {
-					if ( is_int( $field_options['max_choices'] ) || ( is_string( $field_options['max_choices'] ) && preg_match( '/^-?\d+$/', $field_options['max_choices'] ) ) ) {
-						$maximum = min( $maximum, (int) $field_options['max_choices'] );
-					} else {
-						$notes[] = sprintf( 'image quantity field "%s" has an invalid max_choices setting; WAPF integer conversion needs review.', (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' ) );
-						$needs_review = true;
-					}
-				}
 				if ( $minimum < 0 || $minimum > 999999 || $maximum < $minimum || $maximum > 999999 || $default < $minimum || $default > $maximum ) {
 					$notes[] = sprintf( 'image quantity choice "%s" has bounds/default that OPF normalizes; verify the imported quantity behavior.', $choice['label'] ?? $slug );
 					$needs_review = true;
@@ -682,6 +674,38 @@ final class WapfMapper {
 			$notes[] = sprintf( 'multi swatch "%s" has min_choices greater than max_choices; selection limits need review.', $label );
 			unset( $settings['min_choices'], $settings['max_choices'] );
 			$needs_review = true;
+		}
+		return $settings;
+	}
+
+	/**
+	 * Map WAPF image quantity aggregate limits without changing per-choice bounds.
+	 *
+	 * @param array<string,mixed> $wapf_field Source field.
+	 * @param string[]            $notes      Import notes.
+	 * @param bool                $needs_review Review flag.
+	 * @return array<string,int>
+	 */
+	private static function map_image_quantity_limits( array $wapf_field, array &$notes, bool &$needs_review ): array {
+		$options = is_array( $wapf_field['options'] ?? null ) ? $wapf_field['options'] : [];
+		$settings = [];
+		$label = (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' );
+		foreach ( [ 'min_choices', 'max_choices' ] as $key ) {
+			if ( ! array_key_exists( $key, $options ) || '' === $options[ $key ] || null === $options[ $key ] ) {
+				continue;
+			}
+			$value = $options[ $key ];
+			if ( ( ! is_int( $value ) && ! ( is_string( $value ) && preg_match( '/^-?\d+$/', $value ) ) ) || (int) $value < 0 || (int) $value > 999999 ) {
+				$notes[] = sprintf( 'image quantity field "%s" has an invalid %s setting; the aggregate limit was not imported.', $label, $key );
+				$needs_review = true;
+				continue;
+			}
+			$settings[ $key ] = (int) $value;
+		}
+		if ( isset( $settings['min_choices'], $settings['max_choices'] ) && $settings['min_choices'] > $settings['max_choices'] ) {
+			$notes[] = sprintf( 'image quantity field "%s" has min_choices greater than max_choices; aggregate limits need review.', $label );
+			$needs_review = true;
+			unset( $settings['min_choices'], $settings['max_choices'] );
 		}
 		return $settings;
 	}

@@ -13,7 +13,7 @@ const context = {
 	console,
 };
 vm.createContext(context);
-vm.runInContext(`${fs.readFileSync(sourcePath, 'utf8')}\nglobalThis.__evalFormula = evalFormula; globalThis.__choiceOrFieldAddon = choiceOrFieldAddon; globalThis.__writeTotals = writeTotals;`, context);
+vm.runInContext(`${fs.readFileSync(sourcePath, 'utf8')}\nglobalThis.__evalFormula = evalFormula; globalThis.__choiceOrFieldAddon = choiceOrFieldAddon; globalThis.__writeTotals = writeTotals; globalThis.__imageQuantityLimitMessage = imageQuantityLimitMessage;`, context);
 
 test('WAPF date formula functions use Sunday-zero weekdays and one-based months', () => {
 	assert.equal(context.__evalFormula("dow('01-10-2023')", 10, 1, 0, ''), 2);
@@ -38,6 +38,13 @@ test('sumQty reads only tagged image choice quantities and image quantity pricin
 			{ slug: 'ash', pricing: { type: 'fixed', amount: 1 } },
 		],
 	}, quantities, 10, 1, 0, '', { images: quantities }), 7);
+});
+
+test('image quantity client validation applies field limits to the aggregate sum', () => {
+	const def = { min_choices: 3, max_choices: 8 };
+	assert.equal(context.__imageQuantityLimitMessage(def, { oak: 8, ash: 0 }), '');
+	assert.equal(context.__imageQuantityLimitMessage(def, { oak: 1, ash: 1 }), 'Choose at least 3 items in total.');
+	assert.equal(context.__imageQuantityLimitMessage(def, { oak: 5, ash: 4 }), 'Choose no more than 8 items in total.');
 });
 
 test('WAPF date functions accept the selected field value and site today', () => {

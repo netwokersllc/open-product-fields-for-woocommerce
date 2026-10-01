@@ -245,6 +245,15 @@ final class FieldGroup {
 			$normalized['multiple'] = false;
 			$normalized['required'] = false;
 			$normalized['pricing'] = self::normalize_pricing( [] );
+			foreach ( [ 'min_choices', 'max_choices' ] as $key ) {
+				if ( ! array_key_exists( $key, $field ) || '' === $field[ $key ] || null === $field[ $key ] ) {
+					continue;
+				}
+				$normalized[ $key ] = self::bounded_integer( $field[ $key ], 0, 999999, 'Image quantity ' . $key );
+			}
+			if ( isset( $normalized['min_choices'], $normalized['max_choices'] ) && $normalized['min_choices'] > $normalized['max_choices'] ) {
+				throw new \InvalidArgumentException( 'Image quantity minimum total cannot exceed maximum total.' );
+			}
 		}
 		if ( 'content_image' === $type ) {
 			$normalized['required'] = false;
