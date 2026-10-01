@@ -245,15 +245,28 @@ final class Importer {
 		$status = $mapped['needs_review'] ? 'draft' : 'publish';
 
 		if ( $commit ) {
+			$meta = [ '_opf_imported_from' => $source_key ];
+			// WAPF translates global CPTs and product-local fields independently.
+			// Read the source element's language, never the importing admin's.
+			$source_post_id = ctype_digit( $source_key ) ? (int) $source_key : 0;
+			$source_type = 'wapf_product';
+			if ( preg_match( '/^meta:([1-9][0-9]*)$/D', $source_key, $matches ) ) {
+				$source_post_id = (int) $matches[1];
+				$source_type = 'product';
+			}
+			$language = WpmlIntegration::source_language( $source_post_id, $source_type );
+			if ( '' !== $language ) {
+				$meta['_opf_wpml_source_language'] = $language;
+			}
 			$opf_id = FieldGroups::save( 0, new FieldGroup( $mapped['group'] ), [
 				'title'      => $title,
 				'status'     => $status,
 				'menu_order' => $menu_order,
+				'meta_input' => $meta,
 			] );
 			if ( ! $opf_id ) {
 				return [ 'source' => $source_key, 'result' => 'save-failed' ];
 			}
-			update_post_meta( $opf_id, '_opf_imported_from', $source_key );
 
 			// Preserve the source group's Polylang language so locale
 			// targeting keeps working after migration.

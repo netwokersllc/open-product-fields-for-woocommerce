@@ -15,6 +15,7 @@ final class WpmlIntegration {
 
 	private const KIND = 'Open Product Fields';
 	private const SLUG = 'open-product-fields';
+	private const SOURCE_LANGUAGE_META = '_opf_wpml_source_language';
 
 	/** Wire after WordPress and WPML have loaded. No WPML dependency when absent. */
 	public static function init(): void {
@@ -39,9 +40,32 @@ final class WpmlIntegration {
 		];
 	}
 
+	/** Source content ownership comes from WPML's element record, never context. */
+	public static function source_language( int $id, string $post_type ): string {
+		if ( $id < 1 || ! in_array( $post_type, [ 'wapf_product', 'product' ], true ) ) {
+			return '';
+		}
+		$language = apply_filters( 'wpml_element_language_code', null, [ 'element_id' => $id, 'element_type' => $post_type ] );
+		return self::valid_language( $language ) ? $language : '';
+	}
+
+	private static function valid_language( $language ): bool {
+		return is_string( $language ) && 'all' !== $language && 1 === preg_match( '/^[a-zA-Z][a-zA-Z0-9_-]*$/D', $language );
+	}
+
+	private static function is_imported( int $id ): bool {
+		return '' !== (string) get_post_meta( $id, '_opf_imported_from', true ) || '' !== (string) get_post_meta( $id, '_opf_archive_import_key', true );
+	}
+
 	/** Saving an existing group also makes pre-WPML groups available to translators. */
 	public static function register_post( int $id, $post ): void {
 		if ( ! is_object( $post ) || 'opf_field_group' !== ( $post->post_type ?? '' ) || 'auto-draft' === ( $post->post_status ?? '' ) ) {
+			return;
+		}
+		// Imported payloads may already be independently translated. Package
+		// registration has no documented source-language argument; do not assign
+		// their strings to the administrator's language or rewrite old packages.
+		if ( self::is_imported( $id ) ) {
 			return;
 		}
 		$data = json_decode( (string) $post->post_content, true );
@@ -76,10 +100,14 @@ final class WpmlIntegration {
 			if ( ! ( $entry['group'] ?? null ) instanceof FieldGroup ) {
 				continue;
 			}
-			// Imports can contain separate groups for translated source products.
-			// Until their language ownership is migrated, remapping all of them
-			// would render duplicate options. Preserve these entries verbatim.
-			if ( '' !== (string) get_post_meta( (int) $entry['id'], '_opf_imported_from', true ) || '' !== (string) get_post_meta( (int) $entry['id'], '_opf_archive_import_key', true ) ) {
+			// WAPF owns a separate payload per language. Keep its labels and target
+			// IDs together; remapping every localized import would duplicate fields.
+			if ( self::is_imported( (int) $entry['id'] ) ) {
+				$source_language = get_post_meta( (int) $entry['id'], self::SOURCE_LANGUAGE_META, true );
+				if ( self::valid_language( $source_language ) && $source_language !== $language ) {
+					unset( $entries[ $key ] );
+				}
+				// Historical and archive imports without ownership stay unchanged.
 				continue;
 			}
 			$package = self::package( (int) $entry['id'], (string) ( $entry['title'] ?? '' ) );

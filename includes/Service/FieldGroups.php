@@ -280,6 +280,10 @@ final class FieldGroups {
 			'post_status'  => $status,
 			'menu_order'   => (int) ( $args['menu_order'] ?? 0 ),
 		];
+		// Import provenance must exist before save_post callbacks register strings.
+		if ( isset( $args['meta_input'] ) && is_array( $args['meta_input'] ) ) {
+			$fields['meta_input'] = $args['meta_input'];
+		}
 		if ( '' !== $title ) {
 			$fields['post_title'] = $title;
 		}

@@ -121,14 +121,16 @@ final class ArchiveImporter {
 					'title' => $entry['title'],
 					'status' => $status,
 					'menu_order' => $entry['menu_order'],
+					'meta_input' => [
+						'_opf_archive_import_key' => $source_key,
+						'_opf_archive_import_checksum' => $checksum,
+					],
 				] );
 				if ( ! $opf_id ) {
 					$report['skipped']++;
 					$report['groups'][] = [ 'source_id' => $entry['source_id'], 'result' => 'save-failed' ];
 					continue;
 				}
-				update_post_meta( $opf_id, '_opf_archive_import_key', $source_key );
-				update_post_meta( $opf_id, '_opf_archive_import_checksum', $checksum );
 				if ( $needs_review ) {
 					update_post_meta( $opf_id, '_opf_needs_review', array_slice( array_values( array_unique( $review_notes ) ), 0, 20 ) );
 				}
