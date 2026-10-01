@@ -33,10 +33,10 @@ The 132 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 
 | Status | Rows | Meaning for the gate |
 | --- | ---: | --- |
-| Baseline supported | 6 | Promising baseline only; not accepted as proof |
+| Baseline supported | 5 | Promising baseline only; not accepted as proof |
 | Supported | 20 | Evidence recorded and accepted as complete under the row-count rule |
 | Supported with documented difference | 7 | Needs explicit non-regression review and acceptance |
-| Partial | 98 | Material parity or proof remains |
+| Partial | 99 | Material parity or proof remains |
 | Gap | 1 | Known absent in the current OPF tree |
 | Needs audit | 0 | Available source, marketing claims, and every published release delta are mapped; exact release details remain scoped to partial rows |
 | **Total** | **132** | **G1 complete for available evidence; G2 remains open** |
@@ -74,6 +74,17 @@ and Store API carts, checkout/order/email display, escaping, and order-again.
 WAPF Free 1.7.1 source confirms the same textarea sanitation and cart item-data
 contract. Defaults/placeholders and import/export remain open in their separate
 scopes. See [textarea lifecycle evidence](TEXTAREA-NEWLINE-EVIDENCE.md).
+
+`WAPF-FIELD-URL` remains `partial` after its new native lifecycle implementation
+and a served-source compatibility audit. The lifecycle passes admin, browser,
+classic/Store API cart, checkout, order/email, and order-again checks, but the
+audit found accepted WAPF/browser URLs that OPF rejects (internationalized
+hosts and paths, spaces, safe custom protocols, opaque URLs, and shortened HTTP
+forms), plus an invalid IPv4 URL that OPF accepts. Do not count this as parity
+until URL canonicalization matches the native browser/WAPF contract while
+retaining the explicitly tested markup/executable-scheme protections. See
+[URL lifecycle](URL-FIELD-LIFECYCLE-EVIDENCE.md) and
+[compatibility audit](URL-FIELD-COMPATIBILITY-EVIDENCE.md).
 
 FOX is now `partial` because the existing WOOCS adapter passes an official
 FOX API contract test. WAPF's registry and FOX's own compatibility instructions
