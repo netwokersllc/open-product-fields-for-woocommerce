@@ -452,18 +452,26 @@ final class CartIntegration {
 		foreach ( FieldGroups::for_product( $product ) as $entry ) {
 			$gid   = (string) $entry['id'];
 			$group = $entry['group'];
+			$section_repeats = self::section_repeat_context( $group->data['fields'] );
 			if ( ! isset( $values[ $gid ] ) ) {
 				continue;
 			}
 			$group_values = (array) $values[ $gid ];
 
 			foreach ( $group->data['fields'] as $field ) {
+				if ( in_array( $field['type'], [ 'section', 'section_end' ], true ) ) {
+					continue;
+				}
 				$fid = $field['id'];
 				if ( ! array_key_exists( $fid, $group_values ) || ! Evaluator::is_visible( $field, $group_values ) ) {
 					continue;
 				}
 				$raw = $group_values[ $fid ];
-				if ( ! empty( $field['repeat']['enabled'] ) ) {
+				$repeat_field = $field;
+				if ( empty( $repeat_field['repeat']['enabled'] ) && isset( $section_repeats[ $fid ] ) ) {
+					$repeat_field['repeat'] = $section_repeats[ $fid ];
+				}
+				if ( ! empty( $repeat_field['repeat']['enabled'] ) ) {
 					foreach ( (array) $raw as $index => $row ) {
 						if ( null === $row || '' === $row || [] === $row ) {
 							continue;
@@ -471,8 +479,8 @@ final class CartIntegration {
 						$row_display = self::display_value( $field, $row );
 						if ( '' !== $row_display ) {
 							$label = (string) $field['label'];
-							if ( $index > 0 && ! empty( $field['repeat']['label'] ) ) {
-								$label = str_replace( '{n}', (string) ( $index + 1 ), $field['repeat']['label'] );
+							if ( $index > 0 && ! empty( $repeat_field['repeat']['label'] ) ) {
+								$label = str_replace( '{n}', (string) ( $index + 1 ), $repeat_field['repeat']['label'] );
 							}
 							$out[] = [ 'label' => $label, 'value' => $row_display ];
 						}
@@ -632,20 +640,25 @@ final class CartIntegration {
 		foreach ( FieldGroups::for_product( $product ) as $entry ) {
 			$gid   = (string) $entry['id'];
 			$group = $entry['group'];
+			$section_repeats = self::section_repeat_context( $group->data['fields'] );
 			if ( ! isset( $raw[ $gid ] ) || ! is_array( $raw[ $gid ] ) ) {
 				continue;
 			}
 
 			foreach ( $group->data['fields'] as $field ) {
-				if ( 'paragraph' === $field['type'] ) {
+				if ( in_array( $field['type'], [ 'paragraph', 'section', 'section_end' ], true ) ) {
 					continue;
 				}
 				$fid = $field['id'];
 				if ( ! isset( $raw[ $gid ][ $fid ] ) ) {
 					continue;
 				}
-				$value = ! empty( $field['repeat']['enabled'] )
-					? RepeaterField::sanitize( $field, $raw[ $gid ][ $fid ], static fn( $row ) => self::sanitize_value( $field, $row ) )
+				$repeat_field = $field;
+				if ( empty( $repeat_field['repeat']['enabled'] ) && isset( $section_repeats[ $fid ] ) ) {
+					$repeat_field['repeat'] = $section_repeats[ $fid ];
+				}
+				$value = ! empty( $repeat_field['repeat']['enabled'] )
+					? RepeaterField::sanitize( $repeat_field, $raw[ $gid ][ $fid ], static fn( $row ) => self::sanitize_value( $field, $row ) )
 					: self::sanitize_value( $field, $raw[ $gid ][ $fid ] );
 				if ( null !== $value ) {
 					$values[ $gid ][ $fid ] = $value;
@@ -654,6 +667,39 @@ final class CartIntegration {
 		}
 
 		return $values;
+	}
+
+	/**
+	 * Map fields inside a repeated section to the repeat settings inherited from it.
+	 *
+	 * @param array<int,array<string,mixed>> $fields Normalized group fields.
+	 * @return array<string,array<string,mixed>> Field ID to repeat configuration.
+	 */
+	private static function section_repeat_context( array $fields ): array {
+		$context = [];
+		$stack   = [];
+		$active  = [];
+
+		foreach ( $fields as $field ) {
+			if ( 'section_end' === $field['type'] ) {
+				array_pop( $stack );
+				$active = $stack ? end( $stack ) : [];
+				continue;
+			}
+
+			if ( 'section' === $field['type'] ) {
+				$repeat = ! empty( $field['repeat']['enabled'] ) ? $field['repeat'] : $active;
+				$stack[] = $repeat;
+				$active  = $repeat;
+				continue;
+			}
+
+			if ( $active ) {
+				$context[ $field['id'] ] = $active;
+			}
+		}
+
+		return $context;
 	}
 
 	/**
@@ -719,15 +765,23 @@ final class CartIntegration {
 			$gid   = (string) $entry['id'];
 			$group = $entry['group'];
 			$given = $values[ $gid ] ?? [];
+			$section_repeats = self::section_repeat_context( $group->data['fields'] );
 
 			foreach ( $group->data['fields'] as $field ) {
+				if ( in_array( $field['type'], [ 'section', 'section_end' ], true ) ) {
+					continue;
+				}
 				if ( ! Evaluator::is_visible( $field, $given ) ) {
 					continue;
 				}
 				$provided = array_key_exists( $field['id'], $given );
-				if ( ! empty( $field['repeat']['enabled'] ) ) {
+				$repeat_field = $field;
+				if ( empty( $repeat_field['repeat']['enabled'] ) && isset( $section_repeats[ $field['id'] ] ) ) {
+					$repeat_field['repeat'] = $section_repeats[ $field['id'] ];
+				}
+				if ( ! empty( $repeat_field['repeat']['enabled'] ) ) {
 					$rows = $provided && is_array( $given[ $field['id'] ] ) ? $given[ $field['id'] ] : [];
-					$errors = array_merge( $errors, RepeaterField::validate( $field, $rows, $provided, $product_quantity ) );
+					$errors = array_merge( $errors, RepeaterField::validate( $repeat_field, $rows, $provided, $product_quantity ) );
 					continue;
 				}
 				$value    = $provided && ! is_array( $given[ $field['id'] ] ) ? (string) $given[ $field['id'] ] : null;
