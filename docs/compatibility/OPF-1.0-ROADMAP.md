@@ -70,6 +70,19 @@ base mismatch when multiple currency is disabled; linked-product and pricing-hin
 helpers are not connected, and real plugin/checkout proof remains open. See
 [WOOCS audit and executed evidence](WOOCS-CURRENCY-EVIDENCE.md).
 
+`WAPF-COMPAT-MINIMUM-PLATFORM` remains `gap`. The
+[platform-floor audit](WAPF-MINIMUM-PLATFORM-EVIDENCE.md), against commit
+`9171b5c`, found `Rest.php` is the sole PHP 7.4 parse failure among 31 shipped
+PHP files, because two return signatures require PHP 8.0. OPF's declared
+WordPress 6.5/PHP 7.4/WooCommerce 9.0 floor still needs actual activation,
+REST, browser, cart/checkout, order-storage, and order-again proof after repair.
+WAPF paid-floor parity additionally needs PHP 7.1 syntax/archive handling,
+WordPress 6.0 cache invalidation, and WooCommerce 7.0 Store API capture work;
+WooCommerce 7.0 itself requires PHP 7.2, so the advertised PHP 7.1 floor needs
+separate language/API checks. Free's older platform declarations and conflicting
+WordPress floor claims also remain unresolved. The audit changes no scope or
+status counts.
+
 Extended-only rows: 28 total; 2 supported, 4 supported with a documented
 difference, 22 partial, and no known gaps. All 132 edition rows have a ledger status. The
 available-source audit covers installed Extended 3.1.5, public Free 1.7.1,
