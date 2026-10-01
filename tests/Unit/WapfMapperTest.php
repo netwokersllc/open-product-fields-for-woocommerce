@@ -67,6 +67,27 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( 15.5, $field['choices'][3]['pricing']['amount'] );
 	}
 
+	public function test_image_swatches_flag_visual_data_loss_for_review(): void {
+		$mapped = WapfMapper::map( [
+			'fields' => [
+				[
+					'id' => 'finish',
+					'label' => 'Finish',
+					'type' => 'image-swatch',
+					'options' => [
+						'choices' => [
+							[ 'slug' => 'oak', 'label' => 'Oak', 'attachment' => 481, 'image' => 'https://example.test/oak.jpg', 'pricing_type' => 'none' ],
+						],
+					],
+				],
+			],
+		] );
+
+		$this->assertTrue( $mapped['needs_review'] );
+		$this->assertStringContainsString( 'image swatch', implode( ' ', $mapped['notes'] ) );
+		$this->assertSame( 'oak', $mapped['group']['fields'][0]['choices'][0]['slug'] );
+	}
+
 	public function test_maps_free_content_and_legacy_paragraph_fields_as_static_text(): void {
 		$mapped = WapfMapper::map( [
 			'fields' => [

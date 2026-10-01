@@ -151,6 +151,11 @@ final class WapfMapper {
 				}
 			}
 
+			if ( 'image-swatch' === $wapf_type ) {
+				$notes[] = sprintf( 'field "%s" is an image swatch; its choice images are not available in OPF and were imported as text choices.', (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' ) );
+				$needs_review = true;
+			}
+
 			if ( ! empty( $wapf_field['clone']['enabled'] ) ) {
 				$notes[]      = sprintf( 'field "%s" uses WAPF clone (repeatable fields) which OPF does not support yet.', $field['label'] );
 				$needs_review = true;
