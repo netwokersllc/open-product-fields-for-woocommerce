@@ -24,6 +24,10 @@ await page.setContent(`<!doctype html><html><body>
       <div class="opf-field-container opf-field-repeat opf-section-repeat" data-opf-field="attendees" data-opf-repeat="quantity" data-opf-section-repeat="1">
         <div class="opf-field-repeat__rows"><div data-opf-repeat-instance="1"><div class="opf-section-repeat__label"><span>Attendees</span></div><div class="opf-section"><div class="opf-field-container" data-opf-field="guest_name"><div class="opf-field-label"><label for="opf-1-guest_name"><span>Name</span></label></div><input id="opf-1-guest_name" name="opf[1][guest_name][0]" value="" /></div></div></div></div>
       </div>
+      <div class="opf-field-container opf-field-repeat opf-section-repeat" data-opf-field="button_guests" data-opf-repeat="button" data-opf-section-repeat="1" data-opf-repeat-max="2">
+        <div class="opf-field-repeat__rows"><div data-opf-repeat-instance="1"><div class="opf-section-repeat__label"><span>Guests</span></div><div class="opf-section"><div class="opf-field-container" data-opf-field="button_guest_name"><div class="opf-field-label"><label for="opf-1-button_guest_name"><span>Guest name</span></label></div><input id="opf-1-button_guest_name" name="opf[1][button_guest_name][0]" value="" /></div></div></div></div>
+        <button type="button" class="opf-field-repeat__add">Add guest</button><span class="opf-field-repeat__status" aria-live="polite"></span>
+      </div>
       <div data-opf-field="conditional"><input name="opf[1][conditional]" value="" /></div>
     </div>
   </div>
@@ -37,6 +41,8 @@ await page.evaluate(() => {
     ticket: { type: 'text', repeat: { enabled: true, mode: 'quantity', label: 'Ticket {n}' }, conditionals: [], pricing: { type: 'fixed', amount: 1 } },
     attendees: { type: 'section', repeat: { enabled: true, mode: 'quantity', label: 'Guest {n}' }, conditionals: [] },
     guest_name: { type: 'text', conditionals: [], pricing: { type: 'none', amount: 0 } },
+    button_guests: { type: 'section', repeat: { enabled: true, mode: 'button', max: 2, add: 'Add guest', del: 'Remove guest', label: 'Guest {n}' }, conditionals: [] },
+    button_guest_name: { type: 'text', conditionals: [], pricing: { type: 'none', amount: 0 } },
     conditional: { type: 'text', conditionals: [ { action: 'show', logic: 'all', rules: [ { field: 'name', operator: 'contains', value: 'Grace' } ] } ] }
   } };
 });
@@ -66,6 +72,17 @@ await quantityInput.fill('2');
 await quantityInput.dispatchEvent('change');
 const ticketValuesAtTwo = await page.locator('[data-opf-field="ticket"] [data-opf-repeat-instance] input').evaluateAll((inputs) => inputs.map((input) => input.value));
 const sectionValuesAtTwo = await page.locator('[data-opf-field="attendees"] [data-opf-repeat-instance] input').evaluateAll((inputs) => inputs.map((input) => input.value));
+const buttonSection = page.locator('[data-opf-field="button_guests"]');
+await buttonSection.locator('.opf-field-repeat__add').click();
+const buttonSectionInputs = buttonSection.locator('[data-opf-repeat-instance] input');
+await buttonSectionInputs.nth(0).fill('Jo');
+await buttonSectionInputs.nth(1).fill('Kay');
+const buttonSectionNames = await buttonSectionInputs.evaluateAll((inputs) => inputs.map((input) => input.name));
+const buttonSectionIds = await buttonSectionInputs.evaluateAll((inputs) => inputs.map((input) => input.id));
+const buttonSectionLabels = await buttonSection.locator('.opf-section-repeat__label span').allTextContents();
+const buttonSectionAddDisabledAtMax = await buttonSection.locator('.opf-field-repeat__add').isDisabled();
+await buttonSection.locator('.opf-field-repeat__remove').last().click();
+const buttonSectionRemaining = await buttonSection.locator('[data-opf-repeat-instance] input').evaluateAll((inputs) => inputs.map((input) => input.value));
 const rowCounts = {
   names: await page.locator('[data-opf-field="name"] [data-opf-repeat-instance]').count(),
   choices: await page.locator('[data-opf-field="choices"] [data-opf-repeat-instance]').count(),
@@ -84,8 +101,8 @@ const remainingName = await page.locator('[data-opf-field="name"] [data-opf-repe
 const removeDisabledAtOne = await page.locator('[data-opf-field="name"] .opf-field-repeat__remove').isDisabled();
 const addLabel = await page.locator('[data-opf-field="name"] .opf-field-repeat__add').textContent();
 const removeLabel = await page.locator('[data-opf-field="name"] .opf-field-repeat__remove').last().textContent();
-const ok = rowCounts.names === 2 && rowCounts.choices === 2 && rowCounts.tickets === 2 && rowCounts.sections === 2 && names.join(',') === 'opf[1][name][0],opf[1][name][1]' && checkboxNames.join(',') === 'opf[1][choices][0][],opf[1][choices][0][],opf[1][choices][1][],opf[1][choices][1][]' && ticketNamesAtThree.join(',') === 'opf[1][ticket][0],opf[1][ticket][1],opf[1][ticket][2]' && ticketLabelsAtThree.join(',') === 'Ticket name,Ticket 2,Ticket 3' && ticketValuesAtTwo.join(',') === 'Alice,Bob' && sectionNamesAtThree.join(',') === 'opf[1][guest_name][0],opf[1][guest_name][1],opf[1][guest_name][2]' && new Set(sectionIdsAtThree).size === 3 && sectionLabelsAtThree.join(',') === 'Attendees,Guest 2,Guest 3' && sectionValuesAtTwo.join(',') === 'Sam,Lee' && addDisabledAtMax && conditionalVisible && optionsTotal === '$11.00' && remainingName === 'opf[1][name][0]' && removeDisabledAtOne && addLabel === 'Add guest' && removeLabel === 'Remove guest' && rowLabels.join(',') === 'Name,Guest 2' && errors.length === 0;
+const ok = rowCounts.names === 2 && rowCounts.choices === 2 && rowCounts.tickets === 2 && rowCounts.sections === 2 && names.join(',') === 'opf[1][name][0],opf[1][name][1]' && checkboxNames.join(',') === 'opf[1][choices][0][],opf[1][choices][0][],opf[1][choices][1][],opf[1][choices][1][]' && ticketNamesAtThree.join(',') === 'opf[1][ticket][0],opf[1][ticket][1],opf[1][ticket][2]' && ticketLabelsAtThree.join(',') === 'Ticket name,Ticket 2,Ticket 3' && ticketValuesAtTwo.join(',') === 'Alice,Bob' && sectionNamesAtThree.join(',') === 'opf[1][guest_name][0],opf[1][guest_name][1],opf[1][guest_name][2]' && new Set(sectionIdsAtThree).size === 3 && sectionLabelsAtThree.join(',') === 'Attendees,Guest 2,Guest 3' && sectionValuesAtTwo.join(',') === 'Sam,Lee' && buttonSectionNames.join(',') === 'opf[1][button_guest_name][0],opf[1][button_guest_name][1]' && new Set(buttonSectionIds).size === 2 && buttonSectionLabels.join(',') === 'Guests,Guest 2' && buttonSectionAddDisabledAtMax && buttonSectionRemaining.join(',') === 'Jo' && addDisabledAtMax && conditionalVisible && optionsTotal === '$11.00' && remainingName === 'opf[1][name][0]' && removeDisabledAtOne && addLabel === 'Add guest' && removeLabel === 'Remove guest' && rowLabels.join(',') === 'Name,Guest 2' && errors.length === 0;
 console.log(`${ok ? 'ok' : 'FAIL'} button, field-quantity, and section-quantity repeaters; indexed names, clone labels, preserved values, and browser errors`);
-if (!ok) console.log(JSON.stringify({ rowCounts, names, checkboxNames, ticketNamesAtThree, ticketLabelsAtThree, ticketValuesAtTwo, sectionNamesAtThree, sectionIdsAtThree, sectionLabelsAtThree, sectionValuesAtTwo, addDisabledAtMax, conditionalVisible, optionsTotal, remainingName, removeDisabledAtOne, addLabel, removeLabel, rowLabels, errors }));
+if (!ok) console.log(JSON.stringify({ rowCounts, names, checkboxNames, ticketNamesAtThree, ticketLabelsAtThree, ticketValuesAtTwo, sectionNamesAtThree, sectionIdsAtThree, sectionLabelsAtThree, sectionValuesAtTwo, buttonSectionNames, buttonSectionIds, buttonSectionLabels, buttonSectionAddDisabledAtMax, buttonSectionRemaining, addDisabledAtMax, conditionalVisible, optionsTotal, remainingName, removeDisabledAtOne, addLabel, removeLabel, rowLabels, errors }));
 await browser.close();
 process.exit(ok ? 0 : 1);

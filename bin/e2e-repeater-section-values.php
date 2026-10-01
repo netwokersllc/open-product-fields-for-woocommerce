@@ -17,6 +17,8 @@ use OPF\Service\FieldGroups;
 
 $product_id = 0;
 $group_id = 0;
+$button_product_id = 0;
+$button_group_id = 0;
 $admin_only_before = get_option( 'opf_admin_only', 'no' );
 
 $assert = static function ( bool $condition, string $message ): void {
@@ -25,11 +27,11 @@ $assert = static function ( bool $condition, string $message ): void {
 	}
 };
 
-$add_store_item = static function ( int $product_id, array $values ) {
+$add_store_item = static function ( int $product_id, array $values, int $quantity = 2 ) {
 	$request = new WP_REST_Request( 'POST', '/wc/store/v1/cart/add-item' );
 	$request->set_header( 'Nonce', wp_create_nonce( 'wc_store_api' ) );
 	$request->set_param( 'id', $product_id );
-	$request->set_param( 'quantity', 2 );
+	$request->set_param( 'quantity', $quantity );
 	$request->set_param( 'opf_fields', $values );
 	return rest_get_server()->dispatch( $request );
 };
@@ -56,8 +58,29 @@ try {
 			] ],
 			[ 'id' => 'attendees-end', 'type' => 'section_end' ],
 		],
+		'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'product', 'operator' => 'in', 'terms' => [ (string) $product_id ] ] ] ] ],
 	], [ 'title' => 'OPF quantity section E2E fixture' ] );
 	$assert( $group_id > 0, 'Could not create the quantity-section E2E field group.' );
+
+	$button_product = new WC_Product_Simple();
+	$button_product->set_name( 'OPF button section E2E fixture' );
+	$button_product->set_regular_price( '10.00' );
+	$button_product->set_status( 'publish' );
+	$button_product_id = (int) $button_product->save();
+	$assert( $button_product_id > 0, 'Could not create the button-section E2E product.' );
+	$button_group_id = FieldGroups::save( 0, [
+		'fields' => [
+			[ 'id' => 'guests', 'label' => 'Guests', 'type' => 'section', 'repeat' => [ 'enabled' => true, 'mode' => 'button', 'max' => 2, 'add' => 'Add guest', 'del' => 'Remove guest', 'label' => 'Guest {n}' ] ],
+			[ 'id' => 'guest_name', 'label' => 'Guest name', 'type' => 'text', 'required' => true ],
+			[ 'id' => 'guest_meal', 'label' => 'Guest meal', 'type' => 'select', 'required' => true, 'choices' => [
+				[ 'slug' => 'soup', 'label' => 'Soup', 'pricing' => [ 'type' => 'fixed', 'amount' => 2, 'per_unit' => true ] ],
+				[ 'slug' => 'salad', 'label' => 'Salad', 'pricing' => [ 'type' => 'fixed', 'amount' => 3, 'per_unit' => true ] ],
+			] ],
+			[ 'id' => 'guests-end', 'type' => 'section_end' ],
+		],
+		'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'product', 'operator' => 'in', 'terms' => [ (string) $button_product_id ] ] ] ] ],
+	], [ 'title' => 'OPF button section E2E fixture' ] );
+	$assert( $button_group_id > 0, 'Could not create the button-section E2E field group.' );
 
 	$cart = WC()->cart;
 	$cart->empty_cart();
@@ -102,6 +125,41 @@ try {
 	$assert( [ 'Ada', 'Ada' ] === array_values( $restored[ CartIntegration::ITEM_KEY ][ (string) $group_id ]['guest_name'] ?? [] ), 'Order-again did not restore each identical quantity-section row.' );
 
 	$cart->empty_cart();
+	$button_response = $add_store_item( $button_product_id, [ (string) $button_group_id => [
+		'guest_name' => [ 'Jo', 'Kay' ],
+		'guest_meal' => [ 'soup', 'salad' ],
+	] ], 1 );
+	$assert( in_array( $button_response->get_status(), [ 200, 201 ], true ), 'Store API rejected valid button-section rows: ' . wp_json_encode( $button_response->get_data() ) );
+	$button_items = array_values( array_filter( $cart->get_cart(), static fn( $item ) => (int) $item['product_id'] === $button_product_id ) );
+	$assert( 1 === count( $button_items ) && 1 === (int) $button_items[0]['quantity'], 'Button section did not retain a single product cart line.' );
+	$button_values = $button_items[0][ CartIntegration::ITEM_KEY ][ (string) $button_group_id ] ?? [];
+	$assert( [ 'Jo', 'Kay' ] === $button_values['guest_name'] && [ 'soup', 'salad' ] === $button_values['guest_meal'], 'Button section values were not retained in row order.' );
+	$assert( 15.0 === (float) $button_items[0]['data']->get_price( 'edit' ), 'Button section child choice prices were not summed.' );
+	$button_selections = CartIntegration::visible_selections( $button_items[0]['data'], $button_items[0][ CartIntegration::ITEM_KEY ] );
+	$assert( 4 === count( $button_selections ) && 'Guest 2 - Guest name' === $button_selections[1]['label'] && 'Guest 2 - Guest meal' === $button_selections[3]['label'], 'Button section cart display did not include cloned child labels: ' . wp_json_encode( $button_selections ) );
+	$button_order = new WC_Order();
+	$button_order_item = new WC_Order_Item_Product();
+	$button_order_item->set_product( $button_items[0]['data'] );
+	$button_order_item->set_quantity( 1 );
+	CartIntegration::persist_order_item( $button_order_item, $button_items[0]['key'], $button_items[0], $button_order );
+	$button_restored = CartIntegration::restore_order_again( [], $button_order_item, $button_order );
+	$assert( [ 'Jo', 'Kay' ] === array_values( $button_restored[ CartIntegration::ITEM_KEY ][ (string) $button_group_id ]['guest_name'] ?? [] ), 'Order-again did not restore button section rows.' );
+
+	$cart->empty_cart();
+	$button_required_response = $add_store_item( $button_product_id, [ (string) $button_group_id => [
+		'guest_name' => [ 'Jo', '' ],
+		'guest_meal' => [ 'soup', 'salad' ],
+	] ], 1 );
+	$assert( 400 === $button_required_response->get_status() && false !== strpos( (string) ( $button_required_response->get_data()['message'] ?? '' ), 'Guest name" is required in repeated row 2' ), 'Button section accepted an empty required row: ' . wp_json_encode( $button_required_response->get_data() ) );
+
+	$cart->empty_cart();
+	$button_max_response = $add_store_item( $button_product_id, [ (string) $button_group_id => [
+		'guest_name' => [ 'Jo', 'Kay', 'Lee' ],
+		'guest_meal' => [ 'soup', 'salad', 'soup' ],
+	] ], 1 );
+	$assert( 400 === $button_max_response->get_status() && false !== strpos( (string) ( $button_max_response->get_data()['message'] ?? '' ), 'allows at most 2 repeated rows' ), 'Button section exceeded its configured maximum: ' . wp_json_encode( $button_max_response->get_data() ) );
+
+	$cart->empty_cart();
 	$invalid_response = $add_store_item( $product_id, [ (string) $group_id => [
 		'guest_name' => [ 'Ada' ],
 		'guest_meal' => [ 'soup', 'salad' ],
@@ -117,11 +175,14 @@ try {
 	$assert( 400 === $invalid_choice_response->get_status(), 'Store API accepted an invalid required section choice.' );
 	$assert( false !== strpos( (string) ( $invalid_choice_response->get_data()['message'] ?? '' ), '"Guest meal" is required in repeated row 2.' ), 'Invalid section choice did not fail in its own row: ' . wp_json_encode( $invalid_choice_response->get_data() ) );
 
-	echo "ok Store API quantity-section sanitation, validation, pricing, cart splitting/merge, and cleanup\n";
+	echo "ok Store API button/quantity-section sanitation, validation, pricing, cart splitting/merge, order metadata/restore, and cleanup\n";
 } finally {
 	update_option( 'opf_admin_only', $admin_only_before );
 	if ( $group_id > 0 ) {
 		wp_delete_post( $group_id, true );
+	}
+	if ( $button_group_id > 0 ) {
+		wp_delete_post( $button_group_id, true );
 	}
 	if ( $product_id > 0 ) {
 		if ( function_exists( 'WC' ) && WC()->cart ) {
@@ -132,6 +193,16 @@ try {
 			}
 		}
 		wp_delete_post( $product_id, true );
+	}
+	if ( $button_product_id > 0 ) {
+		if ( function_exists( 'WC' ) && WC()->cart ) {
+			foreach ( WC()->cart->get_cart() as $key => $item ) {
+				if ( (int) ( $item['product_id'] ?? 0 ) === $button_product_id ) {
+					WC()->cart->remove_cart_item( $key );
+				}
+			}
+		}
+		wp_delete_post( $button_product_id, true );
 	}
 	FieldGroups::flush_cache();
 	wc_clear_notices();
