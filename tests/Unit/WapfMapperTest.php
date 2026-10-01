@@ -122,6 +122,20 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( [ 'wholesale' ], $rules[2]['terms'] );
 	}
 
+	public function test_maps_wapf_negative_contains_to_runtime_supported_operator(): void {
+		$wapf = [
+			'fields' => [
+				[ 'id' => 'source', 'label' => 'Source', 'type' => 'text', 'conditionals' => [], 'options' => [ 'choices' => [] ], 'pricing' => [ 'enabled' => false ] ],
+				[ 'id' => 'target', 'label' => 'Target', 'type' => 'text', 'conditionals' => [ [ 'rules' => [ [ 'field' => 'source', 'condition' => '!=contains', 'value' => 'blocked' ] ] ] ], 'options' => [ 'choices' => [] ], 'pricing' => [ 'enabled' => false ] ],
+			],
+			'rule_groups' => [],
+		];
+
+		$mapped = WapfMapper::map( $wapf );
+		$this->assertFalse( $mapped['needs_review'] );
+		$this->assertSame( 'not_contains', $mapped['group']['fields'][1]['conditionals'][0]['rules'][0]['operator'] );
+	}
+
 	public function test_empty_condition_flags_needs_review_not_match_all(): void {
 		$wapf = [
 			'fields' => [

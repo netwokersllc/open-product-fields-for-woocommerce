@@ -59,6 +59,8 @@ final class EvaluatorTest extends TestCase {
 		$this->assertTrue( $check( 'is', [ '4', '5' ] ) );
 		$this->assertTrue( $check( 'is_not', '6' ) );
 		$this->assertTrue( $check( 'contains', 'hello 5 world', '5' ) );
+		$this->assertTrue( $check( 'not_contains', 'hello world', '5' ) );
+		$this->assertFalse( $check( 'not_contains', 'hello 5 world', '5' ) );
 		$this->assertTrue( $check( 'greater', '7' ) );
 		$this->assertFalse( $check( 'greater', '3' ) );
 		$this->assertTrue( $check( 'less', '3' ) );
