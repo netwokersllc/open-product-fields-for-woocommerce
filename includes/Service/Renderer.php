@@ -401,7 +401,10 @@ final class Renderer {
 		}
 
 		echo '<div class="opf-field-label"><label';
-		if ( ! in_array( $field['type'], [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ], true ) ) {
+		if ( 'radio' === $field['type'] ) {
+			echo ' id="opf-label-' . esc_attr( $gid . '-' . $fid ) . '"';
+		}
+		if ( ! in_array( $field['type'], [ 'swatch', 'image_quantity', 'radio', 'checkbox' ], true ) ) {
 			echo ' for="opf-' . esc_attr( $gid . '-' . $fid ) . '"';
 		}
 		echo '><span>' . esc_html( $field['label'] ) . '</span> ';
@@ -452,7 +455,14 @@ final class Renderer {
 		}
 
 		if ( 'select' === $field['type'] ) {
-			echo '<select name="' . esc_attr( $name ) . '" id="opf-' . esc_attr( $gid . '-' . $fid ) . '" class="opf-input input-' . esc_attr( $fid ) . '" autocomplete="off">';
+			echo '<select name="' . esc_attr( $name ) . '" id="opf-' . esc_attr( $gid . '-' . $fid ) . '" class="opf-input input-' . esc_attr( $fid ) . '" autocomplete="off"' . ( $field['required'] ? ' required' : '' ) . '>';
+			$has_default = false;
+			foreach ( $field['choices'] as $choice ) {
+				$has_default = $has_default || ( $choice['selected'] && ! $choice['disabled'] );
+			}
+			if ( ! $field['required'] || ! $has_default ) {
+				echo '<option value="">' . esc_html( __( 'Choose an option', 'open-product-fields-for-woocommerce' ) ) . '</option>';
+			}
 			foreach ( $field['choices'] as $choice ) {
 				echo '<option value="' . esc_attr( $choice['slug'] ) . '"' . selected( $choice['selected'], true, false ) . ( ! empty( $choice['disabled'] ) ? ' disabled' : '' ) . '>'
 					. esc_html( $choice['label'] )
@@ -471,6 +481,9 @@ final class Renderer {
 			$wrapper_class .= ' opf-color-swatch-wrapper';
 		}
 		$wrapper_attrs = '';
+		if ( 'radio' === $field['type'] ) {
+			$wrapper_attrs = ' role="radiogroup" aria-labelledby="opf-label-' . esc_attr( $gid . '-' . $fid ) . '"' . ( $field['required'] ? ' aria-required="true"' : '' );
+		}
 		if ( $image_swatch ) {
 			$wrapper_attrs = ' data-grid-layout="' . esc_attr( $field['grid_layout'] ) . '" data-label-position="' . esc_attr( $field['label_pos'] ) . '"';
 			if ( 'flexible' === $field['grid_layout'] ) {
