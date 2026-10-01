@@ -213,13 +213,17 @@ final class FieldGroups {
 		$user       = function_exists( 'wp_get_current_user' ) ? wp_get_current_user() : null;
 		$roles      = $logged_in && is_object( $user ) ? array_map( 'strval', (array) ( $user->roles ?? [] ) ) : [];
 		sort( $roles );
+		$wpml_language = apply_filters( 'wpml_current_language', null );
 		$language   = function_exists( 'pll_current_language' )
 			? (string) pll_current_language( 'locale' )
-			: ( defined( 'ICL_LANGUAGE_CODE' ) ? (string) ICL_LANGUAGE_CODE : 'default' );
+			: ( is_string( $wpml_language ) && '' !== $wpml_language ? $wpml_language : ( defined( 'ICL_LANGUAGE_CODE' ) ? (string) ICL_LANGUAGE_CODE : 'default' ) );
 		$current_lang = function_exists( 'pll_current_language' ) ? pll_current_language( 'slug' ) : '';
 		$context      = [ 'logged_in' => $logged_in, 'roles' => $roles, 'language' => $language ];
 		$cache_key    = self::cache_key_for_viewer( $product_id, $context, (string) $current_lang );
-		$cached       = wp_cache_get( $cache_key, 'opf_groups_for_product' );
+		// WPML package translations can change without saving an OPF group.
+		// Keep source groups cached per request, but do not persist translations.
+		$cache_results = ! is_string( $wpml_language ) || '' === $wpml_language;
+		$cached       = $cache_results ? wp_cache_get( $cache_key, 'opf_groups_for_product' ) : false;
 		if ( is_array( $cached ) ) {
 			return $cached;
 		}
@@ -230,7 +234,8 @@ final class FieldGroups {
 		];
 
 		$matching = [];
-		foreach ( self::all() as $entry ) {
+		// Runtime-only localization keeps editors, exports and stored JSON intact.
+		foreach ( apply_filters( 'opf_groups_for_product', self::all(), $product ) as $entry ) {
 			if ( $current_lang && ! empty( $entry['lang'] ) && $entry['lang'] !== $current_lang ) {
 				continue;
 			}
@@ -239,7 +244,9 @@ final class FieldGroups {
 			}
 		}
 
-		wp_cache_set( $cache_key, $matching, 'opf_groups_for_product' );
+		if ( $cache_results ) {
+			wp_cache_set( $cache_key, $matching, 'opf_groups_for_product' );
+		}
 		return $matching;
 	}
 

@@ -1,0 +1,7 @@
+<wpml-config>
+    <!-- Group post_content is executable JSON configuration, not prose.
+         WpmlIntegration exposes only display text as string packages. -->
+    <custom-types>
+        <custom-type translate="0">opf_field_group</custom-type>
+    </custom-types>
+</wpml-config>
