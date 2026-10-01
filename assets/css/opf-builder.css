@@ -47,6 +47,20 @@
 	gap: 6px;
 }
 
+.opf-b-bulk-import {
+	margin-top: 12px;
+}
+
+.opf-b-bulk-import summary {
+	cursor: pointer;
+}
+
+.opf-b-bulk-import textarea {
+	box-sizing: border-box;
+	max-width: 100%;
+	margin-bottom: 8px;
+}
+
 .opf-b-choice {
 	display: grid;
 	grid-template-columns: 32px 130px 1fr 130px 1fr 32px;

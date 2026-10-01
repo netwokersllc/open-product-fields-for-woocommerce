@@ -176,6 +176,62 @@
 		return el( 'div', { class: 'opf-b-choice-with-image' }, [ row ].concat( extras ) );
 	}
 
+	function bulkChoiceImport( field, list ) {
+		var color = 'swatch' === field.type && 'color' === field.swatch_style;
+		var help = el( 'p', { class: 'description', text: 'Place one option on each line. Blank lines are skipped; duplicate labels are kept. New choices are appended to existing choices.' + ( color ? ' For colors, use Label, #ffffff. Missing or invalid colors use white.' : '' ) } );
+		var input = el( 'textarea', { class: 'textarea opf-b-input', rows: '6', 'aria-label': 'Choices to import', placeholder: color ? 'White, #ffffff\nRed, #ff0000' : 'Option A\nOption B' } );
+		var status = el( 'p', { role: 'status', 'aria-live': 'polite' } );
+		var button = el( 'button', { type: 'button', class: 'btn button', text: 'Import choices', onclick: function () {
+			var lines = input.value.split( /\r\n|\n|\r/ );
+			var taken = Object.create( null );
+			field.choices.forEach( function ( choice ) { taken[ choice.slug ] = true; } );
+			var imported = 0;
+			lines.forEach( function ( line ) {
+				line = line.trim();
+				if ( ! line ) return;
+				var label = line;
+				var hex = '#FFFFFF';
+				if ( color ) {
+					var parts = line.split( ',' );
+					label = parts[ 0 ].trim();
+					if ( parts.length === 2 && /^#[0-9a-f]{3}(?:[0-9a-f]{3}|[0-9a-f]{5})?$/i.test( parts[ 1 ].trim() ) ) hex = parts[ 1 ].trim().toUpperCase();
+					if ( ! label ) return;
+				}
+				var base = slugify( label.normalize( 'NFKD' ).replace( /[\u0300-\u036f]/g, '' ) ) || 'option';
+				var slug = base;
+				var n = 2;
+				while ( taken[ slug ] ) {
+					var suffix = '-' + n++;
+					slug = base.slice( 0, 40 - suffix.length ) + suffix;
+				}
+				taken[ slug ] = true;
+				var choice = { slug: slug, label: label, selected: false, disabled: false, quantity: { default: 0, min: 0, max: 999999 }, pricing: { type: 'none', amount: 0, formula: '' } };
+				if ( color ) choice.color = hex;
+				field.choices.push( choice );
+				list.appendChild( choiceRow( field, choice, field.choices.length - 1 ) );
+				imported++;
+			} );
+			status.textContent = imported + ' out of ' + lines.length + ' lines imported.';
+			input.value = '';
+			button.disabled = true;
+			input.focus();
+			// Quantity controls are rendered separately from the choice rows.
+			if ( imported && 'image_quantity' === field.type ) {
+				rerender();
+				var editor = app.children[ model.fields.indexOf( field ) ].querySelector( '.opf-b-bulk-import' );
+				editor.open = true;
+				editor.querySelector( '[role="status"]' ).textContent = status.textContent;
+				editor.querySelector( 'textarea' ).focus();
+			}
+		} } );
+		button.disabled = true;
+		input.addEventListener( 'input', function () { button.disabled = ! input.value.trim(); } );
+		return el( 'details', { class: 'opf-b-bulk-import' }, [
+			el( 'summary', { text: 'Bulk import choices' } ), help,
+			labeledControl( 'Choices to import', input ), button, status,
+		] );
+	}
+
 	function labeledControl( label, control ) {
 		return el( 'label', { class: 'opf-b-conditional-control' }, [
 			document.createTextNode( label ),
@@ -512,6 +568,7 @@
 			card.appendChild( header );
 			card.appendChild( list );
 			card.appendChild( addChoice );
+			card.appendChild( bulkChoiceImport( field, list ) );
 		}
 		if ( 'image_quantity' === field.type ) {
 			[ [ 'min_choices', 'Minimum total quantity' ], [ 'max_choices', 'Maximum total quantity' ] ].forEach( function ( setting ) {
