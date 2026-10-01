@@ -1,5 +1,12 @@
 # Native URL field lifecycle evidence
 
+**Acceptance correction, 2026-10-01 18:37 UTC:** the ASCII lifecycle below
+passes, but the URL row remains **partial/unaccepted**. The follow-up
+[native/WAPF compatibility audit](URL-FIELD-COMPATIBILITY-EVIDENCE.md) verifies
+eight valid native/WAPF URL cases rejected by OPF and one native-invalid IPv4
+URL accepted by OPF through actual classic and Store API HTTP requests.
+The earlier documented-difference status is insufficient for full URL parity.
+
 Executed on 2026-10-01, final commerce proof completed at 18:30 UTC.
 Base: `4d9c6e20458933df09a1aef33964c3125aae8cfa`, plus this change.
 Isolated worktree: `/tmp/opf-url-parity`; disposable SQLite WordPress clone:
@@ -89,8 +96,8 @@ rejection, repeated validation, default validation, and unchanged legacy shape.
 Complete PHPUnit: **232 tests / 930 assertions**, with one existing metadata
 deprecation. PHP/Node syntax checks and `git diff --check` passed.
 
-This accepts the native `WAPF-FIELD-URL` lifecycle with the documented stricter
-validation policy. WAPF default import/export mapping, richer repeated-default
+This proves the tested ASCII `WAPF-FIELD-URL` lifecycle; it does not accept
+full native URL parity. WAPF default import/export mapping, richer repeated-default
 behavior, other themes, and platform floors are separate acceptance work; this
 evidence does not accept those rows.
 

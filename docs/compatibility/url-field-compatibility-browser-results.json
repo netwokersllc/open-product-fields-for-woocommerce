@@ -1,0 +1,424 @@
+{
+  "base": "http://127.0.0.1:8126",
+  "checks": [
+    {
+      "label": "served native WAPF/OPF validity https://example.invalid/?a=1&b=2",
+      "pass": true
+    },
+    {
+      "label": "observed classic acceptance https://example.invalid/?a=1&b=2",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart item",
+      "pass": true
+    },
+    {
+      "label": "observed Store API acceptance https://example.invalid/?a=1&b=2",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart item",
+      "pass": true
+    },
+    {
+      "label": "served native WAPF/OPF validity https://例え.テスト/こんにちは?q=✓",
+      "pass": true
+    },
+    {
+      "label": "observed classic acceptance https://例え.テスト/こんにちは?q=✓",
+      "pass": true
+    },
+    {
+      "label": "observed Store API acceptance https://例え.テスト/こんにちは?q=✓",
+      "pass": true
+    },
+    {
+      "label": "served native WAPF/OPF validity https://example.invalid/café?q=é",
+      "pass": true
+    },
+    {
+      "label": "observed classic acceptance https://example.invalid/café?q=é",
+      "pass": true
+    },
+    {
+      "label": "observed Store API acceptance https://example.invalid/café?q=é",
+      "pass": true
+    },
+    {
+      "label": "served native WAPF/OPF validity https://xn--r8jz45g.xn--zckzah/%E3%81%93?q=%E2%9C%93",
+      "pass": true
+    },
+    {
+      "label": "observed classic acceptance https://xn--r8jz45g.xn--zckzah/%E3%81%93?q=%E2%9C%93",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart item",
+      "pass": true
+    },
+    {
+      "label": "observed Store API acceptance https://xn--r8jz45g.xn--zckzah/%E3%81%93?q=%E2%9C%93",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart item",
+      "pass": true
+    },
+    {
+      "label": "served native WAPF/OPF validity https://example.invalid/a b",
+      "pass": true
+    },
+    {
+      "label": "observed classic acceptance https://example.invalid/a b",
+      "pass": true
+    },
+    {
+      "label": "observed Store API acceptance https://example.invalid/a b",
+      "pass": true
+    },
+    {
+      "label": "served native WAPF/OPF validity customsafe://example.invalid/path",
+      "pass": true
+    },
+    {
+      "label": "observed classic acceptance customsafe://example.invalid/path",
+      "pass": true
+    },
+    {
+      "label": "observed Store API acceptance customsafe://example.invalid/path",
+      "pass": true
+    },
+    {
+      "label": "served native WAPF/OPF validity mailto:é@example.invalid",
+      "pass": true
+    },
+    {
+      "label": "observed classic acceptance mailto:é@example.invalid",
+      "pass": true
+    },
+    {
+      "label": "observed Store API acceptance mailto:é@example.invalid",
+      "pass": true
+    },
+    {
+      "label": "served native WAPF/OPF validity tel:+123",
+      "pass": true
+    },
+    {
+      "label": "observed classic acceptance tel:+123",
+      "pass": true
+    },
+    {
+      "label": "observed Store API acceptance tel:+123",
+      "pass": true
+    },
+    {
+      "label": "served native WAPF/OPF validity urn:isbn:978123",
+      "pass": true
+    },
+    {
+      "label": "observed classic acceptance urn:isbn:978123",
+      "pass": true
+    },
+    {
+      "label": "observed Store API acceptance urn:isbn:978123",
+      "pass": true
+    },
+    {
+      "label": "served native WAPF/OPF validity http:example.invalid",
+      "pass": true
+    },
+    {
+      "label": "observed classic acceptance http:example.invalid",
+      "pass": true
+    },
+    {
+      "label": "observed Store API acceptance http:example.invalid",
+      "pass": true
+    },
+    {
+      "label": "served native WAPF/OPF validity mailto:",
+      "pass": true
+    },
+    {
+      "label": "observed classic acceptance mailto:",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart item",
+      "pass": true
+    },
+    {
+      "label": "observed Store API acceptance mailto:",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart item",
+      "pass": true
+    },
+    {
+      "label": "served native WAPF/OPF validity javascript:alert(1)",
+      "pass": true
+    },
+    {
+      "label": "observed classic acceptance javascript:alert(1)",
+      "pass": true
+    },
+    {
+      "label": "observed Store API acceptance javascript:alert(1)",
+      "pass": true
+    },
+    {
+      "label": "served native WAPF/OPF validity data:text/html,x",
+      "pass": true
+    },
+    {
+      "label": "observed classic acceptance data:text/html,x",
+      "pass": true
+    },
+    {
+      "label": "observed Store API acceptance data:text/html,x",
+      "pass": true
+    },
+    {
+      "label": "served native WAPF/OPF validity https://example.invalid/<script>",
+      "pass": true
+    },
+    {
+      "label": "observed classic acceptance https://example.invalid/<script>",
+      "pass": true
+    },
+    {
+      "label": "observed Store API acceptance https://example.invalid/<script>",
+      "pass": true
+    },
+    {
+      "label": "served native WAPF/OPF validity http://256.256.256.256",
+      "pass": true
+    },
+    {
+      "label": "observed classic acceptance http://256.256.256.256",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart item",
+      "pass": true
+    },
+    {
+      "label": "observed Store API acceptance http://256.256.256.256",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart item",
+      "pass": true
+    },
+    {
+      "label": "served native WAPF/OPF validity http://[no]/",
+      "pass": true
+    },
+    {
+      "label": "observed classic acceptance http://[no]/",
+      "pass": true
+    },
+    {
+      "label": "observed Store API acceptance http://[no]/",
+      "pass": true
+    },
+    {
+      "label": "served native WAPF/OPF validity https://example.invalid:99999/",
+      "pass": true
+    },
+    {
+      "label": "observed classic acceptance https://example.invalid:99999/",
+      "pass": true
+    },
+    {
+      "label": "observed Store API acceptance https://example.invalid:99999/",
+      "pass": true
+    },
+    {
+      "label": "served native WAPF/OPF validity https://",
+      "pass": true
+    },
+    {
+      "label": "observed classic acceptance https://",
+      "pass": true
+    },
+    {
+      "label": "observed Store API acceptance https://",
+      "pass": true
+    },
+    {
+      "label": "served native WAPF/OPF validity not-a-url",
+      "pass": true
+    },
+    {
+      "label": "observed classic acceptance not-a-url",
+      "pass": true
+    },
+    {
+      "label": "observed Store API acceptance not-a-url",
+      "pass": true
+    },
+    {
+      "label": "no browser page errors",
+      "pass": true
+    }
+  ],
+  "observations": [
+    {
+      "value": "https://example.invalid/?a=1&b=2",
+      "wapfNative": true,
+      "opfNative": true,
+      "classicAccepted": true,
+      "storeAccepted": true,
+      "storeStatus": 201
+    },
+    {
+      "value": "https://例え.テスト/こんにちは?q=✓",
+      "wapfNative": true,
+      "opfNative": true,
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    },
+    {
+      "value": "https://example.invalid/café?q=é",
+      "wapfNative": true,
+      "opfNative": true,
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    },
+    {
+      "value": "https://xn--r8jz45g.xn--zckzah/%E3%81%93?q=%E2%9C%93",
+      "wapfNative": true,
+      "opfNative": true,
+      "classicAccepted": true,
+      "storeAccepted": true,
+      "storeStatus": 201
+    },
+    {
+      "value": "https://example.invalid/a b",
+      "wapfNative": true,
+      "opfNative": true,
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    },
+    {
+      "value": "customsafe://example.invalid/path",
+      "wapfNative": true,
+      "opfNative": true,
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    },
+    {
+      "value": "mailto:é@example.invalid",
+      "wapfNative": true,
+      "opfNative": true,
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    },
+    {
+      "value": "tel:+123",
+      "wapfNative": true,
+      "opfNative": true,
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    },
+    {
+      "value": "urn:isbn:978123",
+      "wapfNative": true,
+      "opfNative": true,
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    },
+    {
+      "value": "http:example.invalid",
+      "wapfNative": true,
+      "opfNative": true,
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    },
+    {
+      "value": "mailto:",
+      "wapfNative": true,
+      "opfNative": true,
+      "classicAccepted": true,
+      "storeAccepted": true,
+      "storeStatus": 201
+    },
+    {
+      "value": "javascript:alert(1)",
+      "wapfNative": true,
+      "opfNative": true,
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    },
+    {
+      "value": "data:text/html,x",
+      "wapfNative": true,
+      "opfNative": true,
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    },
+    {
+      "value": "https://example.invalid/<script>",
+      "wapfNative": true,
+      "opfNative": true,
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    },
+    {
+      "value": "http://256.256.256.256",
+      "wapfNative": false,
+      "opfNative": false,
+      "classicAccepted": true,
+      "storeAccepted": true,
+      "storeStatus": 201
+    },
+    {
+      "value": "http://[no]/",
+      "wapfNative": false,
+      "opfNative": false,
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    },
+    {
+      "value": "https://example.invalid:99999/",
+      "wapfNative": false,
+      "opfNative": false,
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    },
+    {
+      "value": "https://",
+      "wapfNative": false,
+      "opfNative": false,
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    },
+    {
+      "value": "not-a-url",
+      "wapfNative": false,
+      "opfNative": false,
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    }
+  ],
+  "errors": []
+}

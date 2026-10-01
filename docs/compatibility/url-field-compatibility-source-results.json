@@ -1,0 +1,92 @@
+{
+    "wordpress_allowed_protocols": [
+        "http",
+        "https",
+        "ftp",
+        "ftps",
+        "mailto",
+        "news",
+        "irc",
+        "irc6",
+        "ircs",
+        "gopher",
+        "nntp",
+        "feed",
+        "telnet",
+        "mms",
+        "rtsp",
+        "sms",
+        "svn",
+        "tel",
+        "fax",
+        "xmpp",
+        "webcal",
+        "urn",
+        "customsafe"
+    ],
+    "observations": [
+        {
+            "value": "https://例え.テスト/こんにちは?q=✓",
+            "wapf_sanitized": "https://例え.テスト/こんにちは?q=✓",
+            "wapf_server_valid": true,
+            "opf_server_valid": false,
+            "opf_default_error": "URL default must be a valid URL."
+        },
+        {
+            "value": "https://example.invalid/café?q=é",
+            "wapf_sanitized": "https://example.invalid/café?q=é",
+            "wapf_server_valid": true,
+            "opf_server_valid": false,
+            "opf_default_error": "URL default must be a valid URL."
+        },
+        {
+            "value": "https://example.invalid/a b",
+            "wapf_sanitized": "https://example.invalid/a b",
+            "wapf_server_valid": true,
+            "opf_server_valid": false,
+            "opf_default_error": "URL default must be a valid URL."
+        },
+        {
+            "value": "customsafe://example.invalid/path",
+            "wapf_sanitized": "customsafe://example.invalid/path",
+            "wapf_server_valid": true,
+            "opf_server_valid": false,
+            "opf_default_error": "URL default must be a valid URL."
+        },
+        {
+            "value": "mailto:é@example.invalid",
+            "wapf_sanitized": "mailto:é@example.invalid",
+            "wapf_server_valid": true,
+            "opf_server_valid": false,
+            "opf_default_error": "URL default must be a valid URL."
+        },
+        {
+            "value": "tel:+123",
+            "wapf_sanitized": "tel:+123",
+            "wapf_server_valid": true,
+            "opf_server_valid": false,
+            "opf_default_error": "URL default must be a valid URL."
+        },
+        {
+            "value": "urn:isbn:978123",
+            "wapf_sanitized": "urn:isbn:978123",
+            "wapf_server_valid": true,
+            "opf_server_valid": false,
+            "opf_default_error": "URL default must be a valid URL."
+        },
+        {
+            "value": "http:example.invalid",
+            "wapf_sanitized": "http:example.invalid",
+            "wapf_server_valid": true,
+            "opf_server_valid": false,
+            "opf_default_error": "URL default must be a valid URL."
+        },
+        {
+            "value": "http://256.256.256.256",
+            "wapf_sanitized": "http://256.256.256.256",
+            "wapf_server_valid": true,
+            "opf_server_valid": true,
+            "opf_default_error": null
+        }
+    ]
+}
