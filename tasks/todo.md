@@ -1,6 +1,6 @@
 # OPF 1.0 Burn-down Tasks
 
-## Current checkpoint — 2026-10-01, integration HEAD `9ea1fae`
+## Current checkpoint — 2026-10-01, integration HEAD `b4f259b`
 
 - [x] Refresh orchestration roster: root is responsible for source review, integration, verification, ledger acceptance, and public pushes; three isolated writers are active.
 - [ ] Verify every worktree diff and focused evidence; reject unsupported claims.
@@ -8,9 +8,11 @@
 - [ ] Recompute roadmap counts after each accepted ledger row; keep all 132 rows.
 - [ ] Continue until every row and G2–G4 pass.
 
-The live GitHub branch is `9ea1faea0171c9002e4a9bb7322a01aff4646379` as of
-this checkpoint (`git ls-remote`, 2026-10-01). Local `origin` ahead/behind
-decoration is not authoritative for the public branch.
+The live GitHub branch is `b4f259b3a58b82fa8621b41fd8c9d611670e2292` as of
+this checkpoint (`git ls-remote`, 2026-10-01). The WPML and Aelia rows moved
+from gaps to partial; neither has enough live-plugin evidence to count as
+supported. Strict supported progress remains 18/132 (13.6%). Local
+`origin` ahead/behind decoration is not authoritative for the public branch.
 
 ## Parallel workstream ledger
 
@@ -24,21 +26,17 @@ decoration is not authoritative for the public branch.
 | Image-quantity import + bounds parity | Map source-confirmed `image-swatch-qty` settings; represent WAPF's 999999 bound and aggregate max_choices natively | `/root/opf_qty_import`, `gpt-6-luna` (medium), isolated worktree from `4ef9bd5`, 0 strikes | `255f10a` mapped per-choice bounds; fresh WAPF source check found max_choices is an aggregate sum cap, so current mapping is incomplete and a failing acceptance case is assigned below | No | Must prove aggregate cap in server/client/import lifecycle; affected row stays partial |
 | `sumQty` commerce lifecycle | Disposable Woo cart/order E2E proves quantity input sanitation, formula result, price, and order persistence | `/root/opf_sumqty_woo_e2e`, `gpt-6.1-sol` (high), fresh isolated clone/worktree, 0 strikes | Cherry-picked as `46ec85a`; main independently reran 9 invalid Store API/classic cases, cart 28.00, two-unit order 56.00, boundary prices 13.00/41.00, and fixture cleanup; full suite 176 / 633 passes | No | Browser input interaction/import round-trip remain separate; parity row remains partial |
 | WOOCS runtime parity | Wire currency adapter and prove base/option/formula/cart/browser conversion paths against installed source | `/root/opf_woocs_runtime`, `gpt-6.1-sol` (high), fresh worktree from current branch, 0 strikes | Cherry-picked as `8b3acf4`; main 184 / 663, JS 7/7; fake-WOOCS cart/order and browser tests independently rerun on disposable clones | No | Third-party WOOCS itself unavailable; fixed-price differences, linked products, and price hints still unverified |
-| Image-quantity import lifecycle + aggregate cap | Implement WAPF aggregate `array_sum(quantities) <= max_choices`, preserve per-choice limits/import, prove cart/order and sumQty | `/root/opf_sumqty_woo_e2e`, `gpt-6.1-sol` (high), isolated worktree + private clone, 0 strikes | Source audit found WAPF 3.1.5 `class-cart.php:300–309` enforces aggregate max; implementation and failing→passing acceptance proof underway | No | Browser/admin interaction remains separate |
-| WPML localization integration | Close the known WPML gap for translated local/global fields and variations against WPML contract | `/root/opf_wpml`, `gpt-6-astra` (high), isolated worktree from `043a2b1`, 0 strikes | Safe runtime seam identified: translate only `FieldGroups::for_product()` results, with language-aware cache key; implementation underway | No | WPML plugin runtime may be unavailable; no parity claim until tested |
-| Aelia currency integration | Close the known Aelia gap across currency bases, option/formula pricing, cart, and browser totals | `/root/opf_aelia`, `gpt-6.1-sol` (high), isolated worktree from `043a2b1`, 0 strikes | Source contract located in WAPF 3.1.5; adapter uses documented Aelia conversion API and OPF currency hooks; mock contract proof underway | No | Live Aelia plugin unavailable so far; mock contract alone cannot close the row |
+| Image-quantity import lifecycle + aggregate cap | Implement WAPF aggregate `array_sum(quantities) <= max_choices`, preserve per-choice limits/import, prove cart/order and sumQty | `/root/aggregate_cap_v2`, `gpt-5.6-sol` (medium), `/tmp/opf-sumqty-woo-e2e`, 0 strikes | Source audit found WAPF 3.1.5 `class-cart.php:300–309` enforces aggregate max; implementation and failing→passing acceptance proof underway | No | Row stays partial until aggregate server/browser/import lifecycle is verified |
+| WPML localization integration | Close the known WPML gap for translated local/global fields and variations against WPML contract | `/root/opf_wpml`, `gpt-6-astra` (high), `/tmp/opf-wpml`, 0 strikes | Commits `f96d892` + `d0d8208` pushed; independent full suite 198 / 735 passes after Aelia integration | No | Row stays partial: no WPML runtime; imported-group ownership and translated commerce lifecycle open |
+| Aelia currency integration | Close the known Aelia gap across currency bases, option/formula pricing, cart, and browser totals | `/root/finish_aelia_lane`, `gpt-5.6-sol` (high), `/tmp/opf-aelia`, 0 strikes | Commit `b4f259b` pushed; root reran full suite 198 / 735, real Woo fake-API cart/order lifecycle, and Chromium totals/variation/reset/rate-format proof; source review confirms WAPF 3.1.5 contract | No | Row stays partial: commercial plugin unavailable, linked-product and price-hint paths unverified |
+| FOX currency compatibility | Verify WAPF FOX/WOOCS API equivalence; add specific contract coverage without changing shared WOOCS runtime | `/root/fox_currency`, `gpt-6.1-sol` (high), `/tmp/opf-fox-currency`, 0 strikes | Installed WAPF registry maps FOX/WOOCS to shared adapter; implementation/test evidence in progress | No | Real FOX plugin proof may remain open |
 
 ### Orchestration control
 
-The current wave has three writers plus the root integrator (the four-agent
-concurrency limit). Currency adapters and quantity validation have distinct
-file ownership; WPML is restricted to a `for_product()`-scoped filter and its
-own integration class. Bootstrap ownership is serialized to Aelia. The next
-slot will be assigned only after a current lane commits or is explicitly
-blocked. Candidate independent chunks, in priority order, are: FOX currency
-adapter (separate integration class and tests); current-state audit and closure
-of a bounded capability family with source + browser/cart proof; and G4
-platform/version plus reproducible package audit. Each is assigned only after
-checking path overlap and current roster. The 94 partial + 5 gap + 8
-baseline-only + 7 difference rows mean a three-lane wave cannot honestly be
-reported as 1.0 completion; only accepted ledger rows and all G2–G4 gates count.
+The current wave uses three writers plus the root integrator (the four-agent
+concurrency limit). Currency adapters, quantity validation, and FOX source
+work have disjoint ownership. Root owns review, integration, ledger acceptance,
+and public pushes. Next slots go to independent work that can close named rows;
+the remaining 96 partial + 3 gap + 8 baseline-only + 7 difference rows still
+require evidence. Only accepted ledger rows and all G2–G4 gates count toward
+1.0.
