@@ -35,14 +35,14 @@ The 132 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 | --- | ---: | --- |
 | Baseline supported | 8 | Promising baseline only; not accepted as proof |
 | Supported | 18 | Evidence recorded and accepted as complete under the row-count rule |
-| Supported with documented difference | 11 | Needs explicit non-regression review and acceptance |
-| Partial | 88 | Material parity or proof remains |
-| Gap | 7 | Known absent in the current OPF tree |
+| Supported with documented difference | 10 | Needs explicit non-regression review and acceptance |
+| Partial | 90 | Material parity or proof remains |
+| Gap | 6 | Known absent in the current OPF tree |
 | Needs audit | 0 | Available source, marketing claims, and every published release delta are mapped; exact release details remain scoped to partial rows |
 | **Total** | **132** | **G1 complete for available evidence; G2 remains open** |
 
 Extended-only rows: 28 total; 2 supported, 4 supported with a documented
-difference, and 22 partial. All 132 edition rows have a ledger status. The
+difference, 22 partial, and no known gaps. All 132 edition rows have a ledger status. The
 available-source audit covers installed Extended 3.1.5, public Free 1.7.1,
 current tier/marketing claims, and every published Extended 3.1.6–3.2.1 and
 Pro 3.2.2 changelog change. Exact current-package details not specified in
