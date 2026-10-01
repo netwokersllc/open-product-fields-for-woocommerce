@@ -54,7 +54,7 @@ try {
 			[ 'id' => 'guest_name', 'label' => 'Guest name', 'type' => 'text', 'required' => true ],
 			[ 'id' => 'guest_note', 'label' => 'Ada note', 'type' => 'text', 'required' => true, 'conditionals' => [ [ 'action' => 'show', 'logic' => 'all', 'rules' => [ [ 'field' => 'guest_name', 'operator' => 'is', 'value' => 'Ada' ] ] ] ] ],
 			[ 'id' => 'guest_date', 'label' => 'Guest date', 'type' => 'date' ],
-			[ 'id' => 'guest_fee', 'label' => 'Date fee', 'type' => 'text', 'pricing' => [ 'type' => 'formula', 'formula' => 'if(month([field.guest_date]) > 1; month([field.guest_date]); 1)', 'per_unit' => true ] ],
+			[ 'id' => 'guest_fee', 'label' => 'Date fee', 'type' => 'text', 'pricing' => [ 'type' => 'formula', 'formula' => "if(datediff('2026-01-15'; [field.guest_date]) > 1; datediff('2026-01-15'; [field.guest_date]); 3)", 'per_unit' => true ] ],
 			[ 'id' => 'guest_meal', 'label' => 'Guest meal', 'type' => 'select', 'required' => true, 'choices' => [
 				[ 'slug' => 'soup', 'label' => 'Soup', 'pricing' => [ 'type' => 'fixed', 'amount' => 2, 'per_unit' => true ] ],
 				[ 'slug' => 'salad', 'label' => 'Salad', 'pricing' => [ 'type' => 'fixed', 'amount' => 3, 'per_unit' => true ] ],
@@ -126,7 +126,7 @@ try {
 	$assert( in_array( $formula_response->get_status(), [ 200, 201 ], true ), 'Store API rejected valid formula-clone rows: ' . wp_json_encode( $formula_response->get_data() ) );
 	$formula_items = array_values( array_filter( $cart->get_cart(), static fn( $item ) => (int) $item['product_id'] === $product_id ) );
 	$formula_prices = array_map( static fn( $item ) => (float) $item['data']->get_price( 'edit' ), $formula_items );
-	$assert( [ 13.0, 15.0 ] === $formula_prices, 'Repeated formulas did not resolve the same-index date value: ' . wp_json_encode( $formula_prices ) );
+	$assert( [ 15.0, 70.0 ] === $formula_prices, 'Repeated date-difference formulas did not resolve each clone date: ' . wp_json_encode( $formula_prices ) );
 
 	$cart->empty_cart();
 	$identical_response = $add_store_item( $product_id, [ (string) $group_id => [

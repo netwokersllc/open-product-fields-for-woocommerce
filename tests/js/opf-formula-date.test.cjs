@@ -23,6 +23,17 @@ test('WAPF date formula functions use Sunday-zero weekdays and one-based months'
 
 test('WAPF date functions accept the selected field value and site today', () => {
 	assert.equal(context.__evalFormula('month(today())', 10, 1, 0, ''), 6);
+	assert.equal(context.__evalFormula("datediff('01-10-2023'; '01-12-2023')", 10, 1, 0, ''), 2);
+	assert.equal(context.__evalFormula("datediff('01-12-2023'; '01-10-2023')", 10, 1, 0, ''), 2);
+	assert.equal(context.__evalFormula("datediff(today(); '06-18-2026')", 10, 1, 0, ''), 3);
+	assert.equal(context.__evalFormula("datediff('02-30-2023'; '03-01-2023')", 10, 1, 0, ''), 0);
+	assert.equal(context.__evalFormula('datediff([field.start_date]; [field.end_date])', 10, 1, 0, '', {
+		start_date: '2024-02-28',
+		end_date: '2024-03-01',
+	}), 2);
+	assert.equal(context.__evalFormula("if(datediff('2024-02-28'; [field.end_date]) > 1; datediff('2024-02-28'; [field.end_date]); 3)", 10, 1, 0, '', {
+		end_date: '2024-03-01',
+	}), 2);
 	assert.equal(context.__evalFormula('month([field.end_date]) + dow([field.start_date])', 10, 1, 0, '', {
 		end_date: '2024-02-29',
 		start_date: '2024-01-01',
@@ -50,5 +61,6 @@ test('WAPF date functions honor configured formats and reject invalid calendar d
 	context.window.opf_config.date_format = 'dd/mm/yy';
 	context.opf_config.date_format = 'dd/mm/yy';
 	assert.equal(context.__evalFormula("month('31/12/23')", 10, 1, 0, ''), 12);
+	assert.equal(context.__evalFormula("datediff('31/12/23'; '02/01/24')", 10, 1, 0, ''), 2);
 	assert.equal(context.__evalFormula("dow('02-30-2023')", 10, 1, 0, ''), 0);
 });

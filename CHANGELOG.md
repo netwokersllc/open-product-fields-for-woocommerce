@@ -8,6 +8,8 @@ User-facing changes to Open Product Fields for WooCommerce.
 
 - Formula pricing now includes WAPF math, text-length, and conditional functions
   in server calculations and browser totals.
+- Extended `datediff()` formulas now calculate whole calendar days between
+  configured date values, including `today()` and validated sibling fields.
 - Text, image, and color swatches can accept multiple selections, with minimum
   and maximum selection limits.
 - Color swatches support validated hex values, shape and size settings, and

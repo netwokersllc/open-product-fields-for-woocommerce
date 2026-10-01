@@ -152,6 +152,22 @@ final class Calculator {
 		);
 		$formula = preg_replace( '/today\s*\(\s*\)/i', '__OPF_TODAY__', $formula );
 		$formula = preg_replace_callback(
+			'/\bdatediff\s*\(([^()]*)\)/i',
+			static function ( array $match ) use ( $val, $today, $field_values ): string {
+				$args = self::split_formula_arguments( $match[1] );
+				if ( 2 !== count( $args ) ) {
+					return '0';
+				}
+				$date1 = self::parse_formula_date( $args[0], $val, $field_values, $today );
+				$date2 = self::parse_formula_date( $args[1], $val, $field_values, $today );
+				if ( null === $date1 || null === $date2 ) {
+					return '0';
+				}
+				return (string) $date1->diff( $date2 )->days;
+			},
+			$formula
+		);
+		$formula = preg_replace_callback(
 			'/\b(dow|month)\s*\(([^()]*)\)/i',
 			static function ( array $match ) use ( $val, $today, $field_values ): string {
 				$date = self::parse_formula_date( $match[2], $val, $field_values, $today );

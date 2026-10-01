@@ -126,6 +126,10 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( 3.0, Calculator::evaluate_formula( "month('03-01-2023')", 10.0, 1, 0.0 ) );
 		$this->assertSame( 1.0, Calculator::evaluate_formula( "dow('2024-01-01')", 10.0, 1, 0.0 ) );
 		$this->assertSame( 9.0, Calculator::evaluate_formula( 'month(today())', 10.0, 1, 0.0, '', '2026-09-30' ) );
+		$this->assertSame( 2.0, Calculator::evaluate_formula( "datediff('01-10-2023'; '01-12-2023')", 10.0, 1, 0.0 ) );
+		$this->assertSame( 2.0, Calculator::evaluate_formula( "datediff('01-12-2023'; '01-10-2023')", 10.0, 1, 0.0 ) );
+		$this->assertSame( 3.0, Calculator::evaluate_formula( "datediff(today(); '06-18-2026')", 10.0, 1, 0.0, '', '2026-06-15' ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( "datediff('02-30-2023'; '03-01-2023')", 10.0, 1, 0.0 ) );
 		$this->assertSame( 2.0, Calculator::evaluate_formula( 'dow([val])', 10.0, 1, 0.0, '01-10-2023' ) );
 		$this->assertSame( 0.0, Calculator::evaluate_formula( "dow('02-30-2023')", 10.0, 1, 0.0 ) );
 
@@ -134,6 +138,7 @@ final class CalculatorTest extends TestCase {
 			$GLOBALS['opf_test_options']['wapf_date_format'] = 'dd/mm/yyyy';
 			$this->assertSame( 3.0, Calculator::evaluate_formula( "dow('01/03/2023')", 10.0, 1, 0.0 ) );
 			$this->assertSame( 12.0, Calculator::evaluate_formula( "month('31/12/2023')", 10.0, 1, 0.0 ) );
+			$this->assertSame( 2.0, Calculator::evaluate_formula( "datediff('31/12/2023'; '02/01/2024')", 10.0, 1, 0.0 ) );
 		} finally {
 			if ( null === $previous_format ) {
 				unset( $GLOBALS['opf_test_options']['wapf_date_format'] );
