@@ -33,8 +33,8 @@ The 132 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 
 | Status | Rows | Meaning for the gate |
 | --- | ---: | --- |
-| Baseline supported | 8 | Promising baseline only; not accepted as proof |
-| Supported | 18 | Evidence recorded and accepted as complete under the row-count rule |
+| Baseline supported | 7 | Promising baseline only; not accepted as proof |
+| Supported | 19 | Evidence recorded and accepted as complete under the row-count rule |
 | Supported with documented difference | 7 | Needs explicit non-regression review and acceptance |
 | Partial | 98 | Material parity or proof remains |
 | Gap | 1 | Known absent in the current OPF tree |
@@ -57,6 +57,14 @@ Aelia base/formula/cart/browser
 conversion is implemented and passed a disposable Woo test against a fake API
 contract, but the commercial plugin, linked-product conversion, and a wired
 pricing-hint path remain unverified. Neither row counts as supported.
+
+`WAPF-FIELD-TEXT` advanced from baseline-supported to `supported`: native text
+defaults and builder controls now pass 24 real-Chromium checks and 23 disposable
+WooCommerce lifecycle checks, including actual admin REST save/reload, classic
+and Store API validation/cart/checkout, order/email persistence, and order-again.
+The full PHPUnit suite passes 225 tests/883 assertions. WAPF default import/export
+and text length/regex remain separate open rows. See
+[native text lifecycle evidence](TEXT-FIELD-LIFECYCLE-EVIDENCE.md).
 
 FOX is now `partial` because the existing WOOCS adapter passes an official
 FOX API contract test. WAPF's registry and FOX's own compatibility instructions
