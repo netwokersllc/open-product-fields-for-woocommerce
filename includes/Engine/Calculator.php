@@ -40,6 +40,17 @@ final class Calculator {
 		$addons = (float) ( $context['addons'] ?? 0.0 );
 		$field_values = is_array( $context['field_values'] ?? null ) ? $context['field_values'] : [];
 
+		if ( ! empty( $field['repeat']['enabled'] ) ) {
+			$instance_field = $field;
+			unset( $instance_field['repeat'] );
+			$instances = is_array( $value ) ? $value : ( null === $value ? [] : [ $value ] );
+			$total = 0.0;
+			foreach ( $instances as $instance_value ) {
+				$total += self::field_addon( $instance_field, $instance_value, $context );
+			}
+			return max( 0.0, $total );
+		}
+
 		$total = 0.0;
 
 		switch ( $field['type'] ) {

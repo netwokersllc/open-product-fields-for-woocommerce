@@ -170,6 +170,32 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( 0.0, Calculator::field_addon( $field, '', [ 'price' => 0.0, 'qty' => 1 ] ) );
 	}
 
+	public function test_repeated_text_field_prices_each_instance(): void {
+		$field = [
+			'type' => 'text',
+			'repeat' => [ 'enabled' => true, 'mode' => 'button', 'max' => 3 ],
+			'choices' => [],
+			'pricing' => [ 'type' => 'fixed', 'amount' => 2.0, 'formula' => '', 'per_unit' => true ],
+		];
+
+		$this->assertSame( 4.0, Calculator::field_addon( $field, [ 'First', 'Second' ], [ 'price' => 10.0, 'qty' => 1 ] ) );
+	}
+
+	public function test_repeated_checkbox_field_prices_each_instances_choices(): void {
+		$field = [
+			'type' => 'checkbox',
+			'multiple' => true,
+			'repeat' => [ 'enabled' => true, 'mode' => 'button', 'max' => 3 ],
+			'choices' => [
+				[ 'slug' => 'a', 'disabled' => false, 'pricing' => [ 'type' => 'fixed', 'amount' => 1.0, 'per_unit' => true ] ],
+				[ 'slug' => 'b', 'disabled' => false, 'pricing' => [ 'type' => 'percent', 'amount' => 10.0 ] ],
+			],
+			'pricing' => [ 'type' => 'none', 'amount' => 0.0, 'formula' => '' ],
+		];
+
+		$this->assertSame( 3.0, Calculator::field_addon( $field, [ [ 'a' ], [ 'b' ] ], [ 'price' => 20.0, 'qty' => 1 ] ) );
+	}
+
 	public function test_addons_never_negative(): void {
 		$field = [
 			'type'    => 'text',
