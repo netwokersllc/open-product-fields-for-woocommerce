@@ -15,5 +15,6 @@ User-facing changes to Open Product Fields for WooCommerce.
 - Paragraphs support plain text or restricted HTML, with optional WordPress
   shortcode processing. WAPF Extended `p` content imports and exports with its
   markup and shortcode payload preserved.
-- Informative images support conditional display and WAPF `img` migration,
-  preserving image URLs and attachment references for JSON/WXR export.
+- Informative images support conditional display, Media Library selection, and
+  WAPF `img` migration, preserving image URLs and attachment references for
+  JSON/WXR export.

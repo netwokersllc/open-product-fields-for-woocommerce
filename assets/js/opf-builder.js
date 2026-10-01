@@ -379,8 +379,32 @@
 		}
 		if ( 'content_image' === field.type ) {
 			var contentImageUrl = el( 'input', { class: 'opf-b-input', type: 'url', value: field.image_url || '', placeholder: 'Image URL (https or local path)', 'aria-label': 'Content image URL' } );
-			contentImageUrl.addEventListener( 'input', function () { field.image_url = contentImageUrl.value; } );
+			contentImageUrl.addEventListener( 'input', function () {
+				field.image_url = contentImageUrl.value;
+				delete field.image_id;
+			} );
+			var chooseContentImage = el( 'button', { class: 'button', type: 'button', text: 'Choose image', onclick: function () {
+				if ( ! window.wp || ! window.wp.media ) {
+					window.alert( 'The WordPress Media Library is unavailable on this screen.' );
+					return;
+				}
+				var frame = window.wp.media( {
+					title: 'Choose informative image',
+					button: { text: 'Use image' },
+					library: { type: 'image' },
+					multiple: false,
+				} );
+				frame.on( 'select', function () {
+					var attachment = frame.state().get( 'selection' ).first().toJSON();
+					if ( ! attachment || ! attachment.id || ! attachment.url ) return;
+					field.image_id = Number( attachment.id );
+					field.image_url = attachment.url;
+					contentImageUrl.value = attachment.url;
+				} );
+				frame.open();
+			} } );
 			card.appendChild( labeledControl( 'Informative image URL', contentImageUrl ) );
+			card.appendChild( chooseContentImage );
 		}
 
 		if ( field.choices.length || in_array( field.type, [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {
