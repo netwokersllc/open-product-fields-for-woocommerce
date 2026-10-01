@@ -670,6 +670,11 @@ final class CartIntegration {
 			if ( is_array( $decoded ) ) {
 				$quantity = max( 1, (int) $order_item->get_quantity() );
 				$product  = $order_item->get_product();
+				// Order-again prices the current catalog product, as WooCommerce
+				// does for a fresh cart line. Addons require this unadjusted base.
+				if ( $product instanceof \WC_Product ) {
+					$cart_item_data['opf_base_price'] = (float) $product->get_price( 'edit' );
+				}
 				if ( $quantity > 1 && $product instanceof \WC_Product ) {
 					foreach ( FieldGroups::for_product( $product ) as $entry ) {
 						$gid = (string) $entry['id'];
