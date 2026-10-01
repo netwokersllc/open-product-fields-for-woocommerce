@@ -54,6 +54,16 @@
 	align-items: center;
 }
 
+.opf-b-choice-with-image {
+	display: grid;
+	gap: 4px;
+}
+
+.opf-b-choice-image {
+	display: flex;
+	gap: 6px;
+}
+
 .opf-b-remove {
 	color: #b32d2e;
 	font-size: 18px;

@@ -115,7 +115,38 @@
 			'formula' === choice.pricing.type ? formulaInput : amountInput,
 			remove
 		] );
-		return row;
+		if ( 'swatch' !== field.type ) {
+			return row;
+		}
+
+		var imageUrl = el( 'input', { class: 'opf-b-input opf-b-choice-image-url', type: 'url', value: choice.image || '', placeholder: 'Image URL (optional)' } );
+		imageUrl.addEventListener( 'input', function () {
+			if ( imageUrl.value.trim() ) choice.image = imageUrl.value.trim();
+			else delete choice.image;
+			delete choice.image_id;
+		} );
+		var chooseImage = el( 'button', { class: 'button', type: 'button', text: 'Choose image', onclick: function () {
+			if ( ! window.wp || ! window.wp.media ) {
+				window.alert( 'The WordPress Media Library is unavailable on this screen.' );
+				return;
+			}
+			var frame = window.wp.media( {
+				title: 'Choose swatch image',
+				button: { text: 'Use image' },
+				library: { type: 'image' },
+				multiple: false,
+			} );
+			frame.on( 'select', function () {
+				var attachment = frame.state().get( 'selection' ).first().toJSON();
+				if ( ! attachment || ! attachment.id || ! attachment.url ) return;
+				choice.image_id = Number( attachment.id );
+				choice.image = attachment.url;
+				imageUrl.value = attachment.url;
+			} );
+			frame.open();
+		} } );
+		var imageControls = el( 'div', { class: 'opf-b-choice-image' }, [ imageUrl, chooseImage ] );
+		return el( 'div', { class: 'opf-b-choice-with-image' }, [ row, imageControls ] );
 	}
 
 	function labeledControl( label, control ) {
