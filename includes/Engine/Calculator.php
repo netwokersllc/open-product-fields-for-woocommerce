@@ -371,7 +371,9 @@ final class Calculator {
 			'abs' => static fn( array $args, array $context ): float => abs( $numeric( (string) ( $args[0] ?? '' ), $context ) ),
 			'floor' => static fn( array $args, array $context ): float => floor( $numeric( (string) ( $args[0] ?? '' ), $context ) ),
 			'ceil' => static fn( array $args, array $context ): float => ceil( $numeric( (string) ( $args[0] ?? '' ), $context ) ),
-			'sqrt' => static fn( array $args, array $context ): float => sqrt( max( 0, $numeric( (string) ( $args[0] ?? '' ), $context ) ) ),
+			// Preserve sqrt's domain error so expansion fails the entire formula
+			// closed, matching browser Math.sqrt and WAPF's native PHP sqrt.
+			'sqrt' => static fn( array $args, array $context ): float => sqrt( $numeric( (string) ( $args[0] ?? '' ), $context ) ),
 			'pow' => static fn( array $args, array $context ): float => 2 === count( $args ) ? pow( $numeric( (string) $args[0], $context ), $numeric( (string) $args[1], $context ) ) : NAN,
 			'sin' => static fn( array $args, array $context ): float => sin( $numeric( (string) ( $args[0] ?? '' ), $context ) ),
 			'cos' => static fn( array $args, array $context ): float => cos( $numeric( (string) ( $args[0] ?? '' ), $context ) ),

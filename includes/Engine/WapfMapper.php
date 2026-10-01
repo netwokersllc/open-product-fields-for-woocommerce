@@ -748,10 +748,49 @@ final class WapfMapper {
 		$probe = str_replace( [ '[price]', '[qty]', '[addons]', '[val]' ], '1', $formula );
 		$probe = preg_replace( '/\[(?:field|price)\.[a-zA-Z0-9_-]+\]/i', '1', $probe );
 		$probe = preg_replace( '/\b(?:checked|files|sumQty)\s*\(\s*[a-zA-Z0-9_-]+\s*\)/i', '1', $probe );
-		if ( preg_match( '/[^0-9+\-*\/().\s]/', $probe ) ) {
+		if ( ! self::is_math_formula_probe( $probe ) ) {
 			return null;
 		}
 		return $formula;
+	}
+
+	/**
+	 * Allow documented numeric functions while keeping other calls and text out.
+	 * Arguments may be nested arithmetic; separators belong to function calls.
+	 * Runtime evaluation remains the sandboxed Calculator's responsibility.
+	 */
+	private static function is_math_formula_probe( string $probe ): bool {
+		$frames = [];
+		$length = strlen( $probe );
+		for ( $offset = 0; $offset < $length; $offset++ ) {
+			$char = $probe[ $offset ];
+			if ( preg_match( '/[a-z_]/i', $char ) ) {
+				if ( $offset > 0 && preg_match( '/[a-z0-9_.]/i', $probe[ $offset - 1 ] ) ) {
+					return false;
+				}
+				// Installed WAPF Extended 3.1.5 extend/formulas.php and the
+				// public formula-functions-reference define these numeric calls.
+				if ( ! preg_match( '/^(?:min|max|round|abs|floor|ceil|sqrt|pow|sin|cos|tan)\s*\(/i', substr( $probe, $offset ), $match ) ) {
+					return false;
+				}
+				$frames[] = true;
+				$offset += strlen( $match[0] ) - 1;
+			} elseif ( '(' === $char ) {
+				$frames[] = false;
+			} elseif ( ')' === $char ) {
+				if ( ! $frames ) {
+					return false;
+				}
+				array_pop( $frames );
+			} elseif ( ';' === $char || ',' === $char ) {
+				if ( ! $frames || true !== end( $frames ) ) {
+					return false;
+				}
+			} elseif ( ! preg_match( '/[0-9+\-*\/.\s]/', $char ) ) {
+				return false;
+			}
+		}
+		return ! $frames;
 	}
 
 	/**
