@@ -21,6 +21,7 @@
 
 	var TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'paragraph', 'content_image', 'section', 'section_end' ];
 	var PRICING = [ 'none', 'fixed', 'percent', 'formula' ];
+	var REPEATABLE_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch' ];
 
 	function el( tag, attrs, children ) {
 		var node = document.createElement( tag );
@@ -354,6 +355,45 @@
 		var head = el( 'div', { class: 'opf-b-field-head' }, [ label, typeSel, desc, req, duplicate, remove ] );
 		var card = el( 'div', { class: 'opf-b-field' }, [ head ] );
 		card.appendChild( conditionalEditor( field ) );
+		if ( REPEATABLE_TYPES.indexOf( field.type ) !== -1 ) {
+			var repeatSettings = el( 'div', { class: 'opf-b-repeat-settings' } );
+			var repeatEnabled = el( 'input', { type: 'checkbox', 'data-opf-repeat-enabled': field.id } );
+			repeatEnabled.checked = !! ( field.repeat && field.repeat.enabled );
+			repeatEnabled.addEventListener( 'change', function () {
+				if ( repeatEnabled.checked ) {
+					field.repeat = field.repeat && field.repeat.enabled
+						? field.repeat
+						: { enabled: true, mode: 'button', max: 10000 };
+				} else {
+					delete field.repeat;
+				}
+				rerender();
+			} );
+			repeatSettings.appendChild( labeledControl( 'Allow customers to add repeated rows', repeatEnabled ) );
+			if ( field.repeat && field.repeat.enabled ) {
+				var repeatMode = el( 'select', { class: 'opf-b-input', 'data-opf-repeat-mode': field.id }, [
+					el( 'option', { value: 'button', text: 'Customer adds rows with a button' } ),
+					el( 'option', { value: 'quantity', text: 'Match product quantity (not available yet)', disabled: true } ),
+				] );
+				repeatMode.value = field.repeat.mode || 'button';
+				repeatMode.addEventListener( 'change', function () {
+					field.repeat.mode = repeatMode.value;
+					rerender();
+				} );
+				repeatSettings.appendChild( labeledControl( 'Repeat mode', repeatMode ) );
+				if ( 'button' === ( field.repeat.mode || 'button' ) ) {
+					var repeatMax = el( 'input', { class: 'opf-b-input', type: 'number', min: '1', step: '1', value: field.repeat.max || '', placeholder: '10000', 'data-opf-repeat-max': field.id, 'aria-label': 'Maximum repeated rows' } );
+					repeatMax.addEventListener( 'input', function () {
+						if ( repeatMax.value ) field.repeat.max = Number( repeatMax.value );
+						else delete field.repeat.max;
+					} );
+					repeatSettings.appendChild( labeledControl( 'Maximum rows (blank uses 10000)', repeatMax ) );
+				}
+			}
+			card.appendChild( repeatSettings );
+		} else if ( field.repeat && field.repeat.enabled ) {
+			card.appendChild( el( 'p', { class: 'description opf-b-repeat-notice', text: 'Repeat settings are preserved, but this field type cannot repeat yet.' } ) );
+		}
 		if ( 'paragraph' === field.type ) {
 			var contentFormat = el( 'select', { class: 'opf-b-input', 'aria-label': 'Paragraph format' }, [
 				el( 'option', { value: 'plain', text: 'Plain text' } ),
@@ -566,6 +606,13 @@
 	}
 
 	function save() {
+		var invalidRepeatMax = Array.prototype.slice.call( document.querySelectorAll( '[data-opf-repeat-max]' ) ).find( function ( input ) {
+			return ! input.checkValidity();
+		} );
+		if ( invalidRepeatMax ) {
+			invalidRepeatMax.reportValidity();
+			return;
+		}
 		var placementAtSave = placementSelection();
 		function changed( key ) {
 			return JSON.stringify( placementAtSave[ key ] ) !== JSON.stringify( initialPlacementSelection[ key ] );
