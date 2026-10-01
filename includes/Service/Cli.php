@@ -140,7 +140,7 @@ final class Cli {
 	}
 
 	/**
-	 * Export field groups as a versioned OPF archive.
+	 * Export field groups as a versioned OPF archive or WAPF Tools JSON.
 	 *
 	 * ## OPTIONS
 	 *
@@ -156,16 +156,24 @@ final class Cli {
 	 * [--output=<file>]
 	 * : Write atomically to an absolute file path. Without this option, print JSON to stdout.
 	 *
+	 * [--format=<format>]
+	 * : Export format: opf (default) or wapf-json. WAPF JSON requires exactly one group.
+	 *
 	 * ## EXAMPLES
 	 *
 	 *     wp opf export --all --output=/tmp/opf-groups.json
 	 *     wp opf export --group=123
 	 *     wp opf export --product=456 --output=/tmp/opf-product.json
+	 *     wp opf export --group=123 --format=wapf-json
 	 *
 	 * @param array<int,string>    $args       Positional args.
 	 * @param array<string,string> $assoc_args Flags.
 	 */
 	public function export( array $args, array $assoc_args = [] ): void {
+		$format = (string) ( $assoc_args['format'] ?? 'opf' );
+		if ( ! in_array( $format, [ 'opf', 'wapf-json' ], true ) ) {
+			\WP_CLI::error( 'Export format must be opf or wapf-json.' );
+		}
 		$selectors = array_values( array_filter( [
 			array_key_exists( 'all', $assoc_args ) ? 'all' : null,
 			array_key_exists( 'group', $assoc_args ) ? 'group' : null,
@@ -227,6 +235,38 @@ final class Cli {
 				'language' => function_exists( 'pll_get_post_language' ) ? (string) pll_get_post_language( (int) $post->ID, 'slug' ) : '',
 				'data' => $data,
 			];
+		}
+		if ( 'wapf-json' === $format ) {
+			if ( 1 !== count( $groups ) ) {
+				\WP_CLI::error( 'WAPF Tools JSON export requires a selector that resolves to exactly one field group.' );
+			}
+			try {
+				$payload = WapfExporter::build_payload( $groups[0]['data'] );
+			} catch ( \InvalidArgumentException $exception ) {
+				\WP_CLI::error( $exception->getMessage() );
+			}
+			$json = wp_json_encode( $payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+			if ( ! is_string( $json ) || strlen( $json ) > ArchiveImporter::MAX_BYTES ) {
+				\WP_CLI::error( 'WAPF Tools JSON export could not be encoded or exceeds the 5 MiB transfer limit.' );
+			}
+			if ( isset( $assoc_args['output'] ) ) {
+				$path = (string) $assoc_args['output'];
+				$directory = dirname( $path );
+				if ( '/' !== substr( $path, 0, 1 ) || ! is_dir( $directory ) || ! is_writable( $directory ) ) {
+					\WP_CLI::error( 'Export path must be absolute and its parent directory must be writable.' );
+				}
+				$temp = tempnam( $directory, '.opf-export-' );
+				if ( false === $temp || false === file_put_contents( $temp, $json . "\n", LOCK_EX ) || ! rename( $temp, $path ) ) {
+					if ( is_string( $temp ) && file_exists( $temp ) ) {
+						unlink( $temp );
+					}
+					\WP_CLI::error( 'Could not write the WAPF Tools JSON export.' );
+				}
+				\WP_CLI::success( sprintf( 'Exported field group #%d as WAPF Tools JSON to %s.', $groups[0]['id'], $path ) );
+				return;
+			}
+			\WP_CLI::line( $json );
+			return;
 		}
 		$package = Exporter::build_package( $groups, $scope );
 		$json = wp_json_encode( $package, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );

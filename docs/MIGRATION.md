@@ -102,3 +102,9 @@ groups. Product/category/tag IDs, missing media files, language assignments
 without Polylang, and other export warnings force the imported group to draft
 and attach review notes. Verify placement and media on the destination before
 publishing those drafts.
+
+To export one supported OPF group as the four-section WAPF Tools JSON payload,
+run `wp opf export --group=<id> --format=wapf-json` (or select a product that
+resolves to exactly one group). Unsupported or lossy settings stop export.
+The payload omits OPF post title/status metadata; product/category/tag IDs are
+site-local and need review on the destination.
