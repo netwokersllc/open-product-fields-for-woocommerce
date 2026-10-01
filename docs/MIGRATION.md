@@ -90,3 +90,15 @@ De-WAPF the codebase (inventory in `WAPF-DELETION.md`):
 At any point before Phase 4 item 2: deactivate OPF, re-activate WAPF. WAPF's
 own storage (`wapf_product` posts, `_wapf_fieldgroup` meta) is never written
 by OPF — the import is copy-only.
+
+## OPF archive transfer
+
+To move OPF groups between sites, create an archive with `wp opf export
+--all --output=/path/to/opf-groups.json`, then validate it on the destination
+with `wp opf import-archive /path/to/opf-groups.json`. The command is a dry run
+unless `--commit` is supplied. Imports are size- and group-count-limited,
+reject settings the destination version would drop, and skip repeated source
+groups. Product/category/tag IDs, missing media files, language assignments
+without Polylang, and other export warnings force the imported group to draft
+and attach review notes. Verify placement and media on the destination before
+publishing those drafts.

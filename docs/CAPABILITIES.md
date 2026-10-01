@@ -19,8 +19,9 @@ validation paths.
 | Pricing | No price, fixed amount, percentage of product price, or safe arithmetic formula. The server calculates the cart price. Fixed prices are flat per line unless `per_unit` is enabled; percentage and formula prices are per unit. |
 | Commerce flow | Classic product-form add to cart plus Store API add to cart; cart, block cart/checkout display, order-item storage, and order-again restoration |
 | WooCommerce features | The plugin declares compatibility with HPOS and cart/checkout blocks |
-| Administration | Field-group builder, authenticated `opf/v1` REST endpoints, and WAPF import command |
+| Administration | Field-group builder, authenticated `opf/v1` REST endpoints, WAPF import command, and WP-CLI OPF archive export/import |
 | WAPF import | Maps the supported field types and supported pricing. Unsupported types, repeaters, and unsupported pricing are omitted from the imported group and recorded for review. |
+| OPF archive migration | `wp opf import-archive <file>` validates a versioned export with a 5 MiB and 500-group limit, defaults to dry-run, rejects data the installed schema would drop, and imports repeated-safe groups. Portability warnings force affected groups to draft. Isolated WordPress round-trip proof remains open. |
 
 ## Not implemented in 0.1.0
 
