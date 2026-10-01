@@ -106,6 +106,16 @@ try {
 		'options' => [ 'choices' => [] ],
 		'pricing' => [ 'enabled' => false, 'type' => 'fixed', 'amount' => 0 ],
 	];
+	$review_payload['fields'][] = [
+		'id' => 'opf_e2e_repeat_name',
+		'label' => 'Repeated name',
+		'type' => 'text',
+		'required' => false,
+		'conditionals' => [],
+		'clone' => [ 'enabled' => true, 'type' => 'button', 'max' => 6 ],
+		'options' => [ 'choices' => [] ],
+		'pricing' => [ 'enabled' => false, 'type' => 'fixed', 'amount' => 0 ],
+	];
 	$review_id = wp_insert_post( [
 		'post_type' => 'wapf_product',
 		'post_status' => 'publish',
@@ -190,9 +200,19 @@ try {
 	$local_rule = $local_data['rule_groups'][0]['rules'][0] ?? [];
 	$assert( 'product' === ( $local_rule['subject'] ?? '' ) && [ (string) $product_id ] === ( $local_rule['terms'] ?? [] ), 'Local group was not attached to its source product.' );
 	$review_post = get_post( $review_opf_id );
+	$review_data = json_decode( (string) $review_post->post_content, true );
 	$review_notes = get_post_meta( $review_opf_id, '_opf_needs_review', true );
+	$repeat_field = null;
+	foreach ( (array) ( $review_data['fields'] ?? [] ) as $field ) {
+		if ( 'Repeated name' === ( $field['label'] ?? '' ) ) {
+			$repeat_field = $field;
+			break;
+		}
+	}
 	$assert( 'draft' === $review_post->post_status, 'A group with unsupported source data was published instead of held for review.' );
 	$assert( is_array( $review_notes ) && false !== strpos( implode( ' ', $review_notes ), 'unsupported field types dropped' ), 'Review-required source details were not recorded.' );
+	$assert( [ 'enabled' => true, 'mode' => 'button', 'max' => 6 ] === ( $repeat_field['repeat'] ?? null ), 'WAPF button clone mode and maximum did not survive import persistence: ' . wp_json_encode( [ 'repeat_field' => $repeat_field, 'notes' => $review_notes ] ) );
+	$assert( false !== strpos( implode( ' ', $review_notes ), 'repeat runtime is not implemented' ), 'Imported repeater was not explicitly held for runtime review.' );
 
 	$repeat = OPF\Service\Importer::run( true );
 	$assert( 0 === $repeat['imported'] && 4 === $repeat['skipped'], 'Repeated import did not skip three imports and report the malformed source.' );
@@ -200,7 +220,7 @@ try {
 	require_once ABSPATH . 'wp-admin/includes/plugin.php';
 	$plugins = get_plugins();
 	$wapf_version = $plugins['advanced-product-fields-for-woocommerce/advanced-product-fields-for-woocommerce.php']['Version'] ?? 'unknown';
-	echo sprintf( "ok WAPF %s global/local import, review drafts, malformed report, dry-run, product attachment, persistence, idempotent repeat\n", $wapf_version );
+	echo sprintf( "ok WAPF %s global/local import, repeat config preservation, review drafts, malformed report, dry-run, product attachment, persistence, idempotent repeat\n", $wapf_version );
 } finally {
 	$source_keys = [];
 	if ( $global_id && ! is_wp_error( $global_id ) ) {

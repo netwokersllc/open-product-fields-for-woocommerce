@@ -146,6 +146,7 @@ final class WapfMapper {
 				$image_url = is_scalar( $raw_image_url ) ? (string) $raw_image_url : '';
 				$image_id = is_scalar( $raw_image_id ) ? (int) $raw_image_id : 0;
 			}
+			$repeat = self::map_repeat_settings( $wapf_field, $notes, $needs_review );
 
 			$field = FieldGroup::normalize_field(
 				array_merge( [
@@ -167,6 +168,7 @@ final class WapfMapper {
 					'image_id'     => $image_id,
 					'content_format' => $content_format,
 					'process_shortcodes' => $process_shortcodes,
+					'repeat' => $repeat,
 				], $image_swatch_settings, $color_swatch_settings, $selection_limits )
 			);
 			if ( 'paragraph' === $field['type'] ) {
@@ -186,11 +188,6 @@ final class WapfMapper {
 			}
 			if ( 'img' === $wapf_type && ! empty( $field['image_id'] ) ) {
 				$notes[] = sprintf( 'field "%s" uses a site-local image attachment ID; verify or remap the attachment on the destination site.', (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' ) );
-				$needs_review = true;
-			}
-
-			if ( ! empty( $wapf_field['clone']['enabled'] ) ) {
-				$notes[]      = sprintf( 'field "%s" uses WAPF clone (repeatable fields) which OPF does not support yet.', $field['label'] );
 				$needs_review = true;
 			}
 
@@ -236,6 +233,74 @@ final class WapfMapper {
 			'notes'        => $notes,
 			'needs_review' => $needs_review,
 		];
+	}
+
+	/** Map WAPF clone settings while keeping unfinished runtime behavior review-required. */
+	private static function map_repeat_settings( array $wapf_field, array &$notes, bool &$needs_review ): array {
+		$clone = $wapf_field['clone'] ?? [];
+		if ( ! is_array( $clone ) || [] === $clone ) {
+			return [];
+		}
+		$enabled = $clone['enabled'] ?? false;
+		if ( in_array( $enabled, [ false, 0, '0', 'false', null ], true ) ) {
+			return [];
+		}
+		if ( ! in_array( $enabled, [ true, 1, '1', 'true' ], true ) ) {
+			$notes[] = sprintf( 'field "%s" has an invalid WAPF clone enabled flag; its repeat settings need manual review.', (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' ) );
+			$needs_review = true;
+			return [];
+		}
+
+		$label = (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' );
+		$unknown_clone_keys = array_diff( array_keys( $clone ), [ 'enabled', 'type', 'max', 'add', 'del', 'label', 'field' ] );
+		if ( $unknown_clone_keys ) {
+			$notes[] = sprintf( 'field "%s" has unsupported WAPF clone settings (%s); they need manual review.', $label, implode( ', ', array_map( 'strval', $unknown_clone_keys ) ) );
+			$needs_review = true;
+		}
+		if ( 'sectionend' === ( $wapf_field['type'] ?? '' ) ) {
+			$notes[] = sprintf( 'field "%s" is a WAPF section-end marker with clone settings; the marker was imported without repeat settings and needs review.', $label );
+			$needs_review = true;
+			return [];
+		}
+		$type = (string) ( $clone['type'] ?? '' );
+		if ( ! in_array( $type, [ 'button', 'qty' ], true ) ) {
+			$notes[] = sprintf( 'field "%s" uses unsupported WAPF clone type "%s"; its repeat settings need manual review.', $label, $type );
+			$needs_review = true;
+			return [];
+		}
+
+		$repeat = [ 'enabled' => true, 'mode' => 'qty' === $type ? 'quantity' : 'button' ];
+		$can_map_repeat = true;
+		if ( 'button' === $type ) {
+			$max = $clone['max'] ?? RepeaterField::DEFAULT_BUTTON_ROWS;
+			if ( '' === $max ) {
+				$max = RepeaterField::DEFAULT_BUTTON_ROWS;
+			}
+			try {
+				$repeat = RepeaterField::normalize( [ 'enabled' => true, 'mode' => 'button', 'max' => $max ] );
+			} catch ( \InvalidArgumentException $exception ) {
+				$shown_max = is_scalar( $max ) ? (string) $max : 'invalid';
+				$notes[] = sprintf( 'field "%s" has an invalid or unrepresentable button repeater maximum (%s); the repeat settings need manual review.', $label, $shown_max );
+				$needs_review = true;
+				$can_map_repeat = false;
+			}
+		}
+
+		if ( ! empty( $clone['add'] ) || ! empty( $clone['del'] ) || ! empty( $clone['label'] ) ) {
+			$notes[] = sprintf( 'field "%s" uses custom add/remove labels or repeat labels that OPF does not preserve yet.', $label );
+			$needs_review = true;
+		}
+		if ( ! empty( $clone['field'] ) ) {
+			$notes[] = sprintf( 'field "%s" uses a WAPF clone field reference that OPF does not preserve yet.', $label );
+			$needs_review = true;
+		}
+		if ( ! $can_map_repeat ) {
+			return [];
+		}
+
+		$notes[] = sprintf( 'field "%s" repeat mode and maximum were imported, but OPF repeat runtime is not implemented yet.', $label );
+		$needs_review = true;
+		return $repeat;
 	}
 
 	/**

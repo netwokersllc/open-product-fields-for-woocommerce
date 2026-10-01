@@ -227,6 +227,53 @@ final class WapfMapperTest extends TestCase {
 		$this->assertStringContainsString( 'no matching section-end marker', implode( ' ', $mapped['notes'] ) );
 	}
 
+	public function test_preserves_button_and_quantity_clone_modes_for_review(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [
+			[ 'id' => 'name', 'label' => 'Name', 'type' => 'text', 'clone' => [ 'enabled' => true, 'type' => 'button', 'max' => 8 ] ],
+			[ 'id' => 'attendees', 'label' => 'Attendees', 'type' => 'section', 'clone' => [ 'enabled' => true, 'type' => 'qty' ] ],
+			[ 'id' => 'attendees-end', 'type' => 'sectionend' ],
+			[ 'id' => 'unlimited', 'label' => 'Unlimited', 'type' => 'text', 'clone' => [ 'enabled' => true, 'type' => 'button' ] ],
+		] ] );
+
+		$this->assertTrue( $mapped['needs_review'] );
+		$this->assertSame( [ 'enabled' => true, 'mode' => 'button', 'max' => 8 ], $mapped['group']['fields'][0]['repeat'] );
+		$this->assertSame( [ 'enabled' => true, 'mode' => 'quantity' ], $mapped['group']['fields'][1]['repeat'] );
+		$this->assertSame( [ 'enabled' => true, 'mode' => 'button', 'max' => 10000 ], $mapped['group']['fields'][3]['repeat'] );
+		$this->assertStringContainsString( 'repeat runtime is not implemented', implode( ' ', $mapped['notes'] ) );
+	}
+
+	public function test_flags_custom_clone_settings_while_preserving_button_maximum(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'name', 'label' => 'Name', 'type' => 'text',
+			'clone' => [ 'enabled' => true, 'type' => 'button', 'max' => 2000, 'add' => 'Add attendee', 'del' => 'Remove attendee', 'label' => 'Attendee {n}', 'vendor_option' => 'unknown' ],
+		] ] ] );
+
+		$this->assertTrue( $mapped['needs_review'] );
+		$this->assertSame( [ 'enabled' => true, 'mode' => 'button', 'max' => 2000 ], $mapped['group']['fields'][0]['repeat'] );
+		$this->assertStringContainsString( 'custom add/remove labels', implode( ' ', $mapped['notes'] ) );
+		$this->assertStringContainsString( 'unsupported WAPF clone settings (vendor_option)', implode( ' ', $mapped['notes'] ) );
+	}
+
+	public function test_flags_wapf_button_maxima_outside_integer_range(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'name', 'label' => 'Name', 'type' => 'text',
+			'clone' => [ 'enabled' => true, 'type' => 'button', 'max' => '999999999999999999999999999999' ],
+		] ] ] );
+
+		$this->assertTrue( $mapped['needs_review'] );
+		$this->assertArrayNotHasKey( 'repeat', $mapped['group']['fields'][0] );
+		$this->assertStringContainsString( 'invalid or unrepresentable button repeater maximum', implode( ' ', $mapped['notes'] ) );
+	}
+
+	public function test_flags_clone_settings_on_a_section_end_without_throwing(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [ [ 'id' => 'end', 'type' => 'sectionend', 'clone' => [ 'enabled' => true, 'type' => 'button' ] ] ] ] );
+
+		$this->assertTrue( $mapped['needs_review'] );
+		$this->assertSame( 'section_end', $mapped['group']['fields'][0]['type'] );
+		$this->assertArrayNotHasKey( 'repeat', $mapped['group']['fields'][0] );
+		$this->assertStringContainsString( 'section-end marker with clone settings', implode( ' ', $mapped['notes'] ) );
+	}
+
 	public function test_html_in_plain_wapf_content_is_preserved_as_text_and_flagged_for_review(): void {
 		$mapped = WapfMapper::map( [
 			'fields' => [ [ 'id' => 'intro', 'label' => '', 'type' => 'content', 'options' => [ 'p_content' => '<strong>Care</strong>' ] ] ],

@@ -10,8 +10,8 @@ namespace OPF\Engine;
 defined( 'ABSPATH' ) || exit;
 
 final class RepeaterField {
-	/** Keep configured button repeats inside a bounded request size. */
-	public const MAX_BUTTON_ROWS = 1000;
+	/** WAPF's repeater-button template falls back to this value when max is blank. */
+	public const DEFAULT_BUTTON_ROWS = 10000;
 
 	/** @return array<string,mixed> */
 	public static function normalize( $raw ): array {
@@ -42,13 +42,21 @@ final class RepeaterField {
 		if ( 'quantity' === $mode ) {
 			return [ 'enabled' => true, 'mode' => 'quantity' ];
 		}
-		$max = $raw['max'] ?? 5;
+		$max = $raw['max'] ?? self::DEFAULT_BUTTON_ROWS;
 		if ( ! is_int( $max ) && ! ( is_string( $max ) && preg_match( '/^[0-9]+$/', $max ) ) ) {
 			throw new \InvalidArgumentException( 'Button repeater maximum must be an integer.' );
 		}
+		$max_string = ltrim( (string) $max, '0' );
+		if ( '' === $max_string ) {
+			$max_string = '0';
+		}
+		$platform_max = (string) PHP_INT_MAX;
+		if ( strlen( $max_string ) > strlen( $platform_max ) || ( strlen( $max_string ) === strlen( $platform_max ) && strcmp( $max_string, $platform_max ) > 0 ) ) {
+			throw new \InvalidArgumentException( 'Button repeater maximum exceeds the integer range on this platform.' );
+		}
 		$max = (int) $max;
-		if ( $max < 1 || $max > self::MAX_BUTTON_ROWS ) {
-			throw new \InvalidArgumentException( sprintf( 'Button repeater maximum must be between 1 and %d.', self::MAX_BUTTON_ROWS ) );
+		if ( $max < 1 ) {
+			throw new \InvalidArgumentException( 'Button repeater maximum must be a positive integer.' );
 		}
 		return [ 'enabled' => true, 'mode' => 'button', 'max' => $max ];
 	}

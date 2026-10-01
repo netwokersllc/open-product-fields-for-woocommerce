@@ -20,3 +20,5 @@ User-facing changes to Open Product Fields for WooCommerce.
   JSON/WXR export.
 - Nested section markers support conditional wrappers and WAPF import/export;
   WAPF repeated-section settings stay review-required.
+- WAPF button and quantity clone modes import into review drafts, preserving
+  recognized modes and in-range button maxima for later migration work.

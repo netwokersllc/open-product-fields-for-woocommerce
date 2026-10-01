@@ -104,20 +104,22 @@ final class FieldGroupSchemaTest extends TestCase {
 
 	public function test_repeater_settings_normalize_button_and_quantity_modes(): void {
 		$button = FieldGroup::normalize_field( [ 'id' => 'name', 'type' => 'text', 'repeat' => [ 'enabled' => true, 'mode' => 'button', 'max' => 12 ] ] );
+		$default_button = FieldGroup::normalize_field( [ 'id' => 'name-default', 'type' => 'text', 'repeat' => [ 'enabled' => true, 'mode' => 'button' ] ] );
 		$quantity = FieldGroup::normalize_field( [ 'id' => 'ticket-name', 'type' => 'text', 'repeat' => [ 'enabled' => true, 'mode' => 'qty' ] ] );
 		$section = FieldGroup::normalize_field( [ 'id' => 'attendees', 'type' => 'section', 'repeat' => [ 'enabled' => true, 'mode' => 'quantity' ] ] );
 
 		$this->assertSame( [ 'enabled' => true, 'mode' => 'button', 'max' => 12 ], $button['repeat'] );
+		$this->assertSame( [ 'enabled' => true, 'mode' => 'button', 'max' => 10000 ], $default_button['repeat'] );
 		$this->assertSame( [ 'enabled' => true, 'mode' => 'quantity' ], $quantity['repeat'] );
 		$this->assertSame( [ 'enabled' => true, 'mode' => 'quantity' ], $section['repeat'] );
 	}
 
-	public function test_disabled_repeaters_are_omitted_and_button_max_is_bounded(): void {
+	public function test_disabled_repeaters_are_omitted_and_button_max_must_fit_integer_range(): void {
 		$disabled = FieldGroup::normalize_field( [ 'id' => 'name', 'type' => 'text', 'repeat' => [ 'enabled' => false, 'mode' => 'button' ] ] );
 		$this->assertArrayNotHasKey( 'repeat', $disabled );
 
 		$this->expectException( InvalidArgumentException::class );
-		FieldGroup::normalize_field( [ 'id' => 'name', 'type' => 'text', 'repeat' => [ 'enabled' => true, 'mode' => 'button', 'max' => 1001 ] ] );
+		FieldGroup::normalize_field( [ 'id' => 'name', 'type' => 'text', 'repeat' => [ 'enabled' => true, 'mode' => 'button', 'max' => '999999999999999999999999999999' ] ] );
 	}
 
 	public function test_invalid_repeater_modes_are_rejected(): void {
