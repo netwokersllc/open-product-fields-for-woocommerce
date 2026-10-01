@@ -28,6 +28,7 @@ final class WapfMapper {
 		'textarea'      => 'textarea',
 		'url'           => 'url',
 		'number'        => 'number',
+		'true-false'   => 'toggle',
 		'select'        => 'select',
 		'radio'         => 'radio',
 		'checkbox'      => 'checkbox',
@@ -40,15 +41,20 @@ final class WapfMapper {
 	 */
 	private const CONDITION_MAP = [
 		'is'        => 'is',
+		'=='        => 'is',
 		'is_not'    => 'is_not',
 		'not_is'    => 'is_not',
+		'!='        => 'is_not',
 		'contains'  => 'contains',
+		'==contains' => 'contains',
+		'!=contains' => 'not_contains',
 		'gt'        => 'greater',
 		'lt'        => 'less',
 		'greater'   => 'greater',
 		'less'      => 'less',
 		'empty'     => 'empty',
 		'not_empty' => 'not_empty',
+		'!empty'    => 'not_empty',
 	];
 
 	/**
@@ -65,20 +71,44 @@ final class WapfMapper {
 		$fields        = [];
 		$unsupported   = [];
 		$seen_ids      = [];
+		$opf_ids_by_index = [];
+		$opf_ids_by_wapf_id = [];
+		$source_fields = is_array( $wapf['fields'] ?? null ) ? $wapf['fields'] : [];
 
-		foreach ( ( $wapf['fields'] ?? [] ) as $wapf_field ) {
+		// Generate every destination ID first so conditional references can point
+		// forward or backward in the source field order.
+		foreach ( $source_fields as $index => $wapf_field ) {
 			if ( ! is_array( $wapf_field ) ) {
+				$notes[] = sprintf( 'field at index %s is malformed and was skipped.', (string) $index );
+				$needs_review = true;
 				continue;
 			}
 			$wapf_type = (string) ( $wapf_field['type'] ?? 'text' );
-
 			if ( ! isset( self::TYPE_MAP[ $wapf_type ] ) ) {
 				$unsupported[] = $wapf_type . ':' . ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' );
 				continue;
 			}
-
 			$field_id = self::field_id( (string) ( $wapf_field['label'] ?? '' ), (string) ( $wapf_field['id'] ?? '' ), $seen_ids );
 			$seen_ids[ $field_id ] = true;
+			$opf_ids_by_index[ $index ] = $field_id;
+			$source_id = is_scalar( $wapf_field['id'] ?? null ) ? (string) $wapf_field['id'] : '';
+			if ( '' !== $source_id ) {
+				if ( array_key_exists( $source_id, $opf_ids_by_wapf_id ) ) {
+					$opf_ids_by_wapf_id[ $source_id ] = null;
+					$notes[] = sprintf( 'WAPF field ID "%s" is duplicated; conditions referencing it need review.', $source_id );
+					$needs_review = true;
+				} else {
+					$opf_ids_by_wapf_id[ $source_id ] = $field_id;
+				}
+			}
+		}
+
+		foreach ( $source_fields as $index => $wapf_field ) {
+			if ( ! is_array( $wapf_field ) || ! isset( $opf_ids_by_index[ $index ] ) ) {
+				continue;
+			}
+			$wapf_type = (string) ( $wapf_field['type'] ?? 'text' );
+			$field_id = $opf_ids_by_index[ $index ];
 
 			$has_choices = in_array( self::TYPE_MAP[ $wapf_type ], [ 'swatch', 'select', 'radio', 'checkbox' ], true );
 
@@ -92,9 +122,9 @@ final class WapfMapper {
 					'width'        => (int) ( $wapf_field['width'] ?? 100 ),
 					'css_class'    => (string) ( $wapf_field['class'] ?? '' ),
 					'placeholder'  => (string) ( $wapf_field['options']['placeholder'] ?? '' ),
-					'choices'      => $has_choices ? self::map_choices( $wapf_field, $notes ) : [],
-					'pricing'      => self::map_field_pricing( $wapf_field ),
-					'conditionals' => self::map_conditionals( $wapf_field, $notes, $seen_ids ),
+					'choices'      => $has_choices ? self::map_choices( $wapf_field, $notes, $needs_review ) : [],
+					'pricing'      => self::map_field_pricing( $wapf_field, $notes, $needs_review ),
+					'conditionals' => self::map_conditionals( $wapf_field, $notes, $opf_ids_by_wapf_id, $needs_review ),
 				]
 			);
 
@@ -136,7 +166,7 @@ final class WapfMapper {
 	 * @param string[]            $notes      Collector.
 	 * @return array<int,array>
 	 */
-	private static function map_choices( array $wapf_field, array &$notes ): array {
+	private static function map_choices( array $wapf_field, array &$notes, bool &$needs_review ): array {
 		$choices = [];
 		foreach ( ( $wapf_field['options']['choices'] ?? [] ) as $choice ) {
 			if ( ! is_array( $choice ) ) {
@@ -165,6 +195,7 @@ final class WapfMapper {
 					$formula = self::normalize_formula( (string) $amt );
 					if ( null === $formula ) {
 						$notes[] = sprintf( 'choice "%s" formula could not be translated: %s', $choice['label'] ?? $slug, (string) $amt );
+						$needs_review = true;
 						$pricing = [ 'type' => 'none', 'amount' => 0.0, 'formula' => '' ];
 					} else {
 						// formula_raw keeps the legacy expression (incl. its qty
@@ -176,6 +207,7 @@ final class WapfMapper {
 					break;
 				default:
 					$notes[] = sprintf( 'choice "%s" uses pricing type "%s" which is not supported; imported without pricing.', $choice['label'] ?? $slug, $ptype );
+					$needs_review = true;
 					break;
 			}
 
@@ -235,7 +267,7 @@ final class WapfMapper {
 	 * @param array<string,mixed> $wapf_field WAPF field.
 	 * @return array<string,mixed>
 	 */
-	private static function map_field_pricing( array $wapf_field ): array {
+	private static function map_field_pricing( array $wapf_field, array &$notes, bool &$needs_review ): array {
 		$pricing = $wapf_field['pricing'] ?? [];
 		if ( ! is_array( $pricing ) || empty( $pricing['enabled'] ) ) {
 			return [ 'type' => 'none', 'amount' => 0.0, 'formula' => '' ];
@@ -254,8 +286,12 @@ final class WapfMapper {
 				if ( null !== $formula ) {
 					return [ 'type' => 'formula', 'amount' => 0.0, 'formula' => $formula ];
 				}
+				$notes[] = sprintf( 'field "%s" formula could not be translated: %s', (string) ( $wapf_field['label'] ?? '?' ), (string) ( $pricing['amount'] ?? '' ) );
+				$needs_review = true;
 				break;
 		}
+		$notes[] = sprintf( 'field "%s" uses pricing type "%s" which is not supported.', (string) ( $wapf_field['label'] ?? '?' ), $type );
+		$needs_review = true;
 		return [ 'type' => 'none', 'amount' => 0.0, 'formula' => '' ];
 	}
 
@@ -267,25 +303,52 @@ final class WapfMapper {
 	 * @param array<string,bool>  $seen_ids   Known field ids (incl. later ones skipped below).
 	 * @return array<int,array>
 	 */
-	private static function map_conditionals( array $wapf_field, array &$notes, array $seen_ids ): array {
+	private static function map_conditionals( array $wapf_field, array &$notes, array $opf_ids_by_wapf_id, bool &$needs_review ): array {
 		$out = [];
-		foreach ( ( $wapf_field['conditionals'] ?? [] ) as $conditional ) {
+		$conditionals = $wapf_field['conditionals'] ?? [];
+		if ( ! is_array( $conditionals ) ) {
+			$notes[] = sprintf( 'field "%s" has malformed conditional data.', (string) ( $wapf_field['label'] ?? '?' ) );
+			$needs_review = true;
+			return $out;
+		}
+		foreach ( $conditionals as $conditional ) {
 			if ( ! is_array( $conditional ) ) {
+				$notes[] = sprintf( 'field "%s" has a malformed conditional block.', (string) ( $wapf_field['label'] ?? '?' ) );
+				$needs_review = true;
 				continue;
 			}
 			$rules = [];
-			foreach ( ( $conditional['rules'] ?? [] ) as $rule ) {
+			$source_rules = $conditional['rules'] ?? [];
+			if ( ! is_array( $source_rules ) ) {
+				$notes[] = sprintf( 'field "%s" has a malformed conditional rule list.', (string) ( $wapf_field['label'] ?? '?' ) );
+				$needs_review = true;
+				continue;
+			}
+			foreach ( $source_rules as $rule ) {
 				if ( ! is_array( $rule ) ) {
+					$notes[] = sprintf( 'field "%s" has a malformed conditional rule.', (string) ( $wapf_field['label'] ?? '?' ) );
+					$needs_review = true;
 					continue;
 				}
 				$condition = (string) ( $rule['condition'] ?? '' );
 				$operator  = self::CONDITION_MAP[ $condition ] ?? null;
-				$subject   = (string) ( $rule['subject'] ?? '' );
+				$source_field_id = is_scalar( $rule['field'] ?? $rule['subject'] ?? null ) ? (string) ( $rule['field'] ?? $rule['subject'] ) : '';
+				$subject = isset( $opf_ids_by_wapf_id[ $source_field_id ] ) && is_string( $opf_ids_by_wapf_id[ $source_field_id ] )
+					? $opf_ids_by_wapf_id[ $source_field_id ]
+					: '';
+				if ( 'check' === $condition ) {
+					$operator = 'is';
+				} elseif ( '!check' === $condition ) {
+					$operator = 'is_not';
+				}
 				if ( null === $operator || '' === $subject ) {
-					$notes[] = sprintf( 'conditional rule with condition "%s" dropped.', $condition );
+					$notes[] = '' === $subject
+						? sprintf( 'conditional rule references unavailable or ambiguous field ID "%s".', $source_field_id )
+						: sprintf( 'conditional rule with condition "%s" dropped.', $condition );
+					$needs_review = true;
 					continue;
 				}
-				$value = $rule['value'] ?? '';
+				$value = in_array( $condition, [ 'check', '!check' ], true ) ? '1' : ( $rule['value'] ?? '' );
 				if ( is_array( $value ) ) {
 					$value = implode( ', ', array_map( 'strval', $value ) );
 				}

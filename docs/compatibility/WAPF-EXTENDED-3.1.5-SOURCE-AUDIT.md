@@ -402,6 +402,21 @@ retrieved 2026-09-30 has SHA-256
 Official Free source and boundary references: [WordPress.org plugin page and
 changelog](https://wordpress.org/plugins/advanced-product-fields-for-woocommerce/)
 and [official Pro/Extended tier comparison](https://www.studiowombat.com/knowledge-base/whats-the-difference-between-each-version/).
+### Free 1.7.1 field-conditional serialization
+
+`includes/classes/class-conditions.php::get_field_visibility_conditions()`
+defines the Free field operators: text/email/URL/textarea use `empty`, `!empty`,
+`==`, and `!=`; number also uses `gt` and `lt`; true/false uses `check` and
+`!check`; select/checkboxes/radio use `empty`, `!empty`, `==`, and `!=`.
+`==contains` and `!=contains` are marked Pro-only for text-like values. The
+`Field` model serializes each condition as `{field, value, condition}`; the
+admin importer reads those same keys. OPF's WAPF mapper now consumes this
+source shape, preserves the supported rules, maps `true-false` to its toggle,
+remaps old field IDs to their generated OPF IDs even for forward references,
+and marks duplicate or unresolved references, unsupported rules, and pricing
+for review. Focused source-shaped tests cover the mapper and server/browser
+`not_contains` evaluators.
+
 ### Free 1.6.22 Gift Card changelog source check
 
 The official WordPress.org [Free 1.6.21 archive](https://downloads.wordpress.org/plugin/advanced-product-fields-for-woocommerce.1.6.21.zip)

@@ -80,6 +80,8 @@ final class Evaluator {
 				return ! self::rule_passes( [ 'field' => $rule['field'], 'operator' => 'is', 'value' => $expect ], $value );
 			case 'contains':
 				return false !== strpos( strtolower( $actual ), strtolower( $expect ) );
+			case 'not_contains':
+				return false === strpos( strtolower( $actual ), strtolower( $expect ) );
 			case 'greater':
 				return is_numeric( $actual ) && is_numeric( $expect ) && (float) $actual > (float) $expect;
 			case 'less':

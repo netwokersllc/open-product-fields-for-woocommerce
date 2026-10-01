@@ -36,6 +36,8 @@ const isVisible = ( field, values ) => {
 				return ! rulePasses( { ...rule, operator: 'is' } );
 			case 'contains':
 				return actual.toLowerCase().includes( expect.toLowerCase() );
+			case 'not_contains':
+				return ! actual.toLowerCase().includes( expect.toLowerCase() );
 			case 'greater':
 				return actual !== '' && Number( actual ) > Number( expect );
 			case 'less':
