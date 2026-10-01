@@ -326,9 +326,16 @@ const init = () => {
 			const template = first.cloneNode( true );
 			const max = Math.max( 1, Number( repeater.dataset.opfRepeatMax ) || 10000 );
 			const repeatDef = registry[ repeater.dataset.opfField ] || {};
+			const baseRowLabel = template.querySelector( '.opf-field-label span' );
+			const baseLabelText = baseRowLabel ? baseRowLabel.textContent : '';
 			const update = () => {
 				const instances = Array.from( rows.querySelectorAll( '[data-opf-repeat-instance]' ) );
 				instances.forEach( ( instance, index ) => {
+					const rowLabel = instance.querySelector( '.opf-field-label span' );
+					if ( rowLabel ) {
+						const customLabel = repeatDef.repeat && repeatDef.repeat.label;
+						rowLabel.textContent = index > 0 && customLabel ? customLabel.replace( /\{n\}/g, String( index ) ) : baseLabelText;
+					}
 					let remove = instance.querySelector( ':scope > .opf-field-repeat__remove' );
 					if ( ! remove ) {
 						remove = document.createElement( 'button' );

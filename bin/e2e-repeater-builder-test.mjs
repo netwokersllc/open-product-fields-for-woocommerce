@@ -44,16 +44,22 @@ const invalidBlocked = await page.evaluate(() => window.__opfSavedPayloads.lengt
 await page.locator('[data-opf-repeat-max="guest_name"]').fill('4');
 await page.locator('[data-opf-repeat-label="guest_name:add"]').fill('Add person');
 await page.locator('[data-opf-repeat-label="guest_name:del"]').fill('Remove person');
+await page.locator('[data-opf-repeat-label="guest_name:label"]').fill('Person {n}');
 await page.getByRole('button', { name: 'Save' }).click();
 await page.waitForFunction(() => window.__opfSavedPayloads.length === 1);
 const result = await page.evaluate(() => window.__opfSavedPayloads[0].data.fields);
 const mode = await page.locator('[data-opf-repeat-mode="ticket_code"]').inputValue();
+await page.locator('[data-opf-repeat-label="ticket_code:label"]').fill('Ticket {n}');
+await page.getByRole('button', { name: 'Save' }).click();
+await page.waitForFunction(() => window.__opfSavedPayloads.length === 2);
+const quantityRepeat = await page.evaluate(() => window.__opfSavedPayloads[1].data.fields[2].repeat);
 const quantityWarning = await page.locator('.opf-b-repeat-notice').count();
 const ok = defaultMax === '10000'
 	&& invalidBlocked
-	&& JSON.stringify(result[0].repeat) === JSON.stringify({ enabled: true, mode: 'button', max: 4, add: 'Add person', del: 'Remove person' })
+	&& JSON.stringify(result[0].repeat) === JSON.stringify({ enabled: true, mode: 'button', max: 4, add: 'Add person', del: 'Remove person', label: 'Person {n}' })
 	&& JSON.stringify(result[1].repeat) === JSON.stringify({ enabled: true, mode: 'button', max: 9 })
 	&& JSON.stringify(result[2].repeat) === JSON.stringify({ enabled: true, mode: 'quantity' })
+	&& JSON.stringify(quantityRepeat) === JSON.stringify({ enabled: true, mode: 'quantity', label: 'Ticket {n}' })
 	&& mode === 'quantity'
 	&& quantityWarning === 0
 	&& errors.length === 0;

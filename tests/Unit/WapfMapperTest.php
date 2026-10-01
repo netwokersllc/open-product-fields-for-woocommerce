@@ -249,19 +249,18 @@ final class WapfMapperTest extends TestCase {
 		] ] ] );
 
 		$this->assertTrue( $mapped['needs_review'] );
-		$this->assertSame( [ 'enabled' => true, 'mode' => 'button', 'max' => 2000, 'add' => 'Add attendee', 'del' => 'Remove attendee' ], $mapped['group']['fields'][0]['repeat'] );
-		$this->assertStringContainsString( 'custom repeated-field label', implode( ' ', $mapped['notes'] ) );
+		$this->assertSame( [ 'enabled' => true, 'mode' => 'button', 'max' => 2000, 'add' => 'Add attendee', 'del' => 'Remove attendee', 'label' => 'Attendee {n}' ], $mapped['group']['fields'][0]['repeat'] );
 		$this->assertStringContainsString( 'unsupported WAPF clone settings (vendor_option)', implode( ' ', $mapped['notes'] ) );
 	}
 
 	public function test_maps_supported_button_repeat_labels_without_review(): void {
 		$mapped = WapfMapper::map( [ 'fields' => [ [
 			'id' => 'guest', 'label' => 'Guest', 'type' => 'text',
-			'clone' => [ 'enabled' => true, 'type' => 'button', 'max' => 4, 'add' => 'Add guest', 'del' => 'Remove guest' ],
+			'clone' => [ 'enabled' => true, 'type' => 'button', 'max' => 4, 'add' => 'Add guest', 'del' => 'Remove guest', 'label' => 'Guest {n}' ],
 		] ] ] );
 
 		$this->assertFalse( $mapped['needs_review'] );
-		$this->assertSame( [ 'enabled' => true, 'mode' => 'button', 'max' => 4, 'add' => 'Add guest', 'del' => 'Remove guest' ], $mapped['group']['fields'][0]['repeat'] );
+		$this->assertSame( [ 'enabled' => true, 'mode' => 'button', 'max' => 4, 'add' => 'Add guest', 'del' => 'Remove guest', 'label' => 'Guest {n}' ], $mapped['group']['fields'][0]['repeat'] );
 	}
 
 	public function test_flags_wapf_button_maxima_outside_integer_range(): void {
@@ -272,7 +271,7 @@ final class WapfMapperTest extends TestCase {
 
 		$this->assertTrue( $mapped['needs_review'] );
 		$this->assertArrayNotHasKey( 'repeat', $mapped['group']['fields'][0] );
-		$this->assertStringContainsString( 'invalid or unrepresentable button repeater settings', implode( ' ', $mapped['notes'] ) );
+		$this->assertStringContainsString( 'invalid or unrepresentable repeater settings', implode( ' ', $mapped['notes'] ) );
 	}
 
 	public function test_flags_clone_settings_on_a_section_end_without_throwing(): void {

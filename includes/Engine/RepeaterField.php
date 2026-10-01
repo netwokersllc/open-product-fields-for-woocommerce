@@ -21,7 +21,7 @@ final class RepeaterField {
 		if ( ! is_array( $raw ) ) {
 			throw new \InvalidArgumentException( 'Repeater settings must be an object.' );
 		}
-		$unknown = array_diff( array_keys( $raw ), [ 'enabled', 'mode', 'max', 'add', 'del' ] );
+		$unknown = array_diff( array_keys( $raw ), [ 'enabled', 'mode', 'max', 'add', 'del', 'label' ] );
 		if ( $unknown ) {
 			throw new \InvalidArgumentException( 'Repeater settings contain unsupported keys.' );
 		}
@@ -39,11 +39,9 @@ final class RepeaterField {
 		if ( ! in_array( $mode, [ 'button', 'quantity' ], true ) ) {
 			throw new \InvalidArgumentException( 'Repeater mode must be button or quantity.' );
 		}
-		if ( 'quantity' === $mode ) {
-			return [ 'enabled' => true, 'mode' => 'quantity' ];
-		}
 		$labels = [];
-		foreach ( [ 'add', 'del' ] as $key ) {
+		$label_keys = 'quantity' === $mode ? [ 'label' ] : [ 'add', 'del', 'label' ];
+		foreach ( $label_keys as $key ) {
 			if ( ! array_key_exists( $key, $raw ) ) {
 				continue;
 			}
@@ -58,6 +56,9 @@ final class RepeaterField {
 			if ( '' !== $value ) {
 				$labels[ $key ] = $value;
 			}
+		}
+		if ( 'quantity' === $mode ) {
+			return array_merge( [ 'enabled' => true, 'mode' => 'quantity' ], $labels );
 		}
 		$max = $raw['max'] ?? self::DEFAULT_BUTTON_ROWS;
 		if ( ! is_int( $max ) && ! ( is_string( $max ) && preg_match( '/^[0-9]+$/', $max ) ) ) {

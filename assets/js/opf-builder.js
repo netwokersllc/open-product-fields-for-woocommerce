@@ -397,6 +397,12 @@
 						repeatSettings.appendChild( labeledControl( setting[ 1 ], labelInput ) );
 					} );
 				}
+				var duplicateLabel = el( 'input', { class: 'opf-b-input', type: 'text', maxlength: '200', value: field.repeat.label || '', 'data-opf-repeat-label': field.id + ':label' } );
+				duplicateLabel.addEventListener( 'input', function () {
+					if ( duplicateLabel.value.trim() ) field.repeat.label = duplicateLabel.value.trim();
+					else delete field.repeat.label;
+				} );
+				repeatSettings.appendChild( labeledControl( 'Duplicate row label ({n} is the row number)', duplicateLabel ) );
 			}
 			card.appendChild( repeatSettings );
 		} else if ( field.repeat && field.repeat.enabled ) {

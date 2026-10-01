@@ -325,17 +325,20 @@ final class CartIntegration {
 				}
 				$raw = $group_values[ $fid ];
 				if ( ! empty( $field['repeat']['enabled'] ) ) {
-					$display_rows = [];
 					foreach ( (array) $raw as $index => $row ) {
 						if ( null === $row || '' === $row || [] === $row ) {
 							continue;
 						}
 						$row_display = self::display_value( $field, $row );
 						if ( '' !== $row_display ) {
-							$display_rows[] = sprintf( '%d. %s', $index + 1, $row_display );
+							$label = (string) $field['label'];
+							if ( $index > 0 && ! empty( $field['repeat']['label'] ) ) {
+								$label = str_replace( '{n}', (string) $index, $field['repeat']['label'] );
+							}
+							$out[] = [ 'label' => $label, 'value' => $row_display ];
 						}
 					}
-					$value = implode( '; ', $display_rows );
+					continue;
 				} elseif ( '' === $raw || [] === $raw ) {
 					continue;
 				} else {

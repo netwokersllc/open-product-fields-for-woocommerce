@@ -271,6 +271,9 @@ final class WapfMapper {
 
 		$repeat = [ 'enabled' => true, 'mode' => 'qty' === $type ? 'quantity' : 'button' ];
 		$can_map_repeat = true;
+		if ( array_key_exists( 'label', $clone ) ) {
+			$repeat['label'] = $clone['label'];
+		}
 		if ( 'button' === $type ) {
 			$max = $clone['max'] ?? RepeaterField::DEFAULT_BUTTON_ROWS;
 			if ( '' === $max ) {
@@ -281,18 +284,14 @@ final class WapfMapper {
 					$repeat[ $key ] = $clone[ $key ];
 				}
 			}
-			try {
-				$repeat = RepeaterField::normalize( array_merge( $repeat, [ 'max' => $max ] ) );
-			} catch ( \InvalidArgumentException $exception ) {
-				$notes[] = sprintf( 'field "%s" has invalid or unrepresentable button repeater settings; the repeat settings need manual review.', $label );
-				$needs_review = true;
-				$can_map_repeat = false;
-			}
+			$repeat['max'] = $max;
 		}
-
-		if ( ! empty( $clone['label'] ) ) {
-			$notes[] = sprintf( 'field "%s" uses a custom repeated-field label that OPF does not preserve yet.', $label );
+		try {
+			$repeat = RepeaterField::normalize( $repeat );
+		} catch ( \InvalidArgumentException $exception ) {
+			$notes[] = sprintf( 'field "%s" has invalid or unrepresentable repeater settings; the repeat settings need manual review.', $label );
 			$needs_review = true;
+			$can_map_repeat = false;
 		}
 		if ( 'qty' === $type || 'section' === ( $wapf_field['type'] ?? '' ) ) {
 			$notes[] = sprintf( 'field "%s" uses quantity or section repeat behavior that OPF does not implement yet.', $label );
