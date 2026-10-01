@@ -22,3 +22,5 @@ User-facing changes to Open Product Fields for WooCommerce.
   WAPF repeated-section settings stay review-required.
 - WAPF button and quantity clone modes import into review drafts, preserving
   recognized modes and in-range button maxima for later migration work.
+- Repeated fields and sections evaluate child conditions and date-based pricing
+  formulas against values from the matching clone in browser totals and carts.

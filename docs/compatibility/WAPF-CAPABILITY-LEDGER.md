@@ -379,3 +379,16 @@ block cart/checkout, order storage, order email/meta, and order-again, as
 applicable. Migration tests must also prove that unsupported source data blocks
 publication with an actionable report, never silent data loss. Schema
 normalization and fixture-shape validation alone cannot promote a status.
+
+## Repeater clone-context evidence — 2026-10-01
+
+The repeater rows above remain `partial`. OPF now validates repeated child
+conditionals against same-index values on the server, and the browser fixture
+proves per-clone visibility for a button section. A guarded Store API test
+proves a quantity-section formula `month([field.guest_date])` prices two clone
+lines from their own dates ($13 and $15 including the fixed choice add-on); a
+Chromium fixture proves the matching browser preview total ($15 for both
+clones). Formula behavior for additional functions/custom variables inside
+clones, button-section formula pricing, and the full checkout/Blocks/order
+lifecycle remain open. Evidence: `bin/e2e-repeater-section-values.php` and
+`tests/js/opf-repeater-browser-test.mjs`.

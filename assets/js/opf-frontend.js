@@ -764,6 +764,45 @@ const writeTotals = () => {
     const gid = groupEl.getAttribute('data-opf-group');
     const values = {};
     const fields = groupEl.querySelectorAll('[data-opf-field]');
+    const readControlValue = (element, def) => {
+      if (def.type === 'toggle') {
+        const checkbox = element.querySelector('input[type="checkbox"]');
+        return checkbox && checkbox.checked ? '1' : '0';
+      }
+      if (def.type === 'checkbox' || (def.type === 'swatch' && def.multiple)) {
+        return Array.from(element.querySelectorAll('input[type="checkbox"]:checked')).map((input) => input.value);
+      }
+      const checked = element.querySelector('input:checked');
+      const input = checked || element.querySelector('input:not([type="hidden"]), textarea, select');
+      return input ? input.value : '';
+    };
+    const readFieldControl = (fieldEl, def) => fieldEl.matches('[data-opf-repeat]')
+      ? Array.from(fieldEl.querySelectorAll('.opf-field-repeat__rows > [data-opf-repeat-instance]')).map((instance) => readControlValue(instance, def))
+      : readControlValue(fieldEl, def);
+    const valuesForFormula = (fieldEl, rowIndex = null) => {
+      const scoped = { ...values };
+      const sectionInstance = fieldEl.closest('[data-opf-section-repeat] [data-opf-repeat-instance]');
+      if (sectionInstance) {
+        sectionInstance.querySelectorAll('[data-opf-field]').forEach((scopedField) => {
+          if (scopedField.hasAttribute('data-opf-section-repeat')) return;
+          const scopedId = scopedField.getAttribute('data-opf-field');
+          const scopedDef = (window.OPF_FIELDS || {})[gid]?.[scopedId] || {};
+          scoped[scopedId] = readFieldControl(scopedField, scopedDef);
+        });
+      }
+      if (rowIndex !== null) {
+        fields.forEach((scopedField) => {
+          if (!scopedField.matches('[data-opf-repeat]') || scopedField.hasAttribute('data-opf-section-repeat')) return;
+          const instances = scopedField.querySelectorAll('.opf-field-repeat__rows > [data-opf-repeat-instance]');
+          if (!instances[rowIndex]) return;
+          const scopedId = scopedField.getAttribute('data-opf-field');
+          const scopedDef = (window.OPF_FIELDS || {})[gid]?.[scopedId] || {};
+          const instance = instances[rowIndex];
+          scoped[scopedId] = readControlValue(instance, scopedDef);
+        });
+      }
+      return scoped;
+    };
     fields.forEach((fieldEl) => {
       const fid = fieldEl.getAttribute('data-opf-field');
       const repeatRows = fieldEl.matches('[data-opf-repeat]') ? Array.from(fieldEl.querySelectorAll('[data-opf-repeat-instance]')) : null;
@@ -795,10 +834,14 @@ const writeTotals = () => {
       // conditional visibility: hidden fields contribute nothing
       const container = fieldEl;
       if (container.hasAttribute('hidden')) return;
-      const value = values[fid];
-      const addon = fieldEl.matches('[data-opf-repeat]')
-        ? value.reduce((sum, rowValue) => sum + choiceOrFieldAddon(def, rowValue, base, qty, optionsTotal + sum, typeof rowValue === 'string' ? rowValue : '', values), 0)
-        : choiceOrFieldAddon(def, value, base, qty, optionsTotal, value && typeof value === 'string' ? value : '', values);
+      const sectionInstance = fieldEl.closest('[data-opf-section-repeat] [data-opf-repeat-instance]');
+      const sectionRepeater = sectionInstance && sectionInstance.closest('[data-opf-section-repeat]');
+      const sectionRows = sectionRepeater ? Array.from(sectionRepeater.querySelectorAll('.opf-field-repeat__rows > [data-opf-repeat-instance]')) : [];
+      const sectionIndex = sectionInstance ? sectionRows.indexOf(sectionInstance) : null;
+      const value = sectionInstance ? readFieldControl(fieldEl, def) : values[fid];
+      const addon = fieldEl.matches('[data-opf-repeat]') && Array.isArray(value)
+        ? value.reduce((sum, rowValue, rowIndex) => sum + choiceOrFieldAddon(def, rowValue, base, qty, optionsTotal + sum, typeof rowValue === 'string' ? rowValue : '', valuesForFormula(fieldEl, rowIndex)), 0)
+        : choiceOrFieldAddon(def, value, base, qty, optionsTotal, value && typeof value === 'string' ? value : '', valuesForFormula(fieldEl, sectionIndex));
       optionsTotal += addon;
     });
   });

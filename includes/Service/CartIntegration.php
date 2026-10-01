@@ -398,12 +398,35 @@ final class CartIntegration {
 				if ( ! array_key_exists( $fid, $group_values ) ) {
 					continue;
 				}
-				if ( ! Evaluator::is_visible( $field, $group_values ) ) {
-					continue;
-				}
 				$priced_field = $field;
 				if ( empty( $priced_field['repeat']['enabled'] ) && isset( $section_repeats[ $fid ] ) ) {
 					$priced_field['repeat'] = $section_repeats[ $fid ];
+				}
+				if ( ! empty( $priced_field['repeat']['enabled'] ) ) {
+					$instance_field = $priced_field;
+					unset( $instance_field['repeat'] );
+					$rows = is_array( $group_values[ $fid ] ) ? $group_values[ $fid ] : [ $group_values[ $fid ] ];
+					foreach ( $rows as $row_index => $row_value ) {
+						$clone_values = self::values_for_clone( $group->data['fields'], $group_values, $section_repeats, (int) $row_index );
+						if ( ! Evaluator::is_visible( $field, $clone_values ) ) {
+							continue;
+						}
+						$per_unit += Calculator::field_addon(
+							$instance_field,
+							$row_value,
+							[
+								'price'        => $base,
+								'qty'          => $quantity,
+								'addons'       => $per_unit,
+								'field_values' => $clone_values,
+								'product_id'   => $product->get_id(),
+							]
+						);
+					}
+					continue;
+				}
+				if ( ! Evaluator::is_visible( $field, $group_values ) ) {
+					continue;
 				}
 				$per_unit += Calculator::field_addon(
 					$priced_field,
