@@ -321,7 +321,9 @@ sanitizes it with the corresponding restricted HTML allowlist, optionally
 processes registered shortcodes after sanitization, and serializes it back as
 WAPF `p` content in JSON and WXR exports. Focused PHPUnit coverage passes for
 mapping, render sanitization/order, JSON round trip, and WXR serialization.
-Disposable live WAPF importer/frontend proof remains open.
+On 2026-10-01 a guarded WXR import into disposable WordPress with Extended
+3.1.5 confirmed the `p` type and exact `p_content`. Live storefront HTML and
+shortcode output remain unverified.
 
 `SW_WAPF_Config::get_pricing_options()` separately registers the general
 `fixed`, `qt`, `p`, `percent`, and `fx` price types; text-like fields add
