@@ -14,7 +14,7 @@ const check = (name, ok) => {
 
 await page.setContent(`<div data-opf-group="demo"><div data-opf-field="delivery_date">
 	<label for="date-input">Delivery date</label>
-	<input id="date-input" type="date" value="2026-06-15" data-opf-date-format="d/m/yy" data-opf-disabled-weekdays="[0]" data-opf-disabled-dates='["2026-06-17","2026-06-20 2026-06-22","12-24 01-03"]' data-opf-date-cutoff="14:30" data-opf-date-site-epoch="1781535600" data-opf-date-timezone="UTC">
+	<input id="date-input" type="date" value="2026-06-15" data-opf-date-format="d/m/yy" data-opf-week-start="1" data-opf-disabled-weekdays="[0]" data-opf-disabled-dates='["2026-06-17","2026-06-20 2026-06-22","12-24 01-03"]' data-opf-date-cutoff="14:30" data-opf-date-site-epoch="1781535600" data-opf-date-timezone="UTC">
 </div></div>`);
 await page.addScriptTag({ path: 'assets/js/opf-frontend.js' });
 await page.addStyleTag({ path: 'assets/css/opf-frontend.css' });
@@ -24,6 +24,9 @@ const toggle = field.locator('.opf-date-picker__toggle');
 await toggle.click();
 const calendar = field.getByRole('dialog', { name: 'Choose a date' });
 check('accessible calendar opens', await calendar.isVisible());
+check('month and year are announced when the displayed month changes', await field.locator('.opf-date-picker__header strong[aria-live="polite"][aria-atomic="true"]').textContent() === 'June 2026');
+check('calendar days are buttons inside selectable grid cells', await field.locator('[role="gridcell"] button[data-opf-date]').count() > 0 && !(await field.locator('button[data-opf-date][role="gridcell"]').count()));
+check('calendar weekdays start on the configured Monday', await field.locator('[role="columnheader"]').first().textContent() === 'Mon');
 await page.screenshot({ path: '/tmp/opf-date-blackout.png', fullPage: true });
 check('disabled weekday is unavailable', await field.locator('[data-opf-date="2026-06-21"]').isDisabled());
 check('disabled exact date is unavailable', await field.locator('[data-opf-date="2026-06-17"]').isDisabled());
@@ -33,14 +36,32 @@ check('valid date remains selectable', !(await field.locator('[data-opf-date="20
 check('calendar toggle uses configured display format', await toggle.textContent() === '15/6/26');
 await field.locator('[data-opf-date="2026-06-23"]').click();
 check('calendar selection updates submitted native date', await input.inputValue() === '2026-06-23');
+check('selected date is exposed on its calendar cell', await field.locator('[role="gridcell"][aria-selected="true"] button[data-opf-date="2026-06-23"]').count() === 1);
 check('calendar closes after selection', !(await calendar.isVisible()));
 await toggle.click();
 await field.locator('[data-opf-date="2026-06-23"]').focus();
 await page.keyboard.press('ArrowRight');
 check('keyboard navigation skips disabled dates', await page.locator(':focus').getAttribute('data-opf-date') === '2026-06-24');
+await page.keyboard.press('PageUp');
+check('Page Up moves focus to the nearest selectable day in the previous month', await page.locator(':focus').getAttribute('data-opf-date') === '2026-05-23');
+check('previous month is announced', await field.locator('.opf-date-picker__header strong').textContent() === 'May 2026');
+await page.keyboard.press('Shift+PageUp');
+check('Shift+Page Up moves focus to the nearest selectable day in the previous year', await page.locator(':focus').getAttribute('data-opf-date') === '2025-05-23');
+await page.keyboard.press('Shift+PageDown');
+check('Shift+Page Down returns focus to the nearest selectable day in the next year', await page.locator(':focus').getAttribute('data-opf-date') === '2026-05-23');
+await page.keyboard.press('PageDown');
+check('Page Down moves focus to the nearest selectable day in the next month', await page.locator(':focus').getAttribute('data-opf-date') === '2026-06-23');
+await input.evaluate((node) => { node.dataset.opfDisabledWeekdays = '[]'; node.dataset.opfDisabledDates = '[]'; node.dataset.opfDateCutoff = ''; node.opfRenderDateCalendar(); });
+await field.locator('[data-opf-date="2026-06-24"]').focus();
+await page.keyboard.press('Home');
+check('Home moves to the first day of the configured week', await page.locator(':focus').getAttribute('data-opf-date') === '2026-06-22');
+await page.keyboard.press('End');
+check('End moves to the last day of the configured week', await page.locator(':focus').getAttribute('data-opf-date') === '2026-06-28');
+await field.locator('[data-opf-date="2026-06-24"]').focus();
 check('selected display is formatted while input stays canonical ISO', await toggle.textContent() === '23/6/26' && await field.locator('input[type="date"]').inputValue() === '2026-06-23');
 await page.keyboard.press('Escape');
 check('Escape closes calendar and returns focus', !(await calendar.isVisible()) && await toggle.evaluate((node) => node === document.activeElement));
+await input.evaluate((node) => { node.dataset.opfDisabledDates = '["2026-06-17"]'; });
 await input.fill('2026-06-17');
 check('typing a disabled date sets native custom validity', await input.evaluate((node) => node.validity.customError));
 await input.fill('2026-06-23');

@@ -337,7 +337,12 @@
 	gap: 0.2rem;
 }
 
+.opf-date-picker__grid [role="gridcell"] {
+	min-width: 0;
+}
+
 .opf-date-picker__grid button {
+	width: 100%;
 	min-height: 2rem;
 	border: 0;
 	border-radius: 0.25rem;
@@ -346,7 +351,7 @@
 }
 
 .opf-date-picker__grid button:hover:not(:disabled),
-.opf-date-picker__grid button[aria-pressed="true"] { background: rgb(0 0 0 / 0.1); }
+.opf-date-picker__grid [aria-selected="true"] button { background: rgb(0 0 0 / 0.1); }
 
 .opf-date-picker__grid button:focus-visible,
 .opf-date-picker__header button:focus-visible,

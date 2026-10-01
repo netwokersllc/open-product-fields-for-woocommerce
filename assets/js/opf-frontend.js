@@ -156,6 +156,9 @@ const initDatePicker = ( fieldEl, input ) => {
 	previous.textContent = '‹';
 	previous.setAttribute( 'aria-label', 'Previous month' );
 	const monthLabel = document.createElement( 'strong' );
+	monthLabel.id = input.id + '-calendar-month';
+	monthLabel.setAttribute( 'aria-live', 'polite' );
+	monthLabel.setAttribute( 'aria-atomic', 'true' );
 	const next = document.createElement( 'button' );
 	next.type = 'button';
 	next.textContent = '›';
@@ -200,20 +203,26 @@ const initDatePicker = ( fieldEl, input ) => {
 		const dayCount = new Date( Date.UTC( month.getUTCFullYear(), month.getUTCMonth() + 1, 0 ) ).getUTCDate();
 		let row = document.createElement( 'div' );
 		row.setAttribute( 'role', 'row' );
-		for ( let blank = 0; blank < blanks; blank++ ) row.appendChild( document.createElement( 'span' ) );
+		for ( let blank = 0; blank < blanks; blank++ ) {
+			const emptyCell = document.createElement( 'span' );
+			emptyCell.setAttribute( 'role', 'gridcell' );
+			emptyCell.setAttribute( 'aria-hidden', 'true' );
+			row.appendChild( emptyCell );
+		}
 		let tabStopSet = false;
 		for ( let day = 1; day <= dayCount; day++ ) {
 			const isoDate = visibleMonth.slice( 0, 7 ) + '-' + String( day ).padStart( 2, '0' );
 			const choice = document.createElement( 'button' );
+			const cell = document.createElement( 'span' );
 			choice.type = 'button';
 			choice.textContent = String( day );
 			choice.dataset.opfDate = isoDate;
-			choice.setAttribute( 'role', 'gridcell' );
 			choice.setAttribute( 'aria-label', new Intl.DateTimeFormat( undefined, { dateStyle: 'full', timeZone: 'UTC' } ).format( new Date( isoDate + 'T00:00:00Z' ) ) );
 			choice.disabled = dateIsBlocked( input, isoDate );
 			choice.tabIndex = ! choice.disabled && ! tabStopSet && ( isoDate === input.value || ! input.value ) ? 0 : -1;
 			if ( choice.tabIndex === 0 ) tabStopSet = true;
-			if ( isoDate === input.value ) choice.setAttribute( 'aria-pressed', 'true' );
+			cell.setAttribute( 'role', 'gridcell' );
+			if ( isoDate === input.value ) cell.setAttribute( 'aria-selected', 'true' );
 			choice.addEventListener( 'click', () => {
 				input.value = isoDate;
 				input.dispatchEvent( new Event( 'input', { bubbles: true } ) );
@@ -223,7 +232,8 @@ const initDatePicker = ( fieldEl, input ) => {
 				toggle.textContent = displayDate( isoDate );
 				toggle.focus();
 			} );
-			row.appendChild( choice );
+			cell.appendChild( choice );
+			row.appendChild( cell );
 			if ( ( blanks + day ) % 7 === 0 ) {
 				grid.appendChild( row );
 				row = document.createElement( 'div' );
@@ -241,13 +251,29 @@ const initDatePicker = ( fieldEl, input ) => {
 		visibleMonth = month.toISOString().slice( 0, 7 ) + '-01';
 		render();
 	};
+	const focusDateInMonth = ( year, monthIndex, day ) => {
+		const lastDay = new Date( Date.UTC( year, monthIndex + 1, 0 ) ).getUTCDate();
+		const target = Math.min( day, lastDay );
+		for ( let distance = 0; distance < lastDay; distance++ ) {
+			for ( const direction of distance ? [ -1, 1 ] : [ 1 ] ) {
+				const candidateDay = target + distance * direction;
+				if ( candidateDay < 1 || candidateDay > lastDay ) continue;
+				const isoDate = year + '-' + String( monthIndex + 1 ).padStart( 2, '0' ) + '-' + String( candidateDay ).padStart( 2, '0' );
+				const button = grid.querySelector( 'button[data-opf-date="' + isoDate + '"]:not(:disabled)' );
+				if ( ! button ) continue;
+				grid.querySelectorAll( 'button[data-opf-date]' ).forEach( ( dayButton ) => { dayButton.tabIndex = dayButton === button ? 0 : -1; } );
+				button.focus();
+				return;
+			}
+		}
+	};
 	previous.addEventListener( 'click', () => changeMonth( -1 ) );
 	next.addEventListener( 'click', () => changeMonth( 1 ) );
 	toggle.addEventListener( 'click', () => {
 		panel.hidden = ! panel.hidden;
 		toggle.setAttribute( 'aria-expanded', String( ! panel.hidden ) );
 		render();
-		if ( ! panel.hidden ) ( grid.querySelector( '[aria-pressed="true"]:not(:disabled)' ) || grid.querySelector( '[tabindex="0"]' ) || next ).focus();
+		if ( ! panel.hidden ) ( grid.querySelector( '[aria-selected="true"] button:not(:disabled)' ) || grid.querySelector( '[tabindex="0"]' ) || next ).focus();
 	} );
 	panel.addEventListener( 'keydown', ( event ) => {
 		if ( 'Escape' === event.key ) {
@@ -261,6 +287,15 @@ const initDatePicker = ( fieldEl, input ) => {
 		const current = event.target.closest( 'button[data-opf-date]' );
 		if ( ! current ) return;
 		let amount = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[ event.key ];
+		if ( 'PageUp' === event.key || 'PageDown' === event.key ) {
+			const monthDelta = ( 'PageUp' === event.key ? -1 : 1 ) * ( event.shiftKey ? 12 : 1 );
+			const currentDate = new Date( current.dataset.opfDate + 'T00:00:00Z' );
+			const targetMonth = new Date( Date.UTC( currentDate.getUTCFullYear(), currentDate.getUTCMonth() + monthDelta, 1 ) );
+			changeMonth( monthDelta );
+			focusDateInMonth( targetMonth.getUTCFullYear(), targetMonth.getUTCMonth(), currentDate.getUTCDate() );
+			event.preventDefault();
+			return;
+		}
 		if ( 'Home' === event.key ) amount = -(( new Date( current.dataset.opfDate + 'T00:00:00Z' ).getUTCDay() - weekStart + 7 ) % 7 );
 		if ( 'End' === event.key ) amount = 6 - (( new Date( current.dataset.opfDate + 'T00:00:00Z' ).getUTCDay() - weekStart + 7 ) % 7 );
 		if ( null === amount || undefined === amount ) return;
