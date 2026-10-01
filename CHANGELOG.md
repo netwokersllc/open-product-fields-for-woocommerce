@@ -12,9 +12,9 @@ User-facing changes to Open Product Fields for WooCommerce.
   configured date values, including `today()` and validated sibling fields.
 - Extended `checked(field ID)` formulas now count selected multi-select values
   in server pricing and browser totals.
-- Formula pricing resolves prior-field `[price.ID]` references in server carts
-  and browser totals; imported forward or self references remain flagged for
-  review.
+- Formula pricing resolves prior-field `[price.ID]` references across groups
+  in server carts and browser totals; imported forward or self references
+  remain flagged for review.
 - WAPF formula imports remap recognized field references to generated OPF IDs
   and flag references that cannot be resolved safely.
 - Text, image, and color swatches can accept multiple selections, with minimum

@@ -379,6 +379,7 @@ final class CartIntegration {
 	 */
 	public static function addons_per_unit( \WC_Product $product, array $values, float $base, int $quantity ): float {
 		$per_unit = 0.0;
+		$field_prices = [];
 
 		foreach ( FieldGroups::for_product( $product ) as $entry ) {
 			$gid   = (string) $entry['id'];
@@ -389,7 +390,6 @@ final class CartIntegration {
 			}
 
 			$group_values = (array) $values[ $gid ];
-			$field_prices = [];
 
 			foreach ( $group->data['fields'] as $field ) {
 				if ( in_array( $field['type'], [ 'paragraph', 'section', 'section_end' ], true ) ) {
@@ -434,7 +434,9 @@ final class CartIntegration {
 						$row_prices[ $row_index ] = $row_addon;
 						$per_unit += $row_addon;
 					}
-					$field_prices[ $fid ] = $row_prices;
+					if ( ! array_key_exists( $fid, $field_prices ) ) {
+						$field_prices[ $fid ] = $row_prices;
+					}
 					continue;
 				}
 				if ( ! Evaluator::is_visible( $field, $group_values ) ) {
@@ -452,7 +454,9 @@ final class CartIntegration {
 						'product_id' => $product->get_id(),
 					]
 				);
-				$field_prices[ $fid ] = $field_addon;
+				if ( ! array_key_exists( $fid, $field_prices ) ) {
+					$field_prices[ $fid ] = $field_addon;
+				}
 				$per_unit += $field_addon;
 			}
 		}

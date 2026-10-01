@@ -936,10 +936,10 @@ const writeTotals = () => {
   const qty = Math.max(1, parseInt(qtyInput && qtyInput.value, 10) || 1);
 
   let optionsTotal = 0;
+  const fieldPrices = {};
   document.querySelectorAll('[data-opf-group]').forEach((groupEl) => {
     const gid = groupEl.getAttribute('data-opf-group');
     const values = {};
-    const fieldPrices = {};
     const fields = groupEl.querySelectorAll('[data-opf-field]');
     const readControlValue = (element, def) => {
       if (def.type === 'toggle') {
@@ -1028,10 +1028,10 @@ const writeTotals = () => {
           rowPrices[rowIndex] = rowAddon;
           return sum + rowAddon;
         }, 0);
-        fieldPrices[fid] = rowPrices;
+        if (!Object.prototype.hasOwnProperty.call(fieldPrices, fid)) fieldPrices[fid] = rowPrices;
       } else {
         addon = choiceOrFieldAddon(def, value, base, qty, optionsTotal, value && typeof value === 'string' ? value : '', valuesForFormula(fieldEl, sectionIndex), fieldPrices);
-        fieldPrices[fid] = addon;
+        if (!Object.prototype.hasOwnProperty.call(fieldPrices, fid)) fieldPrices[fid] = addon;
       }
       optionsTotal += addon;
     });
