@@ -217,6 +217,71 @@ find . -path './vendor' -prune -o -path './tests' -prune -o -path './bin' -prune
   | xargs -0 -n1 /tmp/opf-php74/root/usr/bin/php7.4 -l
 ```
 
+## PHP 7.1 archive JSON follow-up — 2026-10-01
+
+This slice started from public branch `feat/opf-archive-import` at
+`8df76b44e28c72023d833138b22b6617ac4285a1`, verified with:
+
+```sh
+git ls-remote https://github.com/networkersoss/open-product-fields-for-woocommerce.git refs/heads/feat/opf-archive-import
+```
+
+`ArchiveImporter::decode()` now uses `json_decode()` plus immediate
+`json_last_error()` checking when `JSON_THROW_ON_ERROR` is unavailable. PHP
+7.3+ retains its existing throwing decode and chained `JsonException`. The
+fallback reports the same public `InvalidArgumentException` message for invalid
+JSON. Neither path changes the depth limit, archive schema checks, size limit,
+group normalization, or writes. Headers and Composer still declare PHP 7.4,
+WordPress 6.5, and WooCommerce 9.0.
+
+The standalone `tests/fixtures/archive-json-floor.php` probe loads the real
+importer and converts PHP warnings to exceptions. Before the repair, native PHP
+7.1.33 passed only the oversized-input case; the other 11 cases failed with
+`Use of undefined constant JSON_THROW_ON_ERROR`. After the repair, all 12 cases
+pass on PHP 7.1.33, PHP 7.4.33, and PHP 8.5.11: valid empty archive with Unicode
+scope metadata, truncated/trailing/empty JSON, invalid UTF-8 and UTF-16,
+excessive depth, JSON null/scalar, unsupported format version, oversized input,
+and valid decode after invalid input. Modern runs also preserve the chained
+`JsonException` and successful decoding after an unrelated stale JSON error.
+
+```sh
+sudo -n docker run --rm --network none --read-only --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --mount "type=bind,src=$PWD,dst=/audit,readonly" -w /audit php:7.1-cli \
+  php tests/fixtures/archive-json-floor.php
+# Repeat with php:7.4-cli; both: TOTAL 12 PASSED 12 FAILED 0.
+php tests/fixtures/archive-json-floor.php
+/tmp/opf-archive-import/vendor/bin/phpunit -c phpunit.xml.dist --filter ArchiveImporterTest
+/tmp/opf-archive-import/vendor/bin/phpunit -c phpunit.xml.dist
+```
+
+Focused PHPUnit proof: 6 tests / 16 assertions. Full suite: 246 tests / 1001
+assertions on PHP 8.5.11, with one pre-existing PHPUnit metadata deprecation.
+PHP 7.4.33 parsed all 34 shipped PHP files. PHP 7.1.33 still rejects six:
+`API.php:203`, `Calculator.php:22`, `FieldGroup.php:35`,
+`CartIntegration.php:752`, `Rest.php:38`, and `WapfExporter.php:248`.
+The official PHP image digests remain those recorded above.
+
+The probe deliberately uses empty groups, so it does not load `FieldGroup`'s
+incompatible typed property. This proves the archive JSON API correction on
+PHP 7.1, not populated-group import, plugin boot, or a WP/Woo lifecycle. The
+six-file syntax backport and all exact-stack commerce proof remain open;
+`WAPF-COMPAT-MINIMUM-PLATFORM` remains **gap**.
+
+Published requirements were rechecked against the official pages on
+2026-10-01 UTC. The shared
+[Pro/Extended product page](https://www.studiowombat.com/plugin/advanced-product-fields-for-woocommerce/)
+displays version 3.2.2 and still specifies PHP 7.1, WordPress 6.0, and
+WooCommerce 7.0. This published requirement check does not replace the separate
+Extended 3.1.5 source audit or imply that 3.2.2 source was acquired.
+[Free's official listing](https://wordpress.org/plugins/advanced-product-fields-for-woocommerce/)
+shows version 1.7.1, WordPress 4.5, and PHP 7.0; its FAQ still says WordPress
+6.0 and WooCommerce 6.0. The previously downloaded Free 1.7.1 and WooCommerce
+7.0.0 archive hashes were reverified against the values above. WooCommerce
+7.0.0's actual header still requires PHP 7.2, so the paid published minima
+continue to need separate PHP 7.1 language/API and PHP 7.2+/WP 6.0/Woo 7.0
+integration proof.
+
 ## Remaining closure steps
 
 1. The PHP 7.4 parse gate now passes after base `363fd67` removed the two REST
@@ -224,8 +289,9 @@ find . -path './vendor' -prune -o -path './tests' -prune -o -path './bin' -prune
    classic/Store API cart, checkout, order metadata, and order-again on
    PHP 7.4/WordPress 6.5/WooCommerce 9.0. This establishes OPF's own floor first.
 2. Backport arrow functions and typed properties in the six listed files;
-   preserve closure captures explicitly. Replace the archive JSON dependency
-   with equivalent error handling on PHP 7.1. Prove valid/malformed archives
+   preserve closure captures explicitly. The archive JSON dependency now has
+   PHP 7.1 runtime proof above; extend it to populated archives after the
+   syntax backport. Prove valid/malformed archives
    and formula/repeater/API behavior with floor-compatible executable checks.
    Current PHPUnit 11 development dependencies require PHP 8.2, so installing
    the existing development lockfile on PHP 7.1/7.4 is not a floor harness.

@@ -22,7 +22,14 @@ final class ArchiveImporter {
 			throw new \InvalidArgumentException( 'OPF archive exceeds the 5 MiB import limit.' );
 		}
 		try {
-			$package = json_decode( $json, true, 64, JSON_THROW_ON_ERROR );
+			if ( defined( 'JSON_THROW_ON_ERROR' ) ) {
+				$package = json_decode( $json, true, 64, JSON_THROW_ON_ERROR );
+			} else {
+				$package = json_decode( $json, true, 64 );
+				if ( JSON_ERROR_NONE !== json_last_error() ) {
+					throw new \InvalidArgumentException( 'OPF archive is not valid JSON.' );
+				}
+			}
 		} catch ( \JsonException $exception ) {
 			throw new \InvalidArgumentException( 'OPF archive is not valid JSON.', 0, $exception );
 		}

@@ -8,6 +8,22 @@ use PHPUnit\Framework\TestCase;
 
 final class ArchiveImporterTest extends TestCase {
 
+	public function test_standalone_json_floor_regression(): void {
+		$process = proc_open(
+			[ PHP_BINARY, OPF_DIR . 'tests/fixtures/archive-json-floor.php' ],
+			[ 1 => [ 'pipe', 'w' ], 2 => [ 'pipe', 'w' ] ],
+			$pipes
+		);
+		$this->assertIsResource( $process );
+		$output = stream_get_contents( $pipes[1] );
+		$error = stream_get_contents( $pipes[2] );
+		fclose( $pipes[1] );
+		fclose( $pipes[2] );
+		$this->assertSame( 0, proc_close( $process ), $output . $error );
+		$this->assertSame( '', $error );
+		$this->assertStringContainsString( 'TOTAL 12 PASSED 12 FAILED 0', $output );
+	}
+
 	public function test_decodes_a_valid_export_package_without_changing_group_data(): void {
 		$data = FieldGroup::normalize( [
 			'fields' => [ [ 'id' => 'engraving', 'label' => 'Engraving', 'type' => 'text', 'placeholder' => 'Name' ] ],
