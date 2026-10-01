@@ -79,6 +79,19 @@
 	font-weight: 600;
 }
 
+.opf-swatch--image > label {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.4em;
+}
+
+.opf-swatch-image {
+	display: block;
+	max-width: 100%;
+	height: auto;
+}
+
 .opf-choice input {
 	margin: 0;
 }
