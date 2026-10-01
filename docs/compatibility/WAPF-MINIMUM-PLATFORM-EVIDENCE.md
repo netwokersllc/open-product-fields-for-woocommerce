@@ -1,13 +1,14 @@
 # Minimum platform evidence
 
-Audited 2026-10-01 UTC against OPF commit
+Original audit: 2026-10-01 UTC against OPF commit
 `9171b5c9ea271602d06c5e00c02b42742fc40627` in an isolated worktree.
-Runtime files, version headers, and capability-ledger statuses were not changed.
+Runtime files and version headers were not changed by that audit. The cache
+implementation follow-up below records later changes from base `363fd67`.
 `WAPF-COMPAT-MINIMUM-PLATFORM` remains **gap**.
 
 ## OPF's declared floor: PHP 7.4 / WordPress 6.5 / WooCommerce 9.0
 
-**The shipped plugin does not satisfy its PHP 7.4 declaration.** Native PHP
+**The original audited commit did not satisfy its PHP 7.4 declaration.** Native PHP
 7.4.33 lint checked all 31 shipped PHP files: the plugin entry point,
 `uninstall.php`, and 29 files under `includes/`. Exactly one file failed:
 
@@ -143,10 +144,58 @@ The [WordPress cache reference](https://developer.wordpress.org/reference/functi
 and [PHP JSON constants reference](https://www.php.net/manual/en/json.constants.php)
 confirm the missing API introduction versions.
 
-## Smallest next closure steps
+## WordPress 6.0 cache implementation follow-up — 2026-10-01
 
-1. Repair the two `Rest.php` return annotations, then repeat the PHP 7.4 gate
-   and run actual activation, REST save/preview success/error, storefront,
+`FieldGroups::flush_cache()` now clears request-local source groups and invokes
+`wp_cache_flush_group('opf_groups_for_product')` only when both that function
+and `wp_cache_supports()` exist and the drop-in reports `flush_group` support.
+The same capability check gates persistent product-result reads and writes.
+WordPress 6.0 and unsupported/legacy drop-ins therefore ignore old persistent
+OPF entries instead of trying to clear unrelated caches. Saves and the
+duplicate/save path rebuild current groups; no global cache flush is used.
+
+The tradeoff is deliberate: unsupported caches no longer persist OPF's matched
+product results. Request-local source groups remain cached, but placement
+matching repeats on subsequent calls. Supported caches retain their existing
+persistent reads/writes and scoped group flush. Old entries are left untouched
+and ignored while group flushing is unavailable.
+
+Regression tests first reproduced the missing-function fatal and two unsafe
+drop-in calls. Four isolated cases now pass: absent WordPress 6.0 APIs, a
+drop-in reporting no group support, a legacy drop-in lacking the capability
+API, and supported group flushing. They seed stale cached results, perform a
+save and duplicate/save, verify fresh results and request-local reuse, and
+preserve a foreign cache group. The unsupported cases prove zero persistent
+OPF result reads/writes; a global cache flush fails the probe immediately.
+These are cache API contract fakes, not executed commercial cache backends.
+
+The same standalone probe loaded the actual downloaded WordPress 6.0 cache
+source inside PHP 7.4.33 Docker. Both APIs were absent; the save returned
+`Saved group`, the duplicate returned `Saved group`/`Copied group`, the stale
+entry remained ignored, and the foreign entry stayed `untouched`. With actual
+WordPress 6.5 cache source, supported group flushing removed the stale entry
+and preserved the foreign one. WordPress post reads/writes are fixture
+implementations in these probes; this is not a database-backed floor install.
+
+```sh
+php tests/fixtures/group-cache-floor.php missing /path/to/wordpress-6.0
+php tests/fixtures/group-cache-floor.php supported /path/to/wordpress-6.5
+vendor/bin/phpunit --filter 'FieldGroupsCacheInvalidationTest|FieldGroupsAuthTest|FieldGroupsCacheKeyTest|WpmlIntegrationTest'
+composer test
+```
+
+Focused checks passed: 17 tests / 130 assertions. The complete Composer suite
+passed: 222 tests / 879 assertions on PHP 8.5.11, with one existing PHPUnit
+doc-comment metadata deprecation in `CapabilityFixtureRegistryTest`. Native
+PHP 7.4.33 also parsed all 31 shipped PHP files; base `363fd67` already removed
+the original REST union annotations. No platform declaration changed. Full
+WP/Woo floor installation, external cache backends, browser/commerce lifecycle,
+and the other PHP 7.1/Free/WooCommerce 7.0 gaps remain unverified.
+
+## Remaining closure steps
+
+1. The PHP 7.4 parse gate now passes after base `363fd67` removed the two REST
+   return annotations. Run actual activation, REST save/preview success/error, storefront,
    classic/Store API cart, checkout, order metadata, and order-again on
    PHP 7.4/WordPress 6.5/WooCommerce 9.0. This establishes OPF's own floor first.
 2. Backport arrow functions and typed properties in the six listed files;
@@ -155,9 +204,9 @@ confirm the missing API introduction versions.
    and formula/repeater/API behavior with floor-compatible executable checks.
    Current PHPUnit 11 development dependencies require PHP 8.2, so installing
    the existing development lockfile on PHP 7.1/7.4 is not a floor harness.
-3. Implement cache invalidation compatible with WordPress 6.0 and cache
-   drop-ins: check group-flush capability and preserve scoped invalidation when
-   it is unavailable. Verify save, duplicate, and viewer/language cache isolation.
+3. Cache invalidation now passes the WordPress 6.0/6.5 source and scoped
+   cache-contract probes above. Extend proof to actual persistent cache
+   backends and a full floor-stack install, retaining viewer/language isolation.
 4. Add a request-scoped WooCommerce 7.0 Store API capture adapter using the
    actual old route lifecycle. Prove JSON input, validation, server pricing,
    cart display, checkout storage, and cleanup between requests; retain the

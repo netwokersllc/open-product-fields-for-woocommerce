@@ -1,6 +1,12 @@
 <?php
 
 namespace {
+	if ( ! function_exists( 'wp_cache_supports' ) ) {
+		function wp_cache_supports( string $feature ): bool { return 'flush_group' === $feature; }
+	}
+	if ( ! function_exists( 'wp_cache_flush_group' ) ) {
+		function wp_cache_flush_group( string $group ): bool { return \OPF\Service\wp_cache_flush_group( $group ); }
+	}
 	if ( ! function_exists( 'is_user_logged_in' ) ) {
 		function is_user_logged_in(): bool { return (bool) ( $GLOBALS['opf_auth_test_logged_in'] ?? false ); }
 	}

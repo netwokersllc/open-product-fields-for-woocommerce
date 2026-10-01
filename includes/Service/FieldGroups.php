@@ -222,7 +222,9 @@ final class FieldGroups {
 		$cache_key    = self::cache_key_for_viewer( $product_id, $context, (string) $current_lang );
 		// WPML package translations can change without saving an OPF group.
 		// Keep source groups cached per request, but do not persist translations.
-		$cache_results = ! is_string( $wpml_language ) || '' === $wpml_language;
+		// Older WordPress/cache drop-ins cannot invalidate the whole OPF group.
+		// Ignore persistent entries there, including stale entries from older code.
+		$cache_results = self::can_flush_group_cache() && ( ! is_string( $wpml_language ) || '' === $wpml_language );
 		$cached       = $cache_results ? wp_cache_get( $cache_key, 'opf_groups_for_product' ) : false;
 		if ( is_array( $cached ) ) {
 			return $cached;
@@ -306,7 +308,16 @@ final class FieldGroups {
 	 */
 	public static function flush_cache(): void {
 		self::$all = null;
-		wp_cache_flush_group( 'opf_groups_for_product' );
+		if ( self::can_flush_group_cache() ) {
+			wp_cache_flush_group( 'opf_groups_for_product' );
+		}
+	}
+
+	/** Persistent result caching requires scoped invalidation from the drop-in. */
+	private static function can_flush_group_cache(): bool {
+		return function_exists( 'wp_cache_flush_group' )
+			&& function_exists( 'wp_cache_supports' )
+			&& wp_cache_supports( 'flush_group' );
 	}
 
 	/**
