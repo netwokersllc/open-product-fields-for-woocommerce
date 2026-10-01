@@ -205,6 +205,11 @@ The recheck confirms syntax only. It does not replace the exact PHP 7.4 / WP
 6.5 / WooCommerce 9.0 activation, REST, browser, cart, checkout, order, and
 order-again lifecycle matrix in closure step 1.
 
+After URL lifecycle code was integrated, native PHP 7.4.33 lint was repeated
+at OPF `a45fcfcaaffede599f8a2226aa86f5122c8dc8ef`: the same 34 shipped PHP
+files again parsed with zero syntax errors. This covers the URL implementation
+and its compatibility-audit integration, but remains a syntax-only result.
+
 Reproduction from the plugin checkout:
 
 ```sh
