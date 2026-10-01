@@ -147,7 +147,7 @@ final class RepeaterField {
 				continue;
 			}
 
-			if ( in_array( $type, [ 'email', 'date', 'toggle' ], true ) ) {
+			if ( in_array( $type, [ 'email', 'url', 'date', 'toggle' ], true ) ) {
 				$instance = array_merge( $field, [ 'required' => false ] );
 				$instance_errors = FieldValue::validate( $instance, is_scalar( $value ) ? (string) $value : null, true );
 				foreach ( $instance_errors as $error ) {

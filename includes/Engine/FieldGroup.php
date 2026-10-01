@@ -225,6 +225,16 @@ final class FieldGroup {
 			'pricing'      => $pricing,
 			'conditionals' => $conditionals,
 		];
+		if ( 'url' === $type && array_key_exists( 'default', $field ) ) {
+			if ( ! is_scalar( $field['default'] ) ) {
+				throw new \InvalidArgumentException( 'URL default must be a scalar value.' );
+			}
+			$url_default = FieldValue::sanitize( $field, $field['default'] );
+			if ( null !== $url_default && FieldValue::validate( [ 'type' => 'url', 'label' => 'URL default' ], $url_default, true ) ) {
+				throw new \InvalidArgumentException( 'URL default must be a valid URL.' );
+			}
+			$normalized['default'] = $url_default ?? '';
+		}
 		if ( 'text' === $type && array_key_exists( 'default', $field ) ) {
 			if ( ! is_scalar( $field['default'] ) ) {
 				throw new \InvalidArgumentException( 'Text default must be a scalar value.' );

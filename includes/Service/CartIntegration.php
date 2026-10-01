@@ -737,7 +737,7 @@ final class CartIntegration {
 					$repeat_field['repeat'] = $section_repeats[ $fid ];
 				}
 				if ( ! array_key_exists( $fid, $submitted ) ) {
-					if ( 'text' === $field['type'] && empty( $repeat_field['repeat']['enabled'] ) && isset( $field['default'] ) ) {
+					if ( in_array( $field['type'], [ 'text', 'url' ], true ) && empty( $repeat_field['repeat']['enabled'] ) && isset( $field['default'] ) ) {
 						$submitted[ $fid ] = $field['default'];
 					} else {
 						continue;
@@ -795,6 +795,11 @@ final class CartIntegration {
 	 * @param mixed               $value  Submitted value.
 	 */
 	private static function sanitize_value( array $field, $value ) {
+		if ( 'url' === $field['type'] ) {
+			// Validate the submitted URL itself, without inventing a scheme or
+			// stripping malformed characters into a different, valid-looking URL.
+			return FieldValue::sanitize( $field, $value );
+		}
 		if ( 'image_quantity' === $field['type'] ) {
 			if ( ! is_array( $value ) ) {
 				return null;
@@ -840,9 +845,6 @@ final class CartIntegration {
 		switch ( $field['type'] ) {
 			case 'number':
 				return is_numeric( $value ) ? (string) ( $value + 0 ) : null;
-			case 'url':
-				$url = esc_url_raw( trim( (string) $value ) );
-				return '' === $url ? null : $url;
 			case 'textarea':
 				$text = sanitize_textarea_field( (string) $value );
 				return '' === trim( $text ) ? null : $text;
@@ -906,7 +908,7 @@ final class CartIntegration {
 					continue;
 				}
 				$value    = $provided && ! is_array( $given[ $field['id'] ] ) ? (string) $given[ $field['id'] ] : null;
-				if ( in_array( $field['type'], [ 'email', 'date', 'toggle' ], true ) ) {
+				if ( in_array( $field['type'], [ 'email', 'url', 'date', 'toggle' ], true ) ) {
 					$errors = array_merge( $errors, FieldValue::validate( $field, $value, $provided ) );
 				} elseif ( $field['required'] && ! $provided && !( 'swatch' === $field['type'] && ! empty( $field['multiple'] ) && isset( $field['min_choices'] ) ) ) {
 					$errors[] = sprintf( '"%s" is a required field.', $field['label'] );

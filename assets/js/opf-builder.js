@@ -355,7 +355,7 @@
 
 		var head = el( 'div', { class: 'opf-b-field-head' }, [ label, typeSel, desc, req, duplicate, remove ] );
 		var card = el( 'div', { class: 'opf-b-field' }, [ head ] );
-		if ( 'text' === field.type ) {
+		if ( [ 'text', 'url' ].indexOf( field.type ) !== -1 ) {
 			var textSettings = el( 'div', { class: 'opf-b-constraints' } );
 			[ [ 'placeholder', 'Placeholder' ], [ 'default', 'Default value' ] ].forEach( function ( setting ) {
 				var input = el( 'input', { class: 'opf-b-input', type: 'text', value: field[ setting[ 0 ] ] == null ? '' : String( field[ setting[ 0 ] ] ), 'aria-label': setting[ 1 ] } );

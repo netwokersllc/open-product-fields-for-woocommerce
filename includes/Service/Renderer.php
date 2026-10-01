@@ -625,7 +625,7 @@ final class Renderer {
 				echo '<textarea ' . $shared . '></textarea>'; // phpcs:ignore WordPress.Security.EscapeOutput -- pre-escaped.
 				break;
 			case 'url':
-				echo '<input type="url" value="" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
+				echo '<input type="url" value="' . esc_attr( (string) ( $field['default'] ?? '' ) ) . '" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
 				break;
 			case 'email':
 				echo '<input type="email" value="" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
@@ -736,7 +736,7 @@ final class Renderer {
 	 * @return string|array
 	 */
 	private static function default_value( array $field ) {
-		if ( 'text' === $field['type'] ) {
+		if ( in_array( $field['type'], [ 'text', 'url' ], true ) ) {
 			return (string) ( $field['default'] ?? '' );
 		}
 		if ( 'toggle' === $field['type'] ) {

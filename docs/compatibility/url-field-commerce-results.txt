@@ -1,0 +1,60 @@
+ok fixture exists
+ok browser admin save persists label required placeholder and default
+ok browser order manifest exists
+ok browser checkout order reloads from Woo data store
+ok browser checkout URL and default persisted
+ok classic required empty rejected
+ok classic required error notice
+ok classic required array rejected
+ok explicitly cleared required default rejected
+ok classic cart accepts URL
+ok classic trimmed URL and omitted default captured
+ok classic valid URL scheme and empty optional accepted https://example.invalid/
+ok Store API valid URL scheme accepted https://example.invalid/
+ok classic valid URL scheme and empty optional accepted http://localhost/x
+ok Store API valid URL scheme accepted http://localhost/x
+ok classic valid URL scheme and empty optional accepted ftp://example.invalid/x
+ok Store API valid URL scheme accepted ftp://example.invalid/x
+ok classic valid URL scheme and empty optional accepted ftps://example.invalid/x
+ok Store API valid URL scheme accepted ftps://example.invalid/x
+ok classic valid URL scheme and empty optional accepted mailto:ada@example.invalid
+ok Store API valid URL scheme accepted mailto:ada@example.invalid
+ok classic valid URL scheme and empty optional accepted irc://example.invalid/channel
+ok Store API valid URL scheme accepted irc://example.invalid/channel
+ok classic malformed URL rejected "not-a-url"
+ok Store API malformed URL rejected with empty cart "not-a-url"
+ok classic malformed URL rejected "example.invalid\/path"
+ok Store API malformed URL rejected with empty cart "example.invalid\/path"
+ok classic malformed URL rejected "https:\/\/"
+ok Store API malformed URL rejected with empty cart "https:\/\/"
+ok classic malformed URL rejected "javascript:alert(1)"
+ok Store API malformed URL rejected with empty cart "javascript:alert(1)"
+ok classic malformed URL rejected "data:text\/html,x"
+ok Store API malformed URL rejected with empty cart "data:text\/html,x"
+ok classic malformed URL rejected "https:\/\/example.invalid\/<script>"
+ok Store API malformed URL rejected with empty cart "https:\/\/example.invalid\/<script>"
+ok classic malformed URL rejected "https:\/\/example.invalid\/\"onclick=\"x"
+ok Store API malformed URL rejected with empty cart "https:\/\/example.invalid\/\"onclick=\"x"
+ok classic malformed URL rejected ["https:\/\/example.invalid\/"]
+ok Store API malformed URL rejected with empty cart ["https:\/\/example.invalid\/"]
+ok classic nonempty malformed optional URL rejected
+ok Store API nonempty malformed optional URL rejected
+ok classic nonempty malformed optional URL rejected
+ok Store API nonempty malformed optional URL rejected
+ok Store API empty optional and omitted URL default accepted
+ok Store API omitted URL default captured and empty optional omitted
+ok Store API explicitly cleared required URL default rejected
+ok Store API required empty rejected with empty cart
+ok Store API accepts URL
+ok Store API explicit override captured
+ok Store API cart display includes URL and default override
+ok Store API checkout accepted
+ok order structured URL persisted
+ok order public display meta persisted
+ok order unchanged base total
+ok email get_content_html includes labels and values
+ok email get_content_plain includes labels and values
+ok HTML email URL query is escaped
+ok order again restores exact URL values
+ok order again cart preserves restored selections
+SUCCESS native URL commerce lifecycle

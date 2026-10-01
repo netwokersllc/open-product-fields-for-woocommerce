@@ -10,6 +10,8 @@ namespace OPF\Engine;
 defined( 'ABSPATH' ) || exit;
 
 final class FieldValue {
+	// WordPress's default safe protocols, without accepting executable schemes.
+	private const URL_PROTOCOLS = [ 'http', 'https', 'ftp', 'ftps', 'mailto', 'news', 'irc', 'irc6', 'ircs', 'gopher', 'nntp', 'feed', 'telnet', 'mms', 'rtsp', 'sms', 'svn', 'tel', 'fax', 'xmpp', 'webcal', 'urn' ];
 
 	/**
 	 * Normalize scalar values after the transport layer has sanitized them.
@@ -22,6 +24,11 @@ final class FieldValue {
 	 * @return string|null
 	 */
 	public static function sanitize( array $field, $value ): ?string {
+		// Keep malformed URL payloads distinguishable from an empty optional URL.
+		// The NUL marker cannot be a valid URL and is rejected before attachment.
+		if ( 'url' === ( $field['type'] ?? '' ) && ! is_scalar( $value ) && null !== $value ) {
+			return "\0";
+		}
 		if ( is_array( $value ) || is_object( $value ) ) {
 			return null;
 		}
@@ -202,6 +209,12 @@ final class FieldValue {
 
 		if ( 'email' === $type && false === filter_var( $value, FILTER_VALIDATE_EMAIL ) ) {
 			return [ sprintf( '"%s" must be a valid email address.', $label ) ];
+		}
+
+		if ( 'url' === $type && ( false === filter_var( $value, FILTER_VALIDATE_URL )
+			|| ! in_array( strtolower( (string) parse_url( $value, PHP_URL_SCHEME ) ), self::URL_PROTOCOLS, true )
+			|| preg_match( '/[\x00-\x20\x7f<>"`]/', $value ) ) ) {
+			return [ sprintf( '"%s" must be a valid URL.', $label ) ];
 		}
 
 		if ( 'date' === $type ) {

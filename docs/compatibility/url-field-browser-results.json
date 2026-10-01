@@ -1,0 +1,146 @@
+{
+  "base": "http://127.0.0.1:8126",
+  "checks": [
+    {
+      "label": "add field stays in the editor without WordPress form submission",
+      "pass": true
+    },
+    {
+      "label": "add choice stays in the editor without WordPress form submission",
+      "pass": true
+    },
+    {
+      "label": "every mounted builder action explicitly uses button type",
+      "pass": true
+    },
+    {
+      "label": "remove choice stays in the editor without WordPress form submission",
+      "pass": true
+    },
+    {
+      "label": "delete field stays in the editor without WordPress form submission",
+      "pass": true
+    },
+    {
+      "label": "actual preview REST response succeeds",
+      "pass": true
+    },
+    {
+      "label": "refresh preview preserves edited inputs without WordPress form submission",
+      "pass": true
+    },
+    {
+      "label": "actual admin REST save succeeds",
+      "pass": true
+    },
+    {
+      "label": "actual REST response preserves URL settings",
+      "pass": true
+    },
+    {
+      "label": "admin reload preserves label",
+      "pass": true
+    },
+    {
+      "label": "admin reload preserves required",
+      "pass": true
+    },
+    {
+      "label": "admin reload preserves default and placeholder",
+      "pass": true
+    },
+    {
+      "label": "storefront has required single line input and placeholder",
+      "pass": true
+    },
+    {
+      "label": "storefront renders saved default",
+      "pass": true
+    },
+    {
+      "label": "optional field is optional",
+      "pass": true
+    },
+    {
+      "label": "empty required field blocks browser submission",
+      "pass": true
+    },
+    {
+      "label": "malformed URL blocks real browser submission",
+      "pass": true
+    },
+    {
+      "label": "browser URL constraint permits javascript scheme",
+      "pass": true
+    },
+    {
+      "label": "server rejects forged malformed classic HTTP submission",
+      "pass": true
+    },
+    {
+      "label": "rejected classic HTTP submission leaves cart empty",
+      "pass": true
+    },
+    {
+      "label": "actual Store API cart response provides a nonce",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP rejects malformed URL \"not-a-url\"",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP rejects malformed URL \"javascript:alert(1)\"",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP rejects malformed URL \"data:text/html,x\"",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP rejects malformed URL \"https://example.invalid/<script>\"",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP rejects malformed URL [\"https://example.invalid/\"]",
+      "pass": true
+    },
+    {
+      "label": "HTTP Store API rejection leaves cart empty",
+      "pass": true
+    },
+    {
+      "label": "valid URL submits classic product form",
+      "pass": true
+    },
+    {
+      "label": "browser cart renders URL and default",
+      "pass": true
+    },
+    {
+      "label": "cart DOM escapes URL query text",
+      "pass": true
+    },
+    {
+      "label": "browser checkout renders URL and default",
+      "pass": true
+    },
+    {
+      "label": "browser Store API checkout succeeds",
+      "pass": true
+    },
+    {
+      "label": "browser order confirmation displays URL and default",
+      "pass": true
+    },
+    {
+      "label": "order DOM escapes URL query text",
+      "pass": true
+    },
+    {
+      "label": "no browser page errors",
+      "pass": true
+    }
+  ],
+  "errors": []
+}
