@@ -1,0 +1,41 @@
+ok fresh simple-classic reloads real Woo order
+ok fresh simple-classic persists exact required selections
+ok fresh simple-classic persists visible selection labels
+ok fresh simple-classic persists quantity and current server total
+ok fresh simple-classic preserves product and variation identity
+ok fresh simple-store reloads real Woo order
+ok fresh simple-store persists exact required selections
+ok fresh simple-store persists visible selection labels
+ok fresh simple-store persists quantity and current server total
+ok fresh simple-store preserves product and variation identity
+ok fresh variation-classic reloads real Woo order
+ok fresh variation-classic persists exact required selections
+ok fresh variation-classic persists visible selection labels
+ok fresh variation-classic persists quantity and current server total
+ok fresh variation-classic preserves product and variation identity
+ok fresh variation-store reloads real Woo order
+ok fresh variation-store persists exact required selections
+ok fresh variation-store persists visible selection labels
+ok fresh variation-store persists quantity and current server total
+ok fresh variation-store preserves product and variation identity
+ok again simple-classic reloads real Woo order
+ok again simple-classic persists exact required selections
+ok again simple-classic persists visible selection labels
+ok again simple-classic persists quantity and current server total
+ok again simple-classic preserves product and variation identity
+ok again simple-store reloads real Woo order
+ok again simple-store persists exact required selections
+ok again simple-store persists visible selection labels
+ok again simple-store persists quantity and current server total
+ok again simple-store preserves product and variation identity
+ok again variation-classic reloads real Woo order
+ok again variation-classic persists exact required selections
+ok again variation-classic persists visible selection labels
+ok again variation-classic persists quantity and current server total
+ok again variation-classic preserves product and variation identity
+ok again variation-store reloads real Woo order
+ok again variation-store persists exact required selections
+ok again variation-store persists visible selection labels
+ok again variation-store persists quantity and current server total
+ok again variation-store preserves product and variation identity
+Success: Durable required-choice order-again commerce proof passed.

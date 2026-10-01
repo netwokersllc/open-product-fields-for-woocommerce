@@ -35,8 +35,8 @@ final class CartIntegration {
 	 * Register hooks.
 	 */
 	public static function init(): void {
-		add_filter( 'woocommerce_add_to_cart_validation', [ __CLASS__, 'validate_add_to_cart' ], 10, 3 );
-		add_filter( 'woocommerce_add_cart_item_data', [ __CLASS__, 'attach' ], 10, 2 );
+		add_filter( 'woocommerce_add_to_cart_validation', [ __CLASS__, 'validate_add_to_cart' ], 10, 6 );
+		add_filter( 'woocommerce_add_cart_item_data', [ __CLASS__, 'attach' ], 10, 3 );
 		add_action( 'woocommerce_add_to_cart', [ __CLASS__, 'split_quantity_repeat_cart_item' ], 10, 6 );
 		add_filter( 'woocommerce_get_cart_item_from_session', [ __CLASS__, 'restore_from_session' ], 10, 2 );
 		add_action( 'woocommerce_before_calculate_totals', [ __CLASS__, 'apply_prices' ], 20, 1 );
@@ -106,12 +106,15 @@ final class CartIntegration {
 	/**
 	 * Validate on add-to-cart. Runs for classic AND Store API paths.
 	 *
-	 * @param bool $passed     Whether validation passed so far.
-	 * @param int  $product_id Product id.
-	 * @param int  $quantity   Quantity.
+	 * @param bool  $passed         Whether validation passed so far.
+	 * @param int   $product_id     Product id.
+	 * @param int   $quantity       Quantity.
+	 * @param int   $variation_id   Variation id, when supplied by WooCommerce.
+	 * @param array $variation      Variation attributes.
+	 * @param array $cart_item_data Existing cart data, including order-again selections.
 	 * @return bool
 	 */
-	public static function validate_add_to_cart( bool $passed, int $product_id, int $quantity ): bool {
+	public static function validate_add_to_cart( bool $passed, int $product_id, int $quantity, int $variation_id = 0, array $variation = [], array $cart_item_data = [] ): bool {
 		if ( ! $passed ) {
 			return false;
 		}
@@ -128,12 +131,18 @@ final class CartIntegration {
 			return $passed;
 		}
 
-		$product = wc_get_product( $product_id );
+		$product = wc_get_product( $variation_id ? $variation_id : $product_id );
 		if ( ! $product ) {
 			return $passed;
 		}
 
-		$values = self::collect_submitted( $product, self::$store_api_raw );
+		// WooCommerce restores order-again values before this filter and builds
+		// the cart line directly, without a fresh form/Store API submission.
+		// Recheck against current definitions, preserving the structured format
+		// used for image quantities rather than interpreting it as a raw POST.
+		$values = null === self::$store_api_raw && isset( $cart_item_data[ self::ITEM_KEY ] ) && is_array( $cart_item_data[ self::ITEM_KEY ] )
+			? self::sanitize_submitted( $product, $cart_item_data[ self::ITEM_KEY ], true )
+			: self::collect_submitted( $product, self::$store_api_raw );
 		self::$store_api_raw = null; // Consumed: never leak into the next add.
 		$errors = self::validate_values( $product, $values, $quantity );
 
@@ -149,8 +158,9 @@ final class CartIntegration {
 	 *
 	 * @param array $cart_item_data Incoming cart item data.
 	 * @param int   $product_id     Product id.
+	 * @param int   $variation_id   Variation id.
 	 */
-	public static function attach( array $cart_item_data, int $product_id ): array {
+	public static function attach( array $cart_item_data, int $product_id, int $variation_id = 0 ): array {
 		if ( self::$splitting_quantity_repeats ) {
 			return $cart_item_data;
 		}
@@ -159,7 +169,7 @@ final class CartIntegration {
 			return $cart_item_data;
 		}
 
-		$product = wc_get_product( $product_id );
+		$product = wc_get_product( $variation_id ? $variation_id : $product_id );
 		if ( ! $product ) {
 			return $cart_item_data;
 		}
@@ -174,8 +184,14 @@ final class CartIntegration {
 			unset( $cart_item_data['opf_fields_raw'] );
 		}
 
-		$values = self::collect_submitted( $product, $raw );
+		$restored = null === $raw && isset( $cart_item_data[ self::ITEM_KEY ] ) && is_array( $cart_item_data[ self::ITEM_KEY ] );
+		$values = $restored
+			? self::sanitize_submitted( $product, $cart_item_data[ self::ITEM_KEY ], true )
+			: self::collect_submitted( $product, $raw );
 		if ( empty( $values ) ) {
+			if ( $restored ) {
+				unset( $cart_item_data[ self::ITEM_KEY ], $cart_item_data['opf_base_price'] );
+			}
 			return $cart_item_data;
 		}
 
@@ -750,7 +766,9 @@ final class CartIntegration {
 						}
 					}
 				}
-				$cart_item_data[ self::ITEM_KEY ] = $decoded;
+				$cart_item_data[ self::ITEM_KEY ] = $product instanceof \WC_Product
+					? self::sanitize_submitted( $product, $decoded, true )
+					: $decoded;
 			}
 		}
 		return $cart_item_data;
@@ -781,9 +799,10 @@ final class CartIntegration {
 	 *
 	 * @param \WC_Product $product Product.
 	 * @param array       $raw     Raw submitted array.
+	 * @param bool        $structured Whether values came from stored cart/order data.
 	 * @return array<int|string, array<string, mixed>>
 	 */
-	private static function sanitize_submitted( \WC_Product $product, array $raw ): array {
+	private static function sanitize_submitted( \WC_Product $product, array $raw, bool $structured = false ): array {
 		$values = [];
 
 		foreach ( FieldGroups::for_product( $product ) as $entry ) {
@@ -809,8 +828,8 @@ final class CartIntegration {
 					}
 				}
 				$value = ! empty( $repeat_field['repeat']['enabled'] )
-					? RepeaterField::sanitize( $repeat_field, $submitted[ $fid ], static fn( $row ) => self::sanitize_value( $field, $row ) )
-					: self::sanitize_value( $field, $submitted[ $fid ] );
+					? RepeaterField::sanitize( $repeat_field, $submitted[ $fid ], static fn( $row ) => self::sanitize_value( $field, $row, $structured ) )
+					: self::sanitize_value( $field, $submitted[ $fid ], $structured );
 				if ( null !== $value ) {
 					$values[ $gid ][ $fid ] = $value;
 				}
@@ -858,14 +877,18 @@ final class CartIntegration {
 	 *
 	 * @param array<string,mixed> $field  Field definition.
 	 * @param mixed               $value  Submitted value.
+	 * @param bool                $structured Whether this is a stored cart/order value.
 	 */
-	private static function sanitize_value( array $field, $value ) {
+	private static function sanitize_value( array $field, $value, bool $structured = false ) {
 		if ( 'url' === $field['type'] ) {
 			// Validate the submitted URL itself, without inventing a scheme or
 			// stripping malformed characters into a different, valid-looking URL.
 			return FieldValue::sanitize( $field, $value );
 		}
 		if ( 'image_quantity' === $field['type'] ) {
+			if ( $structured && is_array( $value ) && 'image_quantity' === ( $value['_opf_type'] ?? '' ) ) {
+				$value = $value['quantities'] ?? [];
+			}
 			if ( ! is_array( $value ) ) {
 				return null;
 			}

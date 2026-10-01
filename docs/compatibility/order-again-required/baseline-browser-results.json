@@ -1,0 +1,15 @@
+{
+  "base": "http://127.0.0.1:8173",
+  "phase": "baseline",
+  "checks": [
+    {
+      "label": "simple-classic authenticated account exposes actual order-again link",
+      "pass": true
+    },
+    {
+      "label": "simple-classic baseline required selections quantity and current prices preserved",
+      "pass": false
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,131 @@
+{
+  "base": "http://127.0.0.1:8173",
+  "phase": "fresh",
+  "checks": [
+    {
+      "label": "simple-classic invalid finish rejected by classic server",
+      "pass": true
+    },
+    {
+      "label": "simple-classic invalid finish leaves cart empty",
+      "pass": true
+    },
+    {
+      "label": "simple-classic invalid style rejected by classic server",
+      "pass": true
+    },
+    {
+      "label": "simple-classic invalid style leaves cart empty",
+      "pass": true
+    },
+    {
+      "label": "simple-classic fresh required selections quantity and current prices preserved",
+      "pass": true
+    },
+    {
+      "label": "simple-classic fresh actual classic checkout succeeds",
+      "pass": true
+    },
+    {
+      "label": "simple-classic fresh order confirmation shows required selections",
+      "pass": true
+    },
+    {
+      "label": "simple-store invalid finish rejected by Store API",
+      "pass": true
+    },
+    {
+      "label": "simple-store invalid finish leaves cart empty",
+      "pass": true
+    },
+    {
+      "label": "simple-store invalid style rejected by Store API",
+      "pass": true
+    },
+    {
+      "label": "simple-store invalid style leaves cart empty",
+      "pass": true
+    },
+    {
+      "label": "simple-store valid Store API add succeeds",
+      "pass": true
+    },
+    {
+      "label": "simple-store fresh required selections quantity and current prices preserved",
+      "pass": true
+    },
+    {
+      "label": "simple-store fresh actual Store API checkout succeeds",
+      "pass": true
+    },
+    {
+      "label": "simple-store fresh order confirmation shows required selections",
+      "pass": true
+    },
+    {
+      "label": "variation-classic invalid finish rejected by classic server",
+      "pass": true
+    },
+    {
+      "label": "variation-classic invalid finish leaves cart empty",
+      "pass": true
+    },
+    {
+      "label": "variation-classic invalid style rejected by classic server",
+      "pass": true
+    },
+    {
+      "label": "variation-classic invalid style leaves cart empty",
+      "pass": true
+    },
+    {
+      "label": "variation-classic fresh required selections quantity and current prices preserved",
+      "pass": true
+    },
+    {
+      "label": "variation-classic fresh actual classic checkout succeeds",
+      "pass": true
+    },
+    {
+      "label": "variation-classic fresh order confirmation shows required selections",
+      "pass": true
+    },
+    {
+      "label": "variation-store invalid finish rejected by Store API",
+      "pass": true
+    },
+    {
+      "label": "variation-store invalid finish leaves cart empty",
+      "pass": true
+    },
+    {
+      "label": "variation-store invalid style rejected by Store API",
+      "pass": true
+    },
+    {
+      "label": "variation-store invalid style leaves cart empty",
+      "pass": true
+    },
+    {
+      "label": "variation-store valid Store API add succeeds",
+      "pass": true
+    },
+    {
+      "label": "variation-store fresh required selections quantity and current prices preserved",
+      "pass": true
+    },
+    {
+      "label": "variation-store fresh actual Store API checkout succeeds",
+      "pass": true
+    },
+    {
+      "label": "variation-store fresh order confirmation shows required selections",
+      "pass": true
+    },
+    {
+      "label": "fresh no uncaught browser errors",
+      "pass": true
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,43 @@
+{
+  "base": "http://127.0.0.1:8173",
+  "phase": "retired",
+  "checks": [
+    {
+      "label": "simple-classic authenticated account exposes actual order-again link",
+      "pass": true
+    },
+    {
+      "label": "simple-classic current disabled choice blocks actual order-again",
+      "pass": true
+    },
+    {
+      "label": "simple-store authenticated account exposes actual order-again link",
+      "pass": true
+    },
+    {
+      "label": "simple-store current disabled choice blocks actual order-again",
+      "pass": true
+    },
+    {
+      "label": "variation-classic authenticated account exposes actual order-again link",
+      "pass": true
+    },
+    {
+      "label": "variation-classic current disabled choice blocks actual order-again",
+      "pass": true
+    },
+    {
+      "label": "variation-store authenticated account exposes actual order-again link",
+      "pass": true
+    },
+    {
+      "label": "variation-store current disabled choice blocks actual order-again",
+      "pass": true
+    },
+    {
+      "label": "retired no uncaught browser errors",
+      "pass": true
+    }
+  ],
+  "errors": []
+}

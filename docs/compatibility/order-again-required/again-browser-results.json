@@ -1,0 +1,75 @@
+{
+  "base": "http://127.0.0.1:8173",
+  "phase": "again",
+  "checks": [
+    {
+      "label": "simple-classic authenticated account exposes actual order-again link",
+      "pass": true
+    },
+    {
+      "label": "simple-classic again required selections quantity and current prices preserved",
+      "pass": true
+    },
+    {
+      "label": "simple-classic again actual classic checkout succeeds",
+      "pass": true
+    },
+    {
+      "label": "simple-classic again order confirmation shows required selections",
+      "pass": true
+    },
+    {
+      "label": "simple-store authenticated account exposes actual order-again link",
+      "pass": true
+    },
+    {
+      "label": "simple-store again required selections quantity and current prices preserved",
+      "pass": true
+    },
+    {
+      "label": "simple-store again actual Store API checkout succeeds",
+      "pass": true
+    },
+    {
+      "label": "simple-store again order confirmation shows required selections",
+      "pass": true
+    },
+    {
+      "label": "variation-classic authenticated account exposes actual order-again link",
+      "pass": true
+    },
+    {
+      "label": "variation-classic again required selections quantity and current prices preserved",
+      "pass": true
+    },
+    {
+      "label": "variation-classic again actual classic checkout succeeds",
+      "pass": true
+    },
+    {
+      "label": "variation-classic again order confirmation shows required selections",
+      "pass": true
+    },
+    {
+      "label": "variation-store authenticated account exposes actual order-again link",
+      "pass": true
+    },
+    {
+      "label": "variation-store again required selections quantity and current prices preserved",
+      "pass": true
+    },
+    {
+      "label": "variation-store again actual Store API checkout succeeds",
+      "pass": true
+    },
+    {
+      "label": "variation-store again order confirmation shows required selections",
+      "pass": true
+    },
+    {
+      "label": "again no uncaught browser errors",
+      "pass": true
+    }
+  ],
+  "errors": []
+}

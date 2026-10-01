@@ -1,0 +1,8 @@
+ok simple actual cart attachment accepts restored data without POST
+ok simple restored cart attachment rechecks current field definitions
+ok simple restored cart attachment refreshes current base and retains other data
+ok simple restored cart attachment prices current base and current fees
+ok variation actual cart attachment accepts restored data without POST
+ok variation restored cart attachment rechecks current field definitions
+ok variation restored cart attachment refreshes current base and retains other data
+ok variation restored cart attachment prices current base and current fees

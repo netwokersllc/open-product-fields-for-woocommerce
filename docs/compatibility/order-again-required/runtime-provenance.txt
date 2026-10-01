@@ -1,0 +1,9 @@
+UTC 2026-10-01T23:55:40+00:00
+WordPress 7.1.2
+WooCommerce 11.1.0
+PHP 8.5.11
+Home http://127.0.0.1:8173
+OPF /tmp/opf-order-again-required-20261001/
+Class source /tmp/opf-order-again-required-20261001/includes/Service/CartIntegration.php
+SHA256 3608e380cfd029df98639fa74f3a7b801c97ea5d5af0415bb211468f8cf38d9f
+Database /tmp/opf-order-again-required-wp/wp-content/database/.ht.sqlite
