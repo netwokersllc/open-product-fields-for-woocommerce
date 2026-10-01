@@ -33,8 +33,8 @@ The 132 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 
 | Status | Rows | Meaning for the gate |
 | --- | ---: | --- |
-| Baseline supported | 7 | Promising baseline only; not accepted as proof |
-| Supported | 19 | Evidence recorded and accepted as complete under the row-count rule |
+| Baseline supported | 6 | Promising baseline only; not accepted as proof |
+| Supported | 20 | Evidence recorded and accepted as complete under the row-count rule |
 | Supported with documented difference | 7 | Needs explicit non-regression review and acceptance |
 | Partial | 98 | Material parity or proof remains |
 | Gap | 1 | Known absent in the current OPF tree |
@@ -65,6 +65,15 @@ and Store API validation/cart/checkout, order/email persistence, and order-again
 The full PHPUnit suite passes 225 tests/883 assertions. WAPF default import/export
 and text length/regex remain separate open rows. See
 [native text lifecycle evidence](TEXT-FIELD-LIFECYCLE-EVIDENCE.md).
+
+`WAPF-FIELD-TEXTAREA` advanced from baseline-supported to `supported` for its
+declared safe-newline behavior. Authenticated Chromium proves admin REST
+save/reload, required and optional rendering, and browser/forged-request
+validation. Disposable WooCommerce proves CRLF/LF preservation through classic
+and Store API carts, checkout/order/email display, escaping, and order-again.
+WAPF Free 1.7.1 source confirms the same textarea sanitation and cart item-data
+contract. Defaults/placeholders and import/export remain open in their separate
+scopes. See [textarea lifecycle evidence](TEXTAREA-NEWLINE-EVIDENCE.md).
 
 FOX is now `partial` because the existing WOOCS adapter passes an official
 FOX API contract test. WAPF's registry and FOX's own compatibility instructions
