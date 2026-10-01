@@ -1,0 +1,114 @@
+{
+  "base": "http://127.0.0.1:8142",
+  "checks": [
+    {
+      "label": "positive invalid product IDs prevent admin submission",
+      "pass": true
+    },
+    {
+      "label": "positive actual admin REST save retains exact targeting",
+      "pass": true
+    },
+    {
+      "label": "positive real admin reload retains exact targeting and edited label",
+      "pass": true
+    },
+    {
+      "label": "positive product IDs reload in native authoring control",
+      "pass": true
+    },
+    {
+      "label": "positive unchanged native save preserves product rule",
+      "pass": true
+    },
+    {
+      "label": "native include and exclude authoring persists both predicates",
+      "pass": true
+    },
+    {
+      "label": "clearing inclusion preserves exclusion",
+      "pass": true
+    },
+    {
+      "label": "clearing both product conditions removes placement restriction",
+      "pass": true
+    },
+    {
+      "label": "restoring inclusion restores exact product rule",
+      "pass": true
+    },
+    {
+      "label": "negative invalid product IDs prevent admin submission",
+      "pass": true
+    },
+    {
+      "label": "negative actual admin REST save retains exact targeting",
+      "pass": true
+    },
+    {
+      "label": "negative real admin reload retains exact targeting and edited label",
+      "pass": true
+    },
+    {
+      "label": "negative product IDs reload in native authoring control",
+      "pass": true
+    },
+    {
+      "label": "negative unchanged native save preserves product rule",
+      "pass": true
+    },
+    {
+      "label": "selected storefront renders only matching product group",
+      "pass": true
+    },
+    {
+      "label": "unselected storefront renders only matching product group",
+      "pass": true
+    },
+    {
+      "label": "parent storefront renders only matching product group",
+      "pass": true
+    },
+    {
+      "label": "otherparent storefront renders only matching product group",
+      "pass": true
+    },
+    {
+      "label": "classic HTTP rejects wrong group alone",
+      "pass": true
+    },
+    {
+      "label": "classic HTTP rejection leaves cart empty",
+      "pass": true
+    },
+    {
+      "label": "selected browser classic form adds correct group",
+      "pass": true
+    },
+    {
+      "label": "unselected browser classic form adds correct group",
+      "pass": true
+    },
+    {
+      "label": "real block cart displays both matched group labels and values",
+      "pass": true
+    },
+    {
+      "label": "real block checkout displays selected and excluded-product selections",
+      "pass": true
+    },
+    {
+      "label": "actual browser Store API checkout succeeds",
+      "pass": true
+    },
+    {
+      "label": "browser order received renders both matching selections",
+      "pass": true
+    },
+    {
+      "label": "no uncaught browser errors",
+      "pass": true
+    }
+  ],
+  "errors": []
+}

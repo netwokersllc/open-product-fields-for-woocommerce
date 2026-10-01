@@ -1,0 +1,124 @@
+ok fixture exists
+ok positive actual admin save preserves exact product rule
+ok negative actual admin save preserves exact product rule
+ok selected only matches positive group
+ok unselected only matches negative group
+ok parent only matches positive group
+ok otherparent only matches negative group
+ok variation only matches positive group
+ok othervariation only matches negative group
+ok real browser order reloads from Woo data store
+ok selected browser order contains only matched group
+ok unselected browser order contains only matched group
+ok selected wrong-group-only classic submission rejects missing matched required field
+ok selected classic accepts only matched group
+ok unselected wrong-group-only classic submission rejects missing matched required field
+ok unselected classic accepts only matched group
+ok variation wrong-group-only classic submission rejects missing matched required field
+ok variation classic accepts only matched group
+ok othervariation wrong-group-only classic submission rejects missing matched required field
+ok othervariation classic accepts only matched group
+ok selected Store API wrong-group-only rejects with empty cart
+ok selected Store API accepts matched selection
+ok selected Store API captures only matched group
+ok selected Store API cart display excludes forged group
+ok unselected Store API wrong-group-only rejects with empty cart
+ok unselected Store API accepts matched selection
+ok unselected Store API captures only matched group
+ok unselected Store API cart display excludes forged group
+ok variation Store API wrong-group-only rejects with empty cart
+ok variation Store API accepts matched selection
+ok variation Store API captures only matched group
+ok variation Store API cart display excludes forged group
+ok othervariation Store API wrong-group-only rejects with empty cart
+ok othervariation Store API accepts matched selection
+ok othervariation Store API captures only matched group
+ok othervariation Store API cart display excludes forged group
+ok selected added to combined checkout cart
+ok unselected added to combined checkout cart
+ok variation added to combined checkout cart
+ok othervariation added to combined checkout cart
+ok combined Store API checkout succeeds
+ok combined order reloads all four lines
+ok selected reloaded order contains only matched structured metadata
+ok selected public order meta excludes forged selection
+ok unselected reloaded order contains only matched structured metadata
+ok unselected public order meta excludes forged selection
+ok variation reloaded order contains only matched structured metadata
+ok variation public order meta excludes forged selection
+ok othervariation reloaded order contains only matched structured metadata
+ok othervariation public order meta excludes forged selection
+SUCCESS product targeting commerce
+
+free-source-results.txt
+ok Free selected product
+ok Free selected products
+ok Free selected !product
+ok Free selected !products
+ok Free unselected product
+ok Free unselected products
+ok Free unselected !product
+ok Free unselected !products
+ok Free parent product
+ok Free parent products
+ok Free parent !product
+ok Free parent !products
+ok Free otherparent product
+ok Free otherparent products
+ok Free otherparent !product
+ok Free otherparent !products
+ok Free variation product
+ok Free variation products
+ok Free variation !product
+ok Free variation !products
+ok Free othervariation product
+ok Free othervariation products
+ok Free othervariation !product
+ok Free othervariation !products
+SUCCESS installed WAPF source product predicates
+
+extended-source-results.txt
+ok Extended selected product
+ok Extended selected products
+ok Extended selected !product
+ok Extended selected !products
+ok Extended unselected product
+ok Extended unselected products
+ok Extended unselected !product
+ok Extended unselected !products
+ok Extended parent product
+ok Extended parent products
+ok Extended parent !product
+ok Extended parent !products
+ok Extended otherparent product
+ok Extended otherparent products
+ok Extended otherparent !product
+ok Extended otherparent !products
+ok Extended variation product
+ok Extended variation products
+ok Extended variation !product
+ok Extended variation !products
+ok Extended othervariation product
+ok Extended othervariation products
+ok Extended othervariation !product
+ok Extended othervariation !products
+SUCCESS installed WAPF source product predicates
+
+builder-regression-results.txt
+ok saving unrelated field settings preserves existing OR-group placement exactly
+ok all OR groups retain unedited product, category, tag, and language rules
+ok changed login, required role, and excluded role apply to every OR group
+ok no uncaught builder errors
+
+unit-results.txt
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.5.11
+Configuration: /tmp/opf-product-targeting/phpunit.xml.dist
+
+...................................                               35 / 35 (100%)
+
+Time: 00:00.009, Memory: 12.00 MB
+
+OK, but there were issues!
+Tests: 35, Assertions: 96, PHPUnit Deprecations: 1.

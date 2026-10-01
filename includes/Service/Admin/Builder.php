@@ -75,6 +75,8 @@ final class Builder {
 		$languages  = self::language_options();
 
 		$selected = [
+			'product'         => [],
+			'product_not'     => [],
 			'product_cat'     => [],
 			'product_tag'     => [],
 			'user_auth'       => '',
@@ -86,7 +88,10 @@ final class Builder {
 		if ( $group ) {
 			foreach ( $group->data['rule_groups'] as $rule_group ) {
 				foreach ( $rule_group['rules'] as $rule ) {
-					if ( 'in' === $rule['operator'] && in_array( $rule['subject'], [ 'product_cat', 'product_tag' ], true ) ) {
+					if ( 'product' === $rule['subject'] && in_array( $rule['operator'], [ 'in', 'not_in' ], true ) ) {
+						$key = 'not_in' === $rule['operator'] ? 'product_not' : 'product';
+						$selected[ $key ] = array_merge( $selected[ $key ], $rule['terms'] );
+					} elseif ( 'in' === $rule['operator'] && in_array( $rule['subject'], [ 'product_cat', 'product_tag' ], true ) ) {
 						$selected[ $rule['subject'] ] = array_merge( $selected[ $rule['subject'] ], $rule['terms'] );
 					} elseif ( 'user_auth' === $rule['subject'] && in_array( $rule['operator'], [ 'in', 'not_in', 'logged_in', 'logged_out' ], true ) ) {
 						$logged_out = in_array( $rule['operator'], [ 'not_in', 'logged_out' ], true );
@@ -103,6 +108,11 @@ final class Builder {
 		}
 		?>
 		<p class="description"><?php esc_html_e( 'Leave product and customer conditions empty to show this group everywhere.', 'open-product-fields-for-woocommerce' ); ?></p>
+		<p><label for="opf-placement-products"><strong><?php esc_html_e( 'Include product IDs', 'open-product-fields-for-woocommerce' ); ?></strong></label></p>
+		<input type="text" id="opf-placement-products" class="widefat" inputmode="numeric" pattern="\s*[1-9][0-9]*(\s*,\s*[1-9][0-9]*)*\s*" value="<?php echo esc_attr( implode( ', ', array_unique( $selected['product'] ) ) ); ?>">
+		<p><label for="opf-placement-excluded-products"><strong><?php esc_html_e( 'Exclude product IDs', 'open-product-fields-for-woocommerce' ); ?></strong></label></p>
+		<input type="text" id="opf-placement-excluded-products" class="widefat" inputmode="numeric" pattern="\s*[1-9][0-9]*(\s*,\s*[1-9][0-9]*)*\s*" value="<?php echo esc_attr( implode( ', ', array_unique( $selected['product_not'] ) ) ); ?>">
+		<p class="description"><?php esc_html_e( 'Separate IDs with commas. Include matches any listed product; exclude removes every listed product. For variations, use the parent product ID.', 'open-product-fields-for-woocommerce' ); ?></p>
 		<p><strong><?php esc_html_e( 'Product categories', 'open-product-fields-for-woocommerce' ); ?></strong></p>
 		<select multiple size="8" id="opf-placement-cats" style="width:100%">
 			<?php foreach ( (array) $cat_terms as $term ) : ?>

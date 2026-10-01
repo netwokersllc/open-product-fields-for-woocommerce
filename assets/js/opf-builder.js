@@ -659,6 +659,13 @@
 	}
 
 	function save() {
+		var invalidProductIds = Array.prototype.slice.call( document.querySelectorAll( '#opf-placement-products, #opf-placement-excluded-products' ) ).find( function ( input ) {
+			return ! input.checkValidity();
+		} );
+		if ( invalidProductIds ) {
+			invalidProductIds.reportValidity();
+			return;
+		}
 		var invalidRepeatMax = Array.prototype.slice.call( document.querySelectorAll( '[data-opf-repeat-max]' ) ).find( function ( input ) {
 			return ! input.checkValidity();
 		} );
@@ -671,6 +678,7 @@
 			return JSON.stringify( placementAtSave[ key ] ) !== JSON.stringify( initialPlacementSelection[ key ] );
 		}
 		var changedSubjects = {
+			product: changed( 'products' ) || changed( 'excludedProducts' ),
 			product_cat: changed( 'cats' ),
 			product_tag: changed( 'tags' ),
 			user_auth: changed( 'auth' ),
@@ -678,6 +686,10 @@
 			user_language: changed( 'language' ) || changed( 'languageOperator' ),
 		};
 		var rules = [];
+		if ( changedSubjects.product ) {
+			if ( placementAtSave.products.length ) rules.push( { subject: 'product', operator: 'in', terms: placementAtSave.products } );
+			if ( placementAtSave.excludedProducts.length ) rules.push( { subject: 'product', operator: 'not_in', terms: placementAtSave.excludedProducts } );
+		}
 		if ( changedSubjects.product_cat && placementAtSave.cats.length ) {
 			rules.push( { subject: 'product_cat', operator: 'in', terms: placementAtSave.cats } );
 		}
@@ -698,7 +710,7 @@
 		if ( Object.keys( changedSubjects ).some( function ( subject ) { return changedSubjects[ subject ]; } ) ) {
 			var groups = ( model.rule_groups || [] ).map( function ( group ) {
 				return { rules: ( group.rules || [] ).filter( function ( rule ) {
-					if ( changedSubjects[ rule.subject ] && [ 'user_auth', 'user_role', 'user_language' ].indexOf( rule.subject ) !== -1 ) return false;
+					if ( changedSubjects[ rule.subject ] && [ 'product', 'user_auth', 'user_role', 'user_language' ].indexOf( rule.subject ) !== -1 ) return false;
 					return ! ( changedSubjects[ rule.subject ] && 'in' === rule.operator && [ 'product_cat', 'product_tag' ].indexOf( rule.subject ) !== -1 );
 				} ) };
 			} );
@@ -765,7 +777,14 @@
 			var control = document.querySelector( selector );
 			return control ? control.value : '';
 		}
+		function productIds( selector ) {
+			return value( selector ).split( ',' ).map( function ( id ) { return id.trim().replace( /^0+/, '' ); } ).filter( function ( id, index, ids ) {
+				return id && ids.indexOf( id ) === index;
+			} );
+		}
 		return {
+			products: productIds( '#opf-placement-products' ),
+			excludedProducts: productIds( '#opf-placement-excluded-products' ),
 			cats: values( '#opf-placement-cats option:checked' ),
 			tags: values( '#opf-placement-tags option:checked' ),
 			auth: value( '#opf-placement-auth' ),
