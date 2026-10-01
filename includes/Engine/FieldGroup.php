@@ -160,6 +160,10 @@ final class FieldGroup {
 			if ( ( is_int( $image_id ) || ( is_string( $image_id ) && ctype_digit( $image_id ) ) ) && (int) $image_id > 0 ) {
 				$normalized_choice['image_id'] = (int) $image_id;
 			}
+			$color = $choice['color'] ?? null;
+			if ( is_string( $color ) && preg_match( '/^#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{5})?$/', $color ) ) {
+				$normalized_choice['color'] = strtoupper( $color );
+			}
 			$choices[] = $normalized_choice;
 		}
 
@@ -218,10 +222,14 @@ final class FieldGroup {
 			$normalized['pricing'] = self::normalize_pricing( [] );
 		}
 		if ( 'swatch' === $type ) {
+			$style = $field['swatch_style'] ?? 'text';
+			if ( ! in_array( $style, [ 'text', 'image', 'color' ], true ) ) {
+				throw new \InvalidArgumentException( 'Swatch style must be text, image, or color.' );
+			}
 			$has_image_choice = (bool) array_filter( $choices, static function ( array $choice ): bool {
 				return ! empty( $choice['image'] ) || ! empty( $choice['image_id'] );
 			} );
-			if ( 'image' === ( $field['swatch_style'] ?? '' ) || $has_image_choice ) {
+			if ( 'image' === $style || ( 'text' === $style && $has_image_choice ) ) {
 				$normalized['swatch_style'] = 'image';
 				$label_pos = $field['label_pos'] ?? 'out';
 				if ( ! in_array( $label_pos, [ 'default', 'out', 'hide', 'tooltip' ], true ) ) {
@@ -243,6 +251,37 @@ final class FieldGroup {
 				}
 				if ( in_array( $image_zoom, [ true, 1, '1' ], true ) && $has_image_choice ) {
 					$normalized['image_zoom'] = true;
+				}
+			} elseif ( 'color' === $style ) {
+				$normalized['swatch_style'] = 'color';
+				$layout = $field['color_layout'] ?? 'circle';
+				if ( ! in_array( $layout, [ 'square', 'rounded', 'circle' ], true ) ) {
+					throw new \InvalidArgumentException( 'Color swatch layout must be square, rounded, or circle.' );
+				}
+				$label_pos = $field['color_label_pos'] ?? 'tooltip';
+				if ( ! in_array( $label_pos, [ 'default', 'hide', 'tooltip' ], true ) ) {
+					throw new \InvalidArgumentException( 'Color swatch label position must be default, hide, or tooltip.' );
+				}
+				$normalized['color_layout'] = $layout;
+				$normalized['color_label_pos'] = $label_pos;
+				$normalized['color_size'] = self::bounded_integer( $field['color_size'] ?? 30, 5, 500, 'Color swatch size' );
+			} else {
+				$normalized['swatch_style'] = 'text';
+			}
+			$multiple = $field['multiple'] ?? false;
+			if ( ! in_array( $multiple, [ true, false, 0, 1, '0', '1' ], true ) ) {
+				throw new \InvalidArgumentException( 'Swatch multiple setting must be boolean.' );
+			}
+			$normalized['multiple'] = in_array( $multiple, [ true, 1, '1' ], true );
+			if ( $normalized['multiple'] ) {
+				foreach ( [ 'min_choices', 'max_choices' ] as $key ) {
+					if ( ! array_key_exists( $key, $field ) || '' === $field[ $key ] || null === $field[ $key ] ) {
+						continue;
+					}
+					$normalized[ $key ] = self::bounded_integer( $field[ $key ], 1, 10000, 'Swatch ' . $key );
+				}
+				if ( isset( $normalized['min_choices'], $normalized['max_choices'] ) && $normalized['min_choices'] > $normalized['max_choices'] ) {
+					throw new \InvalidArgumentException( 'Swatch minimum choices cannot exceed maximum choices.' );
 				}
 			}
 		}

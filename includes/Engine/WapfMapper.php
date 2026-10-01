@@ -33,7 +33,11 @@ final class WapfMapper {
 		'radio'         => 'radio',
 		'checkbox'      => 'checkbox',
 		'text-swatch'   => 'swatch',
+		'multi-text-swatch' => 'swatch',
 		'image-swatch'  => 'swatch',
+		'multi-image-swatch' => 'swatch',
+		'color-swatch' => 'swatch',
+		'multi-color-swatch' => 'swatch',
 		'content'       => 'paragraph',
 		'paragraph'     => 'paragraph',
 		'p'             => 'paragraph',
@@ -114,7 +118,9 @@ final class WapfMapper {
 			$field_id = $opf_ids_by_index[ $index ];
 
 			$has_choices = in_array( self::TYPE_MAP[ $wapf_type ], [ 'swatch', 'select', 'radio', 'checkbox' ], true );
-			$image_swatch_settings = 'image-swatch' === $wapf_type ? self::map_image_swatch_settings( $wapf_field, $notes, $needs_review ) : [];
+			$image_swatch_settings = in_array( $wapf_type, [ 'image-swatch', 'multi-image-swatch' ], true ) ? self::map_image_swatch_settings( $wapf_field, $notes, $needs_review ) : [];
+			$color_swatch_settings = in_array( $wapf_type, [ 'color-swatch', 'multi-color-swatch' ], true ) ? self::map_color_swatch_settings( $wapf_field, $notes, $needs_review ) : [];
+			$selection_limits = in_array( $wapf_type, [ 'multi-text-swatch', 'multi-image-swatch', 'multi-color-swatch' ], true ) ? self::map_swatch_selection_limits( $wapf_field, $notes, $needs_review ) : [];
 			$content = '';
 			if ( 'paragraph' === self::TYPE_MAP[ $wapf_type ] ) {
 				$content = (string) ( $wapf_field['options']['p_content'] ?? $wapf_field['p_content'] ?? '' );
@@ -135,12 +141,13 @@ final class WapfMapper {
 					'width'        => (int) ( $wapf_field['width'] ?? 100 ),
 					'css_class'    => (string) ( $wapf_field['class'] ?? '' ),
 					'placeholder'  => (string) ( $wapf_field['options']['placeholder'] ?? '' ),
-					'swatch_style' => 'image-swatch' === $wapf_type ? 'image' : '',
+					'swatch_style' => in_array( $wapf_type, [ 'image-swatch', 'multi-image-swatch' ], true ) ? 'image' : ( in_array( $wapf_type, [ 'color-swatch', 'multi-color-swatch' ], true ) ? 'color' : 'text' ),
+					'multiple'     => in_array( $wapf_type, [ 'multi-text-swatch', 'multi-image-swatch', 'multi-color-swatch' ], true ),
 					'choices'      => $has_choices ? self::map_choices( $wapf_field, $notes, $needs_review ) : [],
 					'pricing'      => self::map_field_pricing( $wapf_field, $notes, $needs_review ),
 					'conditionals' => self::map_conditionals( $wapf_field, $notes, $opf_ids_by_wapf_id, $needs_review ),
 					'content'      => $content,
-				], $image_swatch_settings )
+			], $image_swatch_settings, $color_swatch_settings, $selection_limits )
 			);
 			if ( 'paragraph' === $field['type'] ) {
 				if ( ! empty( $wapf_field['required'] ) ) {
@@ -153,7 +160,7 @@ final class WapfMapper {
 				}
 			}
 
-			if ( 'image-swatch' === $wapf_type ) {
+			if ( in_array( $wapf_type, [ 'image-swatch', 'multi-image-swatch' ], true ) ) {
 				$notes[] = sprintf( 'field "%s" is an image swatch; choice media references are imported, but image files are not bundled and attachment IDs may need remapping on the destination site.', (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' ) );
 				$needs_review = true;
 			}
@@ -251,6 +258,17 @@ final class WapfMapper {
 			if ( is_string( $choice['image'] ?? null ) ) {
 				$mapped_choice['image'] = $choice['image'];
 			}
+			if ( is_string( $choice['color'] ?? null ) ) {
+				if ( preg_match( '/^#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{5})?$/', $choice['color'] ) ) {
+					$mapped_choice['color'] = strtoupper( $choice['color'] );
+				} else {
+					$notes[] = sprintf( 'choice "%s" has an unsupported color value; color swatch needs review.', $choice['label'] ?? $slug );
+					$needs_review = true;
+				}
+			} elseif ( in_array( $wapf_field['type'] ?? '', [ 'color-swatch', 'multi-color-swatch' ], true ) ) {
+				$notes[] = sprintf( 'choice "%s" has no color value; color swatch needs review.', $choice['label'] ?? $slug );
+				$needs_review = true;
+			}
 			$attachment_id = $choice['attachment'] ?? null;
 			if ( ( is_int( $attachment_id ) || ( is_string( $attachment_id ) && ctype_digit( $attachment_id ) ) ) && (int) $attachment_id > 0 ) {
 				$mapped_choice['image_id'] = (int) $attachment_id;
@@ -306,6 +324,64 @@ final class WapfMapper {
 				$notes[] = sprintf( 'image swatch "%s" has an invalid large_image setting; zoom setting needs review.', $label );
 				$needs_review = true;
 			}
+		}
+		return $settings;
+	}
+
+	/** Map WAPF Extended color swatch layout, size, and selection limits. */
+	private static function map_color_swatch_settings( array $wapf_field, array &$notes, bool &$needs_review ): array {
+		$options = is_array( $wapf_field['options'] ?? null ) ? $wapf_field['options'] : [];
+		$settings = [];
+		$label = (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' );
+		if ( isset( $options['layout'] ) ) {
+			if ( in_array( $options['layout'], [ 'square', 'rounded', 'circle' ], true ) ) {
+				$settings['color_layout'] = $options['layout'];
+			} else {
+				$notes[] = sprintf( 'color swatch "%s" has an unsupported layout; WAPF default applies.', $label );
+				$needs_review = true;
+			}
+		}
+		if ( isset( $options['size'] ) ) {
+			$value = $options['size'];
+			if ( ( is_int( $value ) || ( is_string( $value ) && ctype_digit( $value ) ) ) && (int) $value >= 5 && (int) $value <= 500 ) {
+				$settings['color_size'] = (int) $value;
+			} else {
+				$notes[] = sprintf( 'color swatch "%s" has an invalid size; WAPF default applies.', $label );
+				$needs_review = true;
+			}
+		}
+		if ( isset( $options['label_pos'] ) ) {
+			if ( in_array( $options['label_pos'], [ 'default', 'hide', 'tooltip' ], true ) ) {
+				$settings['color_label_pos'] = $options['label_pos'];
+			} else {
+				$notes[] = sprintf( 'color swatch "%s" has an unsupported label position; WAPF default applies.', $label );
+				$needs_review = true;
+			}
+		}
+		return $settings;
+	}
+
+	/** Map cardinality options shared by WAPF's three multi-swatch types. */
+	private static function map_swatch_selection_limits( array $wapf_field, array &$notes, bool &$needs_review ): array {
+		$options = is_array( $wapf_field['options'] ?? null ) ? $wapf_field['options'] : [];
+		$settings = [];
+		$label = (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' );
+		foreach ( [ 'min_choices', 'max_choices' ] as $key ) {
+			if ( ! array_key_exists( $key, $options ) || '' === $options[ $key ] || null === $options[ $key ] ) {
+				continue;
+			}
+			$value = $options[ $key ];
+			if ( ( is_int( $value ) || ( is_string( $value ) && ctype_digit( $value ) ) ) && (int) $value >= 1 && (int) $value <= 10000 ) {
+				$settings[ $key ] = (int) $value;
+			} else {
+				$notes[] = sprintf( 'multi swatch "%s" has an invalid %s value; selection limit needs review.', $label, $key );
+				$needs_review = true;
+			}
+		}
+		if ( isset( $settings['min_choices'], $settings['max_choices'] ) && $settings['min_choices'] > $settings['max_choices'] ) {
+			$notes[] = sprintf( 'multi swatch "%s" has min_choices greater than max_choices; selection limits need review.', $label );
+			unset( $settings['min_choices'], $settings['max_choices'] );
+			$needs_review = true;
 		}
 		return $settings;
 	}

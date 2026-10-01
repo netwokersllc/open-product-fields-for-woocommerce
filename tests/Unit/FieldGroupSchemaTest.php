@@ -101,6 +101,38 @@ final class FieldGroupSchemaTest extends TestCase {
 		$this->assertSame( [ 4, 2, 1 ], [ $field['items_per_row'], $field['items_per_row_tablet'], $field['items_per_row_mobile'] ] );
 	}
 
+	public function test_multi_color_swatch_options_and_colors_are_normalized_safely(): void {
+		$field = FieldGroup::normalize_field( [
+			'id' => 'palette',
+			'type' => 'swatch',
+			'swatch_style' => 'color',
+			'multiple' => true,
+			'min_choices' => 1,
+			'max_choices' => 2,
+			'color_layout' => 'rounded',
+			'color_size' => 36,
+			'color_label_pos' => 'hide',
+			'choices' => [
+				[ 'slug' => 'navy', 'label' => 'Navy', 'color' => '#123abc' ],
+				[ 'slug' => 'bad', 'label' => 'Bad color', 'color' => 'url(javascript:bad)' ],
+			],
+		] );
+
+		$this->assertTrue( $field['multiple'] );
+		$this->assertSame( [ 1, 2 ], [ $field['min_choices'], $field['max_choices'] ] );
+		$this->assertSame( [ 'rounded', 36, 'hide' ], [ $field['color_layout'], $field['color_size'], $field['color_label_pos'] ] );
+		$this->assertSame( '#123ABC', $field['choices'][0]['color'] );
+		$this->assertArrayNotHasKey( 'color', $field['choices'][1] );
+	}
+
+	public function test_multi_swatch_selection_limits_must_be_consistent(): void {
+		$this->expectException( InvalidArgumentException::class );
+		FieldGroup::normalize_field( [
+			'id' => 'options', 'type' => 'swatch', 'multiple' => true,
+			'min_choices' => 3, 'max_choices' => 2,
+		] );
+	}
+
 	public function test_duplicate_remaps_internal_field_references_and_formula_tokens(): void {
 		$result = FieldGroup::duplicate(
 			[

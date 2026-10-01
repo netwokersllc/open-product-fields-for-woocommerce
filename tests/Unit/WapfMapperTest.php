@@ -101,6 +101,67 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( 481, $mapped['group']['fields'][0]['choices'][0]['image_id'] );
 	}
 
+	public function test_maps_multi_color_swatches_selection_limits_and_color_choices(): void {
+		$mapped = WapfMapper::map( [
+			'fields' => [
+				[
+					'id' => 'palette',
+					'label' => 'Palette',
+					'type' => 'multi-color-swatch',
+					'options' => [
+						'min_choices' => 1,
+						'max_choices' => 2,
+						'layout' => 'rounded',
+						'size' => 36,
+						'label_pos' => 'default',
+						'choices' => [
+							[ 'slug' => 'navy', 'label' => 'Navy', 'color' => '#123456', 'pricing_type' => 'none' ],
+							[ 'slug' => 'gold', 'label' => 'Gold', 'color' => '#D4AF37', 'pricing_type' => 'fixed', 'pricing_amount' => 4 ],
+						],
+					],
+				],
+			],
+		] );
+
+		$field = $mapped['group']['fields'][0];
+		$this->assertSame( 'swatch', $field['type'] );
+		$this->assertSame( 'color', $field['swatch_style'] );
+		$this->assertTrue( $field['multiple'] );
+		$this->assertSame( 1, $field['min_choices'] );
+		$this->assertSame( 2, $field['max_choices'] );
+		$this->assertSame( 'rounded', $field['color_layout'] );
+		$this->assertSame( 36, $field['color_size'] );
+		$this->assertSame( '#123456', $field['choices'][0]['color'] );
+		$this->assertSame( '#D4AF37', $field['choices'][1]['color'] );
+		$this->assertFalse( $mapped['needs_review'] );
+	}
+
+	public function test_maps_the_other_multi_and_single_swatch_variants_without_loss(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [
+			[ 'id' => 'text', 'label' => 'Text', 'type' => 'multi-text-swatch', 'options' => [
+				'min_choices' => 1, 'max_choices' => 2,
+				'choices' => [ [ 'slug' => 'a', 'label' => 'A', 'pricing_type' => 'none' ] ],
+			] ],
+			[ 'id' => 'image', 'label' => 'Image', 'type' => 'multi-image-swatch', 'options' => [
+				'min_choices' => 2, 'max_choices' => 3, 'label_pos' => 'out', 'grid_layout' => 'flexible',
+				'items_per_row' => 4, 'choices' => [ [ 'slug' => 'oak', 'label' => 'Oak', 'image' => '/oak.jpg', 'pricing_type' => 'none' ] ],
+			] ],
+			[ 'id' => 'color', 'label' => 'Color', 'type' => 'color-swatch', 'options' => [
+				'layout' => 'square', 'size' => 24, 'label_pos' => 'hide',
+				'choices' => [ [ 'slug' => 'black', 'label' => 'Black', 'color' => '#000', 'pricing_type' => 'none' ] ],
+			] ],
+		] ] );
+
+		$this->assertTrue( $mapped['needs_review'] );
+		$this->assertStringContainsString( 'image swatch', implode( ' ', $mapped['notes'] ) );
+		$this->assertSame( [ true, true, false ], array_column( $mapped['group']['fields'], 'multiple' ) );
+		$this->assertSame( [ 'text', 'image', 'color' ], array_column( $mapped['group']['fields'], 'swatch_style' ) );
+		$this->assertSame( [ 1, 2 ], [ $mapped['group']['fields'][0]['min_choices'], $mapped['group']['fields'][0]['max_choices'] ] );
+		$this->assertSame( [ 2, 3 ], [ $mapped['group']['fields'][1]['min_choices'], $mapped['group']['fields'][1]['max_choices'] ] );
+		$this->assertSame( 'flexible', $mapped['group']['fields'][1]['grid_layout'] );
+		$this->assertSame( '#000', $mapped['group']['fields'][2]['choices'][0]['color'] );
+	}
+
 	public function test_maps_free_content_and_legacy_paragraph_fields_as_static_text(): void {
 		$mapped = WapfMapper::map( [
 			'fields' => [

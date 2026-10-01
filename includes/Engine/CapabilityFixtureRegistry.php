@@ -202,6 +202,8 @@ final class CapabilityFixtureRegistry {
 							],
 							'pricing'      => [ 'type' => 'none', 'amount' => 0.0, 'formula' => '', 'formula_raw' => '', 'per_unit' => true ],
 							'conditionals' => [],
+							'swatch_style' => 'text',
+							'multiple' => false,
 						],
 					],
 					'rule_groups'     => [],
