@@ -207,9 +207,13 @@ final class CartIntegration {
 		$quantity_fields = [];
 		foreach ( FieldGroups::for_product( $product ) as $entry ) {
 			$gid = (string) $entry['id'];
-			foreach ( $entry['group']->data['fields'] as $field ) {
-				if ( ! empty( $field['repeat']['enabled'] ) && 'quantity' === ( $field['repeat']['mode'] ?? '' ) ) {
-					$quantity_fields[] = [ $gid, (string) $field['id'], $field ];
+			$group_fields = $entry['group']->data['fields'];
+			$section_repeats = self::section_repeat_context( $group_fields );
+			foreach ( $group_fields as $field ) {
+				$section_repeat = empty( $field['repeat']['enabled'] ) && isset( $section_repeats[ $field['id'] ] );
+				$repeat = $section_repeat ? $section_repeats[ $field['id'] ] : ( $field['repeat'] ?? [] );
+				if ( ! in_array( $field['type'], [ 'section', 'section_end' ], true ) && ! empty( $repeat['enabled'] ) && 'quantity' === ( $repeat['mode'] ?? '' ) ) {
+					$quantity_fields[] = [ $gid, (string) $field['id'], $field, $repeat, $section_repeat ];
 				}
 			}
 		}
@@ -222,7 +226,7 @@ final class CartIntegration {
 			$unit_values = $values;
 			$canonical_values = $values;
 			$clone_labels = [];
-			foreach ( $quantity_fields as [ $gid, $fid, $field ] ) {
+			foreach ( $quantity_fields as [ $gid, $fid, $field, $repeat, $section_repeat ] ) {
 				$source_rows = $values[ $gid ][ $fid ] ?? [];
 				if ( ! is_array( $source_rows ) ) {
 					$source_rows = [ $source_rows ];
@@ -233,12 +237,14 @@ final class CartIntegration {
 				}
 
 				$row = $source_rows[ $unit_index ];
-				$repeat_label = (string) ( $field['repeat']['label'] ?? '' );
+				$repeat_label = $section_repeat ? '' : (string) ( $repeat['label'] ?? '' );
 				$display_label = $unit_index > 0 && '' !== $repeat_label
 					? str_replace( '{n}', (string) ( $unit_index + 1 ), $repeat_label )
 					: (string) $field['label'];
-				$clone_labels[ $gid . ':' . $fid ] = $display_label;
-				$storage_index = $unit_index > 0 && false !== strpos( $repeat_label, '{n}' ) ? $unit_index : ( $unit_index > 0 && '' !== $repeat_label ? 1 : 0 );
+				if ( ! $section_repeat ) {
+					$clone_labels[ $gid . ':' . $fid ] = $display_label;
+				}
+				$storage_index = ! $section_repeat && $unit_index > 0 && false !== strpos( $repeat_label, '{n}' ) ? $unit_index : ( ! $section_repeat && $unit_index > 0 && '' !== $repeat_label ? 1 : 0 );
 				$unit_values[ $gid ][ $fid ] = [ $storage_index => $row ];
 				$canonical_values[ $gid ][ $fid ] = [ 0 => $row ];
 			}
@@ -377,6 +383,7 @@ final class CartIntegration {
 		foreach ( FieldGroups::for_product( $product ) as $entry ) {
 			$gid   = (string) $entry['id'];
 			$group = $entry['group'];
+			$section_repeats = self::section_repeat_context( $group->data['fields'] );
 			if ( ! isset( $values[ $gid ] ) ) {
 				continue;
 			}
@@ -384,7 +391,7 @@ final class CartIntegration {
 			$group_values = (array) $values[ $gid ];
 
 			foreach ( $group->data['fields'] as $field ) {
-				if ( 'paragraph' === $field['type'] ) {
+				if ( in_array( $field['type'], [ 'paragraph', 'section', 'section_end' ], true ) ) {
 					continue;
 				}
 				$fid = $field['id'];
@@ -394,8 +401,12 @@ final class CartIntegration {
 				if ( ! Evaluator::is_visible( $field, $group_values ) ) {
 					continue;
 				}
+				$priced_field = $field;
+				if ( empty( $priced_field['repeat']['enabled'] ) && isset( $section_repeats[ $fid ] ) ) {
+					$priced_field['repeat'] = $section_repeats[ $fid ];
+				}
 				$per_unit += Calculator::field_addon(
-					$field,
+					$priced_field,
 					$group_values[ $fid ],
 					[
 						'price'  => $base,
@@ -467,8 +478,9 @@ final class CartIntegration {
 					continue;
 				}
 				$raw = $group_values[ $fid ];
+				$section_repeat = empty( $field['repeat']['enabled'] ) && isset( $section_repeats[ $fid ] );
 				$repeat_field = $field;
-				if ( empty( $repeat_field['repeat']['enabled'] ) && isset( $section_repeats[ $fid ] ) ) {
+				if ( $section_repeat ) {
 					$repeat_field['repeat'] = $section_repeats[ $fid ];
 				}
 				if ( ! empty( $repeat_field['repeat']['enabled'] ) ) {
@@ -479,7 +491,9 @@ final class CartIntegration {
 						$row_display = self::display_value( $field, $row );
 						if ( '' !== $row_display ) {
 							$label = (string) $field['label'];
-							if ( $index > 0 && ! empty( $repeat_field['repeat']['label'] ) ) {
+							if ( $section_repeat && 'button' === ( $repeat_field['repeat']['mode'] ?? '' ) && $index > 0 && ! empty( $repeat_field['repeat']['label'] ) ) {
+								$label = str_replace( '{n}', (string) ( $index + 1 ), $repeat_field['repeat']['label'] ) . ' - ' . $label;
+							} elseif ( ! $section_repeat && $index > 0 && ! empty( $repeat_field['repeat']['label'] ) ) {
 								$label = str_replace( '{n}', (string) ( $index + 1 ), $repeat_field['repeat']['label'] );
 							}
 							$out[] = [ 'label' => $label, 'value' => $row_display ];

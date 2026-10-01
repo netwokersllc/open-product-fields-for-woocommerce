@@ -48,11 +48,11 @@ try {
 
 	$group_id = FieldGroups::save( 0, [
 		'fields' => [
-			[ 'id' => 'attendees', 'label' => 'Attendees', 'type' => 'section', 'repeat' => [ 'enabled' => true, 'mode' => 'quantity' ] ],
+			[ 'id' => 'attendees', 'label' => 'Attendees', 'type' => 'section', 'repeat' => [ 'enabled' => true, 'mode' => 'quantity', 'label' => 'Guest {n}' ] ],
 			[ 'id' => 'guest_name', 'label' => 'Guest name', 'type' => 'text', 'required' => true ],
 			[ 'id' => 'guest_meal', 'label' => 'Guest meal', 'type' => 'select', 'required' => true, 'choices' => [
-				[ 'slug' => 'soup', 'label' => 'Soup' ],
-				[ 'slug' => 'salad', 'label' => 'Salad' ],
+				[ 'slug' => 'soup', 'label' => 'Soup', 'pricing' => [ 'type' => 'fixed', 'amount' => 2, 'per_unit' => true ] ],
+				[ 'slug' => 'salad', 'label' => 'Salad', 'pricing' => [ 'type' => 'fixed', 'amount' => 3, 'per_unit' => true ] ],
 			] ],
 			[ 'id' => 'attendees-end', 'type' => 'section_end' ],
 		],
@@ -67,11 +67,29 @@ try {
 	] ] );
 	$assert( in_array( $response->get_status(), [ 200, 201 ], true ), 'Store API rejected valid section rows: ' . wp_json_encode( $response->get_data() ) );
 	$items = array_values( array_filter( $cart->get_cart(), static fn( $item ) => (int) $item['product_id'] === $product_id ) );
-	$assert( 1 === count( $items ), 'Store API did not create the quantity-section fixture cart item.' );
-	$section_values = $items[0][ CartIntegration::ITEM_KEY ][ (string) $group_id ] ?? [];
-	$assert( [ 'Ada', 'Grace' ] === $section_values['guest_name'] && [ 'soup', 'salad' ] === $section_values['guest_meal'], 'Section clone values were not sanitized and retained by row index: ' . wp_json_encode( $section_values ) );
-	$selections = CartIntegration::visible_selections( $items[0]['data'], $items[0][ CartIntegration::ITEM_KEY ] );
-	$assert( 4 === count( $selections ), 'Cart display did not expand section clone values into scalar rows: ' . wp_json_encode( $selections ) );
+	$assert( 2 === count( $items ), 'Store API did not split distinct quantity-section rows into separate cart lines.' );
+	$lines_by_meal = [];
+	foreach ( $items as $item ) {
+		$section_values = $item[ CartIntegration::ITEM_KEY ][ (string) $group_id ] ?? [];
+		$meal = $section_values['guest_meal'][0] ?? null;
+		$lines_by_meal[ $meal ] = $item;
+	}
+	$assert( [ 'Ada' ] === array_values( $lines_by_meal['soup'][ CartIntegration::ITEM_KEY ][ (string) $group_id ]['guest_name'] ?? [] ), 'First section row was not isolated on its cart line.' );
+	$assert( [ 'Grace' ] === array_values( $lines_by_meal['salad'][ CartIntegration::ITEM_KEY ][ (string) $group_id ]['guest_name'] ?? [] ), 'Second section row was not isolated on its cart line.' );
+	$assert( 1 === (int) $lines_by_meal['soup']['quantity'] && 1 === (int) $lines_by_meal['salad']['quantity'], 'Distinct section rows did not retain one-unit cart quantities.' );
+	$assert( 12.0 === (float) $lines_by_meal['soup']['data']->get_price( 'edit' ) && 13.0 === (float) $lines_by_meal['salad']['data']->get_price( 'edit' ), 'Per-row section choice pricing was not applied to split cart lines.' );
+	$selections = CartIntegration::visible_selections( $lines_by_meal['salad']['data'], $lines_by_meal['salad'][ CartIntegration::ITEM_KEY ] );
+	$assert( 2 === count( $selections ), 'Cart display did not retain child field rows: ' . wp_json_encode( $selections ) );
+
+	$cart->empty_cart();
+	$identical_response = $add_store_item( $product_id, [ (string) $group_id => [
+		'guest_name' => [ 'Ada', 'Ada' ],
+		'guest_meal' => [ 'soup', 'soup' ],
+	] ] );
+	$assert( in_array( $identical_response->get_status(), [ 200, 201 ], true ), 'Store API rejected identical quantity-section rows: ' . wp_json_encode( $identical_response->get_data() ) );
+	$identical_items = array_values( array_filter( $cart->get_cart(), static fn( $item ) => (int) $item['product_id'] === $product_id ) );
+	$assert( 1 === count( $identical_items ) && 2 === (int) $identical_items[0]['quantity'], 'Identical section rows did not merge into a quantity-2 cart line.' );
+	$assert( 12.0 === (float) $identical_items[0]['data']->get_price( 'edit' ), 'Merged section row has incorrect per-unit pricing.' );
 
 	$cart->empty_cart();
 	$invalid_response = $add_store_item( $product_id, [ (string) $group_id => [
@@ -89,7 +107,7 @@ try {
 	$assert( 400 === $invalid_choice_response->get_status(), 'Store API accepted an invalid required section choice.' );
 	$assert( false !== strpos( (string) ( $invalid_choice_response->get_data()['message'] ?? '' ), '"Guest meal" is required in repeated row 2.' ), 'Invalid section choice did not fail in its own row: ' . wp_json_encode( $invalid_choice_response->get_data() ) );
 
-	echo "ok Store API quantity-section child sanitation, exact row validation, and cleanup\n";
+	echo "ok Store API quantity-section sanitation, validation, pricing, cart splitting/merge, and cleanup\n";
 } finally {
 	update_option( 'opf_admin_only', $admin_only_before );
 	if ( $group_id > 0 ) {
