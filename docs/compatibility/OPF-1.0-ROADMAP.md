@@ -33,10 +33,10 @@ The 132 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 
 | Status | Rows | Meaning for the gate |
 | --- | ---: | --- |
-| Baseline supported | 5 | Promising baseline only; not accepted as proof |
-| Supported | 20 | Evidence recorded and accepted as complete under the row-count rule |
-| Supported with documented difference | 7 | Needs explicit non-regression review and acceptance |
-| Partial | 99 | Material parity or proof remains |
+| Baseline supported | 4 | Promising baseline only; not accepted as proof |
+| Supported | 5 | Fresh supported-row audit retained only independently justified evidence |
+| Supported with documented difference | 8 | Needs explicit non-regression review and acceptance |
+| Partial | 114 | Material parity or proof remains; 15 prior supported claims were withdrawn after source/test audit |
 | Gap | 1 | Known absent in the current OPF tree |
 | Needs audit | 0 | Available source, marketing claims, and every published release delta are mapped; exact release details remain scoped to partial rows |
 | **Total** | **132** | **G1 complete for available evidence; G2 remains open** |
@@ -57,6 +57,12 @@ Aelia base/formula/cart/browser
 conversion is implemented and passed a disposable Woo test against a fake API
 contract, but the commercial plugin, linked-product conversion, and a wired
 pricing-hint path remain unverified. Neither row counts as supported.
+
+A fresh evidence review removed 15 stale `supported` claims. Five rows remain
+supported after that review; the other claims are partial or identified as
+outside WAPF parity. See [the supported-row audit](SUPPORTED-ROW-AUDIT-2026-10-01.md).
+Current strict progress is **5/132 accepted supported rows**; this correction
+changes the evidence-based count, not previously implemented behavior.
 
 `WAPF-FIELD-TEXT` advanced from baseline-supported to `supported`: native text
 defaults and builder controls now pass 24 real-Chromium checks and 23 disposable

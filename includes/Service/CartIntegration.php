@@ -887,6 +887,12 @@ final class CartIntegration {
 				}
 				if ( ! empty( $repeat_field['repeat']['enabled'] ) ) {
 					$rows = $provided && is_array( $given[ $field['id'] ] ) ? $given[ $field['id'] ] : [];
+					foreach ( $rows as $row_index => $row ) {
+						$clone_values = self::values_for_clone( $group->data['fields'], $given, $section_repeats, (int) $row_index );
+						if ( Evaluator::is_visible( $field, $clone_values ) ) {
+							$errors = array_merge( $errors, FieldValue::validate_choices( $field, $row ) );
+						}
+					}
 					$errors = array_merge( $errors, RepeaterField::validate(
 						$repeat_field,
 						$rows,
@@ -901,6 +907,9 @@ final class CartIntegration {
 				}
 				if ( ! Evaluator::is_visible( $field, $given ) ) {
 					continue;
+				}
+				if ( in_array( $field['type'], [ 'select', 'radio', 'checkbox', 'swatch' ], true ) && $provided ) {
+					$errors = array_merge( $errors, FieldValue::validate_choices( $field, $given[ $field['id'] ] ) );
 				}
 				if ( 'image_quantity' === $field['type'] ) {
 					$submitted = $provided && is_array( $given[ $field['id'] ] ) ? $given[ $field['id'] ] : [];

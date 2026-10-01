@@ -58,6 +58,23 @@ final class WapfExporterTest extends TestCase {
 		$this->assertSame( '!p_tags', $payload['conditions'][0]['rules'][1]['condition'] );
 	}
 
+	public function test_disabled_choices_round_trip_through_wapf_tools_payload(): void {
+		$payload = WapfExporter::build_payload( FieldGroup::normalize( [ 'fields' => [ [
+			'id' => 'finish', 'label' => 'Finish', 'type' => 'select',
+			'choices' => [
+				[ 'slug' => 'oak', 'label' => 'Oak', 'disabled' => true ],
+				[ 'slug' => 'ash', 'label' => 'Ash', 'disabled' => false ],
+			],
+		] ] ] ) );
+
+		$this->assertTrue( $payload['fields'][0]['choices'][0]['disabled'] );
+		$source_field = $payload['fields'][0];
+		$source_field['options'] = [ 'choices' => $source_field['choices'] ];
+		$round_trip = WapfMapper::map( [ 'fields' => [ $source_field ] ] );
+		$this->assertFalse( $round_trip['needs_review'] );
+		$this->assertTrue( $round_trip['group']['fields'][0]['choices'][0]['disabled'] );
+	}
+
 	public function test_exports_paragraph_as_wapf_content_with_plain_p_content(): void {
 		$payload = WapfExporter::build_payload( FieldGroup::normalize( [
 			'fields' => [ [ 'id' => 'care-note', 'label' => '', 'type' => 'paragraph', 'content' => "Wash cold.\nDo not bleach." ] ],

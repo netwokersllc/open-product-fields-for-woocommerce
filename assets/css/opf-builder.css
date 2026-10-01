@@ -54,6 +54,20 @@
 	align-items: center;
 }
 
+.opf-b-choice-flags {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.opf-b-choice-flag {
+	display: flex;
+	align-items: center;
+	gap: 3px;
+	font-size: 11px;
+	white-space: nowrap;
+}
+
 .opf-b-choice-with-image {
 	display: grid;
 	gap: 4px;

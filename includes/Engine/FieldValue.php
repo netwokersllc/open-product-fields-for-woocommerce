@@ -41,6 +41,21 @@ final class FieldValue {
 		return '' === $text ? null : $text;
 	}
 
+	/** Reject submitted values that select choices disabled by the editor. */
+	public static function validate_choices( array $field, $value ): array {
+		if ( ! in_array( $field['type'] ?? '', [ 'select', 'radio', 'checkbox', 'swatch' ], true ) ) {
+			return [];
+		}
+		$selected = array_map( 'strval', is_array( $value ) ? $value : ( null === $value ? [] : [ $value ] ) );
+		$errors = [];
+		foreach ( (array) ( $field['choices'] ?? [] ) as $choice ) {
+			if ( ! empty( $choice['disabled'] ) && in_array( (string) ( $choice['slug'] ?? '' ), $selected, true ) ) {
+				$errors[] = sprintf( '"%s" includes unavailable choice "%s".', (string) ( $field['label'] ?? '' ), (string) ( $choice['label'] ?? '' ) );
+			}
+		}
+		return $errors;
+	}
+
 	/** Return whether a date bound is canonical ISO or a WAPF relative period. */
 	public static function is_date_boundary( string $boundary ): bool {
 		if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $boundary ) ) {

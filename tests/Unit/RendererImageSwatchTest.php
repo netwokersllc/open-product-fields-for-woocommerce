@@ -60,6 +60,25 @@ namespace OPF\Tests\Unit {
 			$this->assertStringContainsString( 'src="https://example.test/oak.jpg"', $html );
 		}
 
+		public function test_disabled_choice_is_disabled_in_select_and_checkbox_controls(): void {
+			$group = new FieldGroup( [ 'fields' => [
+				[ 'id' => 'finish', 'label' => 'Finish', 'type' => 'select', 'choices' => [
+					[ 'slug' => 'oak', 'label' => 'Oak', 'selected' => true, 'disabled' => true ],
+					[ 'slug' => 'ash', 'label' => 'Ash' ],
+				] ],
+				[ 'id' => 'extras', 'label' => 'Extras', 'type' => 'checkbox', 'choices' => [
+					[ 'slug' => 'rush', 'label' => 'Rush', 'disabled' => true ],
+				] ],
+			] ] );
+			ob_start();
+			Renderer::render_group( '17', 'Options', $group, 10.0 );
+			$html = (string) ob_get_clean();
+
+			$this->assertMatchesRegularExpression( '/<option value="oak"[^>]*disabled/', $html );
+			$this->assertDoesNotMatchRegularExpression( '/<option value="oak"[^>]*selected/', $html );
+			$this->assertMatchesRegularExpression( '/<input[^>]*value="rush"[^>]*disabled/', $html );
+		}
+
 		public function test_image_quantity_renders_wapf_maximum_bound(): void {
 			$group = new FieldGroup( [ 'fields' => [ [
 				'id' => 'images', 'label' => 'Prints', 'type' => 'image_quantity',

@@ -142,11 +142,12 @@ final class FieldGroup {
 				continue;
 			}
 			$pricing   = is_array( $choice['pricing'] ?? null ) ? $choice['pricing'] : [];
+			$disabled = (bool) ( $choice['disabled'] ?? false );
 			$normalized_choice = [
 				'slug'     => (string) ( $choice['slug'] ?? '' ),
 				'label'    => (string) $choice['label'],
-				'selected' => (bool) ( $choice['selected'] ?? false ),
-				'disabled' => (bool) ( $choice['disabled'] ?? false ),
+				'selected' => ! $disabled && (bool) ( $choice['selected'] ?? false ),
+				'disabled' => $disabled,
 				'pricing'  => self::normalize_pricing( $pricing ),
 			];
 			if ( 'image_quantity' === ( $field['type'] ?? '' ) ) {

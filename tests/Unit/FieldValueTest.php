@@ -45,4 +45,23 @@ final class FieldValueTest extends TestCase {
 		$this->assertSame( [], FieldValue::validate( $field, '1', true ) );
 		$this->assertSame( [ '"Gift wrap" is a required field.' ], FieldValue::validate( $field, '0', true ) );
 	}
+
+	public function test_disabled_choices_are_rejected_for_single_and_multiple_fields(): void {
+		$single = [
+			'type' => 'select', 'label' => 'Finish', 'choices' => [
+				[ 'slug' => 'oak', 'label' => 'Oak', 'disabled' => true ],
+				[ 'slug' => 'ash', 'label' => 'Ash', 'disabled' => false ],
+			],
+		];
+		$multiple = [
+			'type' => 'checkbox', 'label' => 'Extras', 'choices' => [
+				[ 'slug' => 'rush', 'label' => 'Rush service', 'disabled' => true ],
+				[ 'slug' => 'gift', 'label' => 'Gift wrap', 'disabled' => false ],
+			],
+		];
+
+		$this->assertSame( [ '"Finish" includes unavailable choice "Oak".' ], FieldValue::validate_choices( $single, 'oak' ) );
+		$this->assertSame( [], FieldValue::validate_choices( $single, 'ash' ) );
+		$this->assertSame( [ '"Extras" includes unavailable choice "Rush service".' ], FieldValue::validate_choices( $multiple, [ 'gift', 'rush' ] ) );
+	}
 }

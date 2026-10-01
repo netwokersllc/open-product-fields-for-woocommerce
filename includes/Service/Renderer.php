@@ -453,7 +453,7 @@ final class Renderer {
 		if ( 'select' === $field['type'] ) {
 			echo '<select name="' . esc_attr( $name ) . '" id="opf-' . esc_attr( $gid . '-' . $fid ) . '" class="opf-input input-' . esc_attr( $fid ) . '" autocomplete="off">';
 			foreach ( $field['choices'] as $choice ) {
-				echo '<option value="' . esc_attr( $choice['slug'] ) . '"' . selected( $choice['selected'], true, false ) . '>'
+				echo '<option value="' . esc_attr( $choice['slug'] ) . '"' . selected( $choice['selected'], true, false ) . ( ! empty( $choice['disabled'] ) ? ' disabled' : '' ) . '>'
 					. esc_html( $choice['label'] )
 					. '</option>';
 			}
@@ -527,7 +527,7 @@ final class Renderer {
 				esc_attr( $choice['label'] ),
 				$field['required'] && ( ! $multi || ! isset( $field['_opf_repeat_index'] ) ) ? ' required' : '',
 				$choice['selected'] ? ' checked' : '',
-				self::pricing_attrs( $choice['pricing'] )
+				self::pricing_attrs( $choice['pricing'] ) . ( ! empty( $choice['disabled'] ) ? ' disabled' : '' )
 			);
 
 			$choice_label_attr = $image_swatch ? ' data-opf-swatch-label="' . esc_attr( $choice['label'] ) . '"' : '';

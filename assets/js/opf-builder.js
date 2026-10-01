@@ -103,8 +103,23 @@
 		} );
 		var selected = el( 'input', { type: 'checkbox', title: 'Preselected' } );
 		selected.checked = !! choice.selected;
+		selected.disabled = !! choice.disabled;
 		selected.addEventListener( 'change', function () {
 			choice.selected = selected.checked;
+		} );
+		var disabled = el( 'input', { type: 'checkbox' } );
+		disabled.checked = !! choice.disabled;
+		var flags = el( 'div', { class: 'opf-b-choice-flags' }, [
+			el( 'label', { class: 'opf-b-choice-flag' }, [ selected, el( 'span', { text: 'Default' } ) ] ),
+			el( 'label', { class: 'opf-b-choice-flag' }, [ disabled, el( 'span', { text: 'Unavailable' } ) ] ),
+		] );
+		disabled.addEventListener( 'change', function () {
+			choice.disabled = disabled.checked;
+			selected.disabled = disabled.checked;
+			if ( choice.disabled ) {
+				choice.selected = false;
+				selected.checked = false;
+			}
 		} );
 		var remove = el( 'button', { type: 'button', class: 'button-link opf-b-remove', text: '×', onclick: function () {
 			field.choices.splice( index, 1 );
@@ -112,7 +127,7 @@
 		} } );
 
 		var row = el( 'div', { class: 'opf-b-choice' }, [
-			selected, slugInput, labelInput, typeSelect,
+			flags, slugInput, labelInput, typeSelect,
 			'formula' === choice.pricing.type ? formulaInput : amountInput,
 			remove
 		] );

@@ -183,9 +183,6 @@ final class WapfExporter {
 				if ( 'swatch' === $type && ! in_array( $out['type'], [ 'image-swatch', 'multi-image-swatch' ], true ) && ( ! empty( $choice['image'] ) || ! empty( $choice['image_id'] ) ) ) {
 					throw new \InvalidArgumentException( 'WAPF swatch export cannot preserve image media on a non-image swatch.' );
 				}
-				if ( $choice['disabled'] ) {
-					throw new \InvalidArgumentException( 'WAPF Tools import does not preserve disabled choices.' );
-				}
 				if ( false !== strpos( $choice['label'], '<' ) ) {
 					throw new \InvalidArgumentException( 'WAPF Tools import sanitizes choice labels; HTML is not exported.' );
 				}
@@ -193,6 +190,7 @@ final class WapfExporter {
 				$pricing_type = self::map_choice_pricing( $pricing );
 				$wapf_choice = [
 					'slug' => $choice['slug'], 'label' => $choice['label'], 'selected' => $choice['selected'],
+					'disabled' => $choice['disabled'],
 					'pricing_type' => $pricing_type['type'], 'pricing_amount' => $pricing_type['amount'],
 				];
 				if ( in_array( $out['type'], [ 'image-swatch', 'multi-image-swatch' ], true ) ) {
