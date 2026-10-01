@@ -24,18 +24,30 @@ if ( 0 !== $global_source_count || 0 !== $local_source_count ) {
 
 $product_id = 0;
 $global_id = 0;
-$make_payload = static function ( string $field_id, string $label ): array {
+$make_payload = static function ( string $prefix, string $label ): array {
 	return [
-		'id' => 'p_' . $field_id,
+		'id' => 'p_' . $prefix,
 		'type' => 'wapf_product',
 		'layout' => [ 'mark_required' => true, 'labels_position' => 'above' ],
 		'fields' => [
 			[
-				'id' => $field_id,
-				'label' => $label,
+				'id' => $prefix . '_choice',
+				'label' => $label . ' choice',
+				'type' => 'select',
+				'required' => false,
+				'conditionals' => [],
+				'clone' => [ 'enabled' => false ],
+				'options' => [ 'choices' => [
+					[ 'slug' => 'allow', 'label' => 'Allow', 'selected' => true, 'disabled' => false, 'options' => [], 'pricing_type' => 'fixed', 'pricing_amount' => 3 ],
+				] ],
+				'pricing' => [ 'enabled' => false, 'type' => 'fixed', 'amount' => 0 ],
+			],
+			[
+				'id' => $prefix . '_note',
+				'label' => $label . ' note',
 				'type' => 'text',
 				'required' => true,
-				'conditionals' => [],
+				'conditionals' => [ [ 'rules' => [ [ 'field' => $prefix . '_choice', 'condition' => '==', 'value' => 'allow' ] ] ] ],
 				'clone' => [ 'enabled' => false ],
 				'options' => [ 'choices' => [] ],
 				'pricing' => [ 'enabled' => false, 'type' => 'fixed', 'amount' => 0 ],
@@ -61,8 +73,7 @@ try {
 		throw new RuntimeException( $product_id->get_error_message() );
 	}
 
-	$global_payload = $make_payload( 'opf_e2e_global_note', 'Global note' );
-	$global_payload['id'] = 'p_opf_e2e_global';
+	$global_payload = $make_payload( 'opf_e2e_global', 'Global' );
 	$global_id = wp_insert_post( [
 		'post_type' => 'wapf_product',
 		'post_status' => 'publish',
@@ -72,7 +83,7 @@ try {
 	if ( is_wp_error( $global_id ) ) {
 		throw new RuntimeException( $global_id->get_error_message() );
 	}
-	update_post_meta( $product_id, '_wapf_fieldgroup', $make_payload( 'opf_e2e_local_note', 'Local note' ) );
+	update_post_meta( $product_id, '_wapf_fieldgroup', $make_payload( 'opf_e2e_local', 'Local' ) );
 
 	$dry = OPF\Service\Importer::run( false );
 	$assert( 2 === $dry['imported'] && 0 === $dry['skipped'], 'Dry run did not report exactly one global and one local group.' );
@@ -103,8 +114,12 @@ try {
 	$local_post = get_post( $local_opf_id );
 	$local_data = json_decode( (string) $local_post->post_content, true );
 	$assert( 'publish' === $global_post->post_status && 'publish' === $local_post->post_status, 'Eligible published statuses were not preserved.' );
-	$assert( 'Global note' === ( $global_data['fields'][0]['label'] ?? '' ), 'Global field data did not survive persistence.' );
-	$assert( 'Local note' === ( $local_data['fields'][0]['label'] ?? '' ), 'Local field data did not survive persistence.' );
+	$assert( 'select' === ( $global_data['fields'][0]['type'] ?? '' ) && 'Allow' === ( $global_data['fields'][0]['choices'][0]['label'] ?? '' ) && 3.0 === (float) ( $global_data['fields'][0]['choices'][0]['pricing']['amount'] ?? 0 ), 'Global choice and pricing data did not survive mapping: ' . wp_json_encode( $global_data['fields'][0] ?? null ) );
+	$assert( 'text' === ( $global_data['fields'][1]['type'] ?? '' ) && 'Global note' === ( $global_data['fields'][1]['label'] ?? '' ), 'Global conditional field data did not survive persistence.' );
+	$assert( $global_data['fields'][0]['id'] === ( $global_data['fields'][1]['conditionals'][0]['rules'][0]['field'] ?? '' ) && 'allow' === ( $global_data['fields'][1]['conditionals'][0]['rules'][0]['value'] ?? '' ), 'Global conditional field reference was not remapped.' );
+	$assert( 'select' === ( $local_data['fields'][0]['type'] ?? '' ) && 'Allow' === ( $local_data['fields'][0]['choices'][0]['label'] ?? '' ) && 3.0 === (float) ( $local_data['fields'][0]['choices'][0]['pricing']['amount'] ?? 0 ), 'Local choice and pricing data did not survive mapping.' );
+	$assert( 'Local note' === ( $local_data['fields'][1]['label'] ?? '' ), 'Local conditional field data did not survive persistence.' );
+	$assert( $local_data['fields'][0]['id'] === ( $local_data['fields'][1]['conditionals'][0]['rules'][0]['field'] ?? '' ) && 'allow' === ( $local_data['fields'][1]['conditionals'][0]['rules'][0]['value'] ?? '' ), 'Local conditional field reference was not remapped.' );
 	$local_rule = $local_data['rule_groups'][0]['rules'][0] ?? [];
 	$assert( 'product' === ( $local_rule['subject'] ?? '' ) && [ (string) $product_id ] === ( $local_rule['terms'] ?? [] ), 'Local group was not attached to its source product.' );
 
