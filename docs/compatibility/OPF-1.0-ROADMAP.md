@@ -36,8 +36,8 @@ The 132 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 | Baseline supported | 8 | Promising baseline only; not accepted as proof |
 | Supported | 18 | Evidence recorded and accepted as complete under the row-count rule |
 | Supported with documented difference | 7 | Needs explicit non-regression review and acceptance |
-| Partial | 97 | Material parity or proof remains |
-| Gap | 2 | Known absent in the current OPF tree |
+| Partial | 98 | Material parity or proof remains |
+| Gap | 1 | Known absent in the current OPF tree |
 | Needs audit | 0 | Available source, marketing claims, and every published release delta are mapped; exact release details remain scoped to partial rows |
 | **Total** | **132** | **G1 complete for available evidence; G2 remains open** |
 
@@ -55,6 +55,12 @@ FOX API contract test. WAPF's registry and FOX's own compatibility instructions
 identify that shared adapter. Real FOX package, browser, cart, and checkout
 proof remains open, including percentage double-conversion and fixed-price/formula
 behavior; see [FOX contract evidence](FOX-CURRENCY-CONTRACT.md).
+
+WOOCS is also `partial`: its existing adapter and cart/formula/variation/frontend
+hooks have focused and disposable runtime proof. The audit reproduces a preview
+base mismatch when multiple currency is disabled; linked-product and pricing-hint
+helpers are not connected, and real plugin/checkout proof remains open. See
+[WOOCS audit and executed evidence](WOOCS-CURRENCY-EVIDENCE.md).
 
 Extended-only rows: 28 total; 2 supported, 4 supported with a documented
 difference, 22 partial, and no known gaps. All 132 edition rows have a ledger status. The
