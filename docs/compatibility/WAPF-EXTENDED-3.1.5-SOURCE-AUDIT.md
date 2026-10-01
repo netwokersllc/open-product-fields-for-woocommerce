@@ -316,8 +316,12 @@ OPF's ledger previously mislabeled the content rows as separate WAPF admin
 field types and assumed a WAPF `shortcode` type during import. The row mapping
 is corrected in the ledger: Free `content`/legacy `paragraph` is plain
 text, while Pro HTML and shortcode behaviors use the `p` content type and
-`p_content` option. Migration parity remains open until that payload is mapped
-and verified.
+`p_content` option. OPF now maps that payload into its paragraph HTML mode,
+sanitizes it with the corresponding restricted HTML allowlist, optionally
+processes registered shortcodes after sanitization, and serializes it back as
+WAPF `p` content in JSON and WXR exports. Focused PHPUnit coverage passes for
+mapping, render sanitization/order, JSON round trip, and WXR serialization.
+Disposable live WAPF importer/frontend proof remains open.
 
 `SW_WAPF_Config::get_pricing_options()` separately registers the general
 `fixed`, `qt`, `p`, `percent`, and `fx` price types; text-like fields add

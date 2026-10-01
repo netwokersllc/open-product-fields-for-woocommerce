@@ -35,8 +35,8 @@ The 132 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 | --- | ---: | --- |
 | Baseline supported | 8 | Promising baseline only; not accepted as proof |
 | Supported | 18 | Evidence recorded and accepted as complete under the row-count rule |
-| Supported with documented difference | 9 | Needs explicit non-regression review and acceptance |
-| Partial | 92 | Material parity or proof remains |
+| Supported with documented difference | 8 | Needs explicit non-regression review and acceptance |
+| Partial | 93 | Material parity or proof remains |
 | Gap | 5 | Known absent in the current OPF tree |
 | Needs audit | 0 | Available source, marketing claims, and every published release delta are mapped; exact release details remain scoped to partial rows |
 | **Total** | **132** | **G1 complete for available evidence; G2 remains open** |

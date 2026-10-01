@@ -12,3 +12,6 @@ User-facing changes to Open Product Fields for WooCommerce.
   accessible labels.
 - WAPF imports and exports preserve the matching single/multiple swatch type
   and its supported settings.
+- Paragraphs support plain text or restricted HTML, with optional WordPress
+  shortcode processing. WAPF Extended `p` content imports and exports with its
+  markup and shortcode payload preserved.

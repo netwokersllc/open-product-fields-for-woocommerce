@@ -128,6 +128,27 @@ final class WapfWxrExporterTest extends TestCase {
 		$this->assertSame( '#123456', $group['fields'][0]['options']['choices'][0]['color'] );
 	}
 
+	public function test_wxr_preserves_extended_p_content_markup_and_type(): void {
+		$xml = WapfWxrExporter::build_document( [ [
+			'id' => 95,
+			'title' => 'Rich content',
+			'data' => [ 'schema' => 1, 'fields' => [ [
+				'id' => 'offer', 'label' => 'Offer', 'type' => 'paragraph',
+				'content_format' => 'html', 'process_shortcodes' => true,
+				'content' => '<strong>Special</strong> [site_name]',
+			] ], 'rule_groups' => [] ],
+		] ], [ 'site_url' => 'https://example.test', 'site_title' => 'Example Store' ] );
+		$document = new \DOMDocument();
+		$this->assertTrue( $document->loadXML( $xml ) );
+		$xpath = new \DOMXPath( $document );
+		$xpath->registerNamespace( 'content', 'http://purl.org/rss/1.0/modules/content/' );
+		$content = $xpath->query( '/rss/channel/item/content:encoded' )->item( 0 )->textContent;
+		$group = unserialize( $content, [ 'allowed_classes' => false ] );
+
+		$this->assertSame( 'p', $group['fields'][0]['type'] );
+		$this->assertSame( '<strong>Special</strong> [site_name]', $group['fields'][0]['options']['p_content'] );
+	}
+
 	public function test_requires_valid_site_url_and_source_group_identity(): void {
 		$this->expectException( \InvalidArgumentException::class );
 		$this->expectExceptionMessage( 'source site URL' );

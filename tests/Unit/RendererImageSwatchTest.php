@@ -21,6 +21,21 @@ namespace {
 			return (string) $selected === (string) $current ? ' selected="selected"' : '';
 		}
 	}
+	if ( ! function_exists( 'wp_kses' ) ) {
+		function wp_kses( $html, array $allowed_html ): string {
+			$GLOBALS['opf_test_content_allowed_html'] = $allowed_html;
+			$allowed_tags = '<' . implode( '><', array_keys( $allowed_html ) ) . '>';
+			$html = preg_replace( '/<script\b[^>]*>.*?<\/script\s*>/is', '', (string) $html );
+			$html = strip_tags( $html, $allowed_tags );
+			return (string) preg_replace( '/\s+on[a-z]+=(?:"[^"]*"|\'[^\']*\')/i', '', $html );
+		}
+	}
+	if ( ! function_exists( 'do_shortcode' ) ) {
+		function do_shortcode( string $content ): string {
+			$GLOBALS['opf_test_shortcode_calls'] = ( $GLOBALS['opf_test_shortcode_calls'] ?? 0 ) + 1;
+			return str_replace( '[site_name]', '<em>followersya</em>', $content );
+		}
+	}
 }
 
 namespace OPF\Tests\Unit {
@@ -95,6 +110,26 @@ namespace OPF\Tests\Unit {
 			$this->assertStringContainsString( 'name="opf[17][palette][]"', $html );
 			$this->assertStringContainsString( '--opf-swatch-color:#123456;--opf-swatch-size:36px', $html );
 			$this->assertStringContainsString( 'data-color-label-position="tooltip"', $html );
+		}
+
+		public function test_extended_paragraph_sanitizes_markup_then_processes_shortcodes(): void {
+			$GLOBALS['opf_test_shortcode_calls'] = 0;
+			$group = new FieldGroup( [ 'fields' => [ [
+				'id' => 'offer', 'label' => 'Offer', 'type' => 'paragraph',
+				'content_format' => 'html', 'process_shortcodes' => true,
+				'content' => '<strong>Save</strong> [site_name]<script>alert(1)</script><img src="/badge.png" onerror="alert(1)">',
+			] ] ] );
+			ob_start();
+			Renderer::render_group( '17', 'Offer', $group, 10.0 );
+			$html = (string) ob_get_clean();
+
+			$this->assertStringContainsString( '<strong>Save</strong>', $html );
+			$this->assertStringContainsString( '<em>followersya</em>', $html );
+			$this->assertStringNotContainsString( '<script', $html );
+			$this->assertStringNotContainsString( 'onerror=', $html );
+			$this->assertSame( 1, $GLOBALS['opf_test_shortcode_calls'] );
+			$this->assertArrayHasKey( 'table', $GLOBALS['opf_test_content_allowed_html'] );
+			$this->assertArrayHasKey( 'img', $GLOBALS['opf_test_content_allowed_html'] );
 		}
 	}
 }

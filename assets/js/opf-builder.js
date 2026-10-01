@@ -353,10 +353,27 @@
 		var card = el( 'div', { class: 'opf-b-field' }, [ head ] );
 		card.appendChild( conditionalEditor( field ) );
 		if ( 'paragraph' === field.type ) {
+			var contentFormat = el( 'select', { class: 'opf-b-input', 'aria-label': 'Paragraph format' }, [
+				el( 'option', { value: 'plain', text: 'Plain text' } ),
+				el( 'option', { value: 'html', text: 'Basic HTML' } ),
+			] );
+			contentFormat.value = field.content_format || 'plain';
+			contentFormat.addEventListener( 'change', function () {
+				field.content_format = contentFormat.value;
+				if ( 'plain' === contentFormat.value ) field.process_shortcodes = false;
+				rerender();
+			} );
+			card.appendChild( labeledControl( 'Paragraph format', contentFormat ) );
 			var content = el( 'textarea', { class: 'opf-b-input opf-b-paragraph-content', rows: 4, 'aria-label': 'Paragraph content' } );
 			content.value = field.content || '';
 			content.addEventListener( 'input', function () { field.content = content.value; } );
 			card.appendChild( el( 'label', { class: 'opf-b-paragraph-label', text: 'Paragraph content' }, [ content ] ) );
+			if ( 'html' === field.content_format ) {
+				var processShortcodes = el( 'input', { type: 'checkbox' } );
+				processShortcodes.checked = !! field.process_shortcodes;
+				processShortcodes.addEventListener( 'change', function () { field.process_shortcodes = processShortcodes.checked; } );
+				card.appendChild( labeledControl( 'Process WordPress shortcodes', processShortcodes ) );
+			}
 		}
 
 		if ( field.choices.length || in_array( field.type, [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {

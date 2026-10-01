@@ -77,6 +77,30 @@ final class WapfExporterTest extends TestCase {
 		] ) );
 	}
 
+	public function test_exports_extended_html_paragraph_as_p_with_shortcode_processing(): void {
+		$payload = WapfExporter::build_payload( FieldGroup::normalize( [ 'fields' => [ [
+			'id' => 'offer', 'label' => 'Offer', 'type' => 'paragraph',
+			'content_format' => 'html', 'process_shortcodes' => true,
+			'content' => '<strong>Special</strong> [site_name]',
+		] ] ] ) );
+
+		$this->assertSame( 'p', $payload['fields'][0]['type'] );
+		$this->assertSame( '<strong>Special</strong> [site_name]', $payload['fields'][0]['p_content'] );
+		$round_trip = WapfMapper::map( [ 'fields' => $payload['fields'] ] );
+		$this->assertFalse( $round_trip['needs_review'] );
+		$this->assertSame( 'html', $round_trip['group']['fields'][0]['content_format'] );
+		$this->assertTrue( $round_trip['group']['fields'][0]['process_shortcodes'] );
+	}
+
+	public function test_refuses_extended_paragraph_export_when_shortcode_policy_would_change(): void {
+		$this->expectException( \InvalidArgumentException::class );
+		$this->expectExceptionMessage( 'always processes shortcodes' );
+		WapfExporter::build_payload( FieldGroup::normalize( [ 'fields' => [ [
+			'id' => 'offer', 'type' => 'paragraph', 'content_format' => 'html',
+			'process_shortcodes' => false, 'content' => '[site_name]',
+		] ] ] ) );
+	}
+
 	public function test_exports_logged_in_and_logged_out_placement(): void {
 		$group = FieldGroup::normalize( [ 'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'user_auth', 'operator' => 'not_in', 'terms' => [ 'logged_in' ] ] ] ] ] ] );
 		$payload = WapfExporter::build_payload( $group );

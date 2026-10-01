@@ -176,6 +176,21 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( 'Legacy plain text', $mapped['group']['fields'][1]['content'] );
 	}
 
+	public function test_maps_extended_paragraph_html_and_shortcodes_without_flattening(): void {
+		$content = '<strong>Special offer</strong><br>[site_name]<img src="/badge.png" alt="Badge">';
+		$mapped = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'offer', 'label' => 'Offer', 'type' => 'p',
+			'options' => [ 'p_content' => $content ],
+		] ] ] );
+		$field = $mapped['group']['fields'][0];
+
+		$this->assertFalse( $mapped['needs_review'] );
+		$this->assertSame( 'paragraph', $field['type'] );
+		$this->assertSame( $content, $field['content'] );
+		$this->assertSame( 'html', $field['content_format'] );
+		$this->assertTrue( $field['process_shortcodes'] );
+	}
+
 	public function test_html_in_plain_wapf_content_is_preserved_as_text_and_flagged_for_review(): void {
 		$mapped = WapfMapper::map( [
 			'fields' => [ [ 'id' => 'intro', 'label' => '', 'type' => 'content', 'options' => [ 'p_content' => '<strong>Care</strong>' ] ] ],

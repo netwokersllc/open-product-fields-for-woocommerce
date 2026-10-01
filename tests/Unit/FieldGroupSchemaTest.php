@@ -64,6 +64,19 @@ final class FieldGroupSchemaTest extends TestCase {
 		$this->assertSame( 'none', $group['fields'][0]['pricing']['type'] );
 	}
 
+	public function test_paragraph_html_mode_and_shortcode_policy_are_normalized(): void {
+		$field = FieldGroup::normalize_field( [
+			'id' => 'offer', 'type' => 'paragraph', 'content' => '<strong>Offer</strong> [tag]',
+			'content_format' => 'html', 'process_shortcodes' => true,
+		] );
+
+		$this->assertSame( 'html', $field['content_format'] );
+		$this->assertTrue( $field['process_shortcodes'] );
+
+		$this->expectException( InvalidArgumentException::class );
+		FieldGroup::normalize_field( [ 'id' => 'offer', 'type' => 'paragraph', 'content_format' => 'script' ] );
+	}
+
 	public function test_image_choices_preserve_safe_url_and_positive_attachment_id(): void {
 		$field = FieldGroup::normalize_field( [
 			'id' => 'finish',

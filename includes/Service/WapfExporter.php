@@ -24,7 +24,7 @@ final class WapfExporter {
 		self::assert_keys( $group, [ 'schema', 'fields', 'rule_groups', 'mark_required', 'labels_position' ], 'group' );
 		foreach ( ( $group['fields'] ?? [] ) as $field ) {
 			if ( is_array( $field ) ) {
-				self::assert_keys( $field, [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'content', 'swatch_style', 'multiple', 'min_choices', 'max_choices', 'color_layout', 'color_size', 'color_label_pos', 'image_zoom', 'label_pos', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], 'field' );
+				self::assert_keys( $field, [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'content', 'content_format', 'process_shortcodes', 'swatch_style', 'multiple', 'min_choices', 'max_choices', 'color_layout', 'color_size', 'color_label_pos', 'image_zoom', 'label_pos', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], 'field' );
 			}
 		}
 		foreach ( ( $group['rule_groups'] ?? [] ) as $rule_group ) {
@@ -74,13 +74,16 @@ final class WapfExporter {
 
 	/** @param array<string,mixed> $field */
 	private static function map_field( array $field, array $field_ids, array $field_types ): array {
-		self::assert_keys( $field, [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'content', 'swatch_style', 'multiple', 'min_choices', 'max_choices', 'color_layout', 'color_size', 'color_label_pos', 'image_zoom', 'label_pos', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], 'field' );
+		self::assert_keys( $field, [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'content', 'content_format', 'process_shortcodes', 'swatch_style', 'multiple', 'min_choices', 'max_choices', 'color_layout', 'color_size', 'color_label_pos', 'image_zoom', 'label_pos', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], 'field' );
 		$type_map = [
 			'text' => 'text', 'textarea' => 'textarea', 'email' => 'email', 'url' => 'url',
 			'number' => 'number', 'toggle' => 'true-false', 'select' => 'select',
 			'radio' => 'radio', 'checkbox' => 'checkboxes', 'swatch' => 'text-swatch', 'paragraph' => 'content',
 		];
 		$type = $field['type'];
+		if ( 'paragraph' === $type && 'html' === ( $field['content_format'] ?? 'plain' ) ) {
+			$type_map['paragraph'] = 'p';
+		}
 		if ( 'swatch' === $type ) {
 			$multi = ! empty( $field['multiple'] );
 			$style = $field['swatch_style'] ?? 'text';
@@ -122,7 +125,10 @@ final class WapfExporter {
 			throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve OPF date-field settings.' );
 		}
 		if ( 'paragraph' === $type ) {
-			if ( preg_match( '/<\/?[a-z][^>]*>/i', $field['content'] ) ) {
+			if ( 'p' === $out['type'] && empty( $field['process_shortcodes'] ) ) {
+				throw new \InvalidArgumentException( 'WAPF paragraph export always processes shortcodes; disablement cannot be preserved.' );
+			}
+			if ( 'content' === $out['type'] && preg_match( '/<\/?[a-z][^>]*>/i', $field['content'] ) ) {
 				throw new \InvalidArgumentException( 'WAPF Free sanitizes paragraph content; HTML cannot be exported without loss.' );
 			}
 			$out['p_content'] = $field['content'];

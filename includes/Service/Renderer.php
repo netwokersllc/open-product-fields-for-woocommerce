@@ -216,7 +216,41 @@ final class Renderer {
 
 		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-opf-field="' . esc_attr( $fid ) . '" style="width:' . esc_attr( (string) $field['width'] ) . '%;" for="' . esc_attr( $fid ) . '">';
 		if ( 'paragraph' === $field['type'] ) {
-			echo '<div class="opf-field-content">' . esc_html( $field['content'] ) . '</div>';
+			$content = esc_html( $field['content'] );
+			if ( 'html' === ( $field['content_format'] ?? 'plain' ) && function_exists( 'wp_kses' ) ) {
+				$allowed_html = [
+					'br' => [],
+					'hr' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'a' => [ 'href' => [], 'target' => [], 'class' => [], 'style' => [], 'id' => [] ],
+					'i' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'em' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'strong' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'b' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'span' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'div' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'h1' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'h2' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'h3' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'h4' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'h5' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'h6' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'ul' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'ol' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'li' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'table' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'tr' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'td' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'th' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'thead' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'tbody' => [ 'class' => [], 'style' => [], 'id' => [] ],
+					'img' => [ 'src' => [], 'class' => [], 'style' => [], 'id' => [] ],
+				];
+				$content = wp_kses( $field['content'], $allowed_html );
+				if ( ! empty( $field['process_shortcodes'] ) && function_exists( 'do_shortcode' ) ) {
+					$content = do_shortcode( $content );
+				}
+			}
+			echo '<div class="opf-field-content">' . $content . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- plain content is escaped; HTML content is allow-list sanitized before optional registered shortcodes.
 			echo '</div>';
 			return;
 		}

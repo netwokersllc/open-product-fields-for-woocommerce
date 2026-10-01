@@ -83,6 +83,13 @@ try {
 			'color_size' => 36,
 			'color_label_pos' => 'default',
 			'choices' => [ [ 'slug' => 'navy', 'label' => 'Navy', 'color' => '#123456' ] ],
+		], [
+			'id' => 'offer',
+			'label' => 'Offer',
+			'type' => 'paragraph',
+			'content_format' => 'html',
+			'process_shortcodes' => true,
+			'content' => '<strong>Special offer</strong> [site_name]',
 		] ] ] ),
 	] ], [ 'site_url' => home_url(), 'site_title' => get_bloginfo( 'name' ) ] );
 	$wxr_path = tempnam( get_temp_dir(), 'opf-image-wxr-' );
@@ -105,12 +112,14 @@ try {
 	$multi_color = $target->fields[1] ?? null;
 	$multi_color_options = $multi_color ? (array) $multi_color->options : [];
 	$multi_color_choice = $multi_color_options['choices'][0] ?? [];
+	$paragraph = $target->fields[2] ?? null;
 	$checks = [
 		'image-swatch type parsed' => $field && 'image-swatch' === $field->type,
 		'image URL and attachment reference parsed' => 'https://example.test/oak.jpg' === ( $choice['image'] ?? '' ) && $attachment_id === (int) ( $choice['attachment'] ?? 0 ),
 		'label and grid options parsed' => 'tooltip' === ( $options['label_pos'] ?? '' ) && 'flexible' === ( $options['grid_layout'] ?? '' ),
 		'responsive counts and full-image option parsed' => 4 === (int) ( $options['items_per_row'] ?? 0 ) && 2 === (int) ( $options['items_per_row_tablet'] ?? 0 ) && 1 === (int) ( $options['items_per_row_mobile'] ?? 0 ) && ! empty( $options['large_image'] ),
 		'multi-color type, selection bounds, layout, and color parsed' => $multi_color && 'multi-color-swatch' === $multi_color->type && 1 === (int) ( $multi_color_options['min_choices'] ?? 0 ) && 2 === (int) ( $multi_color_options['max_choices'] ?? 0 ) && 'rounded' === ( $multi_color_options['layout'] ?? '' ) && 36 === (int) ( $multi_color_options['size'] ?? 0 ) && '#123456' === ( $multi_color_choice['color'] ?? '' ),
+		'Extended p content type preserves basic HTML and shortcodes' => $paragraph && 'p' === $paragraph->type && '<strong>Special offer</strong> [site_name]' === ( $paragraph->options['p_content'] ?? '' ),
 	];
 	foreach ( $checks as $label => $passed ) {
 		WP_CLI::log( ( $passed ? 'PASS ' : 'FAIL ' ) . $label );

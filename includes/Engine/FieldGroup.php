@@ -217,6 +217,16 @@ final class FieldGroup {
 		];
 		if ( 'paragraph' === $type ) {
 			$normalized['content'] = is_scalar( $field['content'] ?? null ) ? (string) $field['content'] : '';
+			$content_format = $field['content_format'] ?? 'plain';
+			if ( ! in_array( $content_format, [ 'plain', 'html' ], true ) ) {
+				throw new \InvalidArgumentException( 'Paragraph content format must be plain or html.' );
+			}
+			$process_shortcodes = $field['process_shortcodes'] ?? false;
+			if ( ! in_array( $process_shortcodes, [ true, false, 0, 1, '0', '1' ], true ) ) {
+				throw new \InvalidArgumentException( 'Paragraph shortcode processing setting must be boolean.' );
+			}
+			$normalized['content_format'] = $content_format;
+			$normalized['process_shortcodes'] = 'html' === $content_format && in_array( $process_shortcodes, [ true, 1, '1' ], true );
 			$normalized['required'] = false;
 			$normalized['choices'] = [];
 			$normalized['pricing'] = self::normalize_pricing( [] );

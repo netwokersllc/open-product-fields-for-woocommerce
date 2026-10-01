@@ -122,9 +122,14 @@ final class WapfMapper {
 			$color_swatch_settings = in_array( $wapf_type, [ 'color-swatch', 'multi-color-swatch' ], true ) ? self::map_color_swatch_settings( $wapf_field, $notes, $needs_review ) : [];
 			$selection_limits = in_array( $wapf_type, [ 'multi-text-swatch', 'multi-image-swatch', 'multi-color-swatch' ], true ) ? self::map_swatch_selection_limits( $wapf_field, $notes, $needs_review ) : [];
 			$content = '';
+			$content_format = 'plain';
+			$process_shortcodes = false;
 			if ( 'paragraph' === self::TYPE_MAP[ $wapf_type ] ) {
 				$content = (string) ( $wapf_field['options']['p_content'] ?? $wapf_field['p_content'] ?? '' );
-				if ( preg_match( '/<\/?[a-z][^>]*>/i', $content ) ) {
+				if ( 'p' === $wapf_type ) {
+					$content_format = 'html';
+					$process_shortcodes = true;
+				} elseif ( preg_match( '/<\/?[a-z][^>]*>/i', $content ) ) {
 					$notes[] = sprintf( 'field "%s" contains HTML; the plain-text paragraph was imported with markup removed.', (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' ) );
 					$needs_review = true;
 					$content = function_exists( 'sanitize_textarea_field' ) ? sanitize_textarea_field( $content ) : strip_tags( $content );
@@ -147,7 +152,9 @@ final class WapfMapper {
 					'pricing'      => self::map_field_pricing( $wapf_field, $notes, $needs_review ),
 					'conditionals' => self::map_conditionals( $wapf_field, $notes, $opf_ids_by_wapf_id, $needs_review ),
 					'content'      => $content,
-			], $image_swatch_settings, $color_swatch_settings, $selection_limits )
+					'content_format' => $content_format,
+					'process_shortcodes' => $process_shortcodes,
+				], $image_swatch_settings, $color_swatch_settings, $selection_limits )
 			);
 			if ( 'paragraph' === $field['type'] ) {
 				if ( ! empty( $wapf_field['required'] ) ) {
