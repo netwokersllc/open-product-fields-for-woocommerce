@@ -83,6 +83,7 @@ final class WapfMapper {
 		$seen_ids      = [];
 		$opf_ids_by_index = [];
 		$opf_ids_by_wapf_id = [];
+		$source_order_by_wapf_id = [];
 		$source_fields = is_array( $wapf['fields'] ?? null ) ? $wapf['fields'] : [];
 
 		// Generate every destination ID first so conditional references can point
@@ -105,10 +106,12 @@ final class WapfMapper {
 			if ( '' !== $source_id ) {
 				if ( array_key_exists( $source_id, $opf_ids_by_wapf_id ) ) {
 					$opf_ids_by_wapf_id[ $source_id ] = null;
+					$source_order_by_wapf_id[ $source_id ] = null;
 					$notes[] = sprintf( 'WAPF field ID "%s" is duplicated; conditions referencing it need review.', $source_id );
 					$needs_review = true;
 				} else {
 					$opf_ids_by_wapf_id[ $source_id ] = $field_id;
+					$source_order_by_wapf_id[ $source_id ] = (int) $index;
 				}
 			}
 		}
@@ -160,8 +163,8 @@ final class WapfMapper {
 					'placeholder'  => (string) ( $wapf_field['options']['placeholder'] ?? '' ),
 					'swatch_style' => in_array( $wapf_type, [ 'image-swatch', 'multi-image-swatch' ], true ) ? 'image' : ( in_array( $wapf_type, [ 'color-swatch', 'multi-color-swatch' ], true ) ? 'color' : 'text' ),
 					'multiple'     => in_array( $wapf_type, [ 'multi-text-swatch', 'multi-image-swatch', 'multi-color-swatch' ], true ),
-					'choices'      => $has_choices ? self::map_choices( $wapf_field, $notes, $needs_review, $opf_ids_by_wapf_id ) : [],
-					'pricing'      => self::map_field_pricing( $wapf_field, $notes, $needs_review, $opf_ids_by_wapf_id ),
+					'choices'      => $has_choices ? self::map_choices( $wapf_field, $notes, $needs_review, $opf_ids_by_wapf_id, $source_order_by_wapf_id, (int) $index ) : [],
+					'pricing'      => self::map_field_pricing( $wapf_field, $notes, $needs_review, $opf_ids_by_wapf_id, $source_order_by_wapf_id, (int) $index ),
 					'conditionals' => self::map_conditionals( $wapf_field, $notes, $opf_ids_by_wapf_id, $needs_review ),
 					'content'      => $content,
 					'image_url'    => $image_url,
@@ -317,7 +320,7 @@ final class WapfMapper {
 	 * @param string[]            $notes      Collector.
 	 * @return array<int,array>
 	 */
-	private static function map_choices( array $wapf_field, array &$notes, bool &$needs_review, array $opf_ids_by_wapf_id ): array {
+	private static function map_choices( array $wapf_field, array &$notes, bool &$needs_review, array $opf_ids_by_wapf_id, array $source_order_by_wapf_id, int $current_order ): array {
 		$choices = [];
 		foreach ( ( $wapf_field['options']['choices'] ?? [] ) as $choice ) {
 			if ( ! is_array( $choice ) ) {
@@ -343,7 +346,7 @@ final class WapfMapper {
 					$pricing = [ 'type' => 'percent', 'amount' => (float) $amt, 'formula' => '' ];
 					break;
 				case 'fx':
-					$formula_raw = self::map_formula_references( (string) $amt, $opf_ids_by_wapf_id, $notes, $needs_review, (string) ( $choice['label'] ?? $slug ) );
+					$formula_raw = self::map_formula_references( (string) $amt, $opf_ids_by_wapf_id, $notes, $needs_review, (string) ( $choice['label'] ?? $slug ), $source_order_by_wapf_id, $current_order );
 					$formula = null === $formula_raw ? null : self::normalize_formula( $formula_raw );
 					if ( null === $formula ) {
 						$notes[] = sprintf( 'choice "%s" formula could not be translated: %s', $choice['label'] ?? $slug, (string) $amt );
@@ -550,7 +553,7 @@ final class WapfMapper {
 	 * @param array<string,mixed> $wapf_field WAPF field.
 	 * @return array<string,mixed>
 	 */
-	private static function map_field_pricing( array $wapf_field, array &$notes, bool &$needs_review, array $opf_ids_by_wapf_id ): array {
+	private static function map_field_pricing( array $wapf_field, array &$notes, bool &$needs_review, array $opf_ids_by_wapf_id, array $source_order_by_wapf_id, int $current_order ): array {
 		$label = (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' );
 		$pricing = $wapf_field['pricing'] ?? [];
 		if ( ! is_array( $pricing ) || empty( $pricing['enabled'] ) ) {
@@ -566,7 +569,7 @@ final class WapfMapper {
 			case 'p':
 				return [ 'type' => 'percent', 'amount' => $amt, 'formula' => '' ];
 			case 'fx':
-				$formula_raw = self::map_formula_references( (string) ( $pricing['amount'] ?? '' ), $opf_ids_by_wapf_id, $notes, $needs_review, $label );
+				$formula_raw = self::map_formula_references( (string) ( $pricing['amount'] ?? '' ), $opf_ids_by_wapf_id, $notes, $needs_review, $label, $source_order_by_wapf_id, $current_order );
 				$formula = null === $formula_raw ? null : self::normalize_formula( $formula_raw );
 				if ( null !== $formula ) {
 					return [ 'type' => 'formula', 'amount' => 0.0, 'formula' => $formula ];
@@ -581,19 +584,21 @@ final class WapfMapper {
 	}
 
 	/** Remap field IDs in WAPF formula variables without changing unrelated text. */
-	private static function map_formula_references( string $formula, array $opf_ids_by_wapf_id, array &$notes, bool &$needs_review, string $label ): ?string {
+	private static function map_formula_references( string $formula, array $opf_ids_by_wapf_id, array &$notes, bool &$needs_review, string $label, array $source_order_by_wapf_id, int $current_order ): ?string {
 		$unmapped = [];
 		$review_references = [];
 		$formula = preg_replace_callback(
 			'/\[(field|price)\.([a-zA-Z0-9_-]+)\]/i',
-			static function ( array $match ) use ( $opf_ids_by_wapf_id, &$unmapped, &$review_references ): string {
+			static function ( array $match ) use ( $opf_ids_by_wapf_id, $source_order_by_wapf_id, $current_order, &$unmapped, &$review_references ): string {
 				$source_id = $match[2];
 				if ( ! isset( $opf_ids_by_wapf_id[ $source_id ] ) || ! is_string( $opf_ids_by_wapf_id[ $source_id ] ) ) {
 					$unmapped[] = $source_id;
 					return $match[0];
 				}
 				if ( 'price' === strtolower( $match[1] ) ) {
-					$review_references[] = '[price.' . $opf_ids_by_wapf_id[ $source_id ] . ']';
+					if ( ! isset( $source_order_by_wapf_id[ $source_id ] ) || $source_order_by_wapf_id[ $source_id ] >= $current_order ) {
+						$review_references[] = '[price.' . $opf_ids_by_wapf_id[ $source_id ] . ']';
+					}
 				}
 				return '[' . strtolower( $match[1] ) . '.' . $opf_ids_by_wapf_id[ $source_id ] . ']';
 			},

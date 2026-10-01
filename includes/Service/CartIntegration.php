@@ -389,6 +389,7 @@ final class CartIntegration {
 			}
 
 			$group_values = (array) $values[ $gid ];
+			$field_prices = [];
 
 			foreach ( $group->data['fields'] as $field ) {
 				if ( in_array( $field['type'], [ 'paragraph', 'section', 'section_end' ], true ) ) {
@@ -406,12 +407,19 @@ final class CartIntegration {
 					$instance_field = $priced_field;
 					unset( $instance_field['repeat'] );
 					$rows = is_array( $group_values[ $fid ] ) ? $group_values[ $fid ] : [ $group_values[ $fid ] ];
+					$row_prices = [];
 					foreach ( $rows as $row_index => $row_value ) {
 						$clone_values = self::values_for_clone( $group->data['fields'], $group_values, $section_repeats, (int) $row_index );
 						if ( ! Evaluator::is_visible( $field, $clone_values ) ) {
 							continue;
 						}
-						$per_unit += Calculator::field_addon(
+						$clone_prices = [];
+						foreach ( $field_prices as $previous_id => $previous_price ) {
+							$clone_prices[ $previous_id ] = is_array( $previous_price )
+								? (float) ( $previous_price[ $row_index ] ?? 0.0 )
+								: $previous_price;
+						}
+						$row_addon = Calculator::field_addon(
 							$instance_field,
 							$row_value,
 							[
@@ -419,16 +427,20 @@ final class CartIntegration {
 								'qty'          => $quantity,
 								'addons'       => $per_unit,
 								'field_values' => $clone_values,
+								'field_prices' => $clone_prices,
 								'product_id'   => $product->get_id(),
 							]
 						);
+						$row_prices[ $row_index ] = $row_addon;
+						$per_unit += $row_addon;
 					}
+					$field_prices[ $fid ] = $row_prices;
 					continue;
 				}
 				if ( ! Evaluator::is_visible( $field, $group_values ) ) {
 					continue;
 				}
-				$per_unit += Calculator::field_addon(
+				$field_addon = Calculator::field_addon(
 					$priced_field,
 					$group_values[ $fid ],
 					[
@@ -436,9 +448,12 @@ final class CartIntegration {
 						'qty'    => $quantity,
 						'addons' => $per_unit,
 						'field_values' => $group_values,
+						'field_prices' => $field_prices,
 						'product_id' => $product->get_id(),
 					]
 				);
+				$field_prices[ $fid ] = $field_addon;
+				$per_unit += $field_addon;
 			}
 		}
 

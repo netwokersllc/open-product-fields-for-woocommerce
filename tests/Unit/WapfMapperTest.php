@@ -478,6 +478,18 @@ final class WapfMapperTest extends TestCase {
 		$this->assertStringContainsString( 'runtime behavior is not implemented yet', implode( ' ', $mapped['notes'] ) );
 	}
 
+	public function test_prior_field_price_reference_is_mapped_without_manual_review(): void {
+		$mapped = WapfMapper::map( [
+			'fields' => [
+				[ 'id' => 'base-src', 'label' => 'Base', 'type' => 'text', 'pricing' => [ 'enabled' => true, 'type' => 'fixed', 'amount' => 5 ] ],
+				[ 'id' => 'choice-src', 'label' => 'Plan', 'type' => 'select', 'options' => [ 'choices' => [ [ 'slug' => 'custom', 'label' => 'Custom', 'pricing_type' => 'fx', 'pricing_amount' => '[price.base-src] + 1' ] ] ] ],
+			],
+		] );
+
+		$this->assertFalse( $mapped['needs_review'] );
+		$this->assertSame( '[price.base] + 1', $mapped['group']['fields'][1]['choices'][0]['pricing']['formula_raw'] );
+	}
+
 	public function test_field_ids_are_stable_and_unique(): void {
 		$wapf = [
 			'fields' => [

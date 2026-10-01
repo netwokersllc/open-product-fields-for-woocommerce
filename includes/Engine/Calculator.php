@@ -31,7 +31,7 @@ final class Calculator {
 	 *
 	 * @param array<string,mixed>      $field   Normalized field array.
 	 * @param string|array<int,string> $value   Submitted value(s) (choice slugs or raw text).
-	 * @param array{price?:float,qty?:int,addons?:float,field_values?:array<string,mixed>,product_id?:int} $context Pricing context.
+	 * @param array{price?:float,qty?:int,addons?:float,field_values?:array<string,mixed>,field_prices?:array<string,float|array<int,float>>,product_id?:int} $context Pricing context.
 	 * @return float Per-unit addon (never negative).
 	 */
 	public static function field_addon( array $field, $value, array $context ): float {
@@ -39,6 +39,7 @@ final class Calculator {
 		$qty    = max( 1, (int) ( $context['qty'] ?? 1 ) );
 		$addons = (float) ( $context['addons'] ?? 0.0 );
 		$field_values = is_array( $context['field_values'] ?? null ) ? $context['field_values'] : [];
+		$field_prices = is_array( $context['field_prices'] ?? null ) ? $context['field_prices'] : [];
 
 		if ( ! empty( $field['repeat']['enabled'] ) ) {
 			$instance_field = $field;
@@ -62,7 +63,7 @@ final class Calculator {
 				foreach ( $slugs as $slug ) {
 					foreach ( $field['choices'] as $choice ) {
 						if ( $choice['slug'] === (string) $slug && ! $choice['disabled'] ) {
-							$total += self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ) );
+							$total += self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices );
 							if ( ! in_array( $field['type'], [ 'checkbox' ], true ) && !( 'swatch' === $field['type'] && ! empty( $field['multiple'] ) ) ) {
 								break;
 							}
@@ -74,7 +75,7 @@ final class Calculator {
 			default:
 				// Text-like fields use field-level pricing only.
 				$amount = is_scalar( $value ) ? (string) $value : '';
-				$total += self::field_pricing_addon( $field['pricing'], $amount, $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ) );
+				$total += self::field_pricing_addon( $field['pricing'], $amount, $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices );
 				break;
 		}
 
@@ -88,7 +89,7 @@ final class Calculator {
 	 *
 	 * @param array<string,mixed> $pricing Normalized choice pricing.
 	 */
-	public static function choice_addon( array $pricing, float $price, int $qty, float $addons, array $field_values = [], int $product_id = 0 ): float {
+	public static function choice_addon( array $pricing, float $price, int $qty, float $addons, array $field_values = [], int $product_id = 0, array $field_prices = [] ): float {
 		$qty = max( 1, $qty );
 		switch ( $pricing['type'] ) {
 			case 'fixed':
@@ -97,7 +98,7 @@ final class Calculator {
 			case 'percent':
 				return $price * ( (float) $pricing['amount'] / 100 );
 			case 'formula':
-				return self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, '', null, $field_values, $product_id );
+				return self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, '', null, $field_values, $product_id, $field_prices );
 			default:
 				return 0.0;
 		}
@@ -109,7 +110,7 @@ final class Calculator {
 	 *
 	 * @param array<string,mixed> $pricing Normalized field pricing.
 	 */
-	public static function field_pricing_addon( array $pricing, string $value, float $price, int $qty, float $addons, array $field_values = [], int $product_id = 0 ): float {
+	public static function field_pricing_addon( array $pricing, string $value, float $price, int $qty, float $addons, array $field_values = [], int $product_id = 0, array $field_prices = [] ): float {
 		if ( '' === trim( $value ) ) {
 			return 0.0;
 		}
@@ -121,7 +122,7 @@ final class Calculator {
 			case 'percent':
 				return $price * ( (float) $pricing['amount'] / 100 );
 			case 'formula':
-				return self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, $value, null, $field_values, $product_id );
+				return self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, $value, null, $field_values, $product_id, $field_prices );
 			default:
 				return 0.0;
 		}
@@ -134,11 +135,22 @@ final class Calculator {
 	 * validated [field.{id}] date references. No eval() — recursive descent
 	 * parser. Syntax errors and invalid dates fail closed to zero.
 	 */
-	public static function evaluate_formula( string $formula, float $price, int $qty, float $addons, string $val = '', ?string $today = null, array $field_values = [], int $product_id = 0 ): float {
+	public static function evaluate_formula( string $formula, float $price, int $qty, float $addons, string $val = '', ?string $today = null, array $field_values = [], int $product_id = 0, array $field_prices = [] ): float {
 		$today = $today ?? ( function_exists( 'current_time' ) ? current_time( 'Y-m-d' ) : gmdate( 'Y-m-d' ) );
 		if ( ! self::is_formula_iso_date( $today ) ) {
 			$today = gmdate( 'Y-m-d' );
 		}
+		$formula = preg_replace_callback(
+			'/\[price\.([a-zA-Z0-9_-]+)\]/i',
+			static function ( array $match ) use ( $field_prices ): string {
+				$value = $field_prices[ strtolower( $match[1] ) ] ?? 0;
+				if ( is_array( $value ) ) {
+					$value = array_sum( array_map( 'floatval', $value ) );
+				}
+				return is_numeric( $value ) ? (string) (float) $value : '0';
+			},
+			$formula
+		);
 		$formula = preg_replace_callback(
 			'/\[field\.([a-zA-Z0-9_-]+)\]/i',
 			static function ( array $match ) use ( $field_values ): string {
@@ -191,6 +203,7 @@ final class Calculator {
 				'addons'       => $addons,
 				'value'        => $val,
 				'field_values' => $field_values,
+				'field_prices' => $field_prices,
 				'product_id'   => $product_id > 0 ? $product_id : null,
 			]
 		);
@@ -385,7 +398,8 @@ final class Calculator {
 			(string) ( $context['value'] ?? '' ),
 		null,
 			(array) ( $context['field_values'] ?? [] ),
-			(int) ( $context['product_id'] ?? 0 )
+			(int) ( $context['product_id'] ?? 0 ),
+			(array) ( $context['field_prices'] ?? [] )
 		);
 	}
 

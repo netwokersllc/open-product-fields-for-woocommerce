@@ -182,6 +182,17 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( 0.0, Calculator::field_addon( $field, 'zzz', [ 'price' => 100.0, 'qty' => 1 ] ), 'unknown slugs never price' );
 	}
 
+	public function test_formula_price_reference_reads_previously_calculated_field_addon(): void {
+		$field = [
+			'type' => 'select',
+			'choices' => [ [ 'slug' => 'selected', 'disabled' => false, 'pricing' => [ 'type' => 'formula', 'formula' => '[price.plan] + 1' ] ] ],
+			'pricing' => [ 'type' => 'none', 'amount' => 0.0, 'formula' => '' ],
+		];
+
+		$this->assertSame( 6.0, Calculator::field_addon( $field, 'selected', [ 'price' => 10.0, 'qty' => 1, 'field_prices' => [ 'plan' => 5.0 ] ] ) );
+		$this->assertSame( 12.0, Calculator::field_addon( $field, 'selected', [ 'price' => 10.0, 'qty' => 1, 'field_prices' => [ 'plan' => [ 5.0, 6.0 ] ] ] ) );
+	}
+
 	public function test_field_addon_text_fields_use_field_pricing(): void {
 		$field = [
 			'type'    => 'textarea',

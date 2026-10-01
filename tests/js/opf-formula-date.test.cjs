@@ -43,6 +43,14 @@ test('WAPF date functions accept the selected field value and site today', () =>
 		pricing: { type: 'formula', formula: 'month([field.end_date]) + dow([field.start_date])' },
 	}, 'selected', 10, 1, 0, 'selected', { end_date: '2024-02-29', start_date: '2024-01-01' }), 3);
 	assert.equal(context.__evalFormula('dow([field.start_date])', 10, 1, 0, '', { start_date: ['2024-01-01'] }), 1);
+	assert.equal(context.__choiceOrFieldAddon({
+		type: 'select',
+		choices: [{ slug: 'selected', pricing: { type: 'formula', formula: '[price.plan] + 1' } }],
+	}, 'selected', 10, 1, 0, 'selected', {}, { plan: 5 }), 6);
+	assert.equal(context.__choiceOrFieldAddon({
+		type: 'select',
+		choices: [{ slug: 'selected', pricing: { type: 'formula', formula: '[price.plan] + 1' } }],
+	}, 'selected', 10, 1, 0, 'selected', {}, { plan: [5, 6] }), 12);
 });
 
 test('WAPF math, text, and conditional formula functions evaluate in browser previews', () => {

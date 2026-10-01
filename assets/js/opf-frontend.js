@@ -620,7 +620,7 @@ const fmtMoney = (amount) => {
   return `${neg}${symbol}${grouped}${decimals > 0 ? decimal + fracPart.slice(0, decimals) : ''}`;
 };
 
-const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOverride = null) => {
+const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOverride = null, fieldPrices = {}) => {
   // Safe mirror of the server-side evaluator (per-unit formulas; the qty
   // factor was stripped at import and is re-applied by the caller).
   if (String(formula).trim().toLowerCase() === 'true') return 1;
@@ -675,7 +675,11 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
     if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
     return { weekday: date.getUTCDay(), month, timestamp: date.getTime() };
   };
-  const resolved = String(formula).replace(/\[field\.([a-z0-9_-]+)\]/gi, (token, id) => {
+  const resolved = String(formula).replace(/\[price\.([a-z0-9_-]+)\]/gi, (_, id) => {
+    const value = fieldPrices[String(id).toLowerCase()];
+    const amount = Array.isArray(value) ? value.reduce((sum, item) => sum + (Number(item) || 0), 0) : Number(value);
+    return String(Number.isFinite(amount) ? amount : 0);
+  }).replace(/\[field\.([a-z0-9_-]+)\]/gi, (token, id) => {
     const value = fieldValues[String(id).toLowerCase()];
     const scalar = Array.isArray(value) ? value[0] : value;
     return scalar == null ? '' : String(scalar);
@@ -812,7 +816,7 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
       const expandedInner = expandFunctions(input.slice(open + 1, close), depth + 1);
       if (expandedInner === null) return null;
       const args = splitArguments(expandedInner);
-      const number = (arg) => evalFormula(arg, price, qty, addons, val, fieldValues, todayOverride);
+      const number = (arg) => evalFormula(arg, price, qty, addons, val, fieldValues, todayOverride, fieldPrices);
       let result;
       switch (name) {
         case 'min': result = args.length ? Math.min(...args.map(number)) : 0; break;
@@ -893,15 +897,15 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
   return isFinite(out) ? out : 0;
 };
 
-const choiceAddonDisplay = (pricing, base, qty, addons, val, fieldValues = {}) => {
+const choiceAddonDisplay = (pricing, base, qty, addons, val, fieldValues = {}, fieldPrices = {}) => {
   const t = pricing.type;
   if (t === 'fixed') return parseFloat(pricing.amount) || 0;
   if (t === 'percent') return base * ((parseFloat(pricing.amount) || 0) / 100);
-  if (t === 'formula') return evalFormula(pricing.formula_raw || pricing.formula, base, qty, addons, val, fieldValues);
+  if (t === 'formula') return evalFormula(pricing.formula_raw || pricing.formula, base, qty, addons, val, fieldValues, null, fieldPrices);
   return 0;
 };
 
-const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}) => {
+const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}, fieldPrices = {}) => {
   if (def.type === 'swatch' || def.type === 'select' || def.type === 'radio' || def.type === 'checkbox') {
     const slugs = Array.isArray(value) ? value : [value];
     let sum = 0;
@@ -910,7 +914,7 @@ const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}
       const p = c.pricing || {};
       if (p.type === 'fixed') sum += parseFloat(p.amount) || 0;
       else if (p.type === 'percent') sum += base * ((parseFloat(p.amount) || 0) / 100);
-      else if (p.type === 'formula') sum += evalFormula(p.formula_raw || p.formula, base, qty, addons, val, fieldValues);
+      else if (p.type === 'formula') sum += evalFormula(p.formula_raw || p.formula, base, qty, addons, val, fieldValues, null, fieldPrices);
     });
     return sum;
   }
@@ -918,7 +922,7 @@ const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}
   if (!String(value || '').trim()) return 0;
   if (p.type === 'fixed') return parseFloat(p.amount) || 0;
   if (p.type === 'percent') return base * ((parseFloat(p.amount) || 0) / 100);
-  if (p.type === 'formula') return evalFormula(p.formula_raw || p.formula, base, qty, addons, val, fieldValues);
+  if (p.type === 'formula') return evalFormula(p.formula_raw || p.formula, base, qty, addons, val, fieldValues, null, fieldPrices);
   return 0;
 };
 
@@ -935,6 +939,7 @@ const writeTotals = () => {
   document.querySelectorAll('[data-opf-group]').forEach((groupEl) => {
     const gid = groupEl.getAttribute('data-opf-group');
     const values = {};
+    const fieldPrices = {};
     const fields = groupEl.querySelectorAll('[data-opf-field]');
     const readControlValue = (element, def) => {
       if (def.type === 'toggle') {
@@ -1011,9 +1016,23 @@ const writeTotals = () => {
       const sectionRows = sectionRepeater ? Array.from(sectionRepeater.querySelectorAll('.opf-field-repeat__rows > [data-opf-repeat-instance]')) : [];
       const sectionIndex = sectionInstance ? sectionRows.indexOf(sectionInstance) : null;
       const value = sectionInstance ? readFieldControl(fieldEl, def) : values[fid];
-      const addon = fieldEl.matches('[data-opf-repeat]') && Array.isArray(value)
-        ? value.reduce((sum, rowValue, rowIndex) => sum + choiceOrFieldAddon(def, rowValue, base, qty, optionsTotal + sum, typeof rowValue === 'string' ? rowValue : '', valuesForFormula(fieldEl, rowIndex)), 0)
-        : choiceOrFieldAddon(def, value, base, qty, optionsTotal, value && typeof value === 'string' ? value : '', valuesForFormula(fieldEl, sectionIndex));
+      let addon;
+      if (fieldEl.matches('[data-opf-repeat]') && Array.isArray(value)) {
+        const rowPrices = [];
+        addon = value.reduce((sum, rowValue, rowIndex) => {
+          const clonePrices = Object.fromEntries(Object.entries(fieldPrices).map(([previousId, previousPrice]) => [
+            previousId,
+            Array.isArray(previousPrice) ? (previousPrice[rowIndex] || 0) : previousPrice,
+          ]));
+          const rowAddon = choiceOrFieldAddon(def, rowValue, base, qty, optionsTotal + sum, typeof rowValue === 'string' ? rowValue : '', valuesForFormula(fieldEl, rowIndex), clonePrices);
+          rowPrices[rowIndex] = rowAddon;
+          return sum + rowAddon;
+        }, 0);
+        fieldPrices[fid] = rowPrices;
+      } else {
+        addon = choiceOrFieldAddon(def, value, base, qty, optionsTotal, value && typeof value === 'string' ? value : '', valuesForFormula(fieldEl, sectionIndex), fieldPrices);
+        fieldPrices[fid] = addon;
+      }
       optionsTotal += addon;
     });
   });
