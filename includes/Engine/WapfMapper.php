@@ -28,6 +28,7 @@ final class WapfMapper {
 		'textarea'      => 'textarea',
 		'url'           => 'url',
 		'number'        => 'number',
+		'date'          => 'date',
 		'true-false'   => 'toggle',
 		'select'        => 'select',
 		'radio'         => 'radio',
@@ -150,6 +151,7 @@ final class WapfMapper {
 				$image_id = is_scalar( $raw_image_id ) ? (int) $raw_image_id : 0;
 			}
 			$repeat = self::map_repeat_settings( $wapf_field, $notes, $needs_review );
+			$date_settings = 'date' === $wapf_type ? self::map_date_settings( $wapf_field, $notes, $needs_review ) : [];
 
 			$field = FieldGroup::normalize_field(
 				array_merge( [
@@ -172,7 +174,7 @@ final class WapfMapper {
 					'content_format' => $content_format,
 					'process_shortcodes' => $process_shortcodes,
 					'repeat' => $repeat,
-				], $image_swatch_settings, $color_swatch_settings, $selection_limits )
+				], $image_swatch_settings, $color_swatch_settings, $selection_limits, $date_settings )
 			);
 			if ( 'paragraph' === $field['type'] ) {
 				if ( ! empty( $wapf_field['required'] ) ) {
@@ -236,6 +238,121 @@ final class WapfMapper {
 			'notes'        => $notes,
 			'needs_review' => $needs_review,
 		];
+	}
+
+	/** Map WAPF Extended date constraints supported by the OPF date schema. */
+	private static function map_date_settings( array $wapf_field, array &$notes, bool &$needs_review ): array {
+		$options = is_array( $wapf_field['options'] ?? null ) ? $wapf_field['options'] : [];
+		$label = (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' );
+		$settings = [];
+		foreach ( [ 'disable_past' => 'allow_past', 'disable_future' => 'allow_future' ] as $source => $target ) {
+			if ( array_key_exists( $source, $options ) && in_array( $options[ $source ], [ true, false, 0, 1, '0', '1' ], true ) ) {
+				$settings[ $target ] = ! in_array( $options[ $source ], [ true, 1, '1' ], true );
+			} elseif ( array_key_exists( $source, $options ) ) {
+				$notes[] = sprintf( 'date field "%s" has invalid %s value %s; date selection needs review.', $label, $source, self::review_value( $options[ $source ] ) );
+				$needs_review = true;
+			}
+		}
+		foreach ( [ 'min_date' => 'min_date', 'max_date' => 'max_date' ] as $source => $target ) {
+			if ( ! isset( $options[ $source ] ) || '' === $options[ $source ] ) {
+				continue;
+			}
+			$value = is_scalar( $options[ $source ] ) ? trim( (string) $options[ $source ] ) : '';
+			$boundary = self::wapf_date_boundary( $value );
+			if ( null !== $boundary ) {
+				$settings[ $target ] = $boundary;
+			} else {
+				$notes[] = sprintf( 'date field "%s" has unsupported %s value "%s" (including WAPF field-relative dates); the original value was not mapped and needs manual review.', $label, $source, $value );
+				$needs_review = true;
+			}
+		}
+		if ( isset( $options['disabled_days'] ) && is_array( $options['disabled_days'] ) ) {
+			$weekdays = [];
+			foreach ( $options['disabled_days'] as $day ) {
+				if ( is_scalar( $day ) && preg_match( '/^[0-6]$/', (string) $day ) ) {
+					$weekdays[] = (int) $day;
+				} else {
+					$notes[] = sprintf( 'date field "%s" has an unrecognized disabled weekday "%s"; weekday rules need review.', $label, is_scalar( $day ) ? (string) $day : '[complex value]' );
+					$needs_review = true;
+				}
+			}
+			$settings['disabled_weekdays'] = array_values( array_unique( $weekdays ) );
+		} elseif ( array_key_exists( 'disabled_days', $options ) ) {
+			$notes[] = sprintf( 'date field "%s" has malformed disabled_days; weekday rules need review.', $label );
+			$needs_review = true;
+		}
+		if ( isset( $options['disabled_dates'] ) && '' !== $options['disabled_dates'] ) {
+			$raw_dates = is_scalar( $options['disabled_dates'] ) ? (string) $options['disabled_dates'] : '';
+			$dates = [];
+			foreach ( preg_split( '/\s*,\s*/', trim( $raw_dates ) ) as $raw_rule ) {
+				$parts = preg_split( '/\s+/', trim( $raw_rule ) );
+				$converted = [];
+				foreach ( $parts as $part ) {
+					$date = self::wapf_date_boundary( $part );
+					if ( null === $date && preg_match( '/^\d{2}-\d{2}$/', $part ) && FieldValue::is_disabled_date( $part ) ) {
+						$date = $part;
+					}
+					if ( null === $date ) {
+						$converted = [];
+						break;
+					}
+					$converted[] = $date;
+				}
+				if ( count( $converted ) === count( $parts ) && in_array( count( $converted ), [ 1, 2 ], true ) ) {
+					$dates[] = implode( ' ', $converted );
+				} else {
+					$notes[] = sprintf( 'date field "%s" has unsupported disabled date rule "%s"; original disabled_dates value "%s" needs manual review.', $label, $raw_rule, $raw_dates );
+					$needs_review = true;
+				}
+			}
+			if ( $dates ) {
+				$settings['disabled_dates'] = $dates;
+			}
+		}
+		if ( ! empty( $options['disable_today'] ) ) {
+			$notes[] = sprintf( 'date field "%s" has unsupported disable_today value %s; OPF has no equivalent and the source value needs manual review.', $label, self::review_value( $options['disable_today'] ) );
+			$needs_review = true;
+		}
+		if ( isset( $options['default'] ) && '' !== $options['default'] ) {
+			$default = is_scalar( $options['default'] ) ? (string) $options['default'] : '[complex value]';
+			$notes[] = sprintf( 'date field "%s" has WAPF default "%s"; OPF date fields do not store a default value, so it needs manual review.', $label, $default );
+			$needs_review = true;
+		}
+		$known_options = [ 'placeholder', 'default', 'disable_past', 'disable_future', 'disable_today', 'disable_today_after', 'disabled_days', 'disabled_dates', 'min_date', 'max_date' ];
+		$unknown_options = array_diff( array_keys( $options ), $known_options );
+		if ( $unknown_options ) {
+			$unknown_values = [];
+			foreach ( $unknown_options as $key ) {
+				$unknown_values[] = (string) $key . '=' . self::review_value( $options[ $key ] );
+			}
+			$notes[] = sprintf( 'date field "%s" has unrecognized WAPF options (%s); original values need manual review.', $label, implode( ', ', $unknown_values ) );
+			$needs_review = true;
+		}
+		if ( ! empty( $options['disable_today_after'] ) ) {
+			$value = is_scalar( $options['disable_today_after'] ) ? (string) $options['disable_today_after'] : '';
+			if ( preg_match( '/^(?:[01]\d|2[0-3]):[0-5]\d$/', $value ) ) {
+				$settings['cutoff_time'] = $value;
+			} else {
+				$notes[] = sprintf( 'date field "%s" has unsupported disable_today_after value "%s"; cutoff needs manual review.', $label, $value );
+				$needs_review = true;
+			}
+		}
+		return $settings;
+	}
+
+	/** Convert WAPF's mm-dd-yyyy literal to OPF's ISO boundary, preserving relative periods. */
+	private static function wapf_date_boundary( string $value ): ?string {
+		if ( preg_match( '/^(\d{2})-(\d{2})-(\d{4})$/', $value, $match ) ) {
+			$date = sprintf( '%04d-%02d-%02d', (int) $match[3], (int) $match[1], (int) $match[2] );
+			return FieldValue::is_date_boundary( $date ) ? $date : null;
+		}
+		return FieldValue::is_date_boundary( $value ) ? $value : null;
+	}
+
+	/** Format a source option value for an actionable migration review note. */
+	private static function review_value( $value ): string {
+		$encoded = function_exists( 'wp_json_encode' ) ? wp_json_encode( $value ) : json_encode( $value );
+		return false === $encoded ? '[unserializable value]' : (string) $encoded;
 	}
 
 	/** Map WAPF clone settings and flag only settings without an OPF equivalent. */

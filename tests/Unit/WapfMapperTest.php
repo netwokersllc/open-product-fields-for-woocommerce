@@ -502,4 +502,41 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( 'target-country', $mapped['group']['fields'][0]['id'] );
 		$this->assertSame( 'target-country-2', $mapped['group']['fields'][1]['id'] );
 	}
+
+	public function test_maps_supported_wapf_extended_date_constraints(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'delivery', 'label' => 'Delivery date', 'type' => 'date',
+			'options' => [
+				'placeholder' => 'Choose a date', 'disable_past' => '1', 'disable_future' => '0',
+				'min_date' => '10-02-2026', 'max_date' => '7d', 'disabled_days' => [ 0, '6' ],
+				'disabled_dates' => '12-25, 12-31-2026 01-02-2027', 'disable_today_after' => '14:30',
+			],
+		] ] ] );
+
+		$field = $mapped['group']['fields'][0];
+		$this->assertFalse( $mapped['needs_review'] );
+		$this->assertSame( 'date', $field['type'] );
+		$this->assertSame( 'Choose a date', $field['placeholder'] );
+		$this->assertFalse( $field['allow_past'] );
+		$this->assertTrue( $field['allow_future'] );
+		$this->assertSame( '2026-10-02', $field['min_date'] );
+		$this->assertSame( '7d', $field['max_date'] );
+		$this->assertSame( [ 0, 6 ], $field['disabled_weekdays'] );
+		$this->assertSame( [ '12-25', '2026-12-31 2027-01-02' ], $field['disabled_dates'] );
+		$this->assertSame( '14:30', $field['cutoff_time'] );
+	}
+
+	public function test_flags_unmappable_wapf_date_rules_with_source_values(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'booking', 'label' => 'Booking date', 'type' => 'date',
+			'options' => [ 'disable_today' => true, 'min_date' => '[field.start]+1d', 'default' => '10-03-2026', 'mystery' => 'keep-me' ],
+		] ] ] );
+
+		$this->assertTrue( $mapped['needs_review'] );
+		$notes = implode( ' ', $mapped['notes'] );
+		$this->assertStringContainsString( '[field.start]+1d', $notes );
+		$this->assertStringContainsString( 'disable_today value true', $notes );
+		$this->assertStringContainsString( '10-03-2026', $notes );
+		$this->assertStringContainsString( 'mystery', $notes );
+	}
 }
