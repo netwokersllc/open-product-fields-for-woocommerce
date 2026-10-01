@@ -239,13 +239,21 @@ final class WapfMapper {
 					break;
 			}
 
-			$choices[] = [
+			$mapped_choice = [
 				'slug'     => $slug,
 				'label'    => (string) ( $choice['label'] ?? '' ),
 				'selected' => (bool) ( $choice['selected'] ?? false ),
 				'disabled' => (bool) ( $choice['disabled'] ?? false ),
 				'pricing'  => $pricing,
 			];
+			if ( is_string( $choice['image'] ?? null ) ) {
+				$mapped_choice['image'] = $choice['image'];
+			}
+			$attachment_id = $choice['attachment'] ?? null;
+			if ( ( is_int( $attachment_id ) || ( is_string( $attachment_id ) && ctype_digit( $attachment_id ) ) ) && (int) $attachment_id > 0 ) {
+				$mapped_choice['image_id'] = (int) $attachment_id;
+			}
+			$choices[] = $mapped_choice;
 		}
 		return $choices;
 	}

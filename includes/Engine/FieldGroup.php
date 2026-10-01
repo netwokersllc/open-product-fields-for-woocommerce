@@ -142,13 +142,25 @@ final class FieldGroup {
 				continue;
 			}
 			$pricing   = is_array( $choice['pricing'] ?? null ) ? $choice['pricing'] : [];
-			$choices[] = [
+			$normalized_choice = [
 				'slug'     => (string) ( $choice['slug'] ?? '' ),
 				'label'    => (string) $choice['label'],
 				'selected' => (bool) ( $choice['selected'] ?? false ),
 				'disabled' => (bool) ( $choice['disabled'] ?? false ),
 				'pricing'  => self::normalize_pricing( $pricing ),
 			];
+			$image = $choice['image'] ?? null;
+			if ( is_string( $image ) ) {
+				$image = trim( $image );
+				if ( strlen( $image ) <= 2048 && ! preg_match( '/[\x00-\x20\x7F]/', $image ) && preg_match( '#^(?:https?://[^/\s]+|/(?!/))#i', $image ) ) {
+					$normalized_choice['image'] = $image;
+				}
+			}
+			$image_id = $choice['image_id'] ?? null;
+			if ( ( is_int( $image_id ) || ( is_string( $image_id ) && ctype_digit( $image_id ) ) ) && (int) $image_id > 0 ) {
+				$normalized_choice['image_id'] = (int) $image_id;
+			}
+			$choices[] = $normalized_choice;
 		}
 
 		$conditionals = [];

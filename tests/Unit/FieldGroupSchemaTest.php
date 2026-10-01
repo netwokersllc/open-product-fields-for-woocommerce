@@ -64,6 +64,22 @@ final class FieldGroupSchemaTest extends TestCase {
 		$this->assertSame( 'none', $group['fields'][0]['pricing']['type'] );
 	}
 
+	public function test_image_choices_preserve_safe_url_and_positive_attachment_id(): void {
+		$field = FieldGroup::normalize_field( [
+			'id' => 'finish',
+			'type' => 'swatch',
+			'choices' => [
+				[ 'slug' => 'oak', 'label' => 'Oak', 'image' => 'https://example.test/oak.jpg', 'image_id' => 481 ],
+				[ 'slug' => 'bad-url', 'label' => 'Unsafe', 'image' => 'javascript:alert(1)', 'image_id' => -4 ],
+			],
+		] );
+
+		$this->assertSame( 'https://example.test/oak.jpg', $field['choices'][0]['image'] );
+		$this->assertSame( 481, $field['choices'][0]['image_id'] );
+		$this->assertArrayNotHasKey( 'image', $field['choices'][1] );
+		$this->assertArrayNotHasKey( 'image_id', $field['choices'][1] );
+	}
+
 	public function test_duplicate_remaps_internal_field_references_and_formula_tokens(): void {
 		$result = FieldGroup::duplicate(
 			[
