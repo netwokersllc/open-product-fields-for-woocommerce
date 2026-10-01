@@ -54,7 +54,8 @@ try {
 			[ 'id' => 'guest_name', 'label' => 'Guest name', 'type' => 'text', 'required' => true ],
 			[ 'id' => 'guest_note', 'label' => 'Ada note', 'type' => 'text', 'required' => true, 'conditionals' => [ [ 'action' => 'show', 'logic' => 'all', 'rules' => [ [ 'field' => 'guest_name', 'operator' => 'is', 'value' => 'Ada' ] ] ] ] ],
 			[ 'id' => 'guest_date', 'label' => 'Guest date', 'type' => 'date' ],
-			[ 'id' => 'guest_fee', 'label' => 'Date fee', 'type' => 'text', 'pricing' => [ 'type' => 'formula', 'formula' => "if(datediff('2026-01-15'; [field.guest_date]) > 1; datediff('2026-01-15'; [field.guest_date]); 3)", 'per_unit' => true ] ],
+			[ 'id' => 'guest_tags', 'label' => 'Guest tags', 'type' => 'checkbox', 'choices' => [ [ 'slug' => 'red', 'label' => 'Red' ], [ 'slug' => 'blue', 'label' => 'Blue' ] ] ],
+			[ 'id' => 'guest_fee', 'label' => 'Date fee', 'type' => 'text', 'pricing' => [ 'type' => 'formula', 'formula' => "if(datediff('2026-01-15'; [field.guest_date]) > 1; datediff('2026-01-15'; [field.guest_date]); 3) + checked(guest_tags)", 'per_unit' => true ] ],
 			[ 'id' => 'guest_meal', 'label' => 'Guest meal', 'type' => 'select', 'required' => true, 'choices' => [
 				[ 'slug' => 'soup', 'label' => 'Soup', 'pricing' => [ 'type' => 'fixed', 'amount' => 2, 'per_unit' => true ] ],
 				[ 'slug' => 'salad', 'label' => 'Salad', 'pricing' => [ 'type' => 'fixed', 'amount' => 3, 'per_unit' => true ] ],
@@ -120,13 +121,14 @@ try {
 		'guest_name' => [ 'Ada', 'Grace' ],
 		'guest_note' => [ 'For Ada', '' ],
 		'guest_date' => [ '2026-01-15', '2026-03-14' ],
+		'guest_tags' => [ [ 'red' ], [ 'red', 'blue' ] ],
 		'guest_fee' => [ 'applies', 'applies' ],
 		'guest_meal' => [ 'soup', 'soup' ],
 	] ] );
 	$assert( in_array( $formula_response->get_status(), [ 200, 201 ], true ), 'Store API rejected valid formula-clone rows: ' . wp_json_encode( $formula_response->get_data() ) );
 	$formula_items = array_values( array_filter( $cart->get_cart(), static fn( $item ) => (int) $item['product_id'] === $product_id ) );
 	$formula_prices = array_map( static fn( $item ) => (float) $item['data']->get_price( 'edit' ), $formula_items );
-	$assert( [ 15.0, 70.0 ] === $formula_prices, 'Repeated date-difference formulas did not resolve each clone date: ' . wp_json_encode( $formula_prices ) );
+	$assert( [ 16.0, 72.0 ] === $formula_prices, 'Repeated date and checked formulas did not resolve each clone: ' . wp_json_encode( $formula_prices ) );
 
 	$cart->empty_cart();
 	$identical_response = $add_store_item( $product_id, [ (string) $group_id => [

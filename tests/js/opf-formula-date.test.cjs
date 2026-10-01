@@ -54,6 +54,8 @@ test('WAPF math, text, and conditional formula functions evaluate in browser pre
 	assert.equal(context.__evalFormula('if(and(2 < 1; 3 >= 3); 20; 10)', 10, 1, 0, ''), 10);
 	assert.equal(context.__evalFormula('if([field.size]=Large;10;20)', 10, 1, 0, '', { size: 'Large' }), 10);
 	assert.equal(context.__evalFormula('min([field.count]+2;7)', 10, 1, 0, '', { count: '2' }), 4);
+	assert.equal(context.__evalFormula('checked(tags)', 10, 1, 0, '', { tags: ['red', 'blue'] }), 2);
+	assert.equal(context.__evalFormula('checked(missing)', 10, 1, 0, '', { tags: ['red'] }), 0);
 });
 
 test('WAPF date functions honor configured formats and reject invalid calendar dates', () => {

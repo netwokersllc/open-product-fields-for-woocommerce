@@ -697,7 +697,7 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
       return date ? String(fn.toLowerCase() === 'dow' ? date.weekday : date.month) : '0';
     })
     .replace(/\[val\]/gi, ' V ');
-  const functionNames = new Set(['min', 'max', 'len', 'round', 'abs', 'floor', 'ceil', 'sqrt', 'pow', 'sin', 'cos', 'tan', 'if', 'or', 'and']);
+  const functionNames = new Set(['min', 'max', 'len', 'checked', 'round', 'abs', 'floor', 'ceil', 'sqrt', 'pow', 'sin', 'cos', 'tan', 'if', 'or', 'and']);
   const splitArguments = (input) => {
     const parts = [];
     let start = 0;
@@ -821,6 +821,12 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
           let value = args[0] || '';
           if ((args[1] || '').toLowerCase() === 'true') value = value.replace(/\s/gu, '');
           result = [...value].length;
+          break;
+        }
+        case 'checked': {
+          const fieldId = (args[0] || '').replace(/^['"]|['"]$/g, '').trim().toLowerCase();
+          const selected = fieldValues[fieldId];
+          result = Array.isArray(selected) ? selected.length : 0;
           break;
         }
         case 'round': {

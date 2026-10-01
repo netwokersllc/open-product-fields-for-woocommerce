@@ -319,6 +319,13 @@ final class Calculator {
 				}
 				return function_exists( 'mb_strlen' ) ? mb_strlen( $text, 'UTF-8' ) : strlen( $text );
 			},
+			'checked' => static function ( array $args, array $context ): int {
+				$field_id = trim( (string) ( $args[0] ?? '' ), " '\"" );
+				$field_values = is_array( $context['field_values'] ?? null ) ? $context['field_values'] : [];
+				$field_id = strtolower( $field_id );
+				$value = $field_values[ $field_id ] ?? null;
+				return is_array( $value ) ? count( $value ) : 0;
+			},
 			'round' => static function ( array $args, array $context ) use ( $numeric ) {
 				$value = $numeric( (string) ( $args[0] ?? '' ), $context );
 				$precision = isset( $args[1] ) && '' !== trim( (string) $args[1] ) ? (int) $numeric( (string) $args[1], $context ) : 0;

@@ -70,6 +70,8 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( 1.0, Calculator::evaluate_formula( 'if(2 = 2; true; false)', 0.0, 1, 0.0 ) );
 		$this->assertSame( 10.0, Calculator::evaluate_formula( 'if([field.size]=Large;10;20)', 0.0, 1, 0.0, '', null, [ 'size' => 'Large' ] ) );
 		$this->assertSame( 4.0, Calculator::evaluate_formula( 'min([field.count]+2; 7)', 0.0, 1, 0.0, '', null, [ 'count' => '2' ] ) );
+		$this->assertSame( 2.0, Calculator::evaluate_formula( 'checked(TAGS)', 0.0, 1, 0.0, '', null, [ 'tags' => [ 'red', 'blue' ] ] ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'checked(missing)', 0.0, 1, 0.0, '', null, [ 'tags' => [ 'red' ] ] ) );
 	}
 
 	public function test_public_api_registers_safe_formula_functions_with_arguments_and_context(): void {
