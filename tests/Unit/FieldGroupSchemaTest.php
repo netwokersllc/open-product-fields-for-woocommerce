@@ -102,6 +102,34 @@ final class FieldGroupSchemaTest extends TestCase {
 		$this->assertSame( 'none', $group['fields'][0]['pricing']['type'] );
 	}
 
+	public function test_repeater_settings_normalize_button_and_quantity_modes(): void {
+		$button = FieldGroup::normalize_field( [ 'id' => 'name', 'type' => 'text', 'repeat' => [ 'enabled' => true, 'mode' => 'button', 'max' => 12 ] ] );
+		$quantity = FieldGroup::normalize_field( [ 'id' => 'ticket-name', 'type' => 'text', 'repeat' => [ 'enabled' => true, 'mode' => 'qty' ] ] );
+		$section = FieldGroup::normalize_field( [ 'id' => 'attendees', 'type' => 'section', 'repeat' => [ 'enabled' => true, 'mode' => 'quantity' ] ] );
+
+		$this->assertSame( [ 'enabled' => true, 'mode' => 'button', 'max' => 12 ], $button['repeat'] );
+		$this->assertSame( [ 'enabled' => true, 'mode' => 'quantity' ], $quantity['repeat'] );
+		$this->assertSame( [ 'enabled' => true, 'mode' => 'quantity' ], $section['repeat'] );
+	}
+
+	public function test_disabled_repeaters_are_omitted_and_button_max_is_bounded(): void {
+		$disabled = FieldGroup::normalize_field( [ 'id' => 'name', 'type' => 'text', 'repeat' => [ 'enabled' => false, 'mode' => 'button' ] ] );
+		$this->assertArrayNotHasKey( 'repeat', $disabled );
+
+		$this->expectException( InvalidArgumentException::class );
+		FieldGroup::normalize_field( [ 'id' => 'name', 'type' => 'text', 'repeat' => [ 'enabled' => true, 'mode' => 'button', 'max' => 1001 ] ] );
+	}
+
+	public function test_invalid_repeater_modes_are_rejected(): void {
+		$this->expectException( InvalidArgumentException::class );
+		FieldGroup::normalize_field( [ 'id' => 'name', 'type' => 'text', 'repeat' => [ 'enabled' => true, 'mode' => 'clone' ] ] );
+	}
+
+	public function test_section_end_cannot_be_repeated(): void {
+		$this->expectException( InvalidArgumentException::class );
+		FieldGroup::normalize_field( [ 'id' => 'end', 'type' => 'section_end', 'repeat' => [ 'enabled' => true ] ] );
+	}
+
 	public function test_image_choices_preserve_safe_url_and_positive_attachment_id(): void {
 		$field = FieldGroup::normalize_field( [
 			'id' => 'finish',

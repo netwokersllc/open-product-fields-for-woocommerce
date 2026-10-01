@@ -250,6 +250,13 @@ final class FieldGroup {
 			$normalized['choices'] = [];
 			$normalized['pricing'] = self::normalize_pricing( [] );
 		}
+		$repeat = RepeaterField::normalize( $field['repeat'] ?? [] );
+		if ( 'section_end' === $type && $repeat ) {
+			throw new \InvalidArgumentException( 'A section-end marker cannot repeat.' );
+		}
+		if ( $repeat ) {
+			$normalized['repeat'] = $repeat;
+		}
 		if ( 'swatch' === $type ) {
 			$style = $field['swatch_style'] ?? 'text';
 			if ( ! in_array( $style, [ 'text', 'image', 'color' ], true ) ) {
