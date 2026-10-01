@@ -303,9 +303,23 @@ const init = () => {
 			const input = checked || instance.querySelector( 'input:not([type="hidden"]), textarea, select' );
 			return input ? input.value : '';
 		};
-		const readFieldValue = ( fieldEl, def ) => fieldEl.matches( '[data-opf-repeat="button"], [data-opf-repeat="quantity"]' )
-			? Array.from( fieldEl.querySelectorAll( '[data-opf-repeat-instance]' ) ).map( ( instance ) => readInstanceValue( instance, def ) )
+		const readFieldValue = ( fieldEl, def ) => fieldEl.hasAttribute( 'data-opf-section-repeat' )
+			? []
+			: fieldEl.matches( '[data-opf-repeat="button"], [data-opf-repeat="quantity"]' )
+				? Array.from( fieldEl.querySelectorAll( '.opf-field-repeat__rows > [data-opf-repeat-instance]' ) ).map( ( instance ) => readInstanceValue( instance, def ) )
 			: readInstanceValue( fieldEl, def );
+		const updateSectionInstanceIds = ( instance, index ) => {
+			instance.querySelectorAll( '[id]' ).forEach( ( element ) => {
+				const baseId = element.dataset.opfSectionBaseId || element.id.replace( /-section-\d+$/, '' );
+				element.dataset.opfSectionBaseId = baseId;
+				element.id = baseId + '-section-' + index;
+			} );
+			instance.querySelectorAll( 'label[for]' ).forEach( ( label ) => {
+				const baseId = label.dataset.opfSectionBaseFor || label.htmlFor.replace( /-section-\d+$/, '' );
+				label.dataset.opfSectionBaseFor = baseId;
+				label.htmlFor = baseId + '-section-' + index;
+			} );
+		};
 		const updateRequiredRepeaters = () => {
 			groupEl.querySelectorAll( '[data-opf-repeat].opf-required' ).forEach( ( repeater ) => {
 				const def = registry[ repeater.dataset.opfField ] || {};
@@ -322,17 +336,18 @@ const init = () => {
 		const quantitySyncers = [];
 		groupEl.querySelectorAll( '[data-opf-repeat="button"]' ).forEach( ( repeater ) => {
 			const rows = repeater.querySelector( '.opf-field-repeat__rows' );
-			const first = rows && rows.querySelector( '[data-opf-repeat-instance]' );
+			const first = rows && rows.querySelector( ':scope > [data-opf-repeat-instance]' );
 			if ( ! rows || ! first ) return;
 			const template = first.cloneNode( true );
 			const max = Math.max( 1, Number( repeater.dataset.opfRepeatMax ) || 10000 );
 			const repeatDef = registry[ repeater.dataset.opfField ] || {};
-			const baseRowLabel = template.querySelector( '.opf-field-label span' );
+			const sectionRepeat = repeater.hasAttribute( 'data-opf-section-repeat' );
+			const baseRowLabel = template.querySelector( sectionRepeat ? '.opf-section-repeat__label span' : '.opf-field-label span' );
 			const baseLabelText = baseRowLabel ? baseRowLabel.textContent : '';
 			const update = () => {
-				const instances = Array.from( rows.querySelectorAll( '[data-opf-repeat-instance]' ) );
+				const instances = Array.from( rows.querySelectorAll( ':scope > [data-opf-repeat-instance]' ) );
 				instances.forEach( ( instance, index ) => {
-					const rowLabel = instance.querySelector( '.opf-field-label span' );
+					const rowLabel = instance.querySelector( sectionRepeat ? '.opf-section-repeat__label span' : '.opf-field-label span' );
 					if ( rowLabel ) {
 						const customLabel = repeatDef.repeat && repeatDef.repeat.label;
 						rowLabel.textContent = index > 0 && customLabel ? customLabel.replace( /\{n\}/g, String( index + 1 ) ) : baseLabelText;
@@ -350,12 +365,15 @@ const init = () => {
 					instance.querySelectorAll( '[name]' ).forEach( ( input ) => {
 						input.name = input.name.replace( /\[\d+\](\[\])?$/, '[' + index + ']$1' );
 					} );
-					instance.querySelectorAll( '[id]' ).forEach( ( element ) => {
-						element.id = element.id.replace( /-repeat-\d+/, '-repeat-' + index );
-					} );
-					instance.querySelectorAll( 'label[for]' ).forEach( ( label ) => {
-						label.htmlFor = label.htmlFor.replace( /-repeat-\d+/, '-repeat-' + index );
-					} );
+					if ( sectionRepeat ) updateSectionInstanceIds( instance, index );
+					else {
+						instance.querySelectorAll( '[id]' ).forEach( ( element ) => {
+							element.id = element.id.replace( /-repeat-\d+/, '-repeat-' + index );
+						} );
+						instance.querySelectorAll( 'label[for]' ).forEach( ( label ) => {
+							label.htmlFor = label.htmlFor.replace( /-repeat-\d+/, '-repeat-' + index );
+						} );
+					}
 				} );
 				const add = repeater.querySelector( '.opf-field-repeat__add' );
 				if ( add ) add.disabled = instances.length >= max;
@@ -379,7 +397,7 @@ const init = () => {
 			};
 			repeater.addEventListener( 'click', ( event ) => {
 				if ( event.target.closest( '.opf-field-repeat__add' ) ) {
-					if ( rows.querySelectorAll( '[data-opf-repeat-instance]' ).length >= max ) return;
+					if ( rows.querySelectorAll( ':scope > [data-opf-repeat-instance]' ).length >= max ) return;
 					const clone = template.cloneNode( true );
 					resetClone( clone );
 					rows.appendChild( clone );
@@ -391,7 +409,7 @@ const init = () => {
 					updateRequiredRepeaters();
 					refresh();
 				} else if ( event.target.closest( '.opf-field-repeat__remove' ) ) {
-					if ( rows.querySelectorAll( '[data-opf-repeat-instance]' ).length <= 1 ) return;
+					if ( rows.querySelectorAll( ':scope > [data-opf-repeat-instance]' ).length <= 1 ) return;
 					event.target.closest( '[data-opf-repeat-instance]' ).remove();
 					update();
 					const def = registry[ repeater.dataset.opfField ] || {};
@@ -404,11 +422,12 @@ const init = () => {
 		} );
 		groupEl.querySelectorAll( '[data-opf-repeat="quantity"]' ).forEach( ( repeater ) => {
 			const rows = repeater.querySelector( '.opf-field-repeat__rows' );
-			const first = rows && rows.querySelector( '[data-opf-repeat-instance]' );
+			const first = rows && rows.querySelector( ':scope > [data-opf-repeat-instance]' );
 			if ( ! rows || ! first ) return;
 			const template = first.cloneNode( true );
 			const repeatDef = registry[ repeater.dataset.opfField ] || {};
-			const baseRowLabel = template.querySelector( '.opf-field-label span' );
+			const sectionRepeat = repeater.hasAttribute( 'data-opf-section-repeat' );
+			const baseRowLabel = template.querySelector( sectionRepeat ? '.opf-section-repeat__label span' : '.opf-field-label span' );
 			const baseLabelText = baseRowLabel ? baseRowLabel.textContent : '';
 			const quantityInput = document.querySelector( 'form.cart input[name="quantity"], form.cart .qty' );
 			const resetClone = ( clone ) => {
@@ -424,7 +443,7 @@ const init = () => {
 			};
 			const syncQuantity = () => {
 				const target = Math.max( 1, parseInt( quantityInput && quantityInput.value, 10 ) || 1 );
-				let instances = Array.from( rows.querySelectorAll( '[data-opf-repeat-instance]' ) );
+				let instances = Array.from( rows.querySelectorAll( ':scope > [data-opf-repeat-instance]' ) );
 				while ( instances.length < target ) {
 					const clone = template.cloneNode( true );
 					resetClone( clone );
@@ -435,18 +454,21 @@ const init = () => {
 				}
 				while ( instances.length > target ) instances.pop().remove();
 				instances.forEach( ( instance, index ) => {
-					const rowLabel = instance.querySelector( '.opf-field-label span' );
+					const rowLabel = instance.querySelector( sectionRepeat ? '.opf-section-repeat__label span' : '.opf-field-label span' );
 					const customLabel = repeatDef.repeat && repeatDef.repeat.label;
 					if ( rowLabel ) rowLabel.textContent = index > 0 && customLabel ? customLabel.replace( /\{n\}/g, String( index + 1 ) ) : baseLabelText;
 					instance.querySelectorAll( '[name]' ).forEach( ( input ) => {
 						input.name = input.name.replace( /\[\d+\](\[\])?$/, '[' + index + ']$1' );
 					} );
-					instance.querySelectorAll( '[id]' ).forEach( ( element ) => {
-						element.id = element.id.replace( /-repeat-\d+/, '-repeat-' + index );
-					} );
-					instance.querySelectorAll( 'label[for]' ).forEach( ( label ) => {
-						label.htmlFor = label.htmlFor.replace( /-repeat-\d+/, '-repeat-' + index );
-					} );
+					if ( sectionRepeat ) updateSectionInstanceIds( instance, index );
+					else {
+						instance.querySelectorAll( '[id]' ).forEach( ( element ) => {
+							element.id = element.id.replace( /-repeat-\d+/, '-repeat-' + index );
+						} );
+						instance.querySelectorAll( 'label[for]' ).forEach( ( label ) => {
+							label.htmlFor = label.htmlFor.replace( /-repeat-\d+/, '-repeat-' + index );
+						} );
+					}
 				} );
 				const fid = repeater.dataset.opfField;
 				values[ fid ] = readFieldValue( repeater, repeatDef );

@@ -184,36 +184,73 @@ final class Renderer {
 
 		echo '<div class="opf-field-group label-' . esc_attr( 'above' === $group->data['labels_position'] ? 'above' : 'below' ) . '" data-group="' . esc_attr( (string) $gid ) . '" data-variables="[]" data-opf-group="' . esc_attr( (string) $gid ) . '">';
 
-		$open_sections = 0;
+		$section_stack = [];
+		$section_repeat_index = null;
 		foreach ( $group->data['fields'] as $field ) {
 			if ( 'section' === $field['type'] ) {
-				self::render_section( $field, $values );
-				$open_sections++;
+				$previous_repeat_index = $section_repeat_index;
+				$repeat = $field['repeat'] ?? [];
+				$repeat_mode = (string) ( $repeat['mode'] ?? '' );
+				$repeats_section = ! empty( $repeat['enabled'] ) && in_array( $repeat_mode, [ 'button', 'quantity' ], true );
+				if ( $repeats_section ) {
+					$classes = [ 'opf-field-container', 'opf-field-repeat', 'opf-section-repeat', 'field-' . $field['id'] ];
+					if ( '' !== $field['css_class'] ) {
+						$classes[] = $field['css_class'];
+					}
+					echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-opf-field="' . esc_attr( $field['id'] ) . '" data-opf-repeat="' . esc_attr( $repeat_mode ) . '" data-opf-section-repeat="1" data-opf-repeat-max="' . esc_attr( (string) ( $repeat['max'] ?? 10000 ) ) . '">';
+					echo '<div class="opf-field-repeat__rows"><div data-opf-repeat-instance="1">';
+					if ( '' !== $field['label'] ) {
+						echo '<div class="opf-section-repeat__label"><span>' . esc_html( $field['label'] ) . '</span></div>';
+					}
+					self::render_section( $field, $values, false );
+					$section_repeat_index = 0;
+				} else {
+					self::render_section( $field, $values );
+				}
+				$section_stack[] = [
+					'repeats' => $repeats_section,
+					'mode' => $repeat_mode,
+					'options' => $repeat,
+					'previous_repeat_index' => $previous_repeat_index,
+				];
 				continue;
 			}
 			if ( 'section_end' === $field['type'] ) {
-				if ( $open_sections > 0 ) {
+				if ( $section_stack ) {
+					$section_context = array_pop( $section_stack );
 					echo '</div>';
-					$open_sections--;
+					if ( $section_context['repeats'] ) {
+						echo '</div></div>';
+						if ( 'button' === $section_context['mode'] ) {
+							$add_label = (string) ( $section_context['options']['add'] ?? __( 'Add another', 'open-product-fields-for-woocommerce' ) );
+							echo '<button type="button" class="opf-field-repeat__add">' . esc_html( $add_label ) . '</button>';
+						}
+						echo '<span class="screen-reader-text opf-field-repeat__status" aria-live="polite"></span></div>';
+					}
+					$section_repeat_index = $section_context['previous_repeat_index'];
 				}
 				continue;
 			}
 			if ( ! empty( $field['repeat']['enabled'] ) ) {
-				self::render_repeated_field( $gid, $field, $values, $base_price );
+				self::render_repeated_field( $gid, $field, $values, $base_price, $section_repeat_index );
 			} else {
-				self::render_field( $gid, $field, $values, $base_price );
+				self::render_field( $gid, $field, $values, $base_price, false, $section_repeat_index );
 			}
 		}
-		while ( $open_sections > 0 ) {
+		while ( $section_stack ) {
+			$section_context = array_pop( $section_stack );
 			echo '</div>';
-			$open_sections--;
+			if ( $section_context['repeats'] ) {
+				echo '</div></div><span class="screen-reader-text opf-field-repeat__status" aria-live="polite"></span></div>';
+			}
+			$section_repeat_index = $section_context['previous_repeat_index'];
 		}
 
 		echo '</div>';
 	}
 
 	/** Render the opening wrapper for a WAPF-compatible section marker. */
-	private static function render_section( array $field, array $values ): void {
+	private static function render_section( array $field, array $values, bool $include_field_attribute = true ): void {
 		$classes = [ 'opf-section', 'wapf-section', 'field-' . $field['id'] ];
 		if ( '' !== $field['css_class'] ) {
 			$classes[] = $field['css_class'];
@@ -224,7 +261,8 @@ final class Renderer {
 		if ( ! Evaluator::is_visible( $field, $values ) ) {
 			$classes[] = 'opf-hide';
 		}
-		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-opf-field="' . esc_attr( $field['id'] ) . '" style="width:' . esc_attr( (string) $field['width'] ) . '%;">';
+		$field_attribute = $include_field_attribute ? ' data-opf-field="' . esc_attr( $field['id'] ) . '"' : '';
+		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '"' . $field_attribute . ' style="width:' . esc_attr( (string) $field['width'] ) . '%;">';
 	}
 
 	/**
@@ -235,7 +273,7 @@ final class Renderer {
 	 * @param array<string,mixed> $values     Seeded values (for conditional state).
 	 * @param float               $base_price Base unit price.
 	 */
-	private static function render_repeated_field( string $gid, array $field, array $values, float $base_price ): void {
+	private static function render_repeated_field( string $gid, array $field, array $values, float $base_price, ?int $section_repeat_index = null ): void {
 		$fid = (string) $field['id'];
 		$repeat = $field['repeat'];
 		$mode = (string) ( $repeat['mode'] ?? '' );
@@ -265,7 +303,7 @@ final class Renderer {
 		$instance['_opf_source_id'] = $fid;
 		$instance['_opf_repeat_index'] = 0;
 		$instance['id'] = $fid . '-repeat-0';
-		self::render_field( $gid, $instance, $values, $base_price, true );
+		self::render_field( $gid, $instance, $values, $base_price, true, $section_repeat_index );
 		if ( 'button' === ( $repeat['mode'] ?? 'button' ) ) {
 			$add_label = (string) ( $repeat['add'] ?? __( 'Add another', 'open-product-fields-for-woocommerce' ) );
 			echo '</div><button type="button" class="opf-field-repeat__add">' . esc_html( $add_label ) . '</button>';
@@ -275,10 +313,13 @@ final class Renderer {
 		echo '<span class="screen-reader-text opf-field-repeat__status" aria-live="polite"></span></div>';
 	}
 
-	private static function render_field( string $gid, array $field, array $values, float $base_price, bool $repeat_instance = false ): void {
+	private static function render_field( string $gid, array $field, array $values, float $base_price, bool $repeat_instance = false, ?int $section_repeat_index = null ): void {
 		$fid      = $field['id'];
 		$source_fid = (string) ( $field['_opf_source_id'] ?? $fid );
 		$name     = sprintf( 'opf[%s][%s]', $gid, $source_fid );
+		if ( null !== $section_repeat_index ) {
+			$name .= '[' . $section_repeat_index . ']';
+		}
 		if ( isset( $field['_opf_repeat_index'] ) ) {
 			$name .= '[' . (int) $field['_opf_repeat_index'] . ']';
 		}

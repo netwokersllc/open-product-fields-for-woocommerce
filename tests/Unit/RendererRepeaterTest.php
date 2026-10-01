@@ -11,6 +11,25 @@ namespace {
 			return esc_html( $text );
 		}
 	}
+	if ( ! function_exists( 'esc_attr' ) ) {
+		function esc_attr( $text ): string {
+			return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+		}
+	}
+	if ( ! function_exists( 'esc_html' ) ) {
+		function esc_html( $text ): string {
+			return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+		}
+	}
+	if ( ! function_exists( 'selected' ) ) {
+		function selected( $selected, $current = true, bool $echo = true ): string {
+			$result = (string) $selected === (string) $current ? ' selected="selected"' : '';
+			if ( $echo ) {
+				echo $result;
+			}
+			return $result;
+		}
+	}
 }
 
 namespace OPF\Tests\Unit {
@@ -72,6 +91,27 @@ namespace OPF\Tests\Unit {
 			$this->assertStringContainsString( 'name="opf[17][ticket_name][0]"', $html );
 			$this->assertStringNotContainsString( 'class="opf-field-repeat__add"', $html );
 			$this->assertStringNotContainsString( 'quantity-based repeated field is not available yet', $html );
+		}
+
+		public function test_quantity_section_repeater_wraps_child_fields_and_indexes_names(): void {
+			$group = new FieldGroup( [ 'fields' => [
+				[ 'id' => 'attendees', 'label' => 'Attendee', 'type' => 'section', 'repeat' => [ 'enabled' => true, 'mode' => 'quantity', 'label' => 'Guest {n}' ] ],
+				[ 'id' => 'guest_name', 'label' => 'Name', 'type' => 'text' ],
+				[ 'id' => 'guest_meal', 'label' => 'Meal', 'type' => 'select', 'choices' => [ [ 'slug' => 'soup', 'label' => 'Soup' ] ] ],
+				[ 'id' => 'attendees-end', 'type' => 'section_end' ],
+				[ 'id' => 'delivery_note', 'label' => 'Delivery note', 'type' => 'text' ],
+			] ] );
+
+			ob_start();
+			Renderer::render_group( '17', 'Guests', $group, 10.0 );
+			$html = (string) ob_get_clean();
+
+			$this->assertStringContainsString( 'data-opf-field="attendees" data-opf-repeat="quantity" data-opf-section-repeat="1"', $html );
+			$this->assertStringContainsString( 'class="opf-section-repeat__label"><span>Attendee</span>', $html );
+			$this->assertStringContainsString( 'name="opf[17][guest_name][0]"', $html );
+			$this->assertStringContainsString( 'name="opf[17][guest_meal][0]"', $html );
+			$this->assertStringNotContainsString( 'class="opf-field-repeat__add"', $html );
+			$this->assertStringContainsString( 'name="opf[17][delivery_note]"', $html );
 		}
 	}
 }
