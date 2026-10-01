@@ -38,6 +38,7 @@ final class Renderer {
 		'checkbox' => 'checkbox',
 		'swatch'   => 'text-swatch',
 		'image_quantity' => 'image-swatch-qty',
+		'upload' => 'file',
 		'paragraph' => 'content',
 		'content_image' => 'content-image',
 	];
@@ -621,6 +622,13 @@ final class Renderer {
 		);
 
 		switch ( $field['type'] ) {
+			case 'upload':
+				$modern = Uploads::modern();
+				echo '<div class="opf-upload" data-opf-upload="' . ( $modern ? 'modern' : 'native' ) . '" data-opf-upload-name="' . esc_attr( $name ) . '" data-opf-upload-group="' . esc_attr( $gid ) . '" data-opf-upload-field="' . esc_attr( $field['id'] ) . '" data-opf-upload-limit="' . esc_attr( (string) Uploads::max_files( $field ) ) . '" data-opf-upload-url="' . esc_url( rest_url( 'opf/v1/uploads' ) ) . '">';
+				echo '<input type="hidden" name="opf_upload_native_nonce" value="' . esc_attr( wp_create_nonce( 'opf_upload_native' ) ) . '" />';
+				echo '<input type="file" class="opf-upload__input" id="opf-' . esc_attr( $gid . '-' . $field['id'] ) . '" name="opf_upload[' . esc_attr( $gid ) . '][' . esc_attr( $field['id'] ) . '][]"' . ( $field['accepted_types'] ? ' accept="' . esc_attr( '.' . implode( ',.', $field['accepted_types'] ) ) . '"' : '' ) . ( $field['multiple'] ? ' multiple' : '' ) . ( $field['required'] ? ' required' : '' ) . ' />';
+				echo '<div class="opf-upload__files"></div><div class="opf-upload__status" role="status" aria-live="polite"></div></div>';
+				break;
 			case 'textarea':
 				echo '<textarea ' . $shared . '></textarea>'; // phpcs:ignore WordPress.Security.EscapeOutput -- pre-escaped.
 				break;

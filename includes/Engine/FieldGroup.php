@@ -22,7 +22,7 @@ final class FieldGroup {
 	/**
 	 * Supported field types.
 	 */
-	public const FIELD_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'image_quantity', 'paragraph', 'content_image', 'section', 'section_end' ];
+	public const FIELD_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'image_quantity', 'upload', 'paragraph', 'content_image', 'section', 'section_end' ];
 
 	/**
 	 * Supported pricing types.
@@ -90,11 +90,16 @@ final class FieldGroup {
 		$data = self::migrate( $data );
 
 		$fields = [];
+		$repeated_sections = [];
 		foreach ( ( $data['fields'] ?? [] ) as $field ) {
 			if ( ! is_array( $field ) ) {
 				continue;
 			}
-			$fields[] = self::normalize_field( $field );
+			$field = self::normalize_field( $field );
+			if ( 'section' === $field['type'] ) $repeated_sections[] = ! empty( $field['repeat']['enabled'] ) || in_array( true, $repeated_sections, true );
+			if ( 'section_end' === $field['type'] ) array_pop( $repeated_sections );
+			if ( 'upload' === $field['type'] && in_array( true, $repeated_sections, true ) ) throw new \InvalidArgumentException( 'Upload fields cannot be inside repeated sections yet.' );
+			$fields[] = $field;
 		}
 
 		$rule_groups = [];
@@ -203,6 +208,12 @@ final class FieldGroup {
 			}
 		}
 
+		if ( 'upload' === $type ) {
+			$upload_pricing = $field['pricing'] ?? [];
+			if ( ! is_array( $upload_pricing ) || 'none' !== ( $upload_pricing['type'] ?? 'none' ) ) {
+				throw new \InvalidArgumentException( 'Upload pricing is not supported yet.' );
+			}
+		}
 		$pricing = self::normalize_pricing( is_array( $field['pricing'] ?? null ) ? $field['pricing'] : [] );
 
 		// Field ids become input name fragments and DOM hooks: restrict to a
@@ -258,6 +269,31 @@ final class FieldGroup {
 			$normalized['choices'] = [];
 			$normalized['pricing'] = self::normalize_pricing( [] );
 		}
+		if ( 'upload' === $type ) {
+			$multiple = $field['multiple'] ?? false;
+			if ( ! in_array( $multiple, [ true, false, 0, 1, '0', '1' ], true ) ) throw new \InvalidArgumentException( 'Upload multiple setting must be boolean.' );
+			$normalized['multiple'] = in_array( $multiple, [ true, 1, '1' ], true );
+			$size = $field['max_size'] ?? 1;
+			if ( ! is_numeric( $size ) || ! is_finite( (float) $size ) || (float) $size < 0 ) {
+				throw new \InvalidArgumentException( 'Upload maximum size must be non-negative MB.' );
+			}
+			$normalized['max_size'] = (float) $size;
+			$types = $field['accepted_types'] ?? [];
+			if ( is_string( $types ) ) {
+				$types = preg_split( '/[\s,]+/', $types, -1, PREG_SPLIT_NO_EMPTY );
+			}
+			if ( ! is_array( $types ) ) {
+				throw new \InvalidArgumentException( 'Upload accepted types must contain file extensions.' );
+			}
+			$extensions = [];
+			foreach ( $types as $extension ) {
+				if ( ! is_string( $extension ) || ! preg_match( '/^\.?[a-zA-Z0-9]+(?:\|[a-zA-Z0-9]+)*$/', $extension ) ) {
+					throw new \InvalidArgumentException( 'Upload accepted types must contain file extensions.' );
+				}
+				$extensions = array_merge( $extensions, explode( '|', strtolower( ltrim( $extension, '.' ) ) ) );
+			}
+			$normalized['accepted_types'] = array_values( array_unique( $extensions ) );
+		}
 		if ( 'image_quantity' === $type ) {
 			$normalized['multiple'] = false;
 			$normalized['required'] = false;
@@ -292,6 +328,9 @@ final class FieldGroup {
 			$normalized['pricing'] = self::normalize_pricing( [] );
 		}
 		$repeat = RepeaterField::normalize( $field['repeat'] ?? [] );
+		if ( 'upload' === $type && $repeat ) {
+			throw new \InvalidArgumentException( 'Upload fields cannot repeat yet.' );
+		}
 		if ( 'image_quantity' === $type && $repeat ) {
 			throw new \InvalidArgumentException( 'Image quantity fields cannot repeat.' );
 		}

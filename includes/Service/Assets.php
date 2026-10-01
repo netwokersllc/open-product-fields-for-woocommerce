@@ -42,6 +42,7 @@ final class Assets {
 		}
 
 		wp_register_style( 'opf-frontend', OPF_URL . 'assets/css/opf-frontend.css', [], $ver );
+		wp_register_script( 'opf-uploads', OPF_URL . 'assets/js/opf-uploads.js', [], $ver, true );
 	}
 
 	/**
@@ -50,6 +51,9 @@ final class Assets {
 	 * @param array<string,mixed> $registry Field metadata for the client.
 	 */
 	public static function enqueue_frontend( array $registry = [] ): void {
+		foreach ( $registry as $fields ) {
+			if ( in_array( 'upload', array_column( $fields, 'type' ), true ) ) { wp_enqueue_script( 'opf-uploads' ); break; }
+		}
 		if ( function_exists( 'wp_enqueue_script_module' ) ) {
 			wp_enqueue_script_module( 'opf-frontend' );
 		} else {

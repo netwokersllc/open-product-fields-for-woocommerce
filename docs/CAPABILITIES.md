@@ -10,7 +10,8 @@ validation paths.
 
 | Area | Implemented behavior |
 | --- | --- |
-| Field types | `text`, `textarea`, `email`, `url`, `number`, `date`, `toggle`, `select`, `radio`, `checkbox`, text/image/color `swatch` (single or multiple selection), `image_quantity` (image choices with bounded quantity inputs, choice pricing, and sum-of-quantities formula support), static `paragraph` (plain text or restricted HTML with optional shortcodes), informative `content_image`, and `section` / `section_end` layout markers |
+| Field types | `text`, `textarea`, `email`, `url`, `number`, `date`, `toggle`, `select`, `radio`, `checkbox`, text/image/color `swatch` (single or multiple selection), `image_quantity` (image choices with bounded quantity inputs, choice pricing, and sum-of-quantities formula support), `upload` (private single/multiple upload foundation; limitations below), static `paragraph` (plain text or restricted HTML with optional shortcodes), informative `content_image`, and `section` / `section_end` layout markers |
+| Upload foundation | Native multipart and modern Ajax selection, drag/drop, progress, removal, type/size validation, session-owned opaque tokens, classic/Store API cart and checkout, order references and authorized downloads, temporary cleanup, and nonce-protected admin deletion. Upload definitions currently require REST/JSON configuration. Upload pricing, WAPF upload import/export, upload builder controls, repeaters, and order-again parity remain open. |
 | Email | Browser email input plus server-side rejection of malformed non-empty values |
 | Toggle | Boolean input stored as `1` when checked and `0` when unchecked; a required toggle must be checked |
 | Choice behavior | Defaults, disabled choices, single-select controls, and multiple checkbox selections |
@@ -28,7 +29,7 @@ validation paths.
 
 ## Not implemented in 0.1.0
 
-OPF does not currently provide file uploads, time fields, repeatable fields,
+OPF does not currently provide complete WAPF upload parity, time fields, repeatable fields,
 child/linked products, visual previews, lookup tables, or third-party
 integration adapters. These remain roadmap work.
 

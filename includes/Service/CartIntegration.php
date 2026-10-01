@@ -188,12 +188,20 @@ final class CartIntegration {
 		$values = $restored
 			? self::sanitize_submitted( $product, $cart_item_data[ self::ITEM_KEY ], true )
 			: self::collect_submitted( $product, $raw );
+		$upload_errors = Uploads::validate_product( $product, $values );
+		if ( $upload_errors ) {
+			if ( defined( 'REST_REQUEST' ) && REST_REQUEST && class_exists( \Automattic\WooCommerce\StoreApi\Exceptions\RouteException::class ) ) {
+				throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'opf_upload_invalid', implode( ' ', $upload_errors ), 400 );
+			}
+			throw new \Exception( implode( ' ', $upload_errors ) );
+		}
 		if ( empty( $values ) ) {
 			if ( $restored ) {
 				unset( $cart_item_data[ self::ITEM_KEY ], $cart_item_data['opf_base_price'] );
 			}
 			return $cart_item_data;
 		}
+		Uploads::mark_cart( $values );
 
 		$cart_item_data[ self::ITEM_KEY ] = $values;
 		$cart_item_data['opf_base_price'] = (float) $product->get_price( 'edit' );
@@ -642,6 +650,9 @@ final class CartIntegration {
 	 * @param string|array        $raw   Stored value.
 	 */
 	private static function display_value( array $field, $raw ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- called from visible_selections().
+		if ( 'upload' === $field['type'] ) {
+			return Uploads::display( is_array( $raw ) ? $raw : [] );
+		}
 		if ( 'image_quantity' === $field['type'] ) {
 			$map = [];
 			$quantities = is_array( $raw ) ? ( $raw['quantities'] ?? [] ) : [];
@@ -698,6 +709,7 @@ final class CartIntegration {
 		}
 
 		$values = $cart_item[ self::ITEM_KEY ];
+		Uploads::persist( $values, $item, $order );
 		foreach ( self::visible_selections( $product, $values ) as $selection ) {
 			$item->add_meta_data( $selection['label'], $selection['value'] );
 		}
@@ -716,6 +728,7 @@ final class CartIntegration {
 	public static function hidden_order_meta( array $keys ): array {
 		$keys[] = '_opf_fields';
 		$keys[] = '_opf_fields_snapshot';
+		$keys[] = '_opf_uploads';
 		// Otros plugins que ensucian el display de órdenes
 		$keys = array_merge( $keys, [
 			'_nova_start_url',
@@ -782,11 +795,15 @@ final class CartIntegration {
 	 * @return array<string,mixed> gid => fid => value(s).
 	 */
 	private static function collect_submitted( \WC_Product $product, ?array $raw ): array {
+		$native = null === $raw ? Uploads::native( $product ) : [];
 		// Classic form POST.
 		if ( null === $raw && isset( $_POST['opf'] ) && is_array( $_POST['opf'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			$raw = wp_unslash( $_POST['opf'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput
 		}
 
+		if ( $native ) {
+			$raw = array_replace_recursive( is_array( $raw ) ? $raw : [], $native );
+		}
 		if ( ! is_array( $raw ) ) {
 			return [];
 		}
@@ -880,6 +897,9 @@ final class CartIntegration {
 	 * @param bool                $structured Whether this is a stored cart/order value.
 	 */
 	private static function sanitize_value( array $field, $value, bool $structured = false ) {
+		if ( 'upload' === $field['type'] ) {
+			return Uploads::tokens( $value );
+		}
 		if ( 'url' === $field['type'] ) {
 			// Validate the submitted URL itself, without inventing a scheme or
 			// stripping malformed characters into a different, valid-looking URL.
@@ -994,6 +1014,11 @@ final class CartIntegration {
 					continue;
 				}
 				if ( ! Evaluator::is_visible( $field, $given ) ) {
+					continue;
+				}
+				if ( 'upload' === $field['type'] ) {
+					$tokens = $provided && is_array( $given[ $field['id'] ] ) ? $given[ $field['id'] ] : [];
+					$errors = array_merge( $errors, Uploads::validate_tokens( $field, $tokens, $product->get_id(), $gid ) );
 					continue;
 				}
 				if ( in_array( $field['type'], [ 'select', 'radio', 'checkbox', 'swatch' ], true ) && $provided ) {

@@ -52,6 +52,7 @@ use OPF\Service\Importer;
 use OPF\Service\MetaPrettifier;
 use OPF\Service\Renderer;
 use OPF\Service\Rest;
+use OPF\Service\Uploads;
 use OPF\Service\WoocsIntegration;
 use OPF\Service\WpmlIntegration;
 
@@ -92,6 +93,7 @@ function opf_boot(): void {
 	WpmlIntegration::init();
 	AeliaIntegration::init();
 	Rest::init();
+	Uploads::init();
 	Importer::init();
 	Builder::init();
 	ImportPage::init();

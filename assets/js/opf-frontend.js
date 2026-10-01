@@ -341,6 +341,7 @@ const init = () => {
 		const gid = groupEl.getAttribute( 'data-opf-group' );
 		const registry = REGISTRY[ gid ] || {};
 		const readInstanceValue = ( instance, def ) => {
+			if ( 'upload' === def.type ) return Array.from( instance.querySelectorAll( '[data-opf-upload-token]' ), ( input ) => input.value );
 			if ( 'image_quantity' === def.type ) {
 				const quantities = {};
 				instance.querySelectorAll( '.opf-image-quantity__input' ).forEach( ( input ) => { quantities[ input.dataset.choiceSlug ] = Math.max( 0, parseInt( input.value, 10 ) || 0 ); } );
@@ -1088,6 +1089,8 @@ const writeTotals = () => {
         const quantities = {};
         fieldEl.querySelectorAll('.opf-image-quantity__input').forEach((input) => { quantities[input.dataset.choiceSlug] = Math.max(0, parseInt(input.value, 10) || 0); });
         values[fid] = { _opf_type: 'image_quantity', quantities };
+      } else if (fieldDef.type === 'upload') {
+        values[fid] = Array.from(fieldEl.querySelectorAll('[data-opf-upload-token]'), (input) => input.value);
       } else if (checked && checked.type === 'checkbox') {
         values[fid] = Array.from(
           groupEl.querySelectorAll(`[data-opf-field="${fid}"] input:checked`)

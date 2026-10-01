@@ -366,3 +366,8 @@
 	margin-top: 0.5rem;
 	font-size: 0.9em;
 }
+/* Upload controls inherit the host theme's typography and colors. */
+.opf-upload { padding: 1rem; border: 1px dashed currentColor; border-radius: .35rem; }
+.opf-upload__files > div { display: flex; gap: 1rem; align-items: center; justify-content: space-between; margin-top: .5rem; }
+.opf-upload progress { width: 100%; margin-top: .5rem; }
+.opf-upload__status { margin-top: .5rem; }
