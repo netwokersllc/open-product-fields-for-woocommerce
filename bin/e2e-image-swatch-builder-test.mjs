@@ -43,14 +43,28 @@ await page.evaluate(() => {
 });
 await page.addScriptTag({ content: source });
 await page.getByRole('button', { name: 'Choose image' }).click();
+await page.locator('[data-opf-image-setting="image_zoom"]').check();
+await page.locator('[data-opf-image-setting="label_pos"]').selectOption('tooltip');
+await page.locator('[data-opf-image-setting="grid_layout"]').selectOption('flexible');
+await page.locator('[data-opf-image-setting="items_per_row"]').fill('4');
+await page.locator('[data-opf-image-setting="items_per_row_tablet"]').fill('2');
+await page.locator('[data-opf-image-setting="items_per_row_mobile"]').fill('1');
 await page.getByRole('button', { name: 'Save' }).click();
 await page.waitForFunction(() => window.__opfSavedPayloads.length === 1);
 const result = await page.evaluate(() => ({
 	choice: window.__opfSavedPayloads[0].data.fields[0].choices[0],
+	field: window.__opfSavedPayloads[0].data.fields[0],
 	media: window.__opfMediaSettings,
 }));
 const ok = result.choice.image_id === 481
 	&& result.choice.image === 'https://example.test/oak.jpg'
+	&& result.field.swatch_style === 'image'
+	&& result.field.image_zoom === true
+	&& result.field.label_pos === 'tooltip'
+	&& result.field.grid_layout === 'flexible'
+	&& result.field.items_per_row === 4
+	&& result.field.items_per_row_tablet === 2
+	&& result.field.items_per_row_mobile === 1
 	&& result.media.library.type === 'image'
 	&& result.media.multiple === false
 	&& errors.length === 0;

@@ -154,7 +154,7 @@ final class WapfMapper {
 			}
 
 			if ( 'image-swatch' === $wapf_type ) {
-				$notes[] = sprintf( 'field "%s" is an image swatch; image choices and display settings are imported, but verify destination media and storefront presentation before publishing.', (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' ) );
+				$notes[] = sprintf( 'field "%s" is an image swatch; choice media references are imported, but image files are not bundled and attachment IDs may need remapping on the destination site.', (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' ) );
 				$needs_review = true;
 			}
 

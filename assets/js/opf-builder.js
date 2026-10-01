@@ -121,7 +121,10 @@
 
 		var imageUrl = el( 'input', { class: 'opf-b-input opf-b-choice-image-url', type: 'url', value: choice.image || '', placeholder: 'Image URL (optional)' } );
 		imageUrl.addEventListener( 'input', function () {
-			if ( imageUrl.value.trim() ) choice.image = imageUrl.value.trim();
+			if ( imageUrl.value.trim() ) {
+				choice.image = imageUrl.value.trim();
+				field.swatch_style = 'image';
+			}
 			else delete choice.image;
 			delete choice.image_id;
 		} );
@@ -141,6 +144,7 @@
 				if ( ! attachment || ! attachment.id || ! attachment.url ) return;
 				choice.image_id = Number( attachment.id );
 				choice.image = attachment.url;
+				field.swatch_style = 'image';
 				imageUrl.value = attachment.url;
 			} );
 			frame.open();
@@ -361,6 +365,41 @@
 			card.appendChild( header );
 			card.appendChild( list );
 			card.appendChild( addChoice );
+		}
+		if ( 'swatch' === field.type ) {
+			var imageSettings = el( 'div', { class: 'opf-b-image-swatch-settings' } );
+			var imageZoom = el( 'input', { type: 'checkbox', 'data-opf-image-setting': 'image_zoom' } );
+			imageZoom.checked = !! field.image_zoom;
+			imageZoom.addEventListener( 'change', function () { field.image_zoom = imageZoom.checked; } );
+			imageSettings.appendChild( labeledControl( 'Enlarge image on hover and keyboard focus', imageZoom ) );
+
+			var labelPosition = el( 'select', { class: 'opf-b-input', 'data-opf-image-setting': 'label_pos' }, [
+				el( 'option', { value: 'default', text: 'Below image, inside choice' } ),
+				el( 'option', { value: 'out', text: 'Below image, outside choice' } ),
+				el( 'option', { value: 'hide', text: 'Hide label visually' } ),
+				el( 'option', { value: 'tooltip', text: 'Show label on hover/focus' } ),
+			] );
+			labelPosition.value = field.label_pos || 'out';
+			labelPosition.addEventListener( 'change', function () { field.label_pos = labelPosition.value; } );
+			imageSettings.appendChild( labeledControl( 'Image label position', labelPosition ) );
+
+			var gridLayout = el( 'select', { class: 'opf-b-input', 'data-opf-image-setting': 'grid_layout' }, [
+				el( 'option', { value: 'fixed', text: 'Fixed image width' } ),
+				el( 'option', { value: 'flexible', text: 'Responsive columns' } ),
+			] );
+			gridLayout.value = field.grid_layout || 'fixed';
+			gridLayout.addEventListener( 'change', function () { field.grid_layout = gridLayout.value; rerender(); } );
+			imageSettings.appendChild( labeledControl( 'Image grid layout', gridLayout ) );
+
+			[ [ 'item_width', 'Image width (20–300 px)', 20, 300, 68 ], [ 'items_per_row', 'Desktop columns (1–15)', 1, 15, 3 ], [ 'items_per_row_tablet', 'Tablet columns (1–10)', 1, 10, 3 ], [ 'items_per_row_mobile', 'Mobile columns (1–10)', 1, 10, 3 ] ].forEach( function ( setting ) {
+				var input = el( 'input', { class: 'opf-b-input', type: 'number', min: String( setting[ 2 ] ), max: String( setting[ 3 ] ), value: field[ setting[ 0 ] ] || setting[ 4 ], 'data-opf-image-setting': setting[ 0 ] } );
+				input.addEventListener( 'input', function () {
+					if ( input.value ) field[ setting[ 0 ] ] = Number( input.value );
+					else delete field[ setting[ 0 ] ];
+				} );
+				imageSettings.appendChild( labeledControl( setting[ 1 ], input ) );
+			} );
+			card.appendChild( imageSettings );
 		}
 		if ( 'date' === field.type ) {
 			var dateBounds = el( 'div', { class: 'opf-b-constraints' } );

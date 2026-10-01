@@ -64,6 +64,13 @@
 	gap: 6px;
 }
 
+.opf-b-image-swatch-settings {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+	margin-top: 10px;
+}
+
 .opf-b-remove {
 	color: #b32d2e;
 	font-size: 18px;
@@ -127,6 +134,10 @@
 	.opf-b-field-head .opf-b-label,
 	.opf-b-field-head .opf-b-description {
 		grid-column: 1 / -1;
+	}
+
+	.opf-b-image-swatch-settings {
+		grid-template-columns: 1fr;
 	}
 
 	.opf-b-conditional-rule {
