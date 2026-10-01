@@ -86,8 +86,9 @@ final class Rest {
 	 * Create or update a group.
 	 *
 	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
 	 */
-	public static function save_group( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+	public static function save_group( \WP_REST_Request $request ) {
 		$id    = (int) $request->get_param( 'id' );
 		$title = sanitize_text_field( (string) $request->get_param( 'title' ) );
 		$data  = (array) $request->get_param( 'data' );
@@ -117,8 +118,9 @@ final class Rest {
 	 * builder's live preview.
 	 *
 	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
 	 */
-	public static function preview( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+	public static function preview( \WP_REST_Request $request ) {
 		$data       = (array) $request->get_param( 'data' );
 		$product_id = (int) $request->get_param( 'product_id' );
 		$product    = $product_id ? wc_get_product( $product_id ) : wc_get_product( wc_get_products( [ 'limit' => 1, 'return' => 'ids', 'status' => 'publish' ] )[0] ?? 0 );
