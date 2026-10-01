@@ -147,5 +147,25 @@ namespace OPF\Tests\Unit {
 			$this->assertStringNotContainsString( 'name="opf[17][fabric-guide]"', $html );
 			$this->assertStringNotContainsString( 'data-opf-price', $html );
 		}
+
+		public function test_nested_sections_wrap_fields_and_render_section_conditions(): void {
+			$group = new FieldGroup( [ 'fields' => [
+				[ 'id' => 'choice', 'label' => 'Choice', 'type' => 'select', 'choices' => [ [ 'slug' => 'red', 'label' => 'Red', 'selected' => true ] ] ],
+				[ 'id' => 'outer', 'type' => 'section', 'css_class' => 'outer-style', 'conditionals' => [ [ 'logic' => 'all', 'action' => 'show', 'rules' => [ [ 'field' => 'choice', 'operator' => 'is', 'value' => 'blue' ] ] ] ] ],
+				[ 'id' => 'inner', 'type' => 'section' ],
+				[ 'id' => 'note', 'label' => 'Note', 'type' => 'text' ],
+				[ 'id' => 'inner-end', 'type' => 'section_end' ],
+				[ 'id' => 'outer-end', 'type' => 'section_end' ],
+			] ] );
+			ob_start();
+			Renderer::render_group( '17', 'Sections', $group, 10.0 );
+			$html = (string) ob_get_clean();
+
+			$this->assertSame( 2, substr_count( $html, 'class="opf-section wapf-section' ) );
+			$this->assertStringContainsString( 'field-outer outer-style has-conditions opf-hide', $html );
+			$this->assertLessThan( strpos( $html, 'field-inner' ), strpos( $html, 'field-outer' ) );
+			$this->assertLessThan( strpos( $html, 'field-note' ), strpos( $html, 'field-inner' ) );
+			$this->assertStringNotContainsString( 'name="opf[17][outer]"', $html );
+		}
 	}
 }

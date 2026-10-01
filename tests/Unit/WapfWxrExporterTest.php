@@ -169,6 +169,25 @@ final class WapfWxrExporterTest extends TestCase {
 		$this->assertSame( 481, $group['fields'][0]['options']['attachment'] );
 	}
 
+	public function test_wxr_preserves_section_and_sectionend_markers(): void {
+		$xml = WapfWxrExporter::build_document( [ [
+			'id' => 97, 'title' => 'Section layout',
+			'data' => [ 'schema' => 1, 'fields' => [
+				[ 'id' => 'details', 'type' => 'section' ],
+				[ 'id' => 'note', 'type' => 'paragraph', 'content' => 'Inside' ],
+				[ 'id' => 'details-end', 'type' => 'section_end' ],
+			], 'rule_groups' => [] ],
+		] ], [ 'site_url' => 'https://example.test', 'site_title' => 'Example Store' ] );
+		$document = new \DOMDocument();
+		$this->assertTrue( $document->loadXML( $xml ) );
+		$xpath = new \DOMXPath( $document );
+		$xpath->registerNamespace( 'content', 'http://purl.org/rss/1.0/modules/content/' );
+		$content = $xpath->query( '/rss/channel/item/content:encoded' )->item( 0 )->textContent;
+		$group = unserialize( $content, [ 'allowed_classes' => false ] );
+
+		$this->assertSame( [ 'section', 'content', 'sectionend' ], array_column( $group['fields'], 'type' ) );
+	}
+
 	public function test_requires_valid_site_url_and_source_group_identity(): void {
 		$this->expectException( \InvalidArgumentException::class );
 		$this->expectExceptionMessage( 'source site URL' );

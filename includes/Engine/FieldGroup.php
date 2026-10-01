@@ -22,7 +22,7 @@ final class FieldGroup {
 	/**
 	 * Supported field types.
 	 */
-	public const FIELD_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'paragraph', 'content_image' ];
+	public const FIELD_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'paragraph', 'content_image', 'section', 'section_end' ];
 
 	/**
 	 * Supported pricing types.
@@ -244,6 +244,11 @@ final class FieldGroup {
 			if ( false !== $image_id && null !== $image_id && $image_id > 0 ) {
 				$normalized['image_id'] = $image_id;
 			}
+		}
+		if ( in_array( $type, [ 'section', 'section_end' ], true ) ) {
+			$normalized['required'] = false;
+			$normalized['choices'] = [];
+			$normalized['pricing'] = self::normalize_pricing( [] );
 		}
 		if ( 'swatch' === $type ) {
 			$style = $field['swatch_style'] ?? 'text';

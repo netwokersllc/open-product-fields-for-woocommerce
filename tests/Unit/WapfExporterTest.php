@@ -113,6 +113,26 @@ final class WapfExporterTest extends TestCase {
 		$this->assertFalse( $payload['fields'][0]['required'] );
 	}
 
+	public function test_exports_nested_sections_and_rejects_unbalanced_markers(): void {
+		$payload = WapfExporter::build_payload( FieldGroup::normalize( [ 'fields' => [
+			[ 'id' => 'details', 'type' => 'section' ],
+			[ 'id' => 'details-inner', 'type' => 'section' ],
+			[ 'id' => 'inner-end', 'type' => 'section_end' ],
+			[ 'id' => 'outer-end', 'type' => 'section_end' ],
+		] ] ) );
+		$this->assertSame( [ 'section', 'section', 'sectionend', 'sectionend' ], array_column( $payload['fields'], 'type' ) );
+
+		$this->expectException( \InvalidArgumentException::class );
+		$this->expectExceptionMessage( 'section-end marker without an open section' );
+		WapfExporter::build_payload( FieldGroup::normalize( [ 'fields' => [ [ 'id' => 'orphan', 'type' => 'section_end' ] ] ] ) );
+	}
+
+	public function test_rejects_unclosed_section_on_export(): void {
+		$this->expectException( \InvalidArgumentException::class );
+		$this->expectExceptionMessage( 'section without a matching section-end marker' );
+		WapfExporter::build_payload( FieldGroup::normalize( [ 'fields' => [ [ 'id' => 'open', 'type' => 'section' ] ] ] ) );
+	}
+
 	public function test_exports_logged_in_and_logged_out_placement(): void {
 		$group = FieldGroup::normalize( [ 'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'user_auth', 'operator' => 'not_in', 'terms' => [ 'logged_in' ] ] ] ] ] ] );
 		$payload = WapfExporter::build_payload( $group );

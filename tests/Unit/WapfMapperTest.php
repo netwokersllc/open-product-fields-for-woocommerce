@@ -205,6 +205,28 @@ final class WapfMapperTest extends TestCase {
 		$this->assertStringContainsString( 'remap the attachment', implode( ' ', $mapped['notes'] ) );
 	}
 
+	public function test_maps_nested_wapf_sections_and_preserves_conditional_class_data(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [
+			[ 'id' => 'finish', 'label' => 'Finish', 'type' => 'select', 'options' => [ 'choices' => [ [ 'slug' => 'oak', 'label' => 'Oak' ] ] ] ],
+			[ 'id' => 'outer', 'label' => 'Outer', 'type' => 'section', 'class' => 'outer-style', 'conditionals' => [ [ 'rules' => [ [ 'field' => 'finish', 'condition' => '==', 'value' => 'oak' ] ] ] ] ],
+			[ 'id' => 'inner', 'label' => 'Inner', 'type' => 'section' ],
+			[ 'id' => 'end-inner', 'type' => 'sectionend' ],
+			[ 'id' => 'end-outer', 'type' => 'sectionend' ],
+		] ] );
+
+		$this->assertFalse( $mapped['needs_review'] );
+		$this->assertSame( [ 'select', 'section', 'section', 'section_end', 'section_end' ], array_column( $mapped['group']['fields'], 'type' ) );
+		$this->assertSame( 'outer-style', $mapped['group']['fields'][1]['css_class'] );
+		$this->assertSame( 'finish', $mapped['group']['fields'][1]['conditionals'][0]['rules'][0]['field'] );
+	}
+
+	public function test_flags_unclosed_wapf_sections_for_review(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [ [ 'id' => 'open', 'type' => 'section' ] ] ] );
+
+		$this->assertTrue( $mapped['needs_review'] );
+		$this->assertStringContainsString( 'no matching section-end marker', implode( ' ', $mapped['notes'] ) );
+	}
+
 	public function test_html_in_plain_wapf_content_is_preserved_as_text_and_flagged_for_review(): void {
 		$mapped = WapfMapper::map( [
 			'fields' => [ [ 'id' => 'intro', 'label' => '', 'type' => 'content', 'options' => [ 'p_content' => '<strong>Care</strong>' ] ] ],

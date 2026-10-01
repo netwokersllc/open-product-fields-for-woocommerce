@@ -92,6 +92,16 @@ final class FieldGroupSchemaTest extends TestCase {
 		$this->assertSame( '', $unsafe['image_url'] );
 	}
 
+	public function test_section_markers_are_non_submittable_and_unpriced(): void {
+		$group = FieldGroup::normalize( [ 'fields' => [
+			[ 'id' => 'details', 'type' => 'section', 'required' => true, 'pricing' => [ 'type' => 'fixed', 'amount' => 4 ] ],
+			[ 'id' => 'details-end', 'type' => 'section_end' ],
+		] ] );
+		$this->assertSame( [ 'section', 'section_end' ], array_column( $group['fields'], 'type' ) );
+		$this->assertFalse( $group['fields'][0]['required'] );
+		$this->assertSame( 'none', $group['fields'][0]['pricing']['type'] );
+	}
+
 	public function test_image_choices_preserve_safe_url_and_positive_attachment_id(): void {
 		$field = FieldGroup::normalize_field( [
 			'id' => 'finish',

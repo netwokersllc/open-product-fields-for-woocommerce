@@ -183,11 +183,43 @@ final class Renderer {
 
 		echo '<div class="opf-field-group label-' . esc_attr( 'above' === $group->data['labels_position'] ? 'above' : 'below' ) . '" data-group="' . esc_attr( (string) $gid ) . '" data-variables="[]" data-opf-group="' . esc_attr( (string) $gid ) . '">';
 
+		$open_sections = 0;
 		foreach ( $group->data['fields'] as $field ) {
+			if ( 'section' === $field['type'] ) {
+				self::render_section( $field, $values );
+				$open_sections++;
+				continue;
+			}
+			if ( 'section_end' === $field['type'] ) {
+				if ( $open_sections > 0 ) {
+					echo '</div>';
+					$open_sections--;
+				}
+				continue;
+			}
 			self::render_field( $gid, $field, $values, $base_price );
+		}
+		while ( $open_sections > 0 ) {
+			echo '</div>';
+			$open_sections--;
 		}
 
 		echo '</div>';
+	}
+
+	/** Render the opening wrapper for a WAPF-compatible section marker. */
+	private static function render_section( array $field, array $values ): void {
+		$classes = [ 'opf-section', 'wapf-section', 'field-' . $field['id'] ];
+		if ( '' !== $field['css_class'] ) {
+			$classes[] = $field['css_class'];
+		}
+		if ( ! empty( $field['conditionals'] ) ) {
+			$classes[] = 'has-conditions';
+		}
+		if ( ! Evaluator::is_visible( $field, $values ) ) {
+			$classes[] = 'opf-hide';
+		}
+		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-opf-field="' . esc_attr( $field['id'] ) . '" style="width:' . esc_attr( (string) $field['width'] ) . '%;">';
 	}
 
 	/**

@@ -42,6 +42,8 @@ final class WapfMapper {
 		'paragraph'     => 'paragraph',
 		'p'             => 'paragraph',
 		'img'            => 'content_image',
+		'section'        => 'section',
+		'sectionend'     => 'section_end',
 	];
 
 	/**
@@ -193,6 +195,24 @@ final class WapfMapper {
 			}
 
 			$fields[] = $field;
+		}
+
+		$section_depth = 0;
+		foreach ( $fields as $mapped_field ) {
+			if ( 'section' === $mapped_field['type'] ) {
+				$section_depth++;
+			} elseif ( 'section_end' === $mapped_field['type'] ) {
+				if ( 0 === $section_depth ) {
+					$notes[] = sprintf( 'section-end field "%s" has no matching section and needs review.', $mapped_field['id'] );
+					$needs_review = true;
+				} else {
+					$section_depth--;
+				}
+			}
+		}
+		if ( $section_depth > 0 ) {
+			$notes[]      = sprintf( '%d section field(s) have no matching section-end marker and need review.', $section_depth );
+			$needs_review = true;
 		}
 
 		if ( $unsupported ) {

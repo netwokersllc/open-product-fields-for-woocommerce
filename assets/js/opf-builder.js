@@ -19,7 +19,7 @@
 	model.fields = model.fields || [];
 	model.rule_groups = model.rule_groups || [];
 
-	var TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'paragraph', 'content_image' ];
+	var TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'paragraph', 'content_image', 'section', 'section_end' ];
 	var PRICING = [ 'none', 'fixed', 'percent', 'formula' ];
 
 	function el( tag, attrs, children ) {
@@ -294,7 +294,7 @@
 	}
 
 	function fieldCard( field, index ) {
-		if ( [ 'paragraph', 'content_image' ].includes( field.type ) ) {
+		if ( [ 'paragraph', 'content_image', 'section', 'section_end' ].includes( field.type ) ) {
 			field.required = false;
 			field.choices = [];
 			field.pricing = { type: 'none', amount: 0, formula: '' };
@@ -316,7 +316,7 @@
 		} ) );
 		typeSel.addEventListener( 'change', function () {
 			field.type = typeSel.value;
-			if ( [ 'paragraph', 'content_image' ].includes( field.type ) ) {
+			if ( [ 'paragraph', 'content_image', 'section', 'section_end' ].includes( field.type ) ) {
 				field.required = false;
 				field.choices = [];
 				field.pricing = { type: 'none', amount: 0, formula: '' };
@@ -328,8 +328,8 @@
 		} );
 
 		var req = el( 'input', { type: 'checkbox', title: 'Required' } );
-		req.checked = ! [ 'paragraph', 'content_image' ].includes( field.type ) && !! field.required;
-		req.disabled = [ 'paragraph', 'content_image' ].includes( field.type );
+		req.checked = ! [ 'paragraph', 'content_image', 'section', 'section_end' ].includes( field.type ) && !! field.required;
+		req.disabled = [ 'paragraph', 'content_image', 'section', 'section_end' ].includes( field.type );
 		req.addEventListener( 'change', function () {
 			field.required = req.checked;
 		} );

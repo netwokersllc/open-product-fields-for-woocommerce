@@ -42,6 +42,20 @@ final class WapfExporter {
 			throw new \InvalidArgumentException( 'WAPF export cannot preserve this OPF schema.' );
 		}
 		$fields = [];
+		$section_depth = 0;
+		foreach ( $group['fields'] as $field ) {
+			if ( 'section' === $field['type'] ) {
+				$section_depth++;
+			} elseif ( 'section_end' === $field['type'] ) {
+				if ( 0 === $section_depth ) {
+					throw new \InvalidArgumentException( 'WAPF export cannot preserve a section-end marker without an open section.' );
+				}
+				$section_depth--;
+			}
+		}
+		if ( $section_depth > 0 ) {
+			throw new \InvalidArgumentException( 'WAPF export cannot preserve a section without a matching section-end marker.' );
+		}
 		$field_ids = array_column( $group['fields'], 'id' );
 		$field_types = array_column( $group['fields'], 'type', 'id' );
 		if ( count( array_unique( $field_ids ) ) !== count( $field_ids ) ) {
@@ -78,7 +92,7 @@ final class WapfExporter {
 		$type_map = [
 			'text' => 'text', 'textarea' => 'textarea', 'email' => 'email', 'url' => 'url',
 			'number' => 'number', 'toggle' => 'true-false', 'select' => 'select',
-			'radio' => 'radio', 'checkbox' => 'checkboxes', 'swatch' => 'text-swatch', 'paragraph' => 'content', 'content_image' => 'img',
+			'radio' => 'radio', 'checkbox' => 'checkboxes', 'swatch' => 'text-swatch', 'paragraph' => 'content', 'content_image' => 'img', 'section' => 'section', 'section_end' => 'sectionend',
 		];
 		$type = $field['type'];
 		if ( 'paragraph' === $type && 'html' === ( $field['content_format'] ?? 'plain' ) ) {
