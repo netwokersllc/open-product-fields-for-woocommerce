@@ -1,4 +1,9 @@
-# Percentage coupon scope source check — 2026-10-01
+# Historical percentage coupon scope source check — 2026-10-01
+
+Historical snapshot only. It records that the capability was absent at
+`983c054`; public commit `f03979d` now implements and verifies a first slice.
+The ledger status is `partial` until the remaining lifecycle and integration
+proof listed there passes.
 
 The public OPF feature branch was verified at
 `983c0542128a8ef27ac09db6486d34a8c759b50e` using the explicit GitHub remote:
@@ -21,6 +26,6 @@ absent by default. The checkbox is presented only for percentage coupons.
 WAPF's calculation excludes option prices for eligible applied quantities;
 fixed-product and fixed-cart coupons are not changed by this setting.
 
-An isolated implementation and lifecycle lane is in progress. Its work is not
-public evidence and does not change this status until reviewed, integrated,
-and verified against the public branch.
+At the historical snapshot, the isolated implementation was still in progress.
+See the current [coupon scope evidence](coupon-scope-proof.md) and capability
+ledger for the reviewed public implementation and remaining gaps.
