@@ -43,9 +43,17 @@ The 132 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 
 After the WPML and Aelia implementation commits reached the public branch on
 2026-10-01, each row moved from `gap` to `partial`. WPML native field-group
-string translation and language-specific product targeting are implemented,
-but real WPML runtime, imported-group language ownership, and translated
-commerce lifecycle remain unverified. Aelia base/formula/cart/browser
+string translation and language-specific product targeting are implemented.
+Newly imported WAPF global/local groups with a valid source CPT/product language
+now preserve ownership through `_opf_wpml_source_language` and render only in that language,
+retaining localized labels and placement IDs to avoid duplicate options.
+The ownership lane passes 15 focused tests with 83 assertions for native/imported
+groups, language switching, duplicate suppression, and cache isolation; see
+[source-language ownership evidence](WPML-IMPORT-OWNERSHIP.md). Historical
+imports are not backfilled, archive WPML ownership remains unresolved, and
+real WPML/WCML records, global/local product rendering, native package translation
+editor, and multilingual cart/order proof remain open. WPML stays `partial`.
+Aelia base/formula/cart/browser
 conversion is implemented and passed a disposable Woo test against a fake API
 contract, but the commercial plugin, linked-product conversion, and a wired
 pricing-hint path remain unverified. Neither row counts as supported.
