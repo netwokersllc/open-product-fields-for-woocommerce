@@ -150,12 +150,19 @@
 			field.description = e.target.value;
 		} );
 
+		var duplicate = el( 'button', { class: 'button opf-b-duplicate-field', text: 'Duplicate field', onclick: function () {
+			var copy = JSON.parse( JSON.stringify( field ) );
+			copy.id = uniqueId( slugify( field.id || 'field' ) + '-copy' );
+			model.fields.splice( index + 1, 0, copy );
+			rerender();
+		} } );
+
 		var remove = el( 'button', { class: 'button button-link-delete', text: 'Delete field', onclick: function () {
 			model.fields.splice( index, 1 );
 			rerender();
 		} } );
 
-		var head = el( 'div', { class: 'opf-b-field-head' }, [ label, typeSel, desc, req, remove ] );
+		var head = el( 'div', { class: 'opf-b-field-head' }, [ label, typeSel, desc, req, duplicate, remove ] );
 		var card = el( 'div', { class: 'opf-b-field' }, [ head ] );
 
 		if ( field.choices.length ) {
