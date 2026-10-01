@@ -107,6 +107,8 @@ final class Assets {
 			wp_enqueue_media();
 		}
 		wp_enqueue_style( 'opf-builder', OPF_URL . 'assets/css/opf-builder.css', [], OPF_VERSION );
-		wp_enqueue_script( 'opf-builder', OPF_URL . 'assets/js/opf-builder.js', [ 'wp-element', 'wp-components', 'wp-data', 'wp-api-fetch', 'wp-i18n' ], OPF_VERSION, true );
+		wp_enqueue_style( 'woocommerce_admin_styles' );
+		wp_enqueue_script( 'wc-enhanced-select' );
+		wp_enqueue_script( 'opf-builder', OPF_URL . 'assets/js/opf-builder.js', [ 'wp-element', 'wp-components', 'wp-data', 'wp-api-fetch', 'wp-i18n', 'wc-enhanced-select' ], OPF_VERSION, true );
 	}
 }

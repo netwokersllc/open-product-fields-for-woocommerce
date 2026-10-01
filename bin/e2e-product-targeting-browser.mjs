@@ -26,6 +26,19 @@ try {
   await page.getByRole('button', {name:'Save',exact:true}).click();
   check(`${key} invalid product IDs prevent admin submission`, await ids.evaluate(node => !node.validity.valid) && saves === 0);
   page.off('request', countSaves);
+  await ids.fill('');
+  const picker = page.locator(key === 'positive' ? '#opf-placement-products-picker' : '#opf-placement-excluded-products-picker');
+  for (const productName of ['selected', 'parent']) {
+   const search = picker.locator('+ .select2-container .select2-search__field');
+   const searchResponse = page.waitForResponse(r=>r.url().includes('admin-ajax.php') && r.url().includes('action=woocommerce_json_search_products'));
+   await search.click(); await search.fill(''); await search.pressSequentially('OPF targeting ' + productName);
+   const ajax = await searchResponse;
+   check(`${key} native product-name search returns actual Woo AJAX results for ${productName}`, ajax.ok() && Object.keys(await ajax.json()).includes(String(state[productName])));
+   await page.locator('.select2-results__option').filter({hasText:'OPF targeting ' + productName}).first().click();
+  }
+  check(`${key} native product picker populates exact validated IDs`, await ids.inputValue() === `${state.selected}, ${state.parent}`);
+  await picker.locator('+ .select2-container .select2-selection__choice').filter({hasText:'OPF targeting selected'}).locator('.select2-selection__choice__remove').click();
+  check(`${key} native picker removes a selected product`, await ids.inputValue() === String(state.parent));
   await ids.fill(`${state.selected}, ${state.parent}, ${state.selected}`);
   await page.locator('.opf-b-label').fill('Saved targeting ' + key);
   const responsePromise = page.waitForResponse(r => r.url().includes('/opf/v1/groups') && r.request().method() === 'POST');
@@ -38,6 +51,7 @@ try {
   const reload = JSON.parse(await page.locator('#opf-builder-app').getAttribute('data-model'));
   check(`${key} real admin reload retains exact targeting and edited label`, JSON.stringify(reload.rule_groups) === JSON.stringify(expected) && await page.locator('.opf-b-label').inputValue() === 'Saved targeting ' + key);
   check(`${key} product IDs reload in native authoring control`, await ids.inputValue() === `${state.selected}, ${state.parent}`);
+  check(`${key} native picker reloads selected product names`, (await picker.locator('option:checked').allTextContents()).every(text=>text.includes('OPF targeting')) && await picker.locator('option:checked').count()===2);
   const unchangedPromise = page.waitForResponse(r=>r.url().includes('/opf/v1/groups') && r.request().method()==='POST');
   await page.getByRole('button',{name:'Save',exact:true}).click();
   check(`${key} unchanged native save preserves product rule`, JSON.stringify((await (await unchangedPromise).json()).data.rule_groups) === JSON.stringify(expected));

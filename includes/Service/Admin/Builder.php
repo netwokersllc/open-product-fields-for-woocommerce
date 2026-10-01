@@ -2,8 +2,8 @@
 /**
  * Field group builder: metaboxes on the opf_field_group edit screen.
  *
- * The builder UI is dependency-free vanilla JS (no jQuery, no build step)
- * talking to the REST API. The field-group model is a JSON document edited
+ * Field editing uses vanilla JS and REST; product selectors reuse WooCommerce's
+ * native admin search. The field-group model is a JSON document edited
  * through the UI and persisted via POST /opf/v1/groups.
  *
  * @package open-product-fields-for-woocommerce
@@ -108,11 +108,20 @@ final class Builder {
 		}
 		?>
 		<p class="description"><?php esc_html_e( 'Leave product and customer conditions empty to show this group everywhere.', 'open-product-fields-for-woocommerce' ); ?></p>
+		<?php foreach ( [ 'products' => 'product', 'excluded-products' => 'product_not' ] as $control => $key ) : ?>
+			<p><label for="opf-placement-<?php echo esc_attr( $control ); ?>-picker"><strong><?php echo esc_html( 'product' === $key ? __( 'Include products', 'open-product-fields-for-woocommerce' ) : __( 'Exclude products', 'open-product-fields-for-woocommerce' ) ); ?></strong></label></p>
+			<select id="opf-placement-<?php echo esc_attr( $control ); ?>-picker" class="wc-product-search" multiple="multiple" style="width:100%" data-placeholder="<?php esc_attr_e( 'Search for a product…', 'open-product-fields-for-woocommerce' ); ?>" data-action="woocommerce_json_search_products">
+				<?php foreach ( array_unique( $selected[ $key ] ) as $product_id ) : ?>
+					<?php $product = wc_get_product( (int) $product_id ); ?>
+					<option value="<?php echo esc_attr( $product_id ); ?>" selected><?php echo esc_html( $product ? $product->get_formatted_name() : '#' . $product_id ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		<?php endforeach; ?>
 		<p><label for="opf-placement-products"><strong><?php esc_html_e( 'Include product IDs', 'open-product-fields-for-woocommerce' ); ?></strong></label></p>
 		<input type="text" id="opf-placement-products" class="widefat" inputmode="numeric" pattern="\s*[1-9][0-9]*(\s*,\s*[1-9][0-9]*)*\s*" value="<?php echo esc_attr( implode( ', ', array_unique( $selected['product'] ) ) ); ?>">
 		<p><label for="opf-placement-excluded-products"><strong><?php esc_html_e( 'Exclude product IDs', 'open-product-fields-for-woocommerce' ); ?></strong></label></p>
 		<input type="text" id="opf-placement-excluded-products" class="widefat" inputmode="numeric" pattern="\s*[1-9][0-9]*(\s*,\s*[1-9][0-9]*)*\s*" value="<?php echo esc_attr( implode( ', ', array_unique( $selected['product_not'] ) ) ); ?>">
-		<p class="description"><?php esc_html_e( 'Separate IDs with commas. Include matches any listed product; exclude removes every listed product. For variations, use the parent product ID.', 'open-product-fields-for-woocommerce' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Search by product name or ID, or enter comma-separated IDs directly. Include matches any listed product; exclude removes every listed product. For variations, use the parent product.', 'open-product-fields-for-woocommerce' ); ?></p>
 		<p><strong><?php esc_html_e( 'Product categories', 'open-product-fields-for-woocommerce' ); ?></strong></p>
 		<select multiple size="8" id="opf-placement-cats" style="width:100%">
 			<?php foreach ( (array) $cat_terms as $term ) : ?>

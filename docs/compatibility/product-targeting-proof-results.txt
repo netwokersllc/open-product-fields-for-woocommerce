@@ -122,3 +122,33 @@ Time: 00:00.009, Memory: 12.00 MB
 
 OK, but there were issues!
 Tests: 35, Assertions: 96, PHPUnit Deprecations: 1.
+/tmp/opf-product-or-artifacts/results.txt
+ok fixture has product-only OR branch and separate category branch
+ok actual group save succeeds
+ok clearing product-only OR branch preserves exact separate category branch
+ok actual reload retains category restriction after clearing product branch
+ok actual group save succeeds
+ok placement becomes global only after every OR branch is empty
+ok actual reload preserves global placement after clearing all branches
+ok no uncaught browser errors
+
+/tmp/opf-product-wapf-ux-results.txt
+ok products WAPF actual product-name AJAX search succeeds
+ok products WAPF selector stores numeric product ID and displays product name
+ok !products WAPF actual product-name AJAX search succeeds
+ok !products WAPF selector stores numeric product ID and displays product name
+ok no uncaught WAPF browser errors
+
+/tmp/opf-product-or-artifacts/final-cleanup.txt
+ok fixture exists
+ok fixture groups and products deleted
+ok fixture state removed
+ok no surviving fixture order items
+SUCCESS product targeting cleanup
+
+/tmp/opf-product-or-artifacts/wapf-cleanup.txt
+ok fixture exists
+ok fixture groups and products deleted
+ok fixture state removed
+ok no surviving fixture order items
+SUCCESS product targeting cleanup

@@ -38,7 +38,27 @@ if ( 'setup' === $phase ) {
  echo "SUCCESS product targeting setup\n"; return;
 }
 product_check( 'fixture exists', ! empty( $state['positive'] ) );
+if ( 'or_setup' === $phase ) {
+ if ( ! empty( $state['or_group'] ) ) { wp_delete_post( $state['or_group'], true ); wp_delete_term( $state['or_term'], 'product_cat' ); }
+ $term = wp_insert_term( 'OPF product OR clearing', 'product_cat' );
+ $state['or_term'] = $term['term_id'];
+ $state['or_group'] = OPF\Service\FieldGroups::save( 0, [
+  'fields' => [ [ 'id' => 'or_note', 'type' => 'text', 'label' => 'OR clearing note' ] ],
+  'rule_groups' => [
+   [ 'rules' => [ [ 'subject' => 'product', 'operator' => 'in', 'terms' => [ (string) $state['selected'] ] ] ] ],
+   [ 'rules' => [ [ 'subject' => 'product_cat', 'operator' => 'in', 'terms' => [ (string) $state['or_term'] ] ] ] ],
+  ],
+ ], [ 'title' => 'OPF OR clearing', 'status' => 'publish' ] );
+ update_option( 'opf_product_e2e_state', $state ); echo "SUCCESS OR fixture setup\n"; return;
+}
+if ( 'or_cleanup' === $phase ) {
+ wp_delete_post( $state['or_group'], true ); wp_delete_term( $state['or_term'], 'product_cat' );
+ unset( $state['or_group'], $state['or_term'] ); update_option( 'opf_product_e2e_state', $state );
+ echo "SUCCESS OR fixture cleanup\n"; return;
+}
 if ( 'cleanup' === $phase ) {
+ if ( ! empty( $state['or_group'] ) ) { wp_delete_post( $state['or_group'], true ); wp_delete_term( $state['or_term'], 'product_cat' ); }
+ if ( ! empty( $state['wapf_ux_group'] ) ) { wp_delete_post( $state['wapf_ux_group'], true ); }
  foreach ( wc_get_orders( [ 'limit' => -1 ] ) as $order ) {
   foreach ( $order->get_items() as $item ) {
    if ( in_array( $item->get_product_id(), [ $state['selected'], $state['unselected'], $state['parent'], $state['otherparent'] ], true ) ) { $order->delete( true ); break; }

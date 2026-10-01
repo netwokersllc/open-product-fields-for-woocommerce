@@ -38,19 +38,28 @@ variation-object difference is documented rather than counted as exact parity.
 
 ## Native authoring and commerce
 
-The native placement editor now offers Include product IDs and Exclude product
-IDs. Comma-separated positive integer IDs are validated before Save, duplicate
+The native placement editor now offers searchable Include products and Exclude
+products through WooCommerce's authenticated `wc-product-search` selector and
+real `woocommerce_json_search_products` AJAX endpoint. Product names reload
+into selected chips, and individual chips can be removed. Optional direct ID
+inputs stay synchronized with those selectors. Comma-separated positive integer
+IDs are validated before Save, duplicate
 IDs are removed, and saved IDs reload into their controls. `in` means any listed
 product; `not_in` excludes every listed product. Empty controls remove those
 conditions. An unrelated save preserves existing product rules and OR groups;
 editing product conditions replaces product predicates within each existing
-OR group while preserving other subjects. Existing category/customer controls
+OR group while preserving other subjects. Branches emptied by clearing a
+condition are removed; nonempty OR branches retain their restrictions. Placement
+becomes global only when every branch is empty. Existing category/customer controls
 retain their established behavior.
 
 The [real browser proof](../../bin/e2e-product-targeting-browser.mjs) passed
-27 checks with zero uncaught page errors. Groups start without placement rules;
+37 checks with zero uncaught page errors. Groups start without placement rules;
 the real authenticated admin creates both positive and negative rules via the
 native controls and actual REST Save, reloads them, and saves them unchanged.
+It uses actual Woo AJAX product-name searches for both simple and parent products
+in both include and exclude pickers, selects named results, removes the selected
+product by name, and verifies persisted product names on reload.
 It rejects malformed IDs without submission, proves include and exclude together,
 clears inclusion while retaining exclusion, clears both to global placement,
 and restores inclusion. It verifies that each of four storefronts renders only
@@ -71,7 +80,11 @@ values. One actual Store API checkout of all four lines succeeds; reloaded
 structured `_opf_fields` and public order metadata contain only the correct
 group on each line. Final commerce stderr was empty.
 
-The existing builder OR-group regression passed four checks. Targeted
+The focused [real OR clearing regression](../../bin/e2e-product-or-clearing.mjs)
+passed eight checks: a product-only OR branch plus a separate category branch;
+clear product IDs, actual REST Save, and reload preserving the exact category
+branch; then clear the category and reload global placement. The existing
+builder OR-group regression passed four checks. Targeted
 `EvaluatorTest`, `FieldGroupsAuthTest`, and `FieldGroupSchemaTest` passed
 35 tests / 96 assertions; PHPUnit reported one existing metadata deprecation.
 PHP and Node syntax and `git diff --check` passed.
@@ -101,12 +114,45 @@ cleanup stderr was empty. The loopback server was stopped. The disposable clone
 and worktree remain available for reproduction and integration review.
 
 ```text
-admin-positive.png e424a953d05d15e5697aed02e925d135b5ea4c68962bae68ab5330879156a049
+admin-positive.png b7c6d685fcf63936314c95fca98d7dbb8cd093ff19cd109206d025df7a3d9fe7
 cart.png           ba729c1a7f957d695e2c08c411c1c193ac14ffdf068a30978f4d24d787b85b43
-order-received.png eb485522ebb92e57d659683275c58069f170ac668cafa67e7e05b2420cdbb7cc
+order-received.png 36f4bae5b8eae2503ccf4d0e26db6958c67189c5938b7921f5ee55137a21eb1a
 ```
 
-This closes the `WAPF-RULE-PRODUCT` baseline for native positive/negative product
-targeting, with the documented Free direct variation-object difference. Product
-search/name selection, exact variation targeting, import/export ownership, and
-other themes/platform versions are not accepted by these lifecycle checks.
+## Search parity and OR clearing follow-up
+
+Follow-up based on product commit `1e6a93c60198a46becd43fd38f4159787c0fe8fc`
+(same public baseline above), executed 2026-10-01 at 18:43–18:48 UTC.
+The original manual-ID-only editor was a real UX difference from WAPF and was
+not accepted as search parity. It has been replaced by native searchable
+include/exclude selectors with optional direct ID entry, preserving validation
+and server targeting behavior. The refreshed 37 browser and 50 commerce checks
+passed; the eight focused OR checks and 35-test / 96-assertion PHP regression
+also passed. Latest admin and cart screenshots were visually inspected.
+
+The [WAPF selector browser proof](../../bin/e2e-wapf-product-selector.mjs), on
+the isolated `/tmp/opf-product-wapf-ux` clone at port 8143 with Free 1.7.1
+active, passed five checks: actual product-name AJAX search, named selection
+chip and numeric stored ID for both `products` and `!products`, and zero page
+errors. Screenshots were visually inspected. Extended 3.1.5's source also
+defines the searchable selector, but its actual admin UI in this clone reported
+that features were disabled because it had no valid license. The Add your first
+rule action produced no row. Extended browser selector parity is therefore not
+claimed; the installed predicate contract remains separately proven above.
+No license or source behavior was bypassed.
+
+Raw follow-up checks are in `product-targeting-search-or-results.json` and the
+refreshed browser/proof artifacts. Additional screenshots remain in
+`/tmp/opf-product-or-artifacts` and `/tmp/opf-product-wapf-ux-artifacts`.
+Both sites' final cleanup removed fixture products, groups, users, state, and
+orders, verified no surviving fixture order items, and emitted no stderr. Both
+loopback servers were stopped. The clones remain for integration review.
+For the OR test, run `OPF_PRODUCT_E2E_PHASE=or_setup` between the standard setup
+and browser phases, run its browser proof using the clone-only login helper's
+`or_group` branch, then `OPF_PRODUCT_E2E_PHASE=or_cleanup` before commerce.
+
+This closes the `WAPF-RULE-PRODUCT` baseline for native searchable
+positive/negative product targeting, with the documented Free direct
+variation-object difference. Exact variation targeting, import/export ownership,
+Extended licensed admin behavior, and other themes/platform versions are not
+accepted by these lifecycle checks.

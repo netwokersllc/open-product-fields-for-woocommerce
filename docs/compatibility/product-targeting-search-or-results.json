@@ -1,0 +1,227 @@
+{
+  "native_browser": {
+    "base": "http://127.0.0.1:8142",
+    "checks": [
+      {
+        "label": "positive invalid product IDs prevent admin submission",
+        "pass": true
+      },
+      {
+        "label": "positive native product-name search returns actual Woo AJAX results for selected",
+        "pass": true
+      },
+      {
+        "label": "positive native product-name search returns actual Woo AJAX results for parent",
+        "pass": true
+      },
+      {
+        "label": "positive native product picker populates exact validated IDs",
+        "pass": true
+      },
+      {
+        "label": "positive native picker removes a selected product",
+        "pass": true
+      },
+      {
+        "label": "positive actual admin REST save retains exact targeting",
+        "pass": true
+      },
+      {
+        "label": "positive real admin reload retains exact targeting and edited label",
+        "pass": true
+      },
+      {
+        "label": "positive product IDs reload in native authoring control",
+        "pass": true
+      },
+      {
+        "label": "positive native picker reloads selected product names",
+        "pass": true
+      },
+      {
+        "label": "positive unchanged native save preserves product rule",
+        "pass": true
+      },
+      {
+        "label": "native include and exclude authoring persists both predicates",
+        "pass": true
+      },
+      {
+        "label": "clearing inclusion preserves exclusion",
+        "pass": true
+      },
+      {
+        "label": "clearing both product conditions removes placement restriction",
+        "pass": true
+      },
+      {
+        "label": "restoring inclusion restores exact product rule",
+        "pass": true
+      },
+      {
+        "label": "negative invalid product IDs prevent admin submission",
+        "pass": true
+      },
+      {
+        "label": "negative native product-name search returns actual Woo AJAX results for selected",
+        "pass": true
+      },
+      {
+        "label": "negative native product-name search returns actual Woo AJAX results for parent",
+        "pass": true
+      },
+      {
+        "label": "negative native product picker populates exact validated IDs",
+        "pass": true
+      },
+      {
+        "label": "negative native picker removes a selected product",
+        "pass": true
+      },
+      {
+        "label": "negative actual admin REST save retains exact targeting",
+        "pass": true
+      },
+      {
+        "label": "negative real admin reload retains exact targeting and edited label",
+        "pass": true
+      },
+      {
+        "label": "negative product IDs reload in native authoring control",
+        "pass": true
+      },
+      {
+        "label": "negative native picker reloads selected product names",
+        "pass": true
+      },
+      {
+        "label": "negative unchanged native save preserves product rule",
+        "pass": true
+      },
+      {
+        "label": "selected storefront renders only matching product group",
+        "pass": true
+      },
+      {
+        "label": "unselected storefront renders only matching product group",
+        "pass": true
+      },
+      {
+        "label": "parent storefront renders only matching product group",
+        "pass": true
+      },
+      {
+        "label": "otherparent storefront renders only matching product group",
+        "pass": true
+      },
+      {
+        "label": "classic HTTP rejects wrong group alone",
+        "pass": true
+      },
+      {
+        "label": "classic HTTP rejection leaves cart empty",
+        "pass": true
+      },
+      {
+        "label": "selected browser classic form adds correct group",
+        "pass": true
+      },
+      {
+        "label": "unselected browser classic form adds correct group",
+        "pass": true
+      },
+      {
+        "label": "real block cart displays both matched group labels and values",
+        "pass": true
+      },
+      {
+        "label": "real block checkout displays selected and excluded-product selections",
+        "pass": true
+      },
+      {
+        "label": "actual browser Store API checkout succeeds",
+        "pass": true
+      },
+      {
+        "label": "browser order received renders both matching selections",
+        "pass": true
+      },
+      {
+        "label": "no uncaught browser errors",
+        "pass": true
+      }
+    ],
+    "errors": []
+  },
+  "or_clearing": {
+    "base": "http://127.0.0.1:8142",
+    "checks": [
+      {
+        "label": "fixture has product-only OR branch and separate category branch",
+        "pass": true
+      },
+      {
+        "label": "actual group save succeeds",
+        "pass": true
+      },
+      {
+        "label": "clearing product-only OR branch preserves exact separate category branch",
+        "pass": true
+      },
+      {
+        "label": "actual reload retains category restriction after clearing product branch",
+        "pass": true
+      },
+      {
+        "label": "actual group save succeeds",
+        "pass": true
+      },
+      {
+        "label": "placement becomes global only after every OR branch is empty",
+        "pass": true
+      },
+      {
+        "label": "actual reload preserves global placement after clearing all branches",
+        "pass": true
+      },
+      {
+        "label": "no uncaught browser errors",
+        "pass": true
+      }
+    ],
+    "errors": []
+  },
+  "wapf_free_selector": {
+    "base": "http://127.0.0.1:8143",
+    "checks": [
+      {
+        "label": "products WAPF actual product-name AJAX search succeeds",
+        "pass": true
+      },
+      {
+        "label": "products WAPF selector stores numeric product ID and displays product name",
+        "pass": true
+      },
+      {
+        "label": "!products WAPF actual product-name AJAX search succeeds",
+        "pass": true
+      },
+      {
+        "label": "!products WAPF selector stores numeric product ID and displays product name",
+        "pass": true
+      },
+      {
+        "label": "no uncaught WAPF browser errors",
+        "pass": true
+      }
+    ],
+    "errors": []
+  },
+  "extended_selector_limit": {
+    "base": "http://127.0.0.1:8143",
+    "version": "3.1.5",
+    "verified_message": "It appears you are using the paid version without a valid license. Features are temporarily disabled.",
+    "observed_action": "Add your first rule created no rule row; selector browser proof timed out.",
+    "screenshot": "/tmp/opf-product-or-artifacts/extended-after-click.png"
+  }
+}

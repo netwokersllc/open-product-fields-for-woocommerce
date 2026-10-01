@@ -716,7 +716,7 @@
 			} );
 			if ( groups.length ) {
 				groups.forEach( function ( group ) { group.rules = group.rules.concat( rules ); } );
-				model.rule_groups = groups.some( function ( group ) { return 0 === group.rules.length; } ) ? [] : groups;
+				model.rule_groups = groups.filter( function ( group ) { return group.rules.length > 0; } );
 			} else {
 				model.rule_groups = rules.length ? [ { rules: rules } ] : [];
 			}
@@ -796,6 +796,25 @@
 	}
 
 	var initialPlacementSelection = null;
+	// Reuse WooCommerce's authenticated product search, retaining optional ID entry.
+	if ( window.jQuery ) {
+		[ 'products', 'excluded-products' ].forEach( function ( name ) {
+			var input = document.getElementById( 'opf-placement-' + name );
+			var picker = document.getElementById( 'opf-placement-' + name + '-picker' );
+			if ( ! input || ! picker ) return;
+			window.jQuery( picker ).on( 'change', function () {
+				input.value = ( window.jQuery( picker ).val() || [] ).join( ', ' );
+			} );
+			input.addEventListener( 'input', function () {
+				if ( ! input.checkValidity() ) return;
+				var ids = input.value.split( ',' ).map( function ( id ) { return id.trim(); } ).filter( function ( id ) { return id; } );
+				ids.forEach( function ( id ) {
+					if ( ! Array.prototype.some.call( picker.options, function ( option ) { return option.value === id; } ) ) picker.add( new Option( '#' + id, id ) );
+				} );
+				window.jQuery( picker ).val( ids ).trigger( 'change.select2' );
+			} );
+		} );
+	}
 
 	var toolbar = el( 'div', { class: 'opf-b-toolbar' }, [
 		el( 'button', { type: 'button', class: 'button button-primary', text: '+ Add field', onclick: function () {

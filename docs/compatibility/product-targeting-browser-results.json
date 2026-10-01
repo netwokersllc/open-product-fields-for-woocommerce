@@ -6,6 +6,22 @@
       "pass": true
     },
     {
+      "label": "positive native product-name search returns actual Woo AJAX results for selected",
+      "pass": true
+    },
+    {
+      "label": "positive native product-name search returns actual Woo AJAX results for parent",
+      "pass": true
+    },
+    {
+      "label": "positive native product picker populates exact validated IDs",
+      "pass": true
+    },
+    {
+      "label": "positive native picker removes a selected product",
+      "pass": true
+    },
+    {
       "label": "positive actual admin REST save retains exact targeting",
       "pass": true
     },
@@ -15,6 +31,10 @@
     },
     {
       "label": "positive product IDs reload in native authoring control",
+      "pass": true
+    },
+    {
+      "label": "positive native picker reloads selected product names",
       "pass": true
     },
     {
@@ -42,6 +62,22 @@
       "pass": true
     },
     {
+      "label": "negative native product-name search returns actual Woo AJAX results for selected",
+      "pass": true
+    },
+    {
+      "label": "negative native product-name search returns actual Woo AJAX results for parent",
+      "pass": true
+    },
+    {
+      "label": "negative native product picker populates exact validated IDs",
+      "pass": true
+    },
+    {
+      "label": "negative native picker removes a selected product",
+      "pass": true
+    },
+    {
       "label": "negative actual admin REST save retains exact targeting",
       "pass": true
     },
@@ -51,6 +87,10 @@
     },
     {
       "label": "negative product IDs reload in native authoring control",
+      "pass": true
+    },
+    {
+      "label": "negative native picker reloads selected product names",
       "pass": true
     },
     {
