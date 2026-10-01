@@ -167,6 +167,29 @@ modal, so the exact Tools payload transformation and full import/export
 round-trip remain unproven from this helper alone. These are installed 3.1.5
 source facts, not current 3.2.1 confirmation.
 
+### Installed 3.1.5 repeater and quantity cart behavior
+
+The admin model stores clone configuration on fields and section markers as
+`clone.enabled`, `clone.type`, `clone.max`, `clone.add`, `clone.del`, and
+`clone.label`. `class-field-groups.php` propagates an enabled section's clone
+type and label to each enclosed field as `parent_clone`; section-end markers
+close the range, including nested sections.
+
+In `class-product-controller.php::add_fields_to_cart_item()`, a quantity clone
+uses the submitted WooCommerce product quantity. The base field values belong
+to clone index 0; the controller collects each further unit's
+`field_{id}_clone_{i}` submission. The later
+`split_cart_items_by_quantity()` step builds a fingerprint from each unit's
+cloned fields plus fields outside the clone. It retains one unit in the
+original cart item, adds a quantity-one line for each distinct fingerprint,
+and merges equivalent clone configurations by increasing that line's
+quantity. `class-cart.php::to_cart_item_field()` uses `clone.label` for cloned
+field labels, replacing `{n}` with the clone index; without a custom label it
+uses the enclosing section label or the original field label. This means
+quantity-repeat parity requires per-unit cart-line identity and price behavior,
+not only matching the number of inputs to product quantity. Source is specific
+to installed 3.1.5; current 3.2.1 internals remain unverified.
+
 ### Installed 3.1.5 Tools import/export behavior
 
 The Tools view (`views/admin/tools.php`) presents a code payload, offers
