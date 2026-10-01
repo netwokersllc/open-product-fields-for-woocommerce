@@ -615,6 +615,23 @@ final class CartIntegration {
 		if ( is_string( $stored ) && '' !== $stored ) {
 			$decoded = json_decode( $stored, true );
 			if ( is_array( $decoded ) ) {
+				$quantity = max( 1, (int) $order_item->get_quantity() );
+				$product  = $order_item->get_product();
+				if ( $quantity > 1 && $product instanceof \WC_Product ) {
+					foreach ( FieldGroups::for_product( $product ) as $entry ) {
+						$gid = (string) $entry['id'];
+						$section_repeats = self::section_repeat_context( $entry['group']->data['fields'] );
+						foreach ( $entry['group']->data['fields'] as $field ) {
+							$repeat = ! empty( $field['repeat']['enabled'] )
+								? $field['repeat']
+								: ( $section_repeats[ $field['id'] ] ?? [] );
+							$rows = $decoded[ $gid ][ $field['id'] ] ?? null;
+							if ( 'quantity' === ( $repeat['mode'] ?? '' ) && is_array( $rows ) && 1 === count( $rows ) ) {
+								$decoded[ $gid ][ $field['id'] ] = array_fill( 0, $quantity, reset( $rows ) );
+							}
+						}
+					}
+				}
 				$cart_item_data[ self::ITEM_KEY ] = $decoded;
 			}
 		}

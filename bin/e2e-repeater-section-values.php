@@ -90,6 +90,16 @@ try {
 	$identical_items = array_values( array_filter( $cart->get_cart(), static fn( $item ) => (int) $item['product_id'] === $product_id ) );
 	$assert( 1 === count( $identical_items ) && 2 === (int) $identical_items[0]['quantity'], 'Identical section rows did not merge into a quantity-2 cart line.' );
 	$assert( 12.0 === (float) $identical_items[0]['data']->get_price( 'edit' ), 'Merged section row has incorrect per-unit pricing.' );
+	$order = new WC_Order();
+	$order_item = new WC_Order_Item_Product();
+	$order_item->set_product( $identical_items[0]['data'] );
+	$order_item->set_quantity( 2 );
+	CartIntegration::persist_order_item( $order_item, $identical_items[0]['key'], $identical_items[0], $order );
+	$order_values = json_decode( $order_item->get_meta( '_opf_fields', true ), true );
+	$assert( [ 'Ada' ] === ( $order_values[ (string) $group_id ]['guest_name'] ?? null ), 'Merged section clone values were not persisted to order metadata.' );
+	$assert( 'Ada' === $order_item->get_meta( 'Guest name', true ) && 'Soup' === $order_item->get_meta( 'Guest meal', true ), 'Section child display values were not persisted to order metadata.' );
+	$restored = CartIntegration::restore_order_again( [], $order_item, $order );
+	$assert( [ 'Ada', 'Ada' ] === array_values( $restored[ CartIntegration::ITEM_KEY ][ (string) $group_id ]['guest_name'] ?? [] ), 'Order-again did not restore each identical quantity-section row.' );
 
 	$cart->empty_cart();
 	$invalid_response = $add_store_item( $product_id, [ (string) $group_id => [
