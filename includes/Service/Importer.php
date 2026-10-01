@@ -242,9 +242,14 @@ final class Importer {
 		}
 
 		$mapped = WapfMapper::map( $wapf, $overrides );
+		$status = $mapped['needs_review'] ? 'draft' : 'publish';
 
 		if ( $commit ) {
-			$opf_id = FieldGroups::save( 0, new FieldGroup( $mapped['group'] ), [ 'title' => $title, 'menu_order' => $menu_order ] );
+			$opf_id = FieldGroups::save( 0, new FieldGroup( $mapped['group'] ), [
+				'title'      => $title,
+				'status'     => $status,
+				'menu_order' => $menu_order,
+			] );
 			if ( ! $opf_id ) {
 				return [ 'source' => $source_key, 'result' => 'save-failed' ];
 			}
@@ -272,6 +277,7 @@ final class Importer {
 			'opf_id'       => $opf_id,
 			'title'        => $title,
 			'fields'       => count( $mapped['group']['fields'] ),
+			'status'       => $status,
 			'needs_review' => $mapped['needs_review'],
 			'notes'        => array_slice( $mapped['notes'], 0, 10 ),
 		];

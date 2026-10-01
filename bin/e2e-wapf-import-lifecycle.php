@@ -24,6 +24,8 @@ if ( 0 !== $global_source_count || 0 !== $local_source_count ) {
 
 $product_id = 0;
 $global_id = 0;
+$review_id = 0;
+$malformed_id = 0;
 $make_payload = static function ( string $prefix, string $label ): array {
 	return [
 		'id' => 'p_' . $prefix,
@@ -83,23 +85,69 @@ try {
 	if ( is_wp_error( $global_id ) ) {
 		throw new RuntimeException( $global_id->get_error_message() );
 	}
+	$review_payload = $make_payload( 'opf_e2e_review', 'Review' );
+	$review_payload['fields'][] = [
+		'id' => 'opf_e2e_unsupported_file',
+		'label' => 'Unsupported upload',
+		'type' => 'file',
+		'required' => false,
+		'conditionals' => [],
+		'clone' => [ 'enabled' => false ],
+		'options' => [ 'choices' => [] ],
+		'pricing' => [ 'enabled' => false, 'type' => 'fixed', 'amount' => 0 ],
+	];
+	$review_id = wp_insert_post( [
+		'post_type' => 'wapf_product',
+		'post_status' => 'publish',
+		'post_title' => 'OPF WAPF review-required fixture',
+		'post_content' => serialize( $review_payload ),
+	], true );
+	if ( is_wp_error( $review_id ) ) {
+		throw new RuntimeException( $review_id->get_error_message() );
+	}
+	$malformed_id = wp_insert_post( [
+		'post_type' => 'wapf_product',
+		'post_status' => 'publish',
+		'post_title' => 'OPF WAPF malformed fixture',
+		'post_content' => 'a:2:{broken serialized payload',
+	], true );
+	if ( is_wp_error( $malformed_id ) ) {
+		throw new RuntimeException( $malformed_id->get_error_message() );
+	}
 	update_post_meta( $product_id, '_wapf_fieldgroup', $make_payload( 'opf_e2e_local', 'Local' ) );
 
 	$dry = OPF\Service\Importer::run( false );
-	$assert( 2 === $dry['imported'] && 0 === $dry['skipped'], 'Dry run did not report exactly one global and one local group.' );
-	$dry_ids = get_posts( [
-		'post_type' => 'opf_field_group',
-		'post_status' => 'any',
-		'posts_per_page' => -1,
-		'fields' => 'ids',
-		'meta_key' => '_opf_imported_from',
-	] );
-	$assert( empty( $dry_ids ), 'Dry run wrote OPF field groups.' );
+	$assert( 3 === $dry['imported'] && 1 === $dry['skipped'], 'Dry run did not report three importable groups and one malformed source.' );
+	$dry_review = null;
+	$dry_malformed = null;
+	foreach ( $dry['groups'] as $entry ) {
+		if ( (string) $review_id === (string) $entry['source'] ) {
+			$dry_review = $entry;
+		}
+		if ( (string) $malformed_id === (string) $entry['source'] ) {
+			$dry_malformed = $entry;
+		}
+	}
+	$assert( 'draft' === ( $dry_review['status'] ?? '' ) && ! empty( $dry_review['needs_review'] ), 'Dry run did not report the review-required group as a draft.' );
+	$assert( 'unparseable' === ( $dry_malformed['result'] ?? '' ), 'Dry run did not identify the malformed source.' );
+	foreach ( [ (string) $global_id, (string) $review_id, 'meta:' . $product_id ] as $source_key ) {
+		$dry_ids = get_posts( [
+			'post_type' => 'opf_field_group',
+			'post_status' => 'any',
+			'posts_per_page' => 1,
+			'fields' => 'ids',
+			'meta_key' => '_opf_imported_from',
+			'meta_value' => $source_key,
+		] );
+		$assert( empty( $dry_ids ), 'Dry run wrote an OPF field group.' );
+	}
 
 	$committed = OPF\Service\Importer::run( true );
-	$assert( 2 === $committed['imported'] && 0 === $committed['skipped'], 'Commit did not import exactly one global and one local group.' );
+	$assert( 3 === $committed['imported'] && 1 === $committed['skipped'], 'Commit did not import three groups and report the malformed source.' );
 	$global_opf_id = 0;
 	$local_opf_id = 0;
+	$review_opf_id = 0;
+	$malformed_reported = false;
 	foreach ( $committed['groups'] as $entry ) {
 		if ( (string) $global_id === (string) $entry['source'] ) {
 			$global_opf_id = (int) $entry['opf_id'];
@@ -107,8 +155,15 @@ try {
 		if ( 'meta:' . $product_id === (string) $entry['source'] ) {
 			$local_opf_id = (int) $entry['opf_id'];
 		}
+		if ( (string) $review_id === (string) $entry['source'] ) {
+			$review_opf_id = (int) ( $entry['opf_id'] ?? 0 );
+		}
+		if ( (string) $malformed_id === (string) $entry['source'] && 'unparseable' === ( $entry['result'] ?? '' ) ) {
+			$malformed_reported = true;
+		}
 	}
-	$assert( $global_opf_id > 0 && $local_opf_id > 0, 'Import report did not identify both persisted groups.' );
+	$assert( $global_opf_id > 0 && $local_opf_id > 0 && $review_opf_id > 0, 'Import report did not identify all persisted groups.' );
+	$assert( $malformed_reported, 'Malformed source payload was not reported as unparseable.' );
 	$global_post = get_post( $global_opf_id );
 	$global_data = json_decode( (string) $global_post->post_content, true );
 	$local_post = get_post( $local_opf_id );
@@ -122,14 +177,18 @@ try {
 	$assert( $local_data['fields'][0]['id'] === ( $local_data['fields'][1]['conditionals'][0]['rules'][0]['field'] ?? '' ) && 'allow' === ( $local_data['fields'][1]['conditionals'][0]['rules'][0]['value'] ?? '' ), 'Local conditional field reference was not remapped.' );
 	$local_rule = $local_data['rule_groups'][0]['rules'][0] ?? [];
 	$assert( 'product' === ( $local_rule['subject'] ?? '' ) && [ (string) $product_id ] === ( $local_rule['terms'] ?? [] ), 'Local group was not attached to its source product.' );
+	$review_post = get_post( $review_opf_id );
+	$review_notes = get_post_meta( $review_opf_id, '_opf_needs_review', true );
+	$assert( 'draft' === $review_post->post_status, 'A group with unsupported source data was published instead of held for review.' );
+	$assert( is_array( $review_notes ) && false !== strpos( implode( ' ', $review_notes ), 'unsupported field types dropped' ), 'Review-required source details were not recorded.' );
 
 	$repeat = OPF\Service\Importer::run( true );
-	$assert( 0 === $repeat['imported'] && 2 === $repeat['skipped'], 'Repeated import did not skip both source groups idempotently.' );
+	$assert( 0 === $repeat['imported'] && 4 === $repeat['skipped'], 'Repeated import did not skip three imports and report the malformed source.' );
 
 	require_once ABSPATH . 'wp-admin/includes/plugin.php';
 	$plugins = get_plugins();
 	$wapf_version = $plugins['advanced-product-fields-for-woocommerce/advanced-product-fields-for-woocommerce.php']['Version'] ?? 'unknown';
-	echo sprintf( "ok WAPF %s global/local import, dry-run, product attachment, persistence, idempotent repeat\n", $wapf_version );
+	echo sprintf( "ok WAPF %s global/local import, review drafts, malformed report, dry-run, product attachment, persistence, idempotent repeat\n", $wapf_version );
 } finally {
 	$source_keys = [];
 	if ( $global_id && ! is_wp_error( $global_id ) ) {
@@ -137,6 +196,9 @@ try {
 	}
 	if ( $product_id && ! is_wp_error( $product_id ) ) {
 		$source_keys[] = 'meta:' . $product_id;
+	}
+	if ( $review_id && ! is_wp_error( $review_id ) ) {
+		$source_keys[] = (string) $review_id;
 	}
 	foreach ( $source_keys as $source_key ) {
 		$imported_ids = get_posts( [
@@ -153,6 +215,12 @@ try {
 	}
 	if ( $global_id && ! is_wp_error( $global_id ) ) {
 		wp_delete_post( $global_id, true );
+	}
+	if ( $review_id && ! is_wp_error( $review_id ) ) {
+		wp_delete_post( $review_id, true );
+	}
+	if ( $malformed_id && ! is_wp_error( $malformed_id ) ) {
+		wp_delete_post( $malformed_id, true );
 	}
 	if ( $product_id && ! is_wp_error( $product_id ) ) {
 		wp_delete_post( $product_id, true );
