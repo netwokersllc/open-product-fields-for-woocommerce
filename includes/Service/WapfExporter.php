@@ -24,7 +24,7 @@ final class WapfExporter {
 		self::assert_keys( $group, [ 'schema', 'fields', 'rule_groups', 'mark_required', 'labels_position' ], 'group' );
 		foreach ( ( $group['fields'] ?? [] ) as $field ) {
 			if ( is_array( $field ) ) {
-				self::assert_keys( $field, [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'content', 'swatch_style', 'image_zoom', 'label_pos', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], 'field' );
+				self::assert_keys( $field, [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'content', 'swatch_style', 'multiple', 'min_choices', 'max_choices', 'color_layout', 'color_size', 'color_label_pos', 'image_zoom', 'label_pos', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], 'field' );
 			}
 		}
 		foreach ( ( $group['rule_groups'] ?? [] ) as $rule_group ) {
@@ -74,17 +74,23 @@ final class WapfExporter {
 
 	/** @param array<string,mixed> $field */
 	private static function map_field( array $field, array $field_ids, array $field_types ): array {
-		self::assert_keys( $field, [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'content', 'swatch_style', 'image_zoom', 'label_pos', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], 'field' );
+		self::assert_keys( $field, [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'content', 'swatch_style', 'multiple', 'min_choices', 'max_choices', 'color_layout', 'color_size', 'color_label_pos', 'image_zoom', 'label_pos', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], 'field' );
 		$type_map = [
 			'text' => 'text', 'textarea' => 'textarea', 'email' => 'email', 'url' => 'url',
 			'number' => 'number', 'toggle' => 'true-false', 'select' => 'select',
 			'radio' => 'radio', 'checkbox' => 'checkboxes', 'swatch' => 'text-swatch', 'paragraph' => 'content',
 		];
 		$type = $field['type'];
-		if ( 'swatch' === $type && 'image' === ( $field['swatch_style'] ?? '' ) ) {
-			$type_map['swatch'] = 'image-swatch';
+		if ( 'swatch' === $type ) {
+			$multi = ! empty( $field['multiple'] );
+			$style = $field['swatch_style'] ?? 'text';
+			$type_map['swatch'] = [
+				'text' => $multi ? 'multi-text-swatch' : 'text-swatch',
+				'image' => $multi ? 'multi-image-swatch' : 'image-swatch',
+				'color' => $multi ? 'multi-color-swatch' : 'color-swatch',
+			][ $style ] ?? null;
 		}
-		if ( ! isset( $type_map[ $type ] ) ) {
+		if ( ! isset( $type_map[ $type ] ) || null === $type_map[ $type ] ) {
 			throw new \InvalidArgumentException( sprintf( 'WAPF Tools export cannot preserve OPF field type "%s".', $type ) );
 		}
 		if ( ! preg_match( '/^[A-Za-z0-9_-]*$/', $field['css_class'] ) ) {
@@ -121,7 +127,7 @@ final class WapfExporter {
 			}
 			$out['p_content'] = $field['content'];
 		}
-		if ( 'swatch' === $type && 'image-swatch' === $out['type'] ) {
+		if ( 'swatch' === $type && in_array( $out['type'], [ 'image-swatch', 'multi-image-swatch' ], true ) ) {
 			$out['large_image'] = ! empty( $field['image_zoom'] );
 			$out['label_pos'] = $field['label_pos'];
 			$out['grid_layout'] = $field['grid_layout'];
@@ -130,9 +136,25 @@ final class WapfExporter {
 			$out['items_per_row_tablet'] = $field['items_per_row_tablet'];
 			$out['items_per_row_mobile'] = $field['items_per_row_mobile'];
 		}
+		if ( 'swatch' === $type && 'color' === ( $field['swatch_style'] ?? '' ) ) {
+			$out['layout'] = $field['color_layout'];
+			$out['size'] = $field['color_size'];
+			$out['label_pos'] = $field['color_label_pos'];
+		}
+		if ( 'swatch' === $type && ! empty( $field['multiple'] ) ) {
+			if ( isset( $field['min_choices'] ) ) {
+				$out['min_choices'] = $field['min_choices'];
+			}
+			if ( isset( $field['max_choices'] ) ) {
+				$out['max_choices'] = $field['max_choices'];
+			}
+		}
 		if ( in_array( $type, [ 'select', 'radio', 'checkbox', 'swatch' ], true ) ) {
 			$out['choices'] = [];
 			foreach ( $field['choices'] as $choice ) {
+				if ( 'swatch' === $type && ! in_array( $out['type'], [ 'image-swatch', 'multi-image-swatch' ], true ) && ( ! empty( $choice['image'] ) || ! empty( $choice['image_id'] ) ) ) {
+					throw new \InvalidArgumentException( 'WAPF swatch export cannot preserve image media on a non-image swatch.' );
+				}
 				if ( $choice['disabled'] ) {
 					throw new \InvalidArgumentException( 'WAPF Tools import does not preserve disabled choices.' );
 				}
@@ -145,13 +167,19 @@ final class WapfExporter {
 					'slug' => $choice['slug'], 'label' => $choice['label'], 'selected' => $choice['selected'],
 					'pricing_type' => $pricing_type['type'], 'pricing_amount' => $pricing_type['amount'],
 				];
-				if ( 'image-swatch' === $out['type'] ) {
+				if ( in_array( $out['type'], [ 'image-swatch', 'multi-image-swatch' ], true ) ) {
 					if ( ! empty( $choice['image'] ) ) {
 						$wapf_choice['image'] = $choice['image'];
 					}
 					if ( ! empty( $choice['image_id'] ) ) {
 						$wapf_choice['attachment'] = $choice['image_id'];
 					}
+				}
+				if ( in_array( $out['type'], [ 'color-swatch', 'multi-color-swatch' ], true ) ) {
+					if ( empty( $choice['color'] ) ) {
+						throw new \InvalidArgumentException( 'WAPF color swatch export requires a color for every choice.' );
+					}
+					$wapf_choice['color'] = $choice['color'];
 				}
 				$out['choices'][] = $wapf_choice;
 			}

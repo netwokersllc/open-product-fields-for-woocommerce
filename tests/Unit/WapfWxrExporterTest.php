@@ -102,6 +102,32 @@ final class WapfWxrExporterTest extends TestCase {
 		$this->assertSame( 481, $group['fields'][0]['options']['choices'][0]['attachment'] );
 	}
 
+	public function test_wxr_preserves_multi_color_swatch_options_and_choices(): void {
+		$xml = WapfWxrExporter::build_document( [ [
+			'id' => 94,
+			'title' => 'Color choices',
+			'data' => [ 'schema' => 1, 'fields' => [ [
+				'id' => 'palette', 'label' => 'Palette', 'type' => 'swatch', 'swatch_style' => 'color',
+				'multiple' => true, 'min_choices' => 1, 'max_choices' => 2,
+				'color_layout' => 'rounded', 'color_size' => 36, 'color_label_pos' => 'default',
+				'choices' => [ [ 'slug' => 'navy', 'label' => 'Navy', 'color' => '#123456' ] ],
+			] ], 'rule_groups' => [] ],
+		] ], [ 'site_url' => 'https://example.test', 'site_title' => 'Example Store' ] );
+		$document = new \DOMDocument();
+		$this->assertTrue( $document->loadXML( $xml ) );
+		$xpath = new \DOMXPath( $document );
+		$xpath->registerNamespace( 'content', 'http://purl.org/rss/1.0/modules/content/' );
+		$content = $xpath->query( '/rss/channel/item/content:encoded' )->item( 0 )->textContent;
+		$group = unserialize( $content, [ 'allowed_classes' => false ] );
+
+		$this->assertSame( 'multi-color-swatch', $group['fields'][0]['type'] );
+		$this->assertSame( 1, $group['fields'][0]['options']['min_choices'] );
+		$this->assertSame( 2, $group['fields'][0]['options']['max_choices'] );
+		$this->assertSame( 'rounded', $group['fields'][0]['options']['layout'] );
+		$this->assertSame( 36, $group['fields'][0]['options']['size'] );
+		$this->assertSame( '#123456', $group['fields'][0]['options']['choices'][0]['color'] );
+	}
+
 	public function test_requires_valid_site_url_and_source_group_identity(): void {
 		$this->expectException( \InvalidArgumentException::class );
 		$this->expectExceptionMessage( 'source site URL' );

@@ -519,7 +519,8 @@ final class CartIntegration {
 			if ( empty( $clean ) ) {
 				return null;
 			}
-			return in_array( $field['type'], [ 'swatch', 'select', 'radio' ], true ) ? $clean[0] : $clean;
+			$multi_swatch = 'swatch' === $field['type'] && ! empty( $field['multiple'] );
+			return in_array( $field['type'], [ 'select', 'radio' ], true ) || ( 'swatch' === $field['type'] && ! $multi_swatch ) ? $clean[0] : array_values( array_unique( $clean ) );
 		}
 
 		if ( is_array( $value ) ) {
@@ -570,8 +571,18 @@ final class CartIntegration {
 				$value    = $provided && ! is_array( $given[ $field['id'] ] ) ? (string) $given[ $field['id'] ] : null;
 				if ( in_array( $field['type'], [ 'email', 'date', 'toggle' ], true ) ) {
 					$errors = array_merge( $errors, FieldValue::validate( $field, $value, $provided ) );
-				} elseif ( $field['required'] && ! $provided ) {
+				} elseif ( $field['required'] && ! $provided && !( 'swatch' === $field['type'] && ! empty( $field['multiple'] ) && isset( $field['min_choices'] ) ) ) {
 					$errors[] = sprintf( '"%s" is a required field.', $field['label'] );
+				}
+				if ( 'swatch' === $field['type'] && ! empty( $field['multiple'] ) ) {
+					$submitted_value = $provided ? $given[ $field['id'] ] : null;
+					$count = is_array( $submitted_value ) ? count( $submitted_value ) : ( $provided ? 1 : 0 );
+					if ( isset( $field['min_choices'] ) && $count < $field['min_choices'] ) {
+						$errors[] = sprintf( '"%s" requires at least %d choices.', $field['label'], $field['min_choices'] );
+					}
+					if ( isset( $field['max_choices'] ) && $count > $field['max_choices'] ) {
+						$errors[] = sprintf( '"%s" allows at most %d choices.', $field['label'], $field['max_choices'] );
+					}
 				}
 			}
 		}

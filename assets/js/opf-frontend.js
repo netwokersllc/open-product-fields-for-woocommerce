@@ -365,6 +365,16 @@ const init = () => {
 			} else if ( 'date' === input.type ) {
 				input.setCustomValidity( '' );
 			}
+			if ( input.type === 'checkbox' && input.name.endsWith( '[]' ) && fieldDefs[ fid ] && fieldDefs[ fid ].type === 'swatch' ) {
+				const maxChoices = Number( fieldDefs[ fid ].max_choices || 0 );
+				const checked = groupEl.querySelectorAll( '[data-opf-field="' + fid + '"] input:checked' ).length;
+				if ( input.checked && maxChoices && checked > maxChoices ) {
+					input.checked = false;
+					input.setCustomValidity( 'Select no more than ' + maxChoices + ' options.' );
+				} else {
+					groupEl.querySelectorAll( '[data-opf-field="' + fid + '"] input[type="checkbox"]' ).forEach( ( choiceInput ) => choiceInput.setCustomValidity( '' ) );
+				}
+			}
 			if ( fieldDefs[ fid ] && fieldDefs[ fid ].type === 'toggle' ) {
 				values[ fid ] = input.checked ? '1' : '0';
 			} else if ( input.type === 'checkbox' && input.name.endsWith( '[]' ) ) {

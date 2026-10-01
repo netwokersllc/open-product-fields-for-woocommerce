@@ -31,6 +31,18 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( 2.0, Calculator::choice_addon( $pricing, 10.0, 5, 0.0 ) );
 	}
 
+	public function test_multiple_swatch_pricing_adds_each_selected_choice(): void {
+		$field = [
+			'type' => 'swatch', 'multiple' => true,
+			'choices' => [
+				[ 'slug' => 'navy', 'disabled' => false, 'pricing' => [ 'type' => 'fixed', 'amount' => 2.0, 'per_unit' => true ] ],
+				[ 'slug' => 'gold', 'disabled' => false, 'pricing' => [ 'type' => 'fixed', 'amount' => 3.0, 'per_unit' => true ] ],
+			],
+		];
+
+		$this->assertSame( 5.0, Calculator::field_addon( $field, [ 'navy', 'gold' ], [ 'price' => 10, 'qty' => 1 ] ) );
+	}
+
 	public function test_formula_from_production_data(): void {
 		// Real WAPF formula from production (after qty-compensation strip):
 		// "(([price] + [options_total]) * 0.2) * [qty]" → "(([price] + [addons]) * 0.2)"

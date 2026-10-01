@@ -177,4 +177,19 @@ final class WapfExporterTest extends TestCase {
 		$this->assertSame( 'https://example.test/oak.jpg', $payload['fields'][0]['choices'][0]['image'] );
 		$this->assertSame( 481, $payload['fields'][0]['choices'][0]['attachment'] );
 	}
+
+	public function test_exports_multi_color_swatches_and_selection_limits(): void {
+		$group = FieldGroup::normalize( [ 'fields' => [ [
+			'id' => 'palette', 'label' => 'Palette', 'type' => 'swatch', 'swatch_style' => 'color',
+			'multiple' => true, 'min_choices' => 1, 'max_choices' => 2,
+			'color_layout' => 'rounded', 'color_size' => 36, 'color_label_pos' => 'default',
+			'choices' => [ [ 'slug' => 'navy', 'label' => 'Navy', 'color' => '#123456' ] ],
+		] ] ] );
+
+		$field = WapfExporter::build_payload( $group )['fields'][0];
+		$this->assertSame( 'multi-color-swatch', $field['type'] );
+		$this->assertSame( [ 1, 2 ], [ $field['min_choices'], $field['max_choices'] ] );
+		$this->assertSame( [ 'rounded', 36, 'default' ], [ $field['layout'], $field['size'], $field['label_pos'] ] );
+		$this->assertSame( '#123456', $field['choices'][0]['color'] );
+	}
 }

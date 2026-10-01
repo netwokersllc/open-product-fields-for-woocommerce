@@ -138,6 +138,9 @@ final class Renderer {
 			foreach ( $entry['group']->data['fields'] as $field ) {
 				$registry[ $gid ][ $field['id'] ] = [
 					'type'         => $field['type'],
+					'multiple'     => ! empty( $field['multiple'] ),
+					'min_choices'  => $field['min_choices'] ?? null,
+					'max_choices'  => $field['max_choices'] ?? null,
 					'conditionals' => $field['conditionals'],
 				'choices'      => array_map( static function ( $c ) {
 					return [
@@ -266,10 +269,14 @@ final class Renderer {
 			return;
 		}
 
-		$multi = 'checkbox' === $field['type'];
+		$multi = 'checkbox' === $field['type'] || ( 'swatch' === $field['type'] && ! empty( $field['multiple'] ) );
 		$image_swatch = 'swatch' === $field['type'] && 'image' === ( $field['swatch_style'] ?? '' );
+		$color_swatch = 'swatch' === $field['type'] && 'color' === ( $field['swatch_style'] ?? '' );
 
 		$wrapper_class = $image_swatch ? 'opf-swatch-wrapper opf-image-swatch-wrapper' : 'opf-swatch-wrapper';
+		if ( $color_swatch ) {
+			$wrapper_class .= ' opf-color-swatch-wrapper';
+		}
 		$wrapper_attrs = '';
 		if ( $image_swatch ) {
 			$wrapper_attrs = ' data-grid-layout="' . esc_attr( $field['grid_layout'] ) . '" data-label-position="' . esc_attr( $field['label_pos'] ) . '"';
@@ -279,12 +286,25 @@ final class Renderer {
 				$wrapper_attrs .= ' style="--opf-image-swatch-width:' . esc_attr( (string) $field['item_width'] ) . 'px;"';
 			}
 		}
+		if ( $color_swatch ) {
+			$wrapper_attrs .= ' data-color-layout="' . esc_attr( $field['color_layout'] ) . '"';
+		}
+		if ( 'swatch' === $field['type'] && $multi ) {
+			if ( isset( $field['min_choices'] ) ) {
+				$wrapper_attrs .= ' data-min-choices="' . esc_attr( (string) $field['min_choices'] ) . '"';
+			}
+			if ( isset( $field['max_choices'] ) ) {
+				$wrapper_attrs .= ' data-max-choices="' . esc_attr( (string) $field['max_choices'] ) . '"';
+			}
+		}
 		echo '<div class="' . esc_attr( $wrapper_class ) . '"' . $wrapper_attrs . '>';
-		echo '<input type="hidden" class="opf-tf-h" data-fid="' . esc_attr( $fid ) . '" value="0" name="' . esc_attr( $name ) . '" />';
+		if ( ! ( 'swatch' === $field['type'] && ! empty( $field['multiple'] ) ) ) {
+			echo '<input type="hidden" class="opf-tf-h" data-fid="' . esc_attr( $fid ) . '" value="0" name="' . esc_attr( $name ) . '" />';
+		}
 
 		foreach ( $field['choices'] as $choice ) {
-			$swatch_classes = [ 'opf-swatch', $image_swatch ? 'opf-swatch--image' : 'opf-swatch--text' ];
-			if ( ! empty( $choice['image'] ) || ! empty( $choice['image_id'] ) ) {
+			$swatch_classes = [ 'opf-swatch', $image_swatch ? 'opf-swatch--image' : ( $color_swatch ? 'opf-swatch--color' : 'opf-swatch--text' ) ];
+			if ( $image_swatch && ( ! empty( $choice['image'] ) || ! empty( $choice['image_id'] ) ) ) {
 				if ( ! in_array( 'opf-swatch--image', $swatch_classes, true ) ) {
 					$swatch_classes[] = 'opf-swatch--image';
 				}
@@ -319,10 +339,16 @@ final class Renderer {
 			);
 
 			$choice_label_attr = $image_swatch ? ' data-opf-swatch-label="' . esc_attr( $choice['label'] ) . '"' : '';
+			if ( $color_swatch ) {
+				$choice_label_attr .= ' data-opf-swatch-label="' . esc_attr( $choice['label'] ) . '" data-color-label-position="' . esc_attr( $field['color_label_pos'] ) . '"';
+			}
 			echo '<div class="' . esc_attr( implode( ' ', $swatch_classes ) ) . '"' . $choice_label_attr . '>';
 			echo '<label>';
+			if ( $color_swatch && ! empty( $choice['color'] ) ) {
+				echo '<span class="opf-color-swatch" aria-hidden="true" style="--opf-swatch-color:' . esc_attr( $choice['color'] ) . ';--opf-swatch-size:' . esc_attr( (string) $field['color_size'] ) . 'px"></span>';
+			}
 			$image_html = '';
-			if ( ! empty( $choice['image_id'] ) && function_exists( 'wp_get_attachment_image' ) ) {
+			if ( $image_swatch && ! empty( $choice['image_id'] ) && function_exists( 'wp_get_attachment_image' ) ) {
 				$image_html = (string) wp_get_attachment_image(
 					(int) $choice['image_id'],
 					'medium',
@@ -330,7 +356,7 @@ final class Renderer {
 					[ 'class' => 'opf-swatch-image', 'alt' => (string) $choice['label'], 'loading' => 'lazy', 'decoding' => 'async' ]
 				);
 			}
-			if ( '' === $image_html && ! empty( $choice['image'] ) ) {
+			if ( $image_swatch && '' === $image_html && ! empty( $choice['image'] ) ) {
 				$image_html = '<img class="opf-swatch-image" src="' . esc_url( $choice['image'] ) . '" alt="' . esc_attr( $choice['label'] ) . '" loading="lazy" decoding="async" />';
 			}
 			$zoom_html = '';

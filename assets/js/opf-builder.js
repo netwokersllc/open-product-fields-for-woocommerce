@@ -118,6 +118,12 @@
 		if ( 'swatch' !== field.type ) {
 			return row;
 		}
+		var extras = [];
+		if ( 'color' === field.swatch_style ) {
+			var colorInput = el( 'input', { class: 'opf-b-input', type: 'color', value: choice.color || '#ffffff', 'aria-label': 'Swatch color' } );
+			colorInput.addEventListener( 'input', function () { choice.color = colorInput.value.toUpperCase(); } );
+			extras.push( colorInput );
+		}
 
 		var imageUrl = el( 'input', { class: 'opf-b-input opf-b-choice-image-url', type: 'url', value: choice.image || '', placeholder: 'Image URL (optional)' } );
 		imageUrl.addEventListener( 'input', function () {
@@ -150,7 +156,8 @@
 			frame.open();
 		} } );
 		var imageControls = el( 'div', { class: 'opf-b-choice-image' }, [ imageUrl, chooseImage ] );
-		return el( 'div', { class: 'opf-b-choice-with-image' }, [ row, imageControls ] );
+		extras.push( imageControls );
+		return el( 'div', { class: 'opf-b-choice-with-image' }, [ row ].concat( extras ) );
 	}
 
 	function labeledControl( label, control ) {
@@ -352,10 +359,12 @@
 			card.appendChild( el( 'label', { class: 'opf-b-paragraph-label', text: 'Paragraph content' }, [ content ] ) );
 		}
 
-		if ( field.choices.length ) {
+		if ( field.choices.length || in_array( field.type, [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {
 			var addChoice = el( 'button', { class: 'button', text: '+ Add choice', onclick: function () {
 				var n = field.choices.length + 1;
-				field.choices.push( { slug: 'option-' + n, label: 'Option ' + n, selected: false, disabled: false, pricing: { type: 'none', amount: 0, formula: '' } } );
+				var choice = { slug: 'option-' + n, label: 'Option ' + n, selected: false, disabled: false, pricing: { type: 'none', amount: 0, formula: '' } };
+				if ( 'color' === field.swatch_style ) choice.color = '#FFFFFF';
+				field.choices.push( choice );
 				rerender();
 			} } );
 			var header = el( 'div', { class: 'opf-b-choices-header', html: '<strong>Choices</strong> <em>(slug · label · pricing)</em>' } );
@@ -368,6 +377,58 @@
 		}
 		if ( 'swatch' === field.type ) {
 			var imageSettings = el( 'div', { class: 'opf-b-image-swatch-settings' } );
+			var swatchStyle = el( 'select', { class: 'opf-b-input' }, [
+				el( 'option', { value: 'text', text: 'Text swatches' } ),
+				el( 'option', { value: 'image', text: 'Image swatches' } ),
+				el( 'option', { value: 'color', text: 'Color swatches' } ),
+			] );
+			swatchStyle.value = field.swatch_style || 'text';
+			swatchStyle.addEventListener( 'change', function () {
+				field.swatch_style = swatchStyle.value;
+				if ( 'color' === swatchStyle.value ) field.choices.forEach( function ( choice ) { if ( ! choice.color ) choice.color = '#FFFFFF'; } );
+				rerender();
+			} );
+			imageSettings.appendChild( labeledControl( 'Swatch appearance', swatchStyle ) );
+
+			var multiple = el( 'input', { type: 'checkbox' } );
+			multiple.checked = !! field.multiple;
+			multiple.addEventListener( 'change', function () { field.multiple = multiple.checked; rerender(); } );
+			imageSettings.appendChild( labeledControl( 'Allow multiple selections', multiple ) );
+			if ( field.multiple ) {
+				[ [ 'min_choices', 'Minimum choices' ], [ 'max_choices', 'Maximum choices' ] ].forEach( function ( setting ) {
+					var input = el( 'input', { class: 'opf-b-input', type: 'number', min: '1', max: '10000', value: field[ setting[ 0 ] ] || '' } );
+					input.addEventListener( 'input', function () {
+						if ( input.value ) field[ setting[ 0 ] ] = Number( input.value );
+						else delete field[ setting[ 0 ] ];
+					} );
+					imageSettings.appendChild( labeledControl( setting[ 1 ], input ) );
+				} );
+			}
+			if ( 'color' === field.swatch_style ) {
+				var colorLayout = el( 'select', { class: 'opf-b-input' }, [
+					el( 'option', { value: 'square', text: 'Square' } ),
+					el( 'option', { value: 'rounded', text: 'Rounded corners' } ),
+					el( 'option', { value: 'circle', text: 'Circle' } ),
+				] );
+				colorLayout.value = field.color_layout || 'circle';
+				colorLayout.addEventListener( 'change', function () { field.color_layout = colorLayout.value; } );
+				imageSettings.appendChild( labeledControl( 'Color shape', colorLayout ) );
+				var colorSize = el( 'input', { class: 'opf-b-input', type: 'number', min: '5', max: '500', value: field.color_size || 30 } );
+				colorSize.addEventListener( 'input', function () { field.color_size = Number( colorSize.value ) || 30; } );
+				imageSettings.appendChild( labeledControl( 'Color size (px)', colorSize ) );
+				var colorLabel = el( 'select', { class: 'opf-b-input' }, [
+					el( 'option', { value: 'default', text: 'Show below' } ),
+					el( 'option', { value: 'hide', text: 'Hide visually' } ),
+					el( 'option', { value: 'tooltip', text: 'Show on hover/focus' } ),
+				] );
+				colorLabel.value = field.color_label_pos || 'tooltip';
+				colorLabel.addEventListener( 'change', function () { field.color_label_pos = colorLabel.value; } );
+				imageSettings.appendChild( labeledControl( 'Color label position', colorLabel ) );
+			}
+			if ( 'image' !== field.swatch_style ) {
+				card.appendChild( imageSettings );
+				return card;
+			}
 			var imageZoom = el( 'input', { type: 'checkbox', 'data-opf-image-setting': 'image_zoom' } );
 			imageZoom.checked = !! field.image_zoom;
 			imageZoom.addEventListener( 'change', function () { field.image_zoom = imageZoom.checked; } );

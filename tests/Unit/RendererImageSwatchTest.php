@@ -77,5 +77,24 @@ namespace OPF\Tests\Unit {
 			$this->assertStringContainsString( 'class="opf-image-swatch-frame"', $html );
 			$this->assertStringContainsString( 'class="opf-swatch-zoom-preview" src="/oak.jpg"', $html );
 		}
+
+		public function test_multiple_color_swatch_renders_checkbox_values_and_visual_settings(): void {
+			$group = new FieldGroup( [ 'fields' => [ [
+				'id' => 'palette', 'label' => 'Palette', 'type' => 'swatch', 'swatch_style' => 'color',
+				'multiple' => true, 'min_choices' => 1, 'max_choices' => 2,
+				'color_layout' => 'square', 'color_size' => 36, 'color_label_pos' => 'tooltip',
+				'choices' => [ [ 'slug' => 'navy', 'label' => 'Navy', 'color' => '#123456' ] ],
+			] ] ] );
+			ob_start();
+			Renderer::render_group( '17', 'Palette', $group, 10.0 );
+			$html = (string) ob_get_clean();
+
+			$this->assertStringContainsString( 'data-max-choices="2"', $html );
+			$this->assertStringContainsString( 'data-color-layout="square"', $html );
+			$this->assertStringContainsString( 'type="checkbox"', $html );
+			$this->assertStringContainsString( 'name="opf[17][palette][]"', $html );
+			$this->assertStringContainsString( '--opf-swatch-color:#123456;--opf-swatch-size:36px', $html );
+			$this->assertStringContainsString( 'data-color-label-position="tooltip"', $html );
+		}
 	}
 }
