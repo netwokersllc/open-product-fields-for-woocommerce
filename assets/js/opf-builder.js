@@ -355,7 +355,8 @@
 		var head = el( 'div', { class: 'opf-b-field-head' }, [ label, typeSel, desc, req, duplicate, remove ] );
 		var card = el( 'div', { class: 'opf-b-field' }, [ head ] );
 		card.appendChild( conditionalEditor( field ) );
-		if ( REPEATABLE_TYPES.indexOf( field.type ) !== -1 ) {
+		if ( REPEATABLE_TYPES.indexOf( field.type ) !== -1 || 'section' === field.type ) {
+			var isSection = 'section' === field.type;
 			var repeatSettings = el( 'div', { class: 'opf-b-repeat-settings' } );
 			var repeatEnabled = el( 'input', { type: 'checkbox', 'data-opf-repeat-enabled': field.id } );
 			repeatEnabled.checked = !! ( field.repeat && field.repeat.enabled );
@@ -369,7 +370,7 @@
 				}
 				rerender();
 			} );
-			repeatSettings.appendChild( labeledControl( 'Allow customers to add repeated rows', repeatEnabled ) );
+			repeatSettings.appendChild( labeledControl( isSection ? 'Repeat this section' : 'Allow customers to add repeated rows', repeatEnabled ) );
 			if ( field.repeat && field.repeat.enabled ) {
 				var repeatMode = el( 'select', { class: 'opf-b-input', 'data-opf-repeat-mode': field.id }, [
 					el( 'option', { value: 'button', text: 'Customer adds rows with a button' } ),
@@ -378,6 +379,13 @@
 				repeatMode.value = field.repeat.mode || 'button';
 				repeatMode.addEventListener( 'change', function () {
 					field.repeat.mode = repeatMode.value;
+					if ( 'quantity' === repeatMode.value ) {
+						delete field.repeat.max;
+						delete field.repeat.add;
+						delete field.repeat.del;
+					} else if ( ! field.repeat.max ) {
+						field.repeat.max = 10000;
+					}
 					rerender();
 				} );
 				repeatSettings.appendChild( labeledControl( 'Repeat mode', repeatMode ) );
@@ -402,7 +410,7 @@
 					if ( duplicateLabel.value.trim() ) field.repeat.label = duplicateLabel.value.trim();
 					else delete field.repeat.label;
 				} );
-				repeatSettings.appendChild( labeledControl( 'Duplicate row label ({n} is the row number)', duplicateLabel ) );
+				repeatSettings.appendChild( labeledControl( isSection ? 'Section instance label ({n} is the section number)' : 'Duplicate row label ({n} is the row number)', duplicateLabel ) );
 			}
 			card.appendChild( repeatSettings );
 		} else if ( field.repeat && field.repeat.enabled ) {

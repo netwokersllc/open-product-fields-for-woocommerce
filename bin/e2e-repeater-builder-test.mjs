@@ -26,6 +26,7 @@ await page.evaluate(() => {
 		{ id: 'guest_name', label: 'Guest name', type: 'text', choices: [], conditionals: [] },
 		{ id: 'attendee_note', label: 'Attendee note', type: 'textarea', repeat: { enabled: true, mode: 'button', max: 9 }, choices: [], conditionals: [] },
 		{ id: 'ticket_code', label: 'Ticket code', type: 'text', repeat: { enabled: true, mode: 'quantity' }, choices: [], conditionals: [] },
+		{ id: 'attendees', label: 'Attendees', type: 'section', choices: [], conditionals: [] },
 	], rule_groups: [] });
 	window.__opfSavedPayloads = [];
 	window.fetch = async (_url, options) => {
@@ -65,5 +66,51 @@ const ok = defaultMax === '10000'
 	&& errors.length === 0;
 console.log(`${ok ? 'ok' : 'FAIL'} builder saves repeater mode, limits and labels, and preserves imported repeat settings`);
 if (!ok) console.log(JSON.stringify({ defaultMax, invalidBlocked, result, mode, quantityWarning, errors }));
+
+const sectionEnabled = page.locator('[data-opf-repeat-enabled="attendees"]');
+await sectionEnabled.check();
+await page.locator('[data-opf-repeat-max="attendees"]').fill('5');
+await page.locator('[data-opf-repeat-label="attendees:add"]').fill('Add attendee');
+await page.locator('[data-opf-repeat-label="attendees:del"]').fill('Remove attendee');
+await page.locator('[data-opf-repeat-label="attendees:label"]').fill('Attendee {n}');
+await page.getByRole('button', { name: 'Save' }).click();
+await page.waitForFunction(() => window.__opfSavedPayloads.length === 3);
+const sectionButtonRepeat = await page.evaluate(() => window.__opfSavedPayloads[2].data.fields[3].repeat);
+await page.locator('[data-opf-repeat-mode="attendees"]').selectOption('quantity');
+await page.getByRole('button', { name: 'Save' }).click();
+await page.waitForFunction(() => window.__opfSavedPayloads.length === 4);
+const sectionQuantityRepeat = await page.evaluate(() => window.__opfSavedPayloads[3].data.fields[3].repeat);
+
+const reloadPage = await browser.newPage();
+await reloadPage.setContent('<!doctype html><html><body><input id="title" value="Repeater fixture"><div id="opf-builder-app"></div></body></html>');
+await reloadPage.addStyleTag({ content: css });
+await reloadPage.evaluate((model) => {
+	const mount = document.getElementById('opf-builder-app');
+	mount.dataset.postId = '43';
+	mount.dataset.nonce = 'fixture';
+	mount.dataset.rest = '/wp-json/opf/v1/groups';
+	mount.dataset.previewRest = '/wp-json/opf/v1/preview';
+	mount.dataset.model = JSON.stringify(model);
+}, await page.evaluate(() => window.__opfSavedPayloads[3].data));
+await reloadPage.addScriptTag({ content: source });
+const reloadedSectionMode = await reloadPage.locator('[data-opf-repeat-mode="attendees"]').inputValue();
+const reloadedSectionLabel = await reloadPage.locator('[data-opf-repeat-label="attendees:label"]').inputValue();
+const sectionRepeatControl = reloadPage.locator('[data-opf-repeat-enabled="attendees"]');
+const responsiveControls = {};
+for (const width of [320, 768, 1024, 1440]) {
+	await reloadPage.setViewportSize({ width, height: 900 });
+	responsiveControls[width] = await sectionRepeatControl.isVisible();
+}
+if (process.env.OPF_BUILDER_SCREENSHOT) {
+	await reloadPage.screenshot({ path: process.env.OPF_BUILDER_SCREENSHOT, fullPage: true });
+}
+const sectionOk = JSON.stringify(sectionButtonRepeat) === JSON.stringify({ enabled: true, mode: 'button', max: 5, add: 'Add attendee', del: 'Remove attendee', label: 'Attendee {n}' })
+	&& JSON.stringify(sectionQuantityRepeat) === JSON.stringify({ enabled: true, mode: 'quantity', label: 'Attendee {n}' })
+	&& reloadedSectionMode === 'quantity'
+	&& reloadedSectionLabel === 'Attendee {n}'
+	&& Object.values(responsiveControls).every(Boolean);
+console.log(`${sectionOk ? 'ok' : 'FAIL'} builder edits button and quantity repeat settings on sections and reloads them`);
+if (!sectionOk) console.log(JSON.stringify({ sectionButtonRepeat, sectionQuantityRepeat, reloadedSectionMode, reloadedSectionLabel, responsiveControls }));
+await reloadPage.close();
 await browser.close();
-process.exit(ok ? 0 : 1);
+process.exit(ok && sectionOk ? 0 : 1);
