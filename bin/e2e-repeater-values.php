@@ -193,6 +193,46 @@ try {
 		'Store API quantity clone values or labels were not persisted to order items.'
 	);
 
+	$merge_group_data = json_decode( (string) get_post_field( 'post_content', $group_id ), true );
+	foreach ( $merge_group_data['fields'] as &$merge_field ) {
+		if ( 'ticket_holder' === ( $merge_field['id'] ?? '' ) ) {
+			unset( $merge_field['repeat']['label'] );
+		}
+	}
+	unset( $merge_field );
+	$assert( $group_id === FieldGroups::save( $group_id, $merge_group_data, [ 'title' => 'OPF repeated value E2E fixture' ] ), 'Could not switch quantity clone labels to the WAPF default for merge verification.' );
+
+	WC()->cart->empty_cart();
+	$merge_request = new WP_REST_Request( 'POST', '/wc/store/v1/cart/add-item' );
+	$merge_request->set_header( 'Nonce', wp_create_nonce( 'wc_store_api' ) );
+	$merge_request->set_param( 'id', $product_id );
+	$merge_request->set_param( 'quantity', 2 );
+	$merge_request->set_param( 'opf_fields', [
+		(string) $group_id => [
+			'attendee_name' => [ 'Ada', 'Grace' ],
+			'ticket_holder' => [ 'Ada', 'Ada' ],
+		],
+	] );
+	$merge_response = rest_get_server()->dispatch( $merge_request );
+	$assert( in_array( $merge_response->get_status(), [ 200, 201 ], true ), 'Store API rejected identical quantity clones: ' . wp_json_encode( $merge_response->get_data() ) );
+	$merged_items = array_values( array_filter(
+		WC()->cart->get_cart(),
+		static fn( $item ) => (int) ( $item['product_id'] ?? 0 ) === $product_id
+	) );
+	$merged_ticket_labels = 1 === count( $merged_items )
+		? array_values( array_filter(
+			CartIntegration::visible_selections( $merged_items[0]['data'], $merged_items[0][ CartIntegration::ITEM_KEY ] ),
+			static fn( $selection ) => 'Ticket holder' === ( $selection['label'] ?? '' )
+		) )
+		: [];
+	$assert(
+		1 === count( $merged_items )
+		&& 2 === (int) $merged_items[0]['quantity']
+		&& [ 'Ada' ] === ( $merged_items[0][ CartIntegration::ITEM_KEY ][ (string) $group_id ]['ticket_holder'] ?? null )
+		&& [ [ 'label' => 'Ticket holder', 'value' => 'Ada' ] ] === $merged_ticket_labels,
+		'Identical quantity clones did not merge while preserving the shared value and label: ' . wp_json_encode( [ 'items' => array_column( $merged_items, 'quantity' ), 'labels' => $merged_ticket_labels ] )
+	);
+
 	$_POST['opf'] = [ (string) $group_id => [ 'attendee_name' => [ 'Ada', '' ], 'ticket_holder' => [ 'Ada', 'Grace' ] ] ];
 	$assert( ! CartIntegration::validate_add_to_cart( true, $product_id, 2 ), 'A required empty repeated row was accepted.' );
 	wc_clear_notices();
@@ -201,7 +241,7 @@ try {
 	$assert( ! CartIntegration::validate_add_to_cart( true, $product_id, 2 ), 'More than the configured button maximum was accepted.' );
 	wc_clear_notices();
 
-	echo "ok repeated row sanitation/order, custom numbered labels, classic and Store API quantity-clone cart lines, cart/order display, Store API clone order metadata, order-again restore, required-row validation, maximum enforcement, and price summation\n";
+	echo "ok repeated row sanitation/order, custom numbered labels, classic and Store API quantity-clone cart lines, identical-clone merge, cart/order display, Store API clone order metadata, order-again restore, required-row validation, maximum enforcement, and price summation\n";
 } finally {
 	if ( $had_post_before ) {
 		$_POST['opf'] = $post_before;

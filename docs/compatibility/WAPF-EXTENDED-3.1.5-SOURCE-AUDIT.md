@@ -183,12 +183,17 @@ to clone index 0; the controller collects each further unit's
 cloned fields plus fields outside the clone. It retains one unit in the
 original cart item, adds a quantity-one line for each distinct fingerprint,
 and merges equivalent clone configurations by increasing that line's
-quantity. `class-cart.php::to_cart_item_field()` uses `clone.label` for cloned
-field labels, replacing `{n}` with the clone index; without a custom label it
-uses the enclosing section label or the original field label. This means
-quantity-repeat parity requires per-unit cart-line identity and price behavior,
-not only matching the number of inputs to product quantity. Source is specific
-to installed 3.1.5; current 3.2.1 internals remain unverified.
+quantity. Its `generate_cart_item_id()` helper sorts field records by field ID,
+removes `clone_idx`, and hashes the product, variation, and complete remaining
+field records. Labels and other field data remain in the fingerprint. In
+`class-cart.php::to_cart_item_field()`, `clone.label` substitution only runs
+when the effective clone type is `button`; quantity-cloned fields retain their
+field label (or inherited field label). Thus identical quantity clones with
+the same values and labels produce the same fingerprint and merge; distinct
+values remain separate. This means quantity-repeat parity requires per-unit
+cart-line identity, merge, and price behavior, not only matching the number of
+inputs to product quantity. Source is specific to installed 3.1.5; current
+3.2.1 internals remain unverified.
 
 ### Installed 3.1.5 Tools import/export behavior
 
