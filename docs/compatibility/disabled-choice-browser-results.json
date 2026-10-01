@@ -1,0 +1,57 @@
+{
+  "checks": [
+    {
+      "label": "field 1 exposes labeled unavailable setting",
+      "pass": true
+    },
+    {
+      "label": "field 2 exposes labeled unavailable setting",
+      "pass": true
+    },
+    {
+      "label": "actual admin REST save accepts disabled choices",
+      "pass": true
+    },
+    {
+      "label": "admin reload preserves disabled choice and clears default state",
+      "pass": true
+    },
+    {
+      "label": "admin reload preserves disabled checkbox choice",
+      "pass": true
+    },
+    {
+      "label": "storefront disables unavailable select option",
+      "pass": true
+    },
+    {
+      "label": "storefront disables unavailable checkbox input",
+      "pass": true
+    },
+    {
+      "label": "classic forged disabled value is rejected",
+      "pass": true
+    },
+    {
+      "label": "classic rejection leaves cart empty",
+      "pass": true
+    },
+    {
+      "label": "Store API forged disabled value is rejected by OPF validation",
+      "pass": true
+    },
+    {
+      "label": "Store API rejection leaves cart empty",
+      "pass": true
+    },
+    {
+      "label": "available classic choices still reach Woo cart",
+      "pass": true
+    },
+    {
+      "label": "browser console stays clean",
+      "pass": true
+    }
+  ],
+  "errors": []
+}
