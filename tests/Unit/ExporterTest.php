@@ -35,7 +35,7 @@ final class ExporterTest extends TestCase {
 		$package = Exporter::build_package( [ [
 			'id' => 45,
 			'data' => [
-				'fields' => [ [ 'choices' => [ [ 'image_url' => 'https://example.test/image.png' ] ] ] ],
+				'fields' => [ [ 'choices' => [ [ 'image_url' => 'https://example.test/image.png', 'image_id' => 481 ] ] ] ],
 				'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'product_cat', 'terms' => [ '8' ] ] ] ] ],
 			],
 		] ], [ 'type' => 'all' ] );

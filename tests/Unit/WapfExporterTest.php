@@ -151,4 +151,21 @@ final class WapfExporterTest extends TestCase {
 		$this->expectExceptionMessage( 'cannot preserve' );
 		WapfExporter::build_payload( $group );
 	}
+
+	public function test_exports_image_swatches_and_media_references(): void {
+		$group = FieldGroup::normalize( [
+			'fields' => [ [
+				'id' => 'finish',
+				'label' => 'Finish',
+				'type' => 'swatch',
+				'swatch_style' => 'image',
+				'choices' => [ [ 'slug' => 'oak', 'label' => 'Oak', 'image' => 'https://example.test/oak.jpg', 'image_id' => 481 ] ],
+			] ],
+		] );
+
+		$payload = WapfExporter::build_payload( $group );
+		$this->assertSame( 'image-swatch', $payload['fields'][0]['type'] );
+		$this->assertSame( 'https://example.test/oak.jpg', $payload['fields'][0]['choices'][0]['image'] );
+		$this->assertSame( 481, $payload['fields'][0]['choices'][0]['attachment'] );
+	}
 }

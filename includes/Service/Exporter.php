@@ -63,6 +63,9 @@ final class Exporter {
 			if ( in_array( $key, [ 'image', 'image_url' ], true ) && is_string( $item ) && '' !== $item ) {
 				return true;
 			}
+			if ( 'image_id' === $key && is_numeric( $item ) && (int) $item > 0 ) {
+				return true;
+			}
 			if ( self::has_media_reference( $item ) ) {
 				return true;
 			}

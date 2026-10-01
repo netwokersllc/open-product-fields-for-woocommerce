@@ -85,6 +85,7 @@ final class WapfMapperTest extends TestCase {
 
 		$this->assertTrue( $mapped['needs_review'] );
 		$this->assertStringContainsString( 'image swatch', implode( ' ', $mapped['notes'] ) );
+		$this->assertSame( 'image', $mapped['group']['fields'][0]['swatch_style'] );
 		$this->assertSame( 'oak', $mapped['group']['fields'][0]['choices'][0]['slug'] );
 		$this->assertSame( 'https://example.test/oak.jpg', $mapped['group']['fields'][0]['choices'][0]['image'] );
 		$this->assertSame( 481, $mapped['group']['fields'][0]['choices'][0]['image_id'] );

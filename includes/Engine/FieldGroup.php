@@ -217,6 +217,14 @@ final class FieldGroup {
 			$normalized['choices'] = [];
 			$normalized['pricing'] = self::normalize_pricing( [] );
 		}
+		if ( 'swatch' === $type ) {
+			$has_image_choice = (bool) array_filter( $choices, static function ( array $choice ): bool {
+				return ! empty( $choice['image'] ) || ! empty( $choice['image_id'] );
+			} );
+			if ( 'image' === ( $field['swatch_style'] ?? '' ) || $has_image_choice ) {
+				$normalized['swatch_style'] = 'image';
+			}
+		}
 
 		if ( 'date' === $type ) {
 			foreach ( [ 'allow_past', 'allow_future' ] as $key ) {

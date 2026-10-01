@@ -134,6 +134,7 @@ final class WapfMapper {
 					'width'        => (int) ( $wapf_field['width'] ?? 100 ),
 					'css_class'    => (string) ( $wapf_field['class'] ?? '' ),
 					'placeholder'  => (string) ( $wapf_field['options']['placeholder'] ?? '' ),
+					'swatch_style' => 'image-swatch' === $wapf_type ? 'image' : '',
 					'choices'      => $has_choices ? self::map_choices( $wapf_field, $notes, $needs_review ) : [],
 					'pricing'      => self::map_field_pricing( $wapf_field, $notes, $needs_review ),
 					'conditionals' => self::map_conditionals( $wapf_field, $notes, $opf_ids_by_wapf_id, $needs_review ),
@@ -152,7 +153,7 @@ final class WapfMapper {
 			}
 
 			if ( 'image-swatch' === $wapf_type ) {
-				$notes[] = sprintf( 'field "%s" is an image swatch; its choice images are not available in OPF and were imported as text choices.', (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' ) );
+				$notes[] = sprintf( 'field "%s" is an image swatch; its image choices are retained, but WAPF label, grid, and zoom settings are not yet imported.', (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' ) );
 				$needs_review = true;
 			}
 
