@@ -1,0 +1,18 @@
+ok fixture exists
+ok classic checkout persists real order
+ok classic order retains exact available selection values
+ok classic order public metadata identifies available choices
+ok classic order price excludes unavailable choices
+ok classic order has durable field snapshot
+ok classic order-again restores unadjusted catalog base
+ok classic order-again restores cart available values
+ok classic order-again retains available flat choice fees
+ok store checkout persists real order
+ok store order retains exact available selection values
+ok store order public metadata identifies available choices
+ok store order price excludes unavailable choices
+ok store order has durable field snapshot
+ok store order-again restores unadjusted catalog base
+ok store order-again restores cart available values
+ok store order-again retains available flat choice fees
+SUCCESS disabled choice order persistence and order-again values/base/fees

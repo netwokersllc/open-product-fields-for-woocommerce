@@ -44,6 +44,16 @@ if ( 'setup' === $phase ) {
 	return;
 }
 dc_assert( 'fixture exists', ! empty( $state['group'] ) );
+if ( 'prepare-order-again' === $phase ) {
+	foreach ( json_decode( file_get_contents( $dir . '/commerce-order-ids.json' ), true ) as $path => $id ) {
+		$order = wc_get_order( $id );
+		$order->set_customer_id( $state['user'] );
+		$order->set_status( 'completed' );
+		$order->save();
+	}
+	echo "ok completed fixture orders assigned to isolated test administrator for real Woo order-again\n";
+	return;
+}
 if ( 'comparator-model' === $phase ) {
 	$raw = json_decode( file_get_contents( $dir . '/opf-tools-export.json' ), true );
 	$raw['id'] = $state['wapf'];
@@ -51,12 +61,14 @@ if ( 'comparator-model' === $phase ) {
 	$model = SW_WAPF_PRO\Includes\Classes\Field_Groups::raw_json_to_field_group( $raw );
 	dc_assert( 'installed WAPF raw converter consumes actual OPF Tools payload', $model instanceof SW_WAPF_PRO\Includes\Models\FieldGroup );
 	SW_WAPF_PRO\Includes\Classes\Field_Groups::save( $model, 'wapf_product', $state['wapf'], 'Disabled Tools model fixture', 'publish' );
+	// Remove only this clone's prior mapped copy, so each run proves a fresh import.
+	foreach ( get_posts( [ 'post_type' => 'opf_field_group', 'post_status' => 'any', 'fields' => 'ids', 'meta_key' => '_opf_imported_from', 'meta_value' => (string) $state['wapf'] ] ) as $prior ) { wp_delete_post( $prior, true ); }
 	$reload = SW_WAPF_PRO\Includes\Classes\Field_Groups::get_by_id( $state['wapf'] );
 	file_put_contents( $dir . '/wapf-model-raw-export.json', wp_json_encode( [ 'fields' => SW_WAPF_PRO\Includes\Classes\Field_Groups::field_group_to_raw_fields_json( $reload ) ], JSON_PRETTY_PRINT ) );
 	echo "SUCCESS comparator model import/save/export (not licensed Tools UI proof)\n";
 	return;
 }
-if ( 'commerce' !== $phase ) {
+if ( 'verify' === $phase ) {
 $export = json_decode( file_get_contents( $dir . '/wapf-model-raw-export.json' ), true );
 dc_assert( 'installed WAPF model raw export parsed', is_array( $export ) && 2 === count( $export['fields'] ?? [] ) );
 foreach ( $export['fields'] as $field ) {
@@ -72,7 +84,7 @@ $back = current( array_filter( $report['groups'], static function ( $row ) use (
 dc_assert( 'real persisted WAPF source imports back to OPF', ! empty( $back['opf_id'] ) );
 $back_group = OPF\Service\FieldGroups::group_from_post( get_post( $back['opf_id'] ) );
 file_put_contents( $dir . '/opf-import-back.json', wp_json_encode( $back_group->data, JSON_PRETTY_PRINT ) );
-if ( 2 !== count( $back_group->data['fields'] ) ) { echo "GAP OPF persisted-source importer dropped the WAPF checkboxes field\n"; }
+dc_assert( 'OPF import back retains both WAPF field types', 2 === count( $back_group->data['fields'] ) );
 foreach ( $back_group->data['fields'] as $field ) {
 	dc_assert( $field['id'] . ' OPF import back retains disabled flags and pricing', true === $field['choices'][0]['disabled'] && false === $field['choices'][1]['disabled'] && 99.0 === (float) $field['choices'][0]['pricing']['amount'] );
 }
@@ -80,11 +92,11 @@ foreach ( $back_group->data['fields'] as $field ) {
 wp_update_post( [ 'ID' => $state['wapf'], 'post_status' => 'draft' ] );
 wp_update_post( [ 'ID' => $back['opf_id'], 'post_status' => 'draft' ] );
 }
-$orders = json_decode( file_get_contents( $dir . '/commerce-order-ids.json' ), true );
+$orders = json_decode( file_get_contents( $dir . ( 'order-again-verify' === $phase ? '/order-again-order-ids.json' : '/commerce-order-ids.json' ) ), true );
 $again_results = [];
 foreach ( $orders as $path => $id ) {
 	$order = wc_get_order( $id );
-	dc_assert( "$path checkout persists real order", $order instanceof WC_Order && 'on-hold' === $order->get_status() );
+	dc_assert( "$path checkout persists real order", $order instanceof WC_Order && in_array( $order->get_status(), [ 'on-hold', 'completed' ], true ) );
 	$item = array_values( $order->get_items() )[0];
 	$expected = [ (string) $state['group'] => [ 'finish' => 'available-finish', 'extras' => [ 'available-extras' ] ] ];
 	$stored = json_decode( $item->get_meta( '_opf_fields', true ), true );
@@ -95,13 +107,14 @@ foreach ( $orders as $path => $id ) {
 	if ( ! WC()->cart ) { wc_load_cart(); }
 	WC()->cart->empty_cart();
 	$restored = apply_filters( 'woocommerce_order_again_cart_item_data', [], $item, $order );
+	dc_assert( "$path order-again restores unadjusted catalog base", 10.0 === ( $restored['opf_base_price'] ?? null ) );
 	$key = WC()->cart->add_to_cart( $state['product'], 2, 0, [], $restored );
 	WC()->cart->calculate_totals();
 	file_put_contents( $dir . '/' . $path . '-order-again.json', wp_json_encode( [ 'key_created' => (bool) $key, 'restored' => $restored, 'cart_values' => $key ? ( WC()->cart->get_cart_item( $key )['opf_fields'] ?? null ) : null, 'total' => WC()->cart->get_total( 'edit' ) ], JSON_PRETTY_PRINT ) );
 	dc_assert( "$path order-again restores cart available values", (bool) $key && $expected === WC()->cart->get_cart_item( $key )['opf_fields'] );
 	$again_results[$path] = [ 'expected_total' => 23.0, 'actual_total' => (float) WC()->cart->get_total( 'edit' ), 'pass' => 23.0 === (float) WC()->cart->get_total( 'edit' ) ];
-	if ( ! $again_results[$path]['pass'] ) { echo "GAP $path order-again retains selections but loses flat fees: expected 23, actual " . WC()->cart->get_total( 'edit' ) . "\n"; }
+	dc_assert( "$path order-again retains available flat choice fees", $again_results[$path]['pass'] );
 	WC()->cart->empty_cart();
 }
 file_put_contents( $dir . '/order-again-price-results.json', wp_json_encode( $again_results, JSON_PRETTY_PRINT ) );
-echo "SUCCESS disabled choice order persistence and order-again values; price results recorded separately\n";
+echo "SUCCESS disabled choice order persistence and order-again values/base/fees\n";

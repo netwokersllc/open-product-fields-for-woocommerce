@@ -48,9 +48,23 @@ try {
       const page = await context.newPage();
       page.on('pageerror',e => errors.push(e.message));
       await page.goto(base + '/product/disabled-choice-commerce/');
+      if (phase === 'order-again') {
+        await page.goto(base + '/?disabled_proof_login=1');
+        const originals = JSON.parse(fs.readFileSync(dir + '/commerce-order-ids.json'));
+        await page.goto(base + '/my-account/view-order/' + originals[path] + '/');
+        const againUrl = await page.locator('a[href*="order_again="]').getAttribute('href');
+        check(`${path} actual account page exposes order-again action`,againUrl.startsWith(base));
+        await context.request.get(againUrl);
+        const cart = await (await context.request.get(base + '/wp-json/wc/store/v1/cart')).json();
+        check(`${path} real Woo order-again restores one cart line`,cart.items.length === 1 && cart.items[0].quantity === 2);
+        check(`${path} real Woo order-again retains available labels`,JSON.stringify(cart.items[0].item_data).includes('Available finish') && JSON.stringify(cart.items[0].item_data).includes('Available extras'));
+        check(`${path} real Woo order-again retains base plus flat fees`,Number(cart.totals.total_price) / 10 ** cart.totals.currency_minor_unit === 23);
+      }
       if(path === 'classic') {
+        if (phase !== 'order-again') {
         const add = await context.request.post(base + '/product/disabled-choice-commerce/',{form:{'add-to-cart':String(state.product),quantity:'2',[`opf[${state.group}][finish]`]:'available-finish',[`opf[${state.group}][extras][]`]:'available-extras'}});
         check('classic add request succeeds',add.ok());
+        }
         await page.goto(base + '/disabled-proof-checkout/');
         const nonce = await page.locator('[name="woocommerce-process-checkout-nonce"]').inputValue();
         const checkout = await context.request.post(base + '/?wc-ajax=checkout',{form:{'woocommerce-process-checkout-nonce':nonce,billing_first_name:'Test',billing_last_name:'Buyer',billing_company:'',billing_country:'US',billing_address_1:'1 Test Street',billing_address_2:'',billing_city:'Testville',billing_state:'CA',billing_postcode:'90210',billing_phone:'5551234567',billing_email:'disabled-classic@example.invalid',payment_method:'bacs',terms:'on'}});
@@ -61,7 +75,7 @@ try {
       } else {
         const initial = await context.request.get(base + '/wp-json/wc/store/v1/cart');
         const nonce = initial.headers().nonce;
-        const add = await context.request.post(base + '/wp-json/wc/store/v1/cart/add-item',{headers:{Nonce:nonce},data:{id:state.product,quantity:2,opf_fields:{[state.group]:{finish:'available-finish',extras:['available-extras']}}}});
+        const add = phase === 'order-again' ? initial : await context.request.post(base + '/wp-json/wc/store/v1/cart/add-item',{headers:{Nonce:nonce},data:{id:state.product,quantity:2,opf_fields:{[state.group]:{finish:'available-finish',extras:['available-extras']}}}});
         const cart = await add.json();
         check('Store API available selection accepts real add request',add.ok() && cart.items.length === 1);
         fs.writeFileSync(dir + '/store-cart-price.json',JSON.stringify(cart.items[0].prices,null,2)+'\n');
@@ -75,7 +89,7 @@ try {
       check(`${path} returns persisted order id`,orders[path] > 0);
       await context.close();
     }
-    fs.writeFileSync(dir + '/commerce-order-ids.json',JSON.stringify(orders,null,2)+'\n');
+    fs.writeFileSync(dir + (phase === 'order-again' ? '/order-again-order-ids.json' : '/commerce-order-ids.json'),JSON.stringify(orders,null,2)+'\n');
     check('commerce browser has no page errors',errors.length === 0);
   }
   fs.writeFileSync(`docs/compatibility/disabled-commerce-${phase}-results.json`,JSON.stringify({phase,checks,errors},null,2)+'\n');

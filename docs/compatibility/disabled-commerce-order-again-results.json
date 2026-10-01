@@ -1,0 +1,66 @@
+{
+  "phase": "order-again",
+  "checks": [
+    {
+      "label": "classic actual account page exposes order-again action",
+      "pass": true
+    },
+    {
+      "label": "classic real Woo order-again restores one cart line",
+      "pass": true
+    },
+    {
+      "label": "classic real Woo order-again retains available labels",
+      "pass": true
+    },
+    {
+      "label": "classic real Woo order-again retains base plus flat fees",
+      "pass": true
+    },
+    {
+      "label": "classic actual wc-ajax checkout succeeds",
+      "pass": true
+    },
+    {
+      "label": "classic returns persisted order id",
+      "pass": true
+    },
+    {
+      "label": "store actual account page exposes order-again action",
+      "pass": true
+    },
+    {
+      "label": "store real Woo order-again restores one cart line",
+      "pass": true
+    },
+    {
+      "label": "store real Woo order-again retains available labels",
+      "pass": true
+    },
+    {
+      "label": "store real Woo order-again retains base plus flat fees",
+      "pass": true
+    },
+    {
+      "label": "Store API available selection accepts real add request",
+      "pass": true
+    },
+    {
+      "label": "Store API unit price adds only available flat choice fees",
+      "pass": true
+    },
+    {
+      "label": "Store API actual checkout succeeds",
+      "pass": true
+    },
+    {
+      "label": "store returns persisted order id",
+      "pass": true
+    },
+    {
+      "label": "commerce browser has no page errors",
+      "pass": true
+    }
+  ],
+  "errors": []
+}

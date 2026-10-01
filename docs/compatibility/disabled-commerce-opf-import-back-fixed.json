@@ -1,0 +1,112 @@
+{
+    "schema": 1,
+    "fields": [
+        {
+            "id": "finish",
+            "label": "Finish",
+            "description": "",
+            "type": "select",
+            "required": false,
+            "width": 100,
+            "css_class": "",
+            "placeholder": "",
+            "choices": [
+                {
+                    "slug": "unavailable-finish",
+                    "label": "Unavailable finish",
+                    "selected": false,
+                    "disabled": true,
+                    "pricing": {
+                        "type": "fixed",
+                        "amount": 99,
+                        "formula": "",
+                        "formula_raw": "",
+                        "per_unit": false
+                    }
+                },
+                {
+                    "slug": "available-finish",
+                    "label": "Available finish",
+                    "selected": false,
+                    "disabled": false,
+                    "pricing": {
+                        "type": "fixed",
+                        "amount": 2,
+                        "formula": "",
+                        "formula_raw": "",
+                        "per_unit": false
+                    }
+                }
+            ],
+            "pricing": {
+                "type": "none",
+                "amount": 0,
+                "formula": "",
+                "formula_raw": "",
+                "per_unit": true
+            },
+            "conditionals": []
+        },
+        {
+            "id": "extras",
+            "label": "Extras",
+            "description": "",
+            "type": "checkbox",
+            "required": false,
+            "width": 100,
+            "css_class": "",
+            "placeholder": "",
+            "choices": [
+                {
+                    "slug": "unavailable-extras",
+                    "label": "Unavailable extras",
+                    "selected": false,
+                    "disabled": true,
+                    "pricing": {
+                        "type": "fixed",
+                        "amount": 99,
+                        "formula": "",
+                        "formula_raw": "",
+                        "per_unit": false
+                    }
+                },
+                {
+                    "slug": "available-extras",
+                    "label": "Available extras",
+                    "selected": false,
+                    "disabled": false,
+                    "pricing": {
+                        "type": "fixed",
+                        "amount": 1,
+                        "formula": "",
+                        "formula_raw": "",
+                        "per_unit": false
+                    }
+                }
+            ],
+            "pricing": {
+                "type": "none",
+                "amount": 0,
+                "formula": "",
+                "formula_raw": "",
+                "per_unit": true
+            },
+            "conditionals": []
+        }
+    ],
+    "rule_groups": [
+        {
+            "rules": [
+                {
+                    "subject": "product",
+                    "operator": "in",
+                    "terms": [
+                        "9248251"
+                    ]
+                }
+            ]
+        }
+    ],
+    "mark_required": true,
+    "labels_position": "above"
+}

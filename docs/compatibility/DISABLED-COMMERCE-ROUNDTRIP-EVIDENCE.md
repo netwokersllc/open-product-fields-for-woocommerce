@@ -32,6 +32,8 @@ which suppresses mail and authenticates the fixture administrator only for
 loopback `?disabled_proof_login=1`. That hook redirects to the fixture WAPF
 edit screen; its user and group IDs come from `opf_disabled_lifecycle_state`.
 The normal WooCommerce BACS gateway handles both checkouts.
+The reproducible MU hook is `bin/e2e-disabled-commerce-mu.php`; copy it to
+the clone's `wp-content/mu-plugins` before browser execution.
 
 ## Comparator and explicit limits
 
@@ -80,6 +82,58 @@ lacks `opf_base_price`; `CartIntegration::apply_prices` skips such lines.
 The persisted-source importer also drops the WAPF `checkboxes` field;
 the select survives with its flags and price. These failures are recorded
 explicitly and require separate fixes and regression proof.
+
+## Separate fixes and final proof
+
+Commit `3bad50a` restores the current catalog product base on order-again,
+so normal OPF pricing reapplies the selected choice fees. It touches
+`CartIntegration.php` and four focused tests only. The regression first
+failed on the missing `opf_base_price` key; final focused tests pass
+4 tests / 7 assertions. The full suite passed 239 tests / 946 assertions.
+
+Commit `3d635fe` maps installed WAPF Extended `checkboxes` to OPF `checkbox`.
+It touches the mapper and one focused test only. That regression first
+failed because zero fields survived mapping; after the fix it passes
+1 test / 7 assertions. The final full suite passes 240 tests / 953
+assertions, with one existing PHPUnit metadata deprecation.
+
+The fresh installed comparator model save/export followed by OPF's real
+persisted-source importer now retains both fields, flags, and flat prices.
+Original orders and their restored carts pass the strict verifier, including
+the USD 10 unadjusted catalog base and USD 23 total. For full repeat commerce
+proof, the fixture orders are assigned to the isolated administrator and
+completed. Chromium reads the real authenticated My Account order-again
+links, follows WooCommerce's normal handler, observes quantity two and
+available-choice labels at USD 23, and checks out the restored carts via
+the classic handler and Store API. Both repeat orders persist exact values,
+public labels, snapshots, quantity, and price. These paths report no page
+errors. No fixture order status or user changes touch production.
+
+```sh
+vendor/bin/phpunit --filter OrderAgainBasePriceTest
+vendor/bin/phpunit --filter test_extended_checkboxes_import_preserves_choice_availability_and_flat_fees
+composer test
+OPF_DISABLED_LIFECYCLE_ALLOW=1 OPF_DISABLED_LIFECYCLE_PHASE=comparator-model wp --path=/tmp/opf-disabled-roundtrip-wp eval-file bin/e2e-disabled-commerce-roundtrip.php
+OPF_DISABLED_LIFECYCLE_ALLOW=1 OPF_DISABLED_LIFECYCLE_PHASE=verify wp --path=/tmp/opf-disabled-roundtrip-wp eval-file bin/e2e-disabled-commerce-roundtrip.php
+wp --path=/tmp/opf-disabled-roundtrip-wp plugin deactivate advanced-product-fields-for-woocommerce-extended
+OPF_DISABLED_LIFECYCLE_ALLOW=1 OPF_DISABLED_LIFECYCLE_PHASE=prepare-order-again wp --path=/tmp/opf-disabled-roundtrip-wp eval-file bin/e2e-disabled-commerce-roundtrip.php
+OPF_DISABLED_BROWSER_PHASE=order-again node bin/e2e-disabled-commerce-roundtrip.mjs
+OPF_DISABLED_LIFECYCLE_ALLOW=1 OPF_DISABLED_LIFECYCLE_PHASE=commerce wp --path=/tmp/opf-disabled-roundtrip-wp eval-file bin/e2e-disabled-commerce-roundtrip.php
+OPF_DISABLED_LIFECYCLE_ALLOW=1 OPF_DISABLED_LIFECYCLE_PHASE=order-again-verify wp --path=/tmp/opf-disabled-roundtrip-wp eval-file bin/e2e-disabled-commerce-roundtrip.php
+php -l includes/Service/CartIntegration.php
+php -l includes/Engine/WapfMapper.php
+php -l bin/e2e-disabled-commerce-roundtrip.php
+node --check bin/e2e-disabled-commerce-roundtrip.mjs
+git diff --check
+```
+
+Final results are in `disabled-commerce-fixed-results.txt`,
+`disabled-commerce-fixed-original-results.txt`,
+`disabled-commerce-fixed-repeat-results.txt`,
+`disabled-commerce-order-again-results.json`,
+`disabled-commerce-order-again-fixed.json`, and
+`disabled-commerce-opf-import-back-fixed.json`. Baseline artifacts retain
+the pre-fix failures. Licensed WAPF Tools UI proof remains unresolved.
 
 Broader accessibility, responsive comparison, refunds/restock, licensed WAPF
 Tools UI fidelity, and commerce paths for the other multi-choice controls

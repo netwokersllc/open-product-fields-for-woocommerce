@@ -1,0 +1,12 @@
+{
+    "classic": {
+        "expected_total": 23,
+        "actual_total": 23,
+        "pass": true
+    },
+    "store": {
+        "expected_total": 23,
+        "actual_total": 23,
+        "pass": true
+    }
+}
