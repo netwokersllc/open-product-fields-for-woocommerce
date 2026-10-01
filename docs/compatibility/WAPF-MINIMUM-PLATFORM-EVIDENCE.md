@@ -192,6 +192,26 @@ the original REST union annotations. No platform declaration changed. Full
 WP/Woo floor installation, external cache backends, browser/commerce lifecycle,
 and the other PHP 7.1/Free/WooCommerce 7.0 gaps remain unverified.
 
+## Current-branch PHP 7.4 syntax recheck — 2026-10-01
+
+At OPF `4d9c6e20458933df09a1aef33964c3125aae8cfa`, the native PHP 7.4.33
+CLI parsed all 34 shipped PHP files with zero syntax errors. This run includes
+runtime PHP under `includes/`, the plugin entry point, `uninstall.php`, and
+the shipped `assets/` and `languages/` PHP guards; it excludes development
+scripts, tests, and `vendor/`. PHP 7.4.33 CLI/common packages were downloaded
+from the configured Ubuntu 22.04 package source and extracted under
+`/tmp/opf-php74/`; no system PHP packages or production files were changed.
+The recheck confirms syntax only. It does not replace the exact PHP 7.4 / WP
+6.5 / WooCommerce 9.0 activation, REST, browser, cart, checkout, order, and
+order-again lifecycle matrix in closure step 1.
+
+Reproduction from the plugin checkout:
+
+```sh
+find . -path './vendor' -prune -o -path './tests' -prune -o -path './bin' -prune -o -type f -name '*.php' -print0 \
+  | xargs -0 -n1 /tmp/opf-php74/root/usr/bin/php7.4 -l
+```
+
 ## Remaining closure steps
 
 1. The PHP 7.4 parse gate now passes after base `363fd67` removed the two REST
