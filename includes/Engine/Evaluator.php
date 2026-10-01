@@ -104,8 +104,9 @@ final class Evaluator {
 	 * @param array<string,mixed> $group       Normalized group data.
 	 * @param array<string, array<int|string>> $has_terms subject => term ids the product belongs to, e.g. ['product_cat' => [1,2]].
 	 * @param int                 $product_id  Current product id.
+	 * @param bool                $is_logged_in Whether current visitor is logged in.
 	 */
-	public static function group_matches( array $group, array $has_terms, int $product_id ): bool {
+	public static function group_matches( array $group, array $has_terms, int $product_id, bool $is_logged_in = false ): bool {
 		$rule_groups = $group['rule_groups'] ?? [];
 		if ( empty( $rule_groups ) ) {
 			return true;
@@ -113,7 +114,7 @@ final class Evaluator {
 		foreach ( $rule_groups as $rule_group ) {
 			$group_ok = true;
 			foreach ( $rule_group['rules'] as $rule ) {
-				if ( ! self::placement_rule_passes( $rule, $has_terms, $product_id ) ) {
+				if ( ! self::placement_rule_passes( $rule, $has_terms, $product_id, $is_logged_in ) ) {
 					$group_ok = false;
 					break;
 				}
@@ -131,8 +132,11 @@ final class Evaluator {
 	 * @param array<string,mixed> $rule       Normalized placement rule.
 	 * @param array<string,array> $has_terms  subject => term ids.
 	 */
-	private static function placement_rule_passes( array $rule, array $has_terms, int $product_id ): bool {
+	private static function placement_rule_passes( array $rule, array $has_terms, int $product_id, bool $is_logged_in ): bool {
 		$subject = $rule['subject'];
+		if ( 'user_auth' === $subject ) {
+			return 'logged_in' === $rule['operator'] ? $is_logged_in : ( 'logged_out' === $rule['operator'] && ! $is_logged_in );
+		}
 
 		if ( 'product' === $subject ) {
 			$in = in_array( (string) $product_id, $rule['terms'], true );

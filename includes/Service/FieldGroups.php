@@ -115,7 +115,9 @@ final class FieldGroups {
 	 */
 	public static function for_product( \WC_Product $product ): array {
 		$product_id = $product->get_parent_id() ? $product->get_parent_id() : $product->get_id();
-		$cached     = wp_cache_get( $product_id, 'opf_groups_for_product' );
+		$is_logged_in = is_user_logged_in();
+		$cache_key = $product_id . ':' . ( $is_logged_in ? 'logged-in' : 'logged-out' );
+		$cached     = wp_cache_get( $cache_key, 'opf_groups_for_product' );
 		if ( is_array( $cached ) ) {
 			return $cached;
 		}
@@ -132,12 +134,12 @@ final class FieldGroups {
 			if ( $current_lang && ! empty( $entry['lang'] ) && $entry['lang'] !== $current_lang ) {
 				continue;
 			}
-			if ( Evaluator::group_matches( $entry['group']->data, $has_terms, $product_id ) ) {
+			if ( Evaluator::group_matches( $entry['group']->data, $has_terms, $product_id, $is_logged_in ) ) {
 				$matching[] = $entry;
 			}
 		}
 
-		wp_cache_set( $product_id, $matching, 'opf_groups_for_product' );
+		wp_cache_set( $cache_key, $matching, 'opf_groups_for_product' );
 		return $matching;
 	}
 

@@ -72,10 +72,14 @@ final class Builder {
 		$cat_terms  = get_terms( [ 'taxonomy' => 'product_cat', 'hide_empty' => false, 'number' => 500 ] );
 		$tag_terms  = get_terms( [ 'taxonomy' => 'product_tag', 'hide_empty' => false, 'number' => 500 ] );
 
-		$selected = [ 'product_cat' => [], 'product_tag' => [] ];
+		$selected = [ 'product_cat' => [], 'product_tag' => [], 'user_auth' => 'all' ];
 		if ( $group ) {
 			foreach ( $group->data['rule_groups'] as $rule_group ) {
 				foreach ( $rule_group['rules'] as $rule ) {
+					if ( 'user_auth' === $rule['subject'] ) {
+						$selected['user_auth'] = 'logged_in' === $rule['operator'] ? 'logged-in' : ( 'logged_out' === $rule['operator'] ? 'logged-out' : 'all' );
+						continue;
+					}
 					if ( 'in' === $rule['operator'] && isset( $selected[ $rule['subject'] ] ) ) {
 						$selected[ $rule['subject'] ] = array_merge( $selected[ $rule['subject'] ], $rule['terms'] );
 					}
@@ -83,7 +87,13 @@ final class Builder {
 			}
 		}
 		?>
-		<p class="description"><?php esc_html_e( 'Leave both empty to show this group on every product.', 'open-product-fields-for-woocommerce' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Leave categories and tags empty to target every product. Visitor access still applies.', 'open-product-fields-for-woocommerce' ); ?></p>
+		<p><strong><?php esc_html_e( 'Visitor access', 'open-product-fields-for-woocommerce' ); ?></strong></p>
+		<select id="opf-placement-auth" style="width:100%">
+			<option value="all" <?php selected( 'all' === $selected['user_auth'] ); ?>><?php esc_html_e( 'Everyone', 'open-product-fields-for-woocommerce' ); ?></option>
+			<option value="logged-in" <?php selected( 'logged-in' === $selected['user_auth'] ); ?>><?php esc_html_e( 'Logged-in visitors', 'open-product-fields-for-woocommerce' ); ?></option>
+			<option value="logged-out" <?php selected( 'logged-out' === $selected['user_auth'] ); ?>><?php esc_html_e( 'Logged-out visitors', 'open-product-fields-for-woocommerce' ); ?></option>
+		</select>
 		<p><strong><?php esc_html_e( 'Product categories', 'open-product-fields-for-woocommerce' ); ?></strong></p>
 		<select multiple size="8" id="opf-placement-cats" style="width:100%">
 			<?php foreach ( (array) $cat_terms as $term ) : ?>

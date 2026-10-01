@@ -401,6 +401,19 @@ final class WapfMapper {
 				$condition = (string) ( $rule['condition'] ?? '' );
 				$subject   = (string) ( $rule['subject'] ?? '' );
 				$value     = $rule['value'] ?? null;
+				if ( 'auth' === $condition || '!auth' === $condition ) {
+					if ( ! empty( $value ) ) {
+						$notes[] = sprintf( 'login visibility rule "%s" unexpectedly has a value and needs review.', $condition );
+						$needs_review = true;
+						continue;
+					}
+					$rules[] = [
+						'subject'  => 'user_auth',
+						'operator' => 'auth' === $condition ? 'logged_in' : 'logged_out',
+						'terms'    => [],
+					];
+					continue;
+				}
 
 				// WAPF evaluated empty conditions as FALSE (dead rule). Flag,
 				// don't silently broaden scope.

@@ -74,6 +74,31 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( [ '8768' ], $mapped['group']['rule_groups'][0]['rules'][0]['terms'] );
 	}
 
+	public function test_maps_wapf_login_visibility_conditions(): void {
+		$source = $this->swatch_group();
+		$source['rule_groups'] = [
+			[ 'rules' => [ [ 'condition' => 'auth', 'subject' => 'product', 'value' => [] ] ] ],
+		];
+		$logged_in = WapfMapper::map( $source );
+		$this->assertFalse( $logged_in['needs_review'] );
+		$this->assertSame( 'user_auth', $logged_in['group']['rule_groups'][0]['rules'][0]['subject'] );
+		$this->assertSame( 'logged_in', $logged_in['group']['rule_groups'][0]['rules'][0]['operator'] );
+
+		$source['rule_groups'][0]['rules'][0]['condition'] = '!auth';
+		$logged_out = WapfMapper::map( $source );
+		$this->assertFalse( $logged_out['needs_review'] );
+		$this->assertSame( 'logged_out', $logged_out['group']['rule_groups'][0]['rules'][0]['operator'] );
+	}
+
+	public function test_malformed_wapf_login_rule_is_review_required(): void {
+		$source = $this->swatch_group();
+		$source['rule_groups'] = [ [ 'rules' => [ [ 'condition' => 'auth', 'subject' => 'product', 'value' => [ 'unexpected' ] ] ] ] ];
+		$mapped = WapfMapper::map( $source );
+		$this->assertTrue( $mapped['needs_review'] );
+		$this->assertStringContainsString( 'unexpectedly has a value', implode( ' ', $mapped['notes'] ) );
+		$this->assertEmpty( $mapped['group']['rule_groups'] );
+	}
+
 	public function test_maps_wapf_field_condition_shapes_and_operators(): void {
 		$mapped = WapfMapper::map( [
 			'fields' => [

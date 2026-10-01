@@ -242,6 +242,11 @@
 		if ( tags.length ) {
 			rules.push( { subject: 'product_tag', operator: 'in', terms: tags } );
 		}
+		var authSelect = document.getElementById( 'opf-placement-auth' );
+		var auth = authSelect ? authSelect.value : 'all';
+		if ( 'logged-in' === auth || 'logged-out' === auth ) {
+			rules.push( { subject: 'user_auth', operator: 'logged-in' === auth ? 'logged_in' : 'logged_out', terms: [] } );
+		}
 		model.rule_groups = rules.length ? [ { rules: rules } ] : [];
 
 		var status = document.getElementById( 'opf-b-status' );

@@ -199,6 +199,16 @@ final class WapfExporter {
 
 	/** @param array<string,mixed> $rule */
 	private static function map_placement_rule( array $rule ): array {
+		if ( 'user_auth' === $rule['subject'] ) {
+			if ( ! in_array( $rule['operator'], [ 'logged_in', 'logged_out' ], true ) || $rule['terms'] ) {
+				throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve this visitor access rule.' );
+			}
+			return [
+				'subject' => 'product',
+				'condition' => 'logged_in' === $rule['operator'] ? 'auth' : '!auth',
+				'value' => [],
+			];
+		}
 		$subject_map = [ 'product' => 'products', 'category' => 'product_cats', 'tag' => 'p_tags' ];
 		if ( ! isset( $subject_map[ $rule['subject'] ] ) || ! in_array( $rule['operator'], [ 'in', 'not_in' ], true ) || ! $rule['terms'] ) {
 			throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve a group placement rule.' );

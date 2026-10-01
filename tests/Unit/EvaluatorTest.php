@@ -102,4 +102,24 @@ final class EvaluatorTest extends TestCase {
 		$this->assertTrue( Evaluator::group_matches( $group, [ 'product_cat' => [ 9 ], 'product_tag' => [ 2 ] ], 42 ) );
 		$this->assertFalse( Evaluator::group_matches( $group, [ 'product_cat' => [ 9 ], 'product_tag' => [ 3 ] ], 42 ) );
 	}
+
+	public function test_placement_can_target_logged_in_or_logged_out_visitors(): void {
+		$logged_in = [ 'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'user_auth', 'operator' => 'logged_in', 'terms' => [] ] ] ] ] ];
+		$logged_out = [ 'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'user_auth', 'operator' => 'logged_out', 'terms' => [] ] ] ] ] ];
+
+		$this->assertTrue( Evaluator::group_matches( $logged_in, [], 42, true ) );
+		$this->assertFalse( Evaluator::group_matches( $logged_in, [], 42, false ) );
+		$this->assertTrue( Evaluator::group_matches( $logged_out, [], 42, false ) );
+		$this->assertFalse( Evaluator::group_matches( $logged_out, [], 42, true ) );
+	}
+
+	public function test_visitor_access_combines_with_product_placement(): void {
+		$group = [ 'rule_groups' => [ [ 'rules' => [
+			[ 'subject' => 'product', 'operator' => 'in', 'terms' => [ '42' ] ],
+			[ 'subject' => 'user_auth', 'operator' => 'logged_in', 'terms' => [] ],
+		] ] ] ];
+		$this->assertTrue( Evaluator::group_matches( $group, [], 42, true ) );
+		$this->assertFalse( Evaluator::group_matches( $group, [], 42, false ) );
+		$this->assertFalse( Evaluator::group_matches( $group, [], 43, true ) );
+	}
 }

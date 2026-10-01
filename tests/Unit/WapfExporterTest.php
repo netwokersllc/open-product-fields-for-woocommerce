@@ -58,6 +58,15 @@ final class WapfExporterTest extends TestCase {
 		$this->assertSame( '!p_tags', $payload['conditions'][0]['rules'][1]['condition'] );
 	}
 
+	public function test_exports_logged_in_and_logged_out_placement(): void {
+		$group = FieldGroup::normalize( [ 'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'user_auth', 'operator' => 'logged_out', 'terms' => [] ] ] ] ] ] );
+		$payload = WapfExporter::build_payload( $group );
+		$this->assertSame( [ 'subject' => 'product', 'condition' => '!auth', 'value' => [] ], $payload['conditions'][0]['rules'][0] );
+		$round_trip = WapfMapper::map( [ 'fields' => [], 'rule_groups' => $payload['conditions'] ] );
+		$this->assertFalse( $round_trip['needs_review'] );
+		$this->assertSame( 'logged_out', $round_trip['group']['rule_groups'][0]['rules'][0]['operator'] );
+	}
+
 	public function test_expands_any_rules_into_or_conditionals_and_maps_wapf_pro_operators(): void {
 		$group = FieldGroup::normalize( [
 			'fields' => [
