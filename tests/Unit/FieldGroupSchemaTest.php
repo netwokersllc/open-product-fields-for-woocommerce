@@ -116,6 +116,15 @@ final class FieldGroupSchemaTest extends TestCase {
 		$this->assertSame( [ 'enabled' => true, 'mode' => 'quantity' ], $section['repeat'] );
 	}
 
+	public function test_image_quantity_choice_bounds_and_default_are_normalized(): void {
+		$field = FieldGroup::normalize_field( [
+			'id' => 'prints', 'type' => 'image_quantity',
+			'choices' => [ [ 'slug' => 'oak', 'label' => 'Oak', 'quantity' => [ 'default' => 12, 'min' => 2, 'max' => 8 ] ] ],
+		] );
+		$this->assertSame( [ 'default' => 8, 'min' => 2, 'max' => 8 ], $field['choices'][0]['quantity'] );
+		$this->assertFalse( $field['required'] );
+	}
+
 	public function test_disabled_repeaters_are_omitted_and_button_max_must_fit_integer_range(): void {
 		$disabled = FieldGroup::normalize_field( [ 'id' => 'name', 'type' => 'text', 'repeat' => [ 'enabled' => false, 'mode' => 'button' ] ] );
 		$this->assertArrayNotHasKey( 'repeat', $disabled );

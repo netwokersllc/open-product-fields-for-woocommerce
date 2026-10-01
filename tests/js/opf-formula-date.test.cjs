@@ -21,6 +21,19 @@ test('WAPF date formula functions use Sunday-zero weekdays and one-based months'
 	assert.equal(context.__evalFormula("dow('2024-01-01')", 10, 1, 0, ''), 1);
 });
 
+test('sumQty reads only tagged image choice quantities and image quantity pricing multiplies per choice', () => {
+	const quantities = { _opf_type: 'image_quantity', quantities: { oak: 2, ash: 3 } };
+	assert.equal(context.__evalFormula('sumQty(images)', 10, 1, 0, '', { images: quantities }), 5);
+	assert.equal(context.__evalFormula('sumQty(unrelated)', 10, 1, 0, '', { unrelated: [2, 3] }), 0);
+	assert.equal(context.__choiceOrFieldAddon({
+		type: 'image_quantity',
+		choices: [
+			{ slug: 'oak', pricing: { type: 'fixed', amount: 2 } },
+			{ slug: 'ash', pricing: { type: 'fixed', amount: 1 } },
+		],
+	}, quantities, 10, 1, 0, '', { images: quantities }), 7);
+});
+
 test('WAPF date functions accept the selected field value and site today', () => {
 	assert.equal(context.__evalFormula('month(today())', 10, 1, 0, ''), 6);
 	assert.equal(context.__evalFormula("datediff('01-10-2023'; '01-12-2023')", 10, 1, 0, ''), 2);

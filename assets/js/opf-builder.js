@@ -19,7 +19,7 @@
 	model.fields = model.fields || [];
 	model.rule_groups = model.rule_groups || [];
 
-	var TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'paragraph', 'content_image', 'section', 'section_end' ];
+	var TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'image_quantity', 'paragraph', 'content_image', 'section', 'section_end' ];
 	var PRICING = [ 'none', 'fixed', 'percent', 'formula' ];
 	var REPEATABLE_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch' ];
 
@@ -116,11 +116,11 @@
 			'formula' === choice.pricing.type ? formulaInput : amountInput,
 			remove
 		] );
-		if ( 'swatch' !== field.type ) {
+		if ( ! [ 'swatch', 'image_quantity' ].includes( field.type ) ) {
 			return row;
 		}
 		var extras = [];
-		if ( 'color' === field.swatch_style ) {
+		if ( 'swatch' === field.type && 'color' === field.swatch_style ) {
 			var colorInput = el( 'input', { class: 'opf-b-input', type: 'color', value: choice.color || '#ffffff', 'aria-label': 'Swatch color' } );
 			colorInput.addEventListener( 'input', function () { choice.color = colorInput.value.toUpperCase(); } );
 			extras.push( colorInput );
@@ -130,7 +130,7 @@
 		imageUrl.addEventListener( 'input', function () {
 			if ( imageUrl.value.trim() ) {
 				choice.image = imageUrl.value.trim();
-				field.swatch_style = 'image';
+				if ( 'swatch' === field.type ) field.swatch_style = 'image';
 			}
 			else delete choice.image;
 			delete choice.image_id;
@@ -151,7 +151,7 @@
 				if ( ! attachment || ! attachment.id || ! attachment.url ) return;
 				choice.image_id = Number( attachment.id );
 				choice.image = attachment.url;
-				field.swatch_style = 'image';
+				if ( 'swatch' === field.type ) field.swatch_style = 'image';
 				imageUrl.value = attachment.url;
 			} );
 			frame.open();
@@ -317,20 +317,21 @@
 		} ) );
 		typeSel.addEventListener( 'change', function () {
 			field.type = typeSel.value;
+			if ( 'image_quantity' === field.type ) field.required = false;
 			if ( [ 'paragraph', 'content_image', 'section', 'section_end' ].includes( field.type ) ) {
 				field.required = false;
 				field.choices = [];
 				field.pricing = { type: 'none', amount: 0, formula: '' };
 			}
-			if ( in_array( field.type, [ 'swatch', 'select', 'radio', 'checkbox' ] ) && ! field.choices.length ) {
-				field.choices = [ { slug: 'option-1', label: 'Option 1', selected: false, disabled: false, pricing: { type: 'none', amount: 0, formula: '' } } ];
+			if ( in_array( field.type, [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ] ) && ! field.choices.length ) {
+				field.choices = [ { slug: 'option-1', label: 'Option 1', selected: false, disabled: false, quantity: { default: 0, min: 0, max: 999 }, pricing: { type: 'none', amount: 0, formula: '' } } ];
 			}
 			rerender();
 		} );
 
 		var req = el( 'input', { type: 'checkbox', title: 'Required' } );
-		req.checked = ! [ 'paragraph', 'content_image', 'section', 'section_end' ].includes( field.type ) && !! field.required;
-		req.disabled = [ 'paragraph', 'content_image', 'section', 'section_end' ].includes( field.type );
+		req.checked = ! [ 'image_quantity', 'paragraph', 'content_image', 'section', 'section_end' ].includes( field.type ) && !! field.required;
+		req.disabled = [ 'image_quantity', 'paragraph', 'content_image', 'section', 'section_end' ].includes( field.type );
 		req.addEventListener( 'change', function () {
 			field.required = req.checked;
 		} );
@@ -469,10 +470,10 @@
 			card.appendChild( chooseContentImage );
 		}
 
-		if ( field.choices.length || in_array( field.type, [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {
+		if ( field.choices.length || in_array( field.type, [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ], true ) ) {
 			var addChoice = el( 'button', { class: 'button', text: '+ Add choice', onclick: function () {
 				var n = field.choices.length + 1;
-				var choice = { slug: 'option-' + n, label: 'Option ' + n, selected: false, disabled: false, pricing: { type: 'none', amount: 0, formula: '' } };
+				var choice = { slug: 'option-' + n, label: 'Option ' + n, selected: false, disabled: false, quantity: { default: 0, min: 0, max: 999 }, pricing: { type: 'none', amount: 0, formula: '' } };
 				if ( 'color' === field.swatch_style ) choice.color = '#FFFFFF';
 				field.choices.push( choice );
 				rerender();
@@ -484,6 +485,16 @@
 			card.appendChild( header );
 			card.appendChild( list );
 			card.appendChild( addChoice );
+		}
+		if ( 'image_quantity' === field.type ) {
+			field.choices.forEach( function ( choice ) {
+				choice.quantity = choice.quantity || { default: 0, min: 0, max: 999 };
+				[ [ 'default', 'Default quantity' ], [ 'min', 'Minimum quantity' ], [ 'max', 'Maximum quantity' ] ].forEach( function ( setting ) {
+					var input = el( 'input', { class: 'opf-b-input', type: 'number', min: '0', max: '999', value: choice.quantity[ setting[ 0 ] ] } );
+					input.addEventListener( 'input', function () { choice.quantity[ setting[ 0 ] ] = Math.max( 0, Math.min( 999, Number( input.value ) || 0 ) ); } );
+					card.appendChild( labeledControl( choice.label + ' — ' + setting[ 1 ], input ) );
+				} );
+			} );
 		}
 		if ( 'swatch' === field.type ) {
 			var imageSettings = el( 'div', { class: 'opf-b-image-swatch-settings' } );

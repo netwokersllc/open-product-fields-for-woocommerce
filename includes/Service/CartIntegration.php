@@ -566,6 +566,17 @@ final class CartIntegration {
 	 * @param string|array        $raw   Stored value.
 	 */
 	private static function display_value( array $field, $raw ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- called from visible_selections().
+		if ( 'image_quantity' === $field['type'] ) {
+			$map = [];
+			$quantities = is_array( $raw ) ? ( $raw['quantities'] ?? [] ) : [];
+			foreach ( $field['choices'] as $choice ) {
+				$count = (int) ( $quantities[ $choice['slug'] ] ?? 0 );
+				if ( $count > 0 ) {
+					$map[] = $choice['label'] . ': ' . $count;
+				}
+			}
+			return implode( ', ', $map );
+		}
 		if ( 'date' === $field['type'] ) {
 			$format = get_option( 'opf_date_format', get_option( 'wapf_date_format', DateFormat::DEFAULT_FORMAT ) );
 			return DateFormat::format( (string) $raw, $format );
@@ -782,6 +793,27 @@ final class CartIntegration {
 	 * @param mixed               $value  Submitted value.
 	 */
 	private static function sanitize_value( array $field, $value ) {
+		if ( 'image_quantity' === $field['type'] ) {
+			if ( ! is_array( $value ) ) {
+				return null;
+			}
+			$clean = [];
+			$invalid = [];
+			foreach ( $field['choices'] as $choice ) {
+				$raw_quantity = $value[ $choice['slug'] ] ?? 0;
+				if ( ! is_scalar( $raw_quantity ) || ! preg_match( '/^\\d+$/', (string) $raw_quantity ) ) {
+					$invalid[] = $choice['slug'];
+					$clean[ $choice['slug'] ] = 0;
+					continue;
+				}
+				$quantity = (int) $raw_quantity;
+				if ( $quantity < $choice['quantity']['min'] || $quantity > $choice['quantity']['max'] || ( ! empty( $choice['disabled'] ) && $quantity > 0 ) ) {
+					$invalid[] = $choice['slug'];
+				}
+				$clean[ $choice['slug'] ] = ! empty( $choice['disabled'] ) ? 0 : $quantity;
+			}
+			return [ '_opf_type' => 'image_quantity', 'quantities' => $clean, 'invalid' => $invalid ];
+		}
 		if ( in_array( $field['type'], [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {
 			$valid_slugs = wp_list_pluck( $field['choices'], 'slug' );
 			$slugs       = (array) $value;
@@ -864,6 +896,20 @@ final class CartIntegration {
 					continue;
 				}
 				if ( ! Evaluator::is_visible( $field, $given ) ) {
+					continue;
+				}
+				if ( 'image_quantity' === $field['type'] ) {
+					$submitted = $provided && is_array( $given[ $field['id'] ] ) ? $given[ $field['id'] ] : [];
+					$quantities = $submitted['quantities'] ?? $submitted;
+					$invalid = $submitted['invalid'] ?? [];
+					foreach ( $field['choices'] as $choice ) {
+						$q = (int) ( $quantities[ $choice['slug'] ] ?? 0 );
+						if ( in_array( $choice['slug'], $invalid, true ) ) {
+							$errors[] = sprintf( '"%s" quantity is invalid.', $choice['label'] );
+						} elseif ( $q < $choice['quantity']['min'] || $q > $choice['quantity']['max'] ) {
+							$errors[] = sprintf( '"%s" quantity must be between %d and %d.', $choice['label'], $choice['quantity']['min'], $choice['quantity']['max'] );
+						}
+					}
 					continue;
 				}
 				$value    = $provided && ! is_array( $given[ $field['id'] ] ) ? (string) $given[ $field['id'] ] : null;

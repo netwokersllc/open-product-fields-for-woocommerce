@@ -44,6 +44,22 @@ namespace OPF\Tests\Unit {
 	use PHPUnit\Framework\TestCase;
 
 	final class RendererImageSwatchTest extends TestCase {
+		public function test_image_quantity_field_renders_named_bounded_choice_inputs(): void {
+			$group = new FieldGroup( [ 'fields' => [ [
+				'id' => 'images', 'label' => 'Prints', 'type' => 'image_quantity',
+				'choices' => [ [ 'slug' => 'oak', 'label' => 'Oak', 'image' => 'https://example.test/oak.jpg', 'quantity' => [ 'default' => 1, 'min' => 0, 'max' => 8 ] ] ],
+			] ] ] );
+			ob_start();
+			Renderer::render_group( '17', 'Prints', $group, 10.0 );
+			$html = (string) ob_get_clean();
+
+			$this->assertStringContainsString( 'name="opf[17][images][oak]"', $html );
+			$this->assertStringContainsString( 'type="number"', $html );
+			$this->assertStringContainsString( 'value="1" min="0" max="8"', $html );
+			$this->assertStringContainsString( 'data-choice-slug="oak"', $html );
+			$this->assertStringContainsString( 'src="https://example.test/oak.jpg"', $html );
+		}
+
 		public function test_image_choice_renders_an_escaped_accessible_image_and_input(): void {
 			$group = new FieldGroup( [ 'fields' => [
 				[

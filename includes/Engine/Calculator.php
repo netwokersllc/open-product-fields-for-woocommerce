@@ -52,6 +52,18 @@ final class Calculator {
 			return max( 0.0, $total );
 		}
 
+		if ( 'image_quantity' === ( $field['type'] ?? '' ) ) {
+			$total = 0.0;
+			$quantities = is_array( $value ) && 'image_quantity' === ( $value['_opf_type'] ?? '' ) ? ( $value['quantities'] ?? [] ) : [];
+			foreach ( $field['choices'] as $choice ) {
+				$quantity = max( 0, (int) ( $quantities[ $choice['slug'] ] ?? 0 ) );
+				if ( $quantity && empty( $choice['disabled'] ) ) {
+					$total += $quantity * self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices );
+				}
+			}
+			return max( 0.0, (float) $total );
+		}
+
 		$total = 0.0;
 
 		switch ( $field['type'] ) {
@@ -338,6 +350,15 @@ final class Calculator {
 				$field_id = strtolower( $field_id );
 				$value = $field_values[ $field_id ] ?? null;
 				return is_array( $value ) ? count( $value ) : 0;
+			},
+			'sumqty' => static function ( array $args, array $context ): int {
+				$field_id = strtolower( trim( (string) ( $args[0] ?? '' ), " '\"" ) );
+				$field_values = is_array( $context['field_values'] ?? null ) ? $context['field_values'] : [];
+				$value = $field_values[ $field_id ] ?? null;
+				if ( ! is_array( $value ) || 'image_quantity' !== ( $value['_opf_type'] ?? '' ) || ! is_array( $value['quantities'] ?? null ) ) {
+					return 0;
+				}
+				return array_sum( array_map( static fn( $quantity ): int => is_scalar( $quantity ) && preg_match( '/^\\d+$/', (string) $quantity ) ? (int) $quantity : 0, $value['quantities'] ) );
 			},
 			'round' => static function ( array $args, array $context ) use ( $numeric ) {
 				$value = $numeric( (string) ( $args[0] ?? '' ), $context );

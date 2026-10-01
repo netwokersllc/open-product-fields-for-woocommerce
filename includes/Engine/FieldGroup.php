@@ -22,7 +22,7 @@ final class FieldGroup {
 	/**
 	 * Supported field types.
 	 */
-	public const FIELD_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'paragraph', 'content_image', 'section', 'section_end' ];
+	public const FIELD_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'image_quantity', 'paragraph', 'content_image', 'section', 'section_end' ];
 
 	/**
 	 * Supported pricing types.
@@ -149,6 +149,16 @@ final class FieldGroup {
 				'disabled' => (bool) ( $choice['disabled'] ?? false ),
 				'pricing'  => self::normalize_pricing( $pricing ),
 			];
+			if ( 'image_quantity' === ( $field['type'] ?? '' ) ) {
+				$quantity_settings = is_array( $choice['quantity'] ?? null ) ? $choice['quantity'] : [];
+				$minimum = max( 0, min( 999, (int) ( $quantity_settings['min'] ?? 0 ) ) );
+				$maximum = max( $minimum, min( 999, (int) ( $quantity_settings['max'] ?? 999 ) ) );
+				$normalized_choice['quantity'] = [
+					'default' => max( $minimum, min( $maximum, (int) ( $quantity_settings['default'] ?? 0 ) ) ),
+					'min' => $minimum,
+					'max' => $maximum,
+				];
+			}
 			$image = $choice['image'] ?? null;
 			if ( is_string( $image ) ) {
 				$image = trim( $image );
@@ -231,6 +241,11 @@ final class FieldGroup {
 			$normalized['choices'] = [];
 			$normalized['pricing'] = self::normalize_pricing( [] );
 		}
+		if ( 'image_quantity' === $type ) {
+			$normalized['multiple'] = false;
+			$normalized['required'] = false;
+			$normalized['pricing'] = self::normalize_pricing( [] );
+		}
 		if ( 'content_image' === $type ) {
 			$normalized['required'] = false;
 			$normalized['choices'] = [];
@@ -251,6 +266,9 @@ final class FieldGroup {
 			$normalized['pricing'] = self::normalize_pricing( [] );
 		}
 		$repeat = RepeaterField::normalize( $field['repeat'] ?? [] );
+		if ( 'image_quantity' === $type && $repeat ) {
+			throw new \InvalidArgumentException( 'Image quantity fields cannot repeat.' );
+		}
 		if ( 'section_end' === $type && $repeat ) {
 			throw new \InvalidArgumentException( 'A section-end marker cannot repeat.' );
 		}

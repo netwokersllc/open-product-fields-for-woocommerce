@@ -37,6 +37,7 @@ final class Renderer {
 		'radio'    => 'radio',
 		'checkbox' => 'checkbox',
 		'swatch'   => 'text-swatch',
+		'image_quantity' => 'image-swatch-qty',
 		'paragraph' => 'content',
 		'content_image' => 'content-image',
 	];
@@ -144,10 +145,12 @@ final class Renderer {
 					'min_choices'  => $field['min_choices'] ?? null,
 					'max_choices'  => $field['max_choices'] ?? null,
 					'conditionals' => $field['conditionals'],
-				'choices'      => array_map( static function ( $c ) {
+					'choices'      => array_map( static function ( $c ) {
 					return [
 						'slug'     => $c['slug'],
 						'label'    => $c['label'],
+						'disabled' => ! empty( $c['disabled'] ),
+						'quantity' => $c['quantity'] ?? null,
 						'pricing'  => [
 								'type'       => $c['pricing']['type'],
 								'amount'     => (float) $c['pricing']['amount'],
@@ -397,7 +400,7 @@ final class Renderer {
 		}
 
 		echo '<div class="opf-field-label"><label';
-		if ( ! in_array( $field['type'], [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {
+		if ( ! in_array( $field['type'], [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ], true ) ) {
 			echo ' for="opf-' . esc_attr( $gid . '-' . $fid ) . '"';
 		}
 		echo '><span>' . esc_html( $field['label'] ) . '</span> ';
@@ -412,7 +415,7 @@ final class Renderer {
 
 		echo '<div class="opf-field-input">';
 
-		if ( in_array( $field['type'], [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {
+		if ( in_array( $field['type'], [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ], true ) ) {
 			self::render_choices( $gid, $name, $field, $base_price );
 		} else {
 			self::render_input( $name, $gid, $field );
@@ -432,6 +435,20 @@ final class Renderer {
 	 */
 	private static function render_choices( string $gid, string $name, array $field, float $base_price ): void {
 		$fid = $field['id'];
+		if ( 'image_quantity' === $field['type'] ) {
+			echo '<div class="opf-image-quantity">';
+			foreach ( $field['choices'] as $choice ) {
+				$q = $choice['quantity'];
+				$label = esc_html( $choice['label'] );
+				echo '<label class="opf-image-quantity__choice">';
+				if ( ! empty( $choice['image'] ) ) {
+					echo '<img src="' . esc_url( $choice['image'] ) . '" alt="' . $label . '" loading="lazy" />';
+				}
+				echo '<span>' . $label . '</span><input type="number" class="opf-input opf-image-quantity__input" name="' . esc_attr( $name . '[' . $choice['slug'] . ']' ) . '" value="' . esc_attr( (string) $q['default'] ) . '" min="' . esc_attr( (string) $q['min'] ) . '" max="' . esc_attr( (string) $q['max'] ) . '" step="1" data-field-id="' . esc_attr( $fid ) . '" data-choice-slug="' . esc_attr( $choice['slug'] ) . '"' . ( ! empty( $choice['disabled'] ) ? ' disabled' : '' ) . ' /></label>';
+			}
+			echo '</div>';
+			return;
+		}
 
 		if ( 'select' === $field['type'] ) {
 			echo '<select name="' . esc_attr( $name ) . '" id="opf-' . esc_attr( $gid . '-' . $fid ) . '" class="opf-input input-' . esc_attr( $fid ) . '" autocomplete="off">';

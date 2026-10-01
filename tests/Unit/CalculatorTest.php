@@ -43,6 +43,20 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( 5.0, Calculator::field_addon( $field, [ 'navy', 'gold' ], [ 'price' => 10, 'qty' => 1 ] ) );
 	}
 
+	public function test_image_quantity_pricing_and_sumqty_use_tagged_choice_quantities(): void {
+		$values = [ '_opf_type' => 'image_quantity', 'quantities' => [ 'oak' => 2, 'ash' => 3 ] ];
+		$field = [
+			'id' => 'images', 'type' => 'image_quantity',
+			'choices' => [
+				[ 'slug' => 'oak', 'disabled' => false, 'pricing' => [ 'type' => 'fixed', 'amount' => 2.0, 'per_unit' => true ] ],
+				[ 'slug' => 'ash', 'disabled' => false, 'pricing' => [ 'type' => 'fixed', 'amount' => 1.0, 'per_unit' => true ] ],
+			],
+		];
+		$this->assertSame( 7.0, Calculator::field_addon( $field, $values, [ 'price' => 10, 'qty' => 1 ] ) );
+		$this->assertSame( 5.0, Calculator::evaluate_formula( 'sumQty(images)', 10, 1, 0, '', null, [ 'images' => $values ] ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'sumQty(unrelated)', 10, 1, 0, '', null, [ 'unrelated' => [ 2, 3 ] ] ) );
+	}
+
 	public function test_formula_from_production_data(): void {
 		// Real WAPF formula from production (after qty-compensation strip):
 		// "(([price] + [options_total]) * 0.2) * [qty]" → "(([price] + [addons]) * 0.2)"

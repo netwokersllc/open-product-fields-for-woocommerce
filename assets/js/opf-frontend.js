@@ -292,6 +292,11 @@ const init = () => {
 		const gid = groupEl.getAttribute( 'data-opf-group' );
 		const registry = REGISTRY[ gid ] || {};
 		const readInstanceValue = ( instance, def ) => {
+			if ( 'image_quantity' === def.type ) {
+				const quantities = {};
+				instance.querySelectorAll( '.opf-image-quantity__input' ).forEach( ( input ) => { quantities[ input.dataset.choiceSlug ] = Math.max( 0, parseInt( input.value, 10 ) || 0 ); } );
+				return { _opf_type: 'image_quantity', quantities };
+			}
 			if ( def.type === 'toggle' ) {
 				const checkbox = instance.querySelector( 'input[type="checkbox"]' );
 				return checkbox && checkbox.checked ? '1' : '0';
@@ -701,7 +706,7 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
       return date ? String(fn.toLowerCase() === 'dow' ? date.weekday : date.month) : '0';
     })
     .replace(/\[val\]/gi, ' V ');
-  const functionNames = new Set(['min', 'max', 'len', 'checked', 'round', 'abs', 'floor', 'ceil', 'sqrt', 'pow', 'sin', 'cos', 'tan', 'if', 'or', 'and']);
+  const functionNames = new Set(['min', 'max', 'len', 'checked', 'sumqty', 'round', 'abs', 'floor', 'ceil', 'sqrt', 'pow', 'sin', 'cos', 'tan', 'if', 'or', 'and']);
   const splitArguments = (input) => {
     const parts = [];
     let start = 0;
@@ -833,6 +838,15 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
           result = Array.isArray(selected) ? selected.length : 0;
           break;
         }
+        case 'sumqty': {
+          const fieldId = (args[0] || '').replace(/^['"]|['"]$/g, '').trim().toLowerCase();
+          const value = fieldValues[fieldId];
+          const quantities = value && value._opf_type === 'image_quantity' ? value.quantities : null;
+          result = quantities && typeof quantities === 'object'
+            ? Object.values(quantities).reduce((sum, quantity) => sum + (/^\d+$/.test(String(quantity)) ? Number(quantity) : 0), 0)
+            : 0;
+          break;
+        }
         case 'round': {
           const precision = args.length > 1 && args[1] !== '' ? Math.trunc(number(args[1])) : 0;
           const factor = 10 ** precision;
@@ -906,6 +920,14 @@ const choiceAddonDisplay = (pricing, base, qty, addons, val, fieldValues = {}, f
 };
 
 const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}, fieldPrices = {}) => {
+  if (def.type === 'image_quantity') {
+    const quantities = value && value._opf_type === 'image_quantity' ? value.quantities || {} : {};
+    return (def.choices || []).reduce((sum, choice) => {
+      const count = Math.max(0, parseInt(quantities[choice.slug], 10) || 0);
+      if (!count || choice.disabled) return sum;
+      return sum + count * choiceAddonDisplay(choice.pricing || {}, base, qty, addons, '', fieldValues, fieldPrices);
+    }, 0);
+  }
   if (def.type === 'swatch' || def.type === 'select' || def.type === 'radio' || def.type === 'checkbox') {
     const slugs = Array.isArray(value) ? value : [value];
     let sum = 0;
@@ -942,6 +964,11 @@ const writeTotals = () => {
     const values = {};
     const fields = groupEl.querySelectorAll('[data-opf-field]');
     const readControlValue = (element, def) => {
+      if (def.type === 'image_quantity') {
+        const quantities = {};
+        element.querySelectorAll('.opf-image-quantity__input').forEach((input) => { quantities[input.dataset.choiceSlug] = Math.max(0, parseInt(input.value, 10) || 0); });
+        return { _opf_type: 'image_quantity', quantities };
+      }
       if (def.type === 'toggle') {
         const checkbox = element.querySelector('input[type="checkbox"]');
         return checkbox && checkbox.checked ? '1' : '0';
@@ -980,8 +1007,9 @@ const writeTotals = () => {
       }
       return scoped;
     };
-    fields.forEach((fieldEl) => {
+      fields.forEach((fieldEl) => {
       const fid = fieldEl.getAttribute('data-opf-field');
+      const fieldDef = (window.OPF_FIELDS || {})[gid]?.[fid] || {};
       const repeatRows = fieldEl.matches('[data-opf-repeat]') ? Array.from(fieldEl.querySelectorAll('[data-opf-repeat-instance]')) : null;
       const checked = groupEl.querySelector(`[data-opf-field="${fid}"] input:checked`);
       const anyInput = fieldEl.querySelector('input:not([type=checkbox]):not([type=radio]):not([type=hidden]), textarea, select');
@@ -992,6 +1020,10 @@ const writeTotals = () => {
           const rowInput = rowChecked || row.querySelector('input:not([type=hidden]), textarea, select');
           return rowInput ? rowInput.value : '';
         });
+      } else if (fieldDef.type === 'image_quantity') {
+        const quantities = {};
+        fieldEl.querySelectorAll('.opf-image-quantity__input').forEach((input) => { quantities[input.dataset.choiceSlug] = Math.max(0, parseInt(input.value, 10) || 0); });
+        values[fid] = { _opf_type: 'image_quantity', quantities };
       } else if (checked && checked.type === 'checkbox') {
         values[fid] = Array.from(
           groupEl.querySelectorAll(`[data-opf-field="${fid}"] input:checked`)
