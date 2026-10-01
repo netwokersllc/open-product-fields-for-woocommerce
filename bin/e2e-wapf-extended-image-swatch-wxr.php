@@ -101,6 +101,7 @@ try {
 			'label' => 'Outer section',
 			'type' => 'section',
 			'css_class' => 'opf-e2e-section',
+			'conditionals' => [ [ 'action' => 'show', 'logic' => 'all', 'rules' => [ [ 'field' => 'finish', 'operator' => 'is', 'value' => 'oak' ] ] ] ],
 		], [
 			'id' => 'section-inner',
 			'label' => 'Inner section',
@@ -139,6 +140,7 @@ try {
 	$section_inner = $target->fields[5] ?? null;
 	$section_inner_end = $target->fields[6] ?? null;
 	$section_outer_end = $target->fields[7] ?? null;
+	$section_condition = $section_outer ? ( $section_outer->conditionals[0]->rules[0] ?? null ) : null;
 	$checks = [
 		'image-swatch type parsed' => $field && 'image-swatch' === $field->type,
 		'image URL and attachment reference parsed' => 'https://example.test/oak.jpg' === ( $choice['image'] ?? '' ) && $attachment_id === (int) ( $choice['attachment'] ?? 0 ),
@@ -148,6 +150,7 @@ try {
 		'Extended p content type preserves basic HTML and shortcodes' => $paragraph && 'p' === $paragraph->type && '<strong>Special offer</strong> [site_name]' === ( $paragraph->options['p_content'] ?? '' ),
 		'WAPF img content preserves image URL and attachment reference' => $content_image && 'img' === $content_image->type && 'https://example.test/fabric-guide.jpg' === ( $content_image->options['image'] ?? '' ) && 481 === (int) ( $content_image->options['attachment'] ?? 0 ),
 		'nested section markers and custom class parse' => $section_outer && 'section' === $section_outer->type && 'opf-e2e-section' === $section_outer->class && $section_inner && 'section' === $section_inner->type && $section_inner_end && 'sectionend' === $section_inner_end->type && $section_outer_end && 'sectionend' === $section_outer_end->type,
+		'section conditional reference parses' => $section_condition && 'finish' === $section_condition->field && '==' === $section_condition->condition && 'oak' === $section_condition->value,
 	];
 	foreach ( $checks as $label => $passed ) {
 		WP_CLI::log( ( $passed ? 'PASS ' : 'FAIL ' ) . $label );
