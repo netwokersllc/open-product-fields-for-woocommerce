@@ -56,6 +56,22 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( -3.0, Calculator::evaluate_formula( '-3', 0.0, 1, 0.0 ) );
 	}
 
+	public function test_wapf_builtin_math_text_and_conditional_formula_functions(): void {
+		$this->assertSame( 1.0, Calculator::evaluate_formula( 'min(5; 1; 3)', 0.0, 1, 0.0 ) );
+		$this->assertSame( 8.0, Calculator::evaluate_formula( 'max(5; 8; 3)', 0.0, 1, 0.0 ) );
+		$this->assertSame( 14.0, Calculator::evaluate_formula( 'len(a quick brown fox; true)', 0.0, 1, 0.0 ) );
+		$this->assertSame( 17.0, Calculator::evaluate_formula( 'len(a quick brown fox)', 0.0, 1, 0.0 ) );
+		$this->assertSame( 20.0, Calculator::evaluate_formula( 'abs(-4) + floor(2.9) + ceil(2.1) + sqrt(9) + pow(2; 3)', 0.0, 1, 0.0 ) );
+		$this->assertSame( 3.0, Calculator::evaluate_formula( 'round(2.54)', 0.0, 1, 0.0 ) );
+		$this->assertSame( 2.55, Calculator::evaluate_formula( 'round(2.546; 2)', 0.0, 1, 0.0 ) );
+		$this->assertSame( 10.0, Calculator::evaluate_formula( 'if(2 < 5; 10; 20)', 0.0, 1, 0.0 ) );
+		$this->assertSame( 20.0, Calculator::evaluate_formula( 'if(or(2 < 1; 3 >= 3); 20; 10)', 0.0, 1, 0.0 ) );
+		$this->assertSame( 10.0, Calculator::evaluate_formula( 'if(and(2 < 1; 3 >= 3); 20; 10)', 0.0, 1, 0.0 ) );
+		$this->assertSame( 1.0, Calculator::evaluate_formula( 'if(2 = 2; true; false)', 0.0, 1, 0.0 ) );
+		$this->assertSame( 10.0, Calculator::evaluate_formula( 'if([field.size]=Large;10;20)', 0.0, 1, 0.0, '', null, [ 'size' => 'Large' ] ) );
+		$this->assertSame( 4.0, Calculator::evaluate_formula( 'min([field.count]+2; 7)', 0.0, 1, 0.0, '', null, [ 'count' => '2' ] ) );
+	}
+
 	public function test_public_api_registers_safe_formula_functions_with_arguments_and_context(): void {
 		API::add_formula_function(
 			'opf_test_scale',
@@ -84,7 +100,7 @@ final class CalculatorTest extends TestCase {
 
 	public function test_public_formula_api_rejects_reserved_names_and_handles_callback_failures(): void {
 		$this->expectException( \InvalidArgumentException::class );
-		API::add_formula_function( 'today', static fn() => 1 );
+		API::add_formula_function( 'round', static fn() => 1 );
 	}
 
 	public function test_formula_callback_exception_fails_closed(): void {

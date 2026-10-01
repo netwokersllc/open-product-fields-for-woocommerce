@@ -623,6 +623,8 @@ const fmtMoney = (amount) => {
 const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOverride = null) => {
   // Safe mirror of the server-side evaluator (per-unit formulas; the qty
   // factor was stripped at import and is re-applied by the caller).
+  if (String(formula).trim().toLowerCase() === 'true') return 1;
+  if (String(formula).trim().toLowerCase() === 'false') return 0;
   const today = String(todayOverride || window.OPF_TODAY || new Date().toISOString().slice(0, 10));
   const dateFormat = String(window.OPF_DATE_FORMAT || (window.wapf_config || {}).date_format || 'mm-dd-yyyy');
   const resolveFormulaDate = (rawValue) => {
@@ -673,7 +675,12 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
     if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
     return { weekday: date.getUTCDay(), month };
   };
-  const expr = String(formula)
+  const resolved = String(formula).replace(/\[field\.([a-z0-9_-]+)\]/gi, (token, id) => {
+    const value = fieldValues[String(id).toLowerCase()];
+    const scalar = Array.isArray(value) ? value[0] : value;
+    return scalar == null ? '' : String(scalar);
+  });
+  const expr = resolved
     .replace(/\[price\]/gi, ' P ')
     .replace(/\[qty\]/gi, ' Q ')
     .replace(/\[addons\]|\[options_total\]/gi, ' A ')
@@ -683,9 +690,161 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
       return date ? String(fn.toLowerCase() === 'dow' ? date.weekday : date.month) : '0';
     })
     .replace(/\[val\]/gi, ' V ');
+  const functionNames = new Set(['min', 'max', 'len', 'round', 'abs', 'floor', 'ceil', 'sqrt', 'pow', 'sin', 'cos', 'tan', 'if', 'or', 'and']);
+  const splitArguments = (input) => {
+    const parts = [];
+    let start = 0;
+    let depth = 0;
+    let quote = '';
+    for (let index = 0; index < input.length; index++) {
+      const char = input[index];
+      if (quote) {
+        if (char === quote && input[index - 1] !== '\\') quote = '';
+        continue;
+      }
+      if (char === "'" || char === '"') { quote = char; continue; }
+      if (char === '(') depth++;
+      else if (char === ')') depth--;
+      else if (depth === 0 && (char === ';' || char === ',')) {
+        parts.push(input.slice(start, index).trim());
+        start = index + 1;
+      }
+    }
+    parts.push(input.slice(start).trim());
+    return parts;
+  };
+  const comparisonParts = (input) => {
+    let depth = 0;
+    let quote = '';
+    for (let index = 0; index < input.length; index++) {
+      const char = input[index];
+      if (quote) {
+        if (char === quote && input[index - 1] !== '\\') quote = '';
+        continue;
+      }
+      if (char === "'" || char === '"') { quote = char; continue; }
+      if (char === '(') { depth++; continue; }
+      if (char === ')') { depth--; continue; }
+      if (depth !== 0) continue;
+      const two = input.slice(index, index + 2);
+      const operator = ['!=', '<=', '>='].includes(two) ? two : ['=', '<', '>'].includes(char) ? char : '';
+      if (operator) return [input.slice(0, index).trim(), operator, input.slice(index + operator.length).trim()];
+    }
+    return null;
+  };
+  const comparisonValue = (raw) => {
+    const value = raw.trim();
+    if (value.length >= 2 && ((value[0] === "'" && value.at(-1) === "'") || (value[0] === '"' && value.at(-1) === '"'))) return value.slice(1, -1);
+    if (value.toLowerCase() === 'true') return true;
+    if (value.toLowerCase() === 'false') return false;
+    if (/^[\d\s().+*\/-]+$/.test(value) && value !== '') return evalFormula(value, price, qty, addons, val, fieldValues, todayOverride);
+    return value;
+  };
+  const conditionPasses = (condition) => {
+    const parts = comparisonParts(condition);
+    if (!parts) return ['true', '1'].includes(condition.trim().toLowerCase());
+    let [left, operator, right] = parts.map((part, index) => index === 1 ? part : comparisonValue(part));
+    if (typeof left === 'number' && typeof right === 'number') {
+      // Keep numeric comparisons numeric; text comparisons remain exact strings.
+    } else if (!Number.isNaN(Number(left)) && !Number.isNaN(Number(right)) && String(left).trim() !== '' && String(right).trim() !== '') {
+      left = Number(left);
+      right = Number(right);
+    }
+    switch (operator) {
+      case '=': return left === right;
+      case '!=': return left !== right;
+      case '<': return left < right;
+      case '>': return left > right;
+      case '<=': return left <= right;
+      case '>=': return left >= right;
+      default: return false;
+    }
+  };
+  const expandFunctions = (input, depth = 0) => {
+    if (depth > 16) return null;
+    let output = '';
+    let index = 0;
+    while (index < input.length) {
+      const char = input[index];
+      if (char === "'" || char === '"') {
+        const quote = char;
+        output += char;
+        index++;
+        while (index < input.length) {
+          output += input[index];
+          if (input[index] === quote && input[index - 1] !== '\\') { index++; break; }
+          index++;
+        }
+        continue;
+      }
+      if (!/[a-z_]/i.test(char)) { output += char; index++; continue; }
+      let end = index + 1;
+      while (end < input.length && /[a-z0-9_]/i.test(input[end])) end++;
+      const name = input.slice(index, end).toLowerCase();
+      let open = end;
+      while (open < input.length && /\s/.test(input[open])) open++;
+      if (!functionNames.has(name) || input[open] !== '(') {
+        output += input.slice(index, end);
+        index = end;
+        continue;
+      }
+      let close = open + 1;
+      let nesting = 1;
+      let nestedQuote = '';
+      for (; close < input.length; close++) {
+        const innerChar = input[close];
+        if (nestedQuote) {
+          if (innerChar === nestedQuote && input[close - 1] !== '\\') nestedQuote = '';
+          continue;
+        }
+        if (innerChar === "'" || innerChar === '"') { nestedQuote = innerChar; continue; }
+        if (innerChar === '(') nesting++;
+        else if (innerChar === ')' && --nesting === 0) break;
+      }
+      if (nesting !== 0) return null;
+      const expandedInner = expandFunctions(input.slice(open + 1, close), depth + 1);
+      if (expandedInner === null) return null;
+      const args = splitArguments(expandedInner);
+      const number = (arg) => evalFormula(arg, price, qty, addons, val, fieldValues, todayOverride);
+      let result;
+      switch (name) {
+        case 'min': result = args.length ? Math.min(...args.map(number)) : 0; break;
+        case 'max': result = args.length ? Math.max(...args.map(number)) : 0; break;
+        case 'len': {
+          let value = args[0] || '';
+          if ((args[1] || '').toLowerCase() === 'true') value = value.replace(/\s/gu, '');
+          result = [...value].length;
+          break;
+        }
+        case 'round': {
+          const precision = args.length > 1 && args[1] !== '' ? Math.trunc(number(args[1])) : 0;
+          const factor = 10 ** precision;
+          const value = number(args[0] || '0');
+          result = Math.sign(value) * Math.round(Math.abs(value) * factor) / factor;
+          break;
+        }
+        case 'abs': result = Math.abs(number(args[0] || '0')); break;
+        case 'floor': result = Math.floor(number(args[0] || '0')); break;
+        case 'ceil': result = Math.ceil(number(args[0] || '0')); break;
+        case 'sqrt': result = Math.sqrt(number(args[0] || '0')); break;
+        case 'pow': result = args.length === 2 ? number(args[0]) ** number(args[1]) : NaN; break;
+        case 'sin': result = Math.sin(number(args[0] || '0')); break;
+        case 'cos': result = Math.cos(number(args[0] || '0')); break;
+        case 'tan': result = Math.tan(number(args[0] || '0')); break;
+        case 'if': result = args.length === 3 ? number(conditionPasses(args[0]) ? args[1] : args[2]) : NaN; break;
+        case 'or': result = args.some(conditionPasses) ? 1 : 0; break;
+        case 'and': result = args.every(conditionPasses) ? 1 : 0; break;
+      }
+      output += Number.isFinite(result) ? String(result) : 'NaN';
+      index = close + 1;
+    }
+    return output;
+  };
+  const expandedExpr = expandFunctions(expr);
+  if (expandedExpr === null) return 0;
   const vars = { P: price, Q: qty, A: addons, V: parseFloat(val) || 0 };
   let i = 0;
-  const s = expr;
+  const s = expandedExpr;
   const skipWs = () => { while (i < s.length && /\s/.test(s[i])) i++; };
   const parseExpr = () => {
     let v = parseTerm();

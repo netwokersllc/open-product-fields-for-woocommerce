@@ -139,6 +139,17 @@ final class Calculator {
 		if ( ! self::is_formula_iso_date( $today ) ) {
 			$today = gmdate( 'Y-m-d' );
 		}
+		$formula = preg_replace_callback(
+			'/\[field\.([a-zA-Z0-9_-]+)\]/i',
+			static function ( array $match ) use ( $field_values ): string {
+				$value = $field_values[ strtolower( $match[1] ) ] ?? '';
+				if ( is_array( $value ) ) {
+					$value = reset( $value );
+				}
+				return is_scalar( $value ) ? (string) $value : '';
+			},
+			$formula
+		);
 		$formula = preg_replace( '/today\s*\(\s*\)/i', '__OPF_TODAY__', $formula );
 		$formula = preg_replace_callback(
 			'/\b(dow|month)\s*\(([^()]*)\)/i',
@@ -230,7 +241,9 @@ final class Calculator {
 				while ( $open < $length && ctype_space( $formula[ $open ] ) ) {
 					$open++;
 				}
-				if ( isset( self::$formula_functions[ $name ] ) && $open < $length && '(' === $formula[ $open ] ) {
+				$builtin_functions = self::builtin_formula_functions();
+				$callback = $builtin_functions[ $name ] ?? ( self::$formula_functions[ $name ] ?? null );
+				if ( null !== $callback && $open < $length && '(' === $formula[ $open ] ) {
 					$close = self::formula_call_end( $formula, $open );
 					if ( null === $close ) {
 						return null;
@@ -242,9 +255,12 @@ final class Calculator {
 					}
 					$args = self::split_formula_arguments( $inner );
 					try {
-						$result = ( self::$formula_functions[ $name ] )( $args, $context );
+						$result = $callback( $args, $context );
 					} catch ( \Throwable $error ) {
 						return null;
+					}
+					if ( is_bool( $result ) ) {
+						$result = $result ? 1 : 0;
 					}
 					if ( ! is_numeric( $result ) || ! is_finite( (float) $result ) ) {
 						return null;
@@ -259,6 +275,176 @@ final class Calculator {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Built-ins exposed by WAPF Free, Pro, and Extended formula references.
+	 * Function names, arguments, and examples follow WAPF's reference:
+	 * https://www.studiowombat.com/knowledge-base/formula-functions-reference/
+	 */
+	private static function builtin_formula_functions(): array {
+		static $functions = null;
+		if ( null !== $functions ) {
+			return $functions;
+		}
+
+		$numeric = static fn( string $expression, array $context ): float => self::formula_numeric_value( $expression, $context );
+		$functions = [
+			'min' => static function ( array $args, array $context ) use ( $numeric ) {
+				return $args ? min( array_map( static fn( $arg ): float => $numeric( (string) $arg, $context ), $args ) ) : 0;
+			},
+			'max' => static function ( array $args, array $context ) use ( $numeric ) {
+				return $args ? max( array_map( static fn( $arg ): float => $numeric( (string) $arg, $context ), $args ) ) : 0;
+			},
+			'len' => static function ( array $args ): int {
+				$text = (string) ( $args[0] ?? '' );
+				if ( isset( $args[1] ) && 'true' === strtolower( trim( (string) $args[1] ) ) ) {
+					$text = preg_replace( '/\s/u', '', $text ) ?? $text;
+				}
+				return function_exists( 'mb_strlen' ) ? mb_strlen( $text, 'UTF-8' ) : strlen( $text );
+			},
+			'round' => static function ( array $args, array $context ) use ( $numeric ) {
+				$value = $numeric( (string) ( $args[0] ?? '' ), $context );
+				$precision = isset( $args[1] ) && '' !== trim( (string) $args[1] ) ? (int) $numeric( (string) $args[1], $context ) : 0;
+				return round( $value, $precision );
+			},
+			'abs' => static fn( array $args, array $context ): float => abs( $numeric( (string) ( $args[0] ?? '' ), $context ) ),
+			'floor' => static fn( array $args, array $context ): float => floor( $numeric( (string) ( $args[0] ?? '' ), $context ) ),
+			'ceil' => static fn( array $args, array $context ): float => ceil( $numeric( (string) ( $args[0] ?? '' ), $context ) ),
+			'sqrt' => static fn( array $args, array $context ): float => sqrt( max( 0, $numeric( (string) ( $args[0] ?? '' ), $context ) ) ),
+			'pow' => static fn( array $args, array $context ): float => 2 === count( $args ) ? pow( $numeric( (string) $args[0], $context ), $numeric( (string) $args[1], $context ) ) : NAN,
+			'sin' => static fn( array $args, array $context ): float => sin( $numeric( (string) ( $args[0] ?? '' ), $context ) ),
+			'cos' => static fn( array $args, array $context ): float => cos( $numeric( (string) ( $args[0] ?? '' ), $context ) ),
+			'tan' => static fn( array $args, array $context ): float => tan( $numeric( (string) ( $args[0] ?? '' ), $context ) ),
+			'if' => static function ( array $args, array $context ) use ( $numeric ) {
+				if ( 3 !== count( $args ) ) {
+					return NAN;
+				}
+				return self::formula_condition( (string) $args[0], $context )
+					? $numeric( (string) $args[1], $context )
+					: $numeric( (string) $args[2], $context );
+			},
+			'or' => static function ( array $args, array $context ): bool {
+				foreach ( $args as $arg ) {
+					if ( self::formula_condition( (string) $arg, $context ) ) {
+						return true;
+					}
+				}
+				return false;
+			},
+			'and' => static function ( array $args, array $context ): bool {
+				foreach ( $args as $arg ) {
+					if ( ! self::formula_condition( (string) $arg, $context ) ) {
+						return false;
+					}
+				}
+				return true;
+			},
+		];
+
+		return $functions;
+	}
+
+	/** Evaluate an arithmetic expression using the current pricing context. */
+	private static function formula_numeric_value( string $expression, array $context ): float {
+		$expression = strtolower( trim( $expression ) );
+		if ( 'true' === $expression ) {
+			return 1.0;
+		}
+		if ( 'false' === $expression ) {
+			return 0.0;
+		}
+		return self::evaluate_formula(
+			$expression,
+			(float) ( $context['price'] ?? 0 ),
+			(int) ( $context['qty'] ?? 1 ),
+			(float) ( $context['addons'] ?? 0 ),
+			(string) ( $context['value'] ?? '' ),
+		null,
+			(array) ( $context['field_values'] ?? [] ),
+			(int) ( $context['product_id'] ?? 0 )
+		);
+	}
+
+	/** Evaluate one WAPF-style comparison without PHP eval(). */
+	private static function formula_condition( string $condition, array $context ): bool {
+		$parts = self::formula_comparison_parts( trim( $condition ) );
+		if ( null === $parts ) {
+			$value = strtolower( trim( $condition ) );
+			return in_array( $value, [ 'true', '1' ], true );
+		}
+		[ $left_raw, $operator, $right_raw ] = $parts;
+		$left = self::formula_comparison_value( $left_raw, $context );
+		$right = self::formula_comparison_value( $right_raw, $context );
+		if ( is_numeric( $left ) && is_numeric( $right ) ) {
+			$left = (float) $left;
+			$right = (float) $right;
+		}
+		switch ( $operator ) {
+			case '=': return $left === $right;
+			case '!=': return $left !== $right;
+			case '<': return $left < $right;
+			case '>': return $left > $right;
+			case '<=': return $left <= $right;
+			case '>=': return $left >= $right;
+		}
+		return false;
+	}
+
+	/** @return array{string,string,string}|null */
+	private static function formula_comparison_parts( string $expression ): ?array {
+		$depth = 0;
+		$quote = '';
+		$length = strlen( $expression );
+		for ( $index = 0; $index < $length; $index++ ) {
+			$char = $expression[ $index ];
+			if ( '' !== $quote ) {
+				if ( $char === $quote && ( 0 === $index || '\\' !== $expression[ $index - 1 ] ) ) {
+					$quote = '';
+				}
+				continue;
+			}
+			if ( in_array( $char, [ '\'', '"' ], true ) ) {
+				$quote = $char;
+				continue;
+			}
+			if ( '(' === $char ) {
+				$depth++;
+				continue;
+			}
+			if ( ')' === $char ) {
+				$depth--;
+				continue;
+			}
+			if ( 0 !== $depth ) {
+				continue;
+			}
+			$operator = null;
+			if ( in_array( substr( $expression, $index, 2 ), [ '!=', '<=', '>=' ], true ) ) {
+				$operator = substr( $expression, $index, 2 );
+			} elseif ( in_array( $char, [ '=', '<', '>' ], true ) ) {
+				$operator = $char;
+			}
+			if ( null !== $operator ) {
+				return [ trim( substr( $expression, 0, $index ) ), $operator, trim( substr( $expression, $index + strlen( $operator ) ) ) ];
+			}
+		}
+		return null;
+	}
+
+	/** Evaluate a numeric comparison operand or retain unquoted text. */
+	private static function formula_comparison_value( string $value, array $context ) {
+		$value = trim( $value );
+		if ( strlen( $value ) >= 2 && in_array( $value[0], [ '\'', '"' ], true ) && $value[0] === substr( $value, -1 ) ) {
+			return substr( $value, 1, -1 );
+		}
+		if ( in_array( strtolower( $value ), [ 'true', 'false' ], true ) ) {
+			return 'true' === strtolower( $value );
+		}
+		if ( is_numeric( $value ) || preg_match( '/^[\d\s().+*\/-]+$/', $value ) ) {
+			return self::formula_numeric_value( $value, $context );
+		}
+		return $value;
 	}
 
 	/** Find the matching `)` while respecting nested calls and quoted text. */

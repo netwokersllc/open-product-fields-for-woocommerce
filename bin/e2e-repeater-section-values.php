@@ -54,7 +54,7 @@ try {
 			[ 'id' => 'guest_name', 'label' => 'Guest name', 'type' => 'text', 'required' => true ],
 			[ 'id' => 'guest_note', 'label' => 'Ada note', 'type' => 'text', 'required' => true, 'conditionals' => [ [ 'action' => 'show', 'logic' => 'all', 'rules' => [ [ 'field' => 'guest_name', 'operator' => 'is', 'value' => 'Ada' ] ] ] ] ],
 			[ 'id' => 'guest_date', 'label' => 'Guest date', 'type' => 'date' ],
-			[ 'id' => 'guest_fee', 'label' => 'Date fee', 'type' => 'text', 'pricing' => [ 'type' => 'formula', 'formula' => 'month([field.guest_date])', 'per_unit' => true ] ],
+			[ 'id' => 'guest_fee', 'label' => 'Date fee', 'type' => 'text', 'pricing' => [ 'type' => 'formula', 'formula' => 'if(month([field.guest_date]) > 1; month([field.guest_date]); 1)', 'per_unit' => true ] ],
 			[ 'id' => 'guest_meal', 'label' => 'Guest meal', 'type' => 'select', 'required' => true, 'choices' => [
 				[ 'slug' => 'soup', 'label' => 'Soup', 'pricing' => [ 'type' => 'fixed', 'amount' => 2, 'per_unit' => true ] ],
 				[ 'slug' => 'salad', 'label' => 'Salad', 'pricing' => [ 'type' => 'fixed', 'amount' => 3, 'per_unit' => true ] ],

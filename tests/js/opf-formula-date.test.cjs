@@ -31,7 +31,18 @@ test('WAPF date functions accept the selected field value and site today', () =>
 		type: 'text',
 		pricing: { type: 'formula', formula: 'month([field.end_date]) + dow([field.start_date])' },
 	}, 'selected', 10, 1, 0, 'selected', { end_date: '2024-02-29', start_date: '2024-01-01' }), 3);
-	assert.equal(context.__evalFormula('dow([field.start_date])', 10, 1, 0, '', { start_date: ['2024-01-01'] }), 0);
+	assert.equal(context.__evalFormula('dow([field.start_date])', 10, 1, 0, '', { start_date: ['2024-01-01'] }), 1);
+});
+
+test('WAPF math, text, and conditional formula functions evaluate in browser previews', () => {
+	assert.equal(context.__evalFormula('min(5; 1; 3) + max(5; 8; 3)', 10, 1, 0, ''), 9);
+	assert.equal(context.__evalFormula('len(a quick brown fox; true)', 10, 1, 0, ''), 14);
+	assert.equal(context.__evalFormula('abs(-4) + floor(2.9) + ceil(2.1) + sqrt(9) + pow(2; 3)', 10, 1, 0, ''), 20);
+	assert.equal(context.__evalFormula('round(2.546; 2)', 10, 1, 0, ''), 2.55);
+	assert.equal(context.__evalFormula('if(or(2 < 1; 3 >= 3); 20; 10)', 10, 1, 0, ''), 20);
+	assert.equal(context.__evalFormula('if(and(2 < 1; 3 >= 3); 20; 10)', 10, 1, 0, ''), 10);
+	assert.equal(context.__evalFormula('if([field.size]=Large;10;20)', 10, 1, 0, '', { size: 'Large' }), 10);
+	assert.equal(context.__evalFormula('min([field.count]+2;7)', 10, 1, 0, '', { count: '2' }), 4);
 });
 
 test('WAPF date functions honor configured formats and reject invalid calendar dates', () => {

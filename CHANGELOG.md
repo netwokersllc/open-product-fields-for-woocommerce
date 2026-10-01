@@ -6,6 +6,8 @@ User-facing changes to Open Product Fields for WooCommerce.
 
 ### Added
 
+- Formula pricing now includes WAPF math, text-length, and conditional functions
+  in server calculations and browser totals.
 - Text, image, and color swatches can accept multiple selections, with minimum
   and maximum selection limits.
 - Color swatches support validated hex values, shape and size settings, and

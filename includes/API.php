@@ -250,7 +250,7 @@ final class API {
 	 */
 	public static function add_formula_function( string $function, callable $callback ): void {
 		$function = strtolower( trim( $function ) );
-		if ( ! preg_match( '/^[a-z][a-z0-9_]{0,63}$/', $function ) || in_array( $function, [ 'today', 'dow', 'month' ], true ) ) {
+		if ( ! preg_match( '/^[a-z][a-z0-9_]{0,63}$/', $function ) || in_array( $function, [ 'min', 'max', 'len', 'lookuptable', 'round', 'abs', 'floor', 'ceil', 'sqrt', 'cos', 'sin', 'tan', 'pow', 'sumqty', 'checked', 'files', 'if', 'or', 'and', 'today', 'datediff', 'dow', 'month' ], true ) ) {
 			throw new \InvalidArgumentException( 'Formula function name is invalid or reserved.' );
 		}
 		Calculator::register_formula_function( $function, $callback );

@@ -42,7 +42,7 @@ await page.evaluate(() => {
     attendees: { type: 'section', repeat: { enabled: true, mode: 'quantity', label: 'Guest {n}' }, conditionals: [] },
     guest_name: { type: 'text', conditionals: [], pricing: { type: 'none', amount: 0 } },
     guest_date: { type: 'date', conditionals: [], pricing: { type: 'none', amount: 0 } },
-    guest_fee: { type: 'text', conditionals: [], pricing: { type: 'formula', formula: 'month([field.guest_date])', formula_raw: 'month([field.guest_date])' } },
+    guest_fee: { type: 'text', conditionals: [], pricing: { type: 'formula', formula: 'if(month([field.guest_date]) > 1; month([field.guest_date]); 1)', formula_raw: 'if(month([field.guest_date]) > 1; month([field.guest_date]); 1)' } },
     button_guests: { type: 'section', repeat: { enabled: true, mode: 'button', max: 2, add: 'Add guest', del: 'Remove guest', label: 'Guest {n}' }, conditionals: [] },
     button_guest_name: { type: 'text', conditionals: [], pricing: { type: 'none', amount: 0 } },
     button_guest_choice: { type: 'select', conditionals: [ { action: 'show', logic: 'all', rules: [ { field: 'button_guest_name', operator: 'is', value: 'Jo' } ] } ] },
