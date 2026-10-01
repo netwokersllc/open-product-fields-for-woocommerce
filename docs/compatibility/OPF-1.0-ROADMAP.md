@@ -65,9 +65,10 @@ proof remains open, including percentage double-conversion and fixed-price/formu
 behavior; see [FOX contract evidence](FOX-CURRENCY-CONTRACT.md).
 
 WOOCS is also `partial`: its existing adapter and cart/formula/variation/frontend
-hooks have focused and disposable runtime proof. The audit reproduces a preview
-base mismatch when multiple currency is disabled; linked-product and pricing-hint
-helpers are not connected, and real plugin/checkout proof remains open. See
+hooks have focused and disposable runtime proof. The disabled-multiple-currency
+simple/subscription preview mismatch is fixed while retaining the cart gate;
+linked-product and pricing-hint helpers are not connected, and real plugin/checkout
+proof remains open. See
 [WOOCS audit and executed evidence](WOOCS-CURRENCY-EVIDENCE.md).
 
 `WAPF-COMPAT-MINIMUM-PLATFORM` remains `gap`. The

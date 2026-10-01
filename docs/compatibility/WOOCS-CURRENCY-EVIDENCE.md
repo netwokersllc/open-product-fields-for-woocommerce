@@ -1,9 +1,10 @@
 # WOOCS currency implementation and remaining parity
 
-Audit 2026-10-01 (final recorded check: 14:48:30 UTC), against OPF `6126bbe` and installed
+Historical audit 2026-10-01 (final recorded check: 14:48:30 UTC), against OPF `6126bbe` and installed
 WAPF Extended 3.1.5. `WAPF-CURRENCY-WOOCS` is **partial**. The prior ledger
 claim that OPF has no adapter was stale; implemented and executed paths exist,
-but a preview gate mismatch and unconnected paths remain.
+but it found a preview gate mismatch and unconnected paths. The preview fix and
+its later proof are recorded below; unconnected paths remain open.
 
 ## Source and connected paths
 
@@ -97,3 +98,56 @@ multiple-currency modes, real variation events, taxed carts and displays,
 sessions and switching, classic/Store API checkout and order persistence.
 The passing fake contracts do not accept real-plugin parity or current WAPF
 3.2.1 internals. No runtime fixes are included in this audit commit.
+
+## Preview gate fix — 2026-10-01
+
+The implementation based on `d0b46e7` fixes non-fixed simple/subscription preview
+normalization when `woocs_is_multiple_allowed` is disabled. The frontend config
+now uses the original shop-tax display price for that case, matching installed
+WAPF's `set_product_base_price()` rule. The cart bridge and its multiple-currency
+gate are unchanged. Default currency, enabled multiple-currency mode, variable
+products, and fixed regular/sale-price bases retain their existing behavior.
+
+Four new regression tests ran against the old code first: three failed on its
+converted base, while the preservation test passed. With the fix, WOOCS tests
+pass **15 / 56**; the combined WOOCS/FOX/Aelia gate passes **26 / 103** under
+PHP 8.5.11 / PHPUnit 11.5.56. Coverage includes the disabled-mode simple base,
+shop tax display, subscription/variable scope, default currency, and fixed
+regular/sale-price gates. The same existing unrelated PHPUnit metadata
+deprecation is reported. PHP syntax and Git diff checks pass.
+
+`bin/e2e-woocs-cart-test.php` now asserts preview/formula bases of 10 in both
+multiple-currency modes and cart bases of 20 (disabled) / 10 (enabled) before
+its existing commerce assertions. In a fresh WordPress 7.1.2 / WooCommerce 11.1.0
+SQLite clone at `/tmp/opf-woocs-gate-proof-20261001`, it passes unchanged shop
+total 24, foreign 48, repeated 48, rate-change 72, session base 10, order 48,
+and default-currency 24 results. The clone disables cron and mail and uses an
+explicit fake API; the real currency plugin is absent.
+
+Directly comparing both adapters in that clone gives original edit price 10,
+converted view 20, WAPF preview **10**, OPF preview **10**, and OPF cart **20**
+when multiple currency is disabled. The comparison runs the installed WAPF
+adapter only, without activating WAPF.
+
+Served Chromium at `http://127.0.0.1:18838/?post_type=product&p=16067` verifies
+the actual emitted config and frontend module for five scenarios: enabled and
+disabled modes both show product/options/grand totals **20 / 28 / 48 EUR**;
+disabled mode with rate 3 shows **30 / 42 / 72 EUR**; default currency in both
+modes shows **10 / 14 / 24 USD**. Disabled-mode foreign totals also pass at
+390px width; desktop/mobile screenshots are retained. Browser errors/warnings,
+failed HTTP responses, and script MIME errors are empty. The existing synthetic
+Chromium variation/reset/fixed-price-formatting harness also passes.
+
+Disposable artifacts in the new clone: `verify-preview.mjs`, `compare-fixed.php`,
+`fixed-results.json`, `fixed-desktop.png`, and `fixed-mobile.png`. During setup,
+a clone-directory prefix collision with the plugin's symlink path generated
+incorrect Woo asset URLs; choosing a distinct clone directory resolved those
+environment errors before the clean browser run. Final recorded check:
+2026-10-01T17:56:51Z.
+
+Fixed adapter SHA-256:
+`84b3e51e0debb357e66c3d11a312dfdbde564b9bdfc30ed6a60bdf8c03beadd6`.
+Frontend JS bytes remain the audited `720b4677...` hash above.
+The row remains partial: linked-product choices, pricing hints, real-plugin
+life cycles, taxes/fixed prices under that plugin, actual variation events,
+and classic/Store API checkout acceptance still require proof.

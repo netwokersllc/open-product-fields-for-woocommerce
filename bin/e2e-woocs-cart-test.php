@@ -23,6 +23,8 @@ foreach ( [ 'woocs_is_multiple_allowed', 'woocs_is_fixed_enabled', 'woocommerce_
 	$old_options[$option] = get_option( $option );
 }
 $old_woocs = $GLOBALS['WOOCS'] ?? null;
+$had_product = array_key_exists( 'product', $GLOBALS );
+$old_product = $GLOBALS['product'] ?? null;
 $GLOBALS['WOOCS'] = new OPF_E2E_Woocs_Api();
 $price_filter = static function ( $price ) {
 	$api = $GLOBALS['WOOCS'];
@@ -44,6 +46,15 @@ try {
 	$product->set_regular_price( '10' );
 	$product->set_status( 'publish' );
 	$product_id = $product->save();
+	$GLOBALS['product'] = $product;
+	foreach ( [ 0, 1 ] as $multiple_allowed ) {
+		update_option( 'woocs_is_multiple_allowed', $multiple_allowed );
+		$config = OPF\Service\WoocsIntegration::merge_frontend_config( [] );
+		$check( 'preview base in multiple mode ' . $multiple_allowed, (float) $config['product_base_price'], 10 );
+		$check( 'preview formula base in multiple mode ' . $multiple_allowed, (float) $config['formula_base_price'], 10 );
+		$check( 'cart base in multiple mode ' . $multiple_allowed, OPF\Service\WoocsIntegration::cart_base_price( 10, $product ), $multiple_allowed ? 10 : 20 );
+	}
+	update_option( 'woocs_is_multiple_allowed', 1 );
 	$group = new OPF\Engine\FieldGroup( [
 		'fields' => [
 			[ 'id' => 'fixed', 'type' => 'text', 'label' => 'Fixed', 'pricing' => [ 'type' => 'fixed', 'amount' => 3, 'per_unit' => true ] ],
@@ -83,7 +94,7 @@ try {
 	$GLOBALS['WOOCS']->current_currency = 'USD';
 	$cart->calculate_totals();
 	$check( 'default currency after switch', (float) $item['data']->get_price(), 24 );
-	WP_CLI::success( 'WOOCS fake-API contract passed in real Woo: base 24, foreign 48, repeated totals stable, rate change 72, session base 10, order 48, default switch 24.' );
+	WP_CLI::success( 'WOOCS fake-API contract passed in real Woo: preview base 10 in both multiple modes; cart gate preserved; base 24, foreign 48, repeated totals stable, rate change 72, session base 10, order 48, default switch 24.' );
 } finally {
 	unset( $_POST['opf'] );
 	remove_filter( 'woocommerce_product_get_price', $price_filter, 100 );
@@ -95,5 +106,10 @@ try {
 		false === $value ? delete_option( $option ) : update_option( $option, $value );
 	}
 	$GLOBALS['WOOCS'] = $old_woocs;
+	if ( $had_product ) {
+		$GLOBALS['product'] = $old_product;
+	} else {
+		unset( $GLOBALS['product'] );
+	}
 	OPF\Service\FieldGroups::flush_cache();
 }

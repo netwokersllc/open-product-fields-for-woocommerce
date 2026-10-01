@@ -107,6 +107,11 @@ final class WoocsIntegration {
 		global $product;
 		if ( $product instanceof \WC_Product ) {
 			$config['product_base_price'] = self::cart_base_price( (float) $product->get_price( 'edit' ), $product );
+			// WAPF normalizes non-fixed simple previews even when cart conversion is disabled.
+			if ( 1 !== (int) get_option( 'woocs_is_multiple_allowed' ) && self::is_foreign_currency()
+				&& in_array( $product->get_type(), [ 'simple', 'subscription' ], true ) && ! self::has_fixed_price( $product ) ) {
+				$config['product_base_price'] = self::original_product_price( $product );
+			}
 			$config['formula_base_price'] = self::formula_base_price( (float) $product->get_price( 'edit' ), $product->get_id() );
 		}
 		return $config;

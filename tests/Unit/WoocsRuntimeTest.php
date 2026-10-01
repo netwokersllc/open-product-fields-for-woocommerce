@@ -25,8 +25,10 @@ namespace OPF\Tests\Unit {
 		private int $id;
 		private float $original;
 		private float $view;
-		public function __construct( int $id, float $original, float $view ) { $this->id = $id; $this->original = $original; $this->view = $view; }
+		private string $type;
+		public function __construct( int $id, float $original, float $view, string $type = 'simple' ) { $this->id = $id; $this->original = $original; $this->view = $view; $this->type = $type; }
 		public function get_id(): int { return $this->id; }
+		public function get_type(): string { return $this->type; }
 		public function get_price( string $context = 'view' ): float { return 'edit' === $context ? $this->original : $this->view; }
 	}
 
@@ -73,6 +75,54 @@ namespace OPF\Tests\Unit {
 			$GLOBALS['WOOCS']->current_currency = 'USD';
 			$this->assertSame( 20.0, WoocsIntegration::back_convert( 20 ) );
 			$this->assertSame( [], $GLOBALS['WOOCS']->calls );
+		}
+
+		public function test_foreign_simple_preview_normalizes_when_multiple_currency_is_disabled(): void {
+			$GLOBALS['opf_test_options']['woocs_is_multiple_allowed'] = 0;
+			$GLOBALS['product'] = $GLOBALS['opf_woocs_products'][42];
+			$config = WoocsIntegration::merge_frontend_config( [] );
+			$this->assertSame( 10.0, $config['product_base_price'] );
+			$this->assertSame( 10.0, $config['formula_base_price'] );
+			$this->assertSame( 2.0, $config['currency_rate'] );
+			// Cart back-conversion keeps its independent multiple-currency gate.
+			$this->assertSame( 20.0, WoocsIntegration::cart_base_price( 10, $GLOBALS['product'] ) );
+			$this->assertSame( [], $GLOBALS['WOOCS']->calls );
+		}
+
+		public function test_disabled_multiple_currency_preview_uses_original_shop_tax_price(): void {
+			$GLOBALS['opf_test_options']['woocs_is_multiple_allowed'] = 0;
+			$GLOBALS['opf_test_options']['woocommerce_tax_display_shop'] = 'incl';
+			$GLOBALS['product'] = $GLOBALS['opf_woocs_products'][42];
+			$config = WoocsIntegration::merge_frontend_config( [] );
+			$this->assertSame( 12.0, $config['product_base_price'] );
+			$this->assertSame( 12.0, $config['formula_base_price'] );
+		}
+
+		public function test_subscription_preview_matches_simple_without_changing_variable_base(): void {
+			$GLOBALS['opf_test_options']['woocs_is_multiple_allowed'] = 0;
+			foreach ( [ 'subscription' => 10.0, 'variable' => 20.0 ] as $type => $expected ) {
+				$GLOBALS['product'] = new WoocsRuntimeProduct( 42, 10, 20, $type );
+				$this->assertSame( $expected, WoocsIntegration::merge_frontend_config( [] )['product_base_price'] );
+			}
+		}
+
+		public function test_fixed_foreign_preview_and_default_currency_preserve_existing_bases(): void {
+			$GLOBALS['product'] = new WoocsRuntimeProduct( 42, 10, 50 );
+			$GLOBALS['opf_woocs_products'][42] = $GLOBALS['product'];
+			foreach ( [ 'regular', 'sale' ] as $kind ) {
+				$GLOBALS['opf_woocs_meta'][42] = [ '_woocs_' . $kind . '_price_EUR' => 50 ];
+				foreach ( [ 0 => 50.0, 1 => 25.0 ] as $multiple => $expected ) {
+					$GLOBALS['opf_test_options']['woocs_is_multiple_allowed'] = $multiple;
+					$config = WoocsIntegration::merge_frontend_config( [] );
+					$this->assertSame( $expected, $config['product_base_price'] );
+					$this->assertSame( 10.0, $config['formula_base_price'] );
+				}
+			}
+			$GLOBALS['WOOCS']->current_currency = 'USD';
+			$GLOBALS['opf_test_options']['woocs_is_multiple_allowed'] = 0;
+			$config = WoocsIntegration::merge_frontend_config( [] );
+			$this->assertSame( 10.0, $config['product_base_price'] );
+			$this->assertSame( 1.0, $config['currency_rate'] );
 		}
 
 		public function test_fixed_currency_percentage_base_and_formula_base_are_distinct(): void {
