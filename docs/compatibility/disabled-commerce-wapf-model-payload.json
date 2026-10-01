@@ -1,0 +1,98 @@
+{
+    "fields": [
+        {
+            "id": "finish",
+            "label": "Finish",
+            "description": "",
+            "type": "select",
+            "subtype": null,
+            "required": false,
+            "conditionals": [],
+            "class": "",
+            "width": 100,
+            "pricing": {
+                "enabled": false,
+                "amount": 0,
+                "type": "fixed"
+            },
+            "parent_clone": [],
+            "clone": {
+                "enabled": false
+            },
+            "meta": {
+                "id": "select",
+                "type": "field",
+                "multi_choice": true,
+                "multi_select": false,
+                "label_aria": true
+            },
+            "choices": [
+                {
+                    "slug": "unavailable-finish",
+                    "label": "Unavailable finish",
+                    "selected": false,
+                    "disabled": true,
+                    "options": [],
+                    "pricing_type": "fixed",
+                    "pricing_amount": 99
+                },
+                {
+                    "slug": "available-finish",
+                    "label": "Available finish",
+                    "selected": false,
+                    "disabled": false,
+                    "options": [],
+                    "pricing_type": "fixed",
+                    "pricing_amount": 2
+                }
+            ]
+        },
+        {
+            "id": "extras",
+            "label": "Extras",
+            "description": "",
+            "type": "checkboxes",
+            "subtype": null,
+            "required": false,
+            "conditionals": [],
+            "class": "",
+            "width": 100,
+            "pricing": {
+                "enabled": false,
+                "amount": 0,
+                "type": "fixed"
+            },
+            "parent_clone": [],
+            "clone": {
+                "enabled": false
+            },
+            "meta": {
+                "id": "checkboxes",
+                "type": "field",
+                "multi_choice": true,
+                "multi_select": true,
+                "label_aria": false
+            },
+            "choices": [
+                {
+                    "slug": "unavailable-extras",
+                    "label": "Unavailable extras",
+                    "selected": false,
+                    "disabled": true,
+                    "options": [],
+                    "pricing_type": "fixed",
+                    "pricing_amount": 99
+                },
+                {
+                    "slug": "available-extras",
+                    "label": "Available extras",
+                    "selected": false,
+                    "disabled": false,
+                    "options": [],
+                    "pricing_type": "fixed",
+                    "pricing_amount": 1
+                }
+            ]
+        }
+    ]
+}

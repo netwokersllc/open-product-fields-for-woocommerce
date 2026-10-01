@@ -1,0 +1,92 @@
+{
+    "fields": [
+        {
+            "id": "finish",
+            "label": "Finish",
+            "description": "",
+            "type": "select",
+            "required": false,
+            "width": 100,
+            "class": "",
+            "conditionals": [],
+            "pricing": {
+                "enabled": false,
+                "type": "fixed",
+                "amount": 0
+            },
+            "choices": [
+                {
+                    "slug": "unavailable-finish",
+                    "label": "Unavailable finish",
+                    "selected": false,
+                    "disabled": true,
+                    "pricing_type": "fixed",
+                    "pricing_amount": 99
+                },
+                {
+                    "slug": "available-finish",
+                    "label": "Available finish",
+                    "selected": false,
+                    "disabled": false,
+                    "pricing_type": "fixed",
+                    "pricing_amount": 2
+                }
+            ]
+        },
+        {
+            "id": "extras",
+            "label": "Extras",
+            "description": "",
+            "type": "checkboxes",
+            "required": false,
+            "width": 100,
+            "class": "",
+            "conditionals": [],
+            "pricing": {
+                "enabled": false,
+                "type": "fixed",
+                "amount": 0
+            },
+            "choices": [
+                {
+                    "slug": "unavailable-extras",
+                    "label": "Unavailable extras",
+                    "selected": false,
+                    "disabled": true,
+                    "pricing_type": "fixed",
+                    "pricing_amount": 99
+                },
+                {
+                    "slug": "available-extras",
+                    "label": "Available extras",
+                    "selected": false,
+                    "disabled": false,
+                    "pricing_type": "fixed",
+                    "pricing_amount": 1
+                }
+            ]
+        }
+    ],
+    "conditions": [
+        {
+            "rules": [
+                {
+                    "subject": "product",
+                    "condition": "products",
+                    "value": [
+                        {
+                            "id": "9248251",
+                            "text": "9248251"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "layout": {
+        "labels_position": "above",
+        "instructions_position": "field",
+        "mark_required": true
+    },
+    "variables": []
+}

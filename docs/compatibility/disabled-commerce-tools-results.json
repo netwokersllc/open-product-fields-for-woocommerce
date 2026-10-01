@@ -1,0 +1,22 @@
+{
+  "phase": "tools",
+  "checks": [
+    {
+      "label": "actual installed WAPF Tools import accepts OPF payload",
+      "pass": true
+    },
+    {
+      "label": "actual WAPF save POST contains imported fields",
+      "pass": true
+    },
+    {
+      "label": "WAPF reload then Tools export retains both field types",
+      "pass": false
+    }
+  ],
+  "errors": [
+    "Failed to execute 'json' on 'Response': Unexpected end of JSON input",
+    "Failed to execute 'json' on 'Response': Unexpected end of JSON input",
+    "Failed to execute 'json' on 'Response': Unexpected end of JSON input"
+  ]
+}

@@ -1,0 +1,26 @@
+ok fixture exists
+ok installed WAPF model raw export parsed
+ok finish WAPF export retains unavailable and available flags
+ok finish WAPF export retains choice prices
+ok extras WAPF export retains unavailable and available flags
+ok extras WAPF export retains choice prices
+ok WAPF saved/reloaded model retains disabled flag
+ok WAPF group persisted by installed model save
+ok real persisted WAPF source imports back to OPF
+GAP OPF persisted-source importer dropped the WAPF checkboxes field
+ok finish OPF import back retains disabled flags and pricing
+ok classic checkout persists real order
+ok classic order retains exact available selection values
+ok classic order public metadata identifies available choices
+ok classic order price excludes unavailable choices
+ok classic order has durable field snapshot
+ok classic order-again restores cart available values
+GAP classic order-again retains selections but loses flat fees: expected 23, actual 20.00
+ok store checkout persists real order
+ok store order retains exact available selection values
+ok store order public metadata identifies available choices
+ok store order price excludes unavailable choices
+ok store order has durable field snapshot
+ok store order-again restores cart available values
+GAP store order-again retains selections but loses flat fees: expected 23, actual 20.00
+SUCCESS disabled choice order persistence and order-again
