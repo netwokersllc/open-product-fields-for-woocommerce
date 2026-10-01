@@ -106,7 +106,7 @@
 		selected.addEventListener( 'change', function () {
 			choice.selected = selected.checked;
 		} );
-		var remove = el( 'button', { class: 'button-link opf-b-remove', text: '×', onclick: function () {
+		var remove = el( 'button', { type: 'button', class: 'button-link opf-b-remove', text: '×', onclick: function () {
 			field.choices.splice( index, 1 );
 			rerender();
 		} } );
@@ -348,7 +348,7 @@
 			rerender();
 		} } );
 
-		var remove = el( 'button', { class: 'button button-link-delete', text: 'Delete field', onclick: function () {
+		var remove = el( 'button', { type: 'button', class: 'button button-link-delete', text: 'Delete field', onclick: function () {
 			model.fields.splice( index, 1 );
 			rerender();
 		} } );
@@ -483,7 +483,7 @@
 		}
 
 		if ( field.choices.length || in_array( field.type, [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ], true ) ) {
-			var addChoice = el( 'button', { class: 'button', text: '+ Add choice', onclick: function () {
+			var addChoice = el( 'button', { type: 'button', class: 'button', text: '+ Add choice', onclick: function () {
 				var n = field.choices.length + 1;
 				var choice = { slug: 'option-' + n, label: 'Option ' + n, selected: false, disabled: false, quantity: { default: 0, min: 0, max: 999999 }, pricing: { type: 'none', amount: 0, formula: '' } };
 				if ( 'color' === field.swatch_style ) choice.color = '#FFFFFF';
@@ -779,12 +779,12 @@
 	var initialPlacementSelection = null;
 
 	var toolbar = el( 'div', { class: 'opf-b-toolbar' }, [
-		el( 'button', { class: 'button button-primary', text: '+ Add field', onclick: function () {
+		el( 'button', { type: 'button', class: 'button button-primary', text: '+ Add field', onclick: function () {
 			model.fields.push( { id: uniqueId( 'field' ), label: '', description: '', type: 'text', required: false, width: 100, choices: [], pricing: { type: 'none', amount: 0, formula: '' }, conditionals: [] } );
 			rerender();
 		} } ),
 		el( 'button', { type: 'button', class: 'button', text: 'Save', onclick: save } ),
-		el( 'button', { class: 'button', text: 'Refresh preview', onclick: preview } ),
+		el( 'button', { type: 'button', class: 'button', text: 'Refresh preview', onclick: preview } ),
 		el( 'span', { id: 'opf-b-status', class: 'opf-b-status' } )
 	] );
 

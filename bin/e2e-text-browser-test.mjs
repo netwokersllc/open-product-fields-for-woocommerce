@@ -21,6 +21,23 @@ page.on('pageerror', error => errors.push(error.message));
 try {
 	await page.goto(base + '/?opf_text_login=1', { waitUntil: 'domcontentloaded' });
 	await page.locator('.opf-b-field').first().waitFor();
+	let adminPosts = 0;
+	let adminNavigations = 0;
+	page.on('request', request => {
+		if (request.method() === 'POST' && new URL(request.url()).pathname === '/wp-admin/post.php') adminPosts++;
+	});
+	page.on('framenavigated', frame => { if (frame === page.mainFrame()) adminNavigations++; });
+	await page.getByRole('button', { name: '+ Add field', exact: true }).click();
+	check('add field stays in the editor without WordPress form submission', await page.locator('.opf-b-field').count() === 4 && adminPosts === 0 && adminNavigations === 0);
+	const temporary = page.locator('.opf-b-field').nth(3);
+	await temporary.locator('.opf-b-field-head select').selectOption('select');
+	await temporary.getByRole('button', { name: '+ Add choice', exact: true }).click();
+	check('add choice stays in the editor without WordPress form submission', await temporary.locator('.opf-b-choice').count() === 2 && adminPosts === 0 && adminNavigations === 0);
+	check('every mounted builder action explicitly uses button type', await page.locator('#opf-builder-app button').evaluateAll(buttons => buttons.length > 0 && buttons.every(button => button.getAttribute('type') === 'button')));
+	await temporary.locator('.opf-b-remove').last().click();
+	check('remove choice stays in the editor without WordPress form submission', await temporary.locator('.opf-b-choice').count() === 1 && adminPosts === 0 && adminNavigations === 0);
+	await temporary.getByRole('button', { name: 'Delete field', exact: true }).click();
+	check('delete field stays in the editor without WordPress form submission', await page.locator('.opf-b-field').count() === 3 && adminPosts === 0 && adminNavigations === 0);
 	const required = page.locator('.opf-b-field').nth(0);
 	const prefill = page.locator('.opf-b-field').nth(1);
 	await required.locator('.opf-b-label').fill('Personal message edited');
@@ -28,6 +45,11 @@ try {
 	await required.getByRole('textbox', { name: 'Placeholder', exact: true }).fill('Type your message');
 	await prefill.getByRole('textbox', { name: 'Default value', exact: true }).fill('Saved default');
 	await prefill.locator('input[title="Required"]').check();
+	const previewResponse = page.waitForResponse(response => response.url().includes('/opf/v1/preview') && response.request().method() === 'POST');
+	await page.getByRole('button', { name: 'Refresh preview', exact: true }).click();
+	check('actual preview REST response succeeds', (await previewResponse).ok());
+	await page.locator('#opf-b-preview input[data-field-id="prefill"]').waitFor();
+	check('refresh preview preserves edited inputs without WordPress form submission', await required.locator('.opf-b-label').inputValue() === 'Personal message edited' && await prefill.getByRole('textbox', { name: 'Default value', exact: true }).inputValue() === 'Saved default' && adminPosts === 0 && adminNavigations === 0);
 	const responsePromise = page.waitForResponse(response => response.url().includes('/opf/v1/groups') && response.request().method() === 'POST');
 	await page.getByRole('button', { name: 'Save', exact: true }).click();
 	const response = await responsePromise;

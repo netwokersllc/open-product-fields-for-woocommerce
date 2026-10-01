@@ -1,0 +1,102 @@
+{
+  "base": "http://127.0.0.1:8124",
+  "checks": [
+    {
+      "label": "add field stays in the editor without WordPress form submission",
+      "pass": true
+    },
+    {
+      "label": "add choice stays in the editor without WordPress form submission",
+      "pass": true
+    },
+    {
+      "label": "every mounted builder action explicitly uses button type",
+      "pass": true
+    },
+    {
+      "label": "remove choice stays in the editor without WordPress form submission",
+      "pass": true
+    },
+    {
+      "label": "delete field stays in the editor without WordPress form submission",
+      "pass": true
+    },
+    {
+      "label": "actual preview REST response succeeds",
+      "pass": true
+    },
+    {
+      "label": "refresh preview preserves edited inputs without WordPress form submission",
+      "pass": true
+    },
+    {
+      "label": "actual admin REST save succeeds",
+      "pass": true
+    },
+    {
+      "label": "actual REST response preserves text settings",
+      "pass": true
+    },
+    {
+      "label": "admin reload preserves label",
+      "pass": true
+    },
+    {
+      "label": "admin reload preserves required",
+      "pass": true
+    },
+    {
+      "label": "admin reload preserves default and placeholder",
+      "pass": true
+    },
+    {
+      "label": "storefront has required single line input and placeholder",
+      "pass": true
+    },
+    {
+      "label": "storefront renders saved default",
+      "pass": true
+    },
+    {
+      "label": "optional field is optional",
+      "pass": true
+    },
+    {
+      "label": "empty required field blocks browser submission",
+      "pass": true
+    },
+    {
+      "label": "server rejects forged empty classic HTTP submission",
+      "pass": true
+    },
+    {
+      "label": "rejected classic HTTP submission leaves cart empty",
+      "pass": true
+    },
+    {
+      "label": "valid text submits classic product form",
+      "pass": true
+    },
+    {
+      "label": "browser cart renders text and default",
+      "pass": true
+    },
+    {
+      "label": "browser checkout renders text and default",
+      "pass": true
+    },
+    {
+      "label": "browser Store API checkout succeeds",
+      "pass": true
+    },
+    {
+      "label": "browser order confirmation displays text and default",
+      "pass": true
+    },
+    {
+      "label": "no browser page errors",
+      "pass": true
+    }
+  ],
+  "errors": []
+}

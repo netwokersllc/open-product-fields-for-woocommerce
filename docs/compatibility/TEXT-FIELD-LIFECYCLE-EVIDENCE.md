@@ -65,6 +65,19 @@ this evidence.
 
 ## Reproduction and artifacts
 
+Follow-up on 2026-10-01 at 18:16 UTC: all 13 builder action definitions now
+explicitly set `type="button"`, including choice removal, field deletion,
+choice/field addition, and preview refresh. The real authenticated admin test
+adds a temporary field, adds/removes its choices, deletes it, and refreshes the
+actual REST preview. It records zero WordPress form POSTs and zero main-frame
+navigations during these actions, verifies every mounted builder action has
+the explicit type, and checks that preview retains edited input values.
+The expanded browser suite passes 24 checks, followed by the unchanged 23
+WooCommerce lifecycle checks and the full 217-test / 807-assertion PHP suite.
+Raw checks are retained in `text-builder-action-results.json`; new screenshots
+and commerce output are in `/tmp/opf-text-followup-artifacts`. The original
+screenshots above remain preserved. Protected tabs markup was not changed.
+
 Use a dedicated disposable `/tmp` WordPress/WooCommerce site with OPF active,
 no unrelated published field groups matching the fixture product, a loopback
 server, and mail interception. The browser needs an authenticated fixture
