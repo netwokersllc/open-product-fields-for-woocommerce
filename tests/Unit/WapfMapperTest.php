@@ -9,6 +9,23 @@ use OPF\Engine\WapfMapper;
 use PHPUnit\Framework\TestCase;
 
 final class WapfMapperTest extends TestCase {
+	public function test_extended_checkboxes_import_preserves_choice_availability_and_flat_fees(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'extras', 'label' => 'Extras', 'type' => 'checkboxes',
+			'options' => [ 'choices' => [
+				[ 'slug' => 'unavailable', 'label' => 'Unavailable', 'disabled' => true, 'selected' => true, 'pricing_type' => 'fixed', 'pricing_amount' => 99 ],
+				[ 'slug' => 'available', 'label' => 'Available', 'disabled' => false, 'pricing_type' => 'fixed', 'pricing_amount' => 1 ],
+			] ],
+		] ] ] );
+		$this->assertCount( 1, $mapped['group']['fields'] );
+		$field = $mapped['group']['fields'][0];
+		$this->assertSame( 'checkbox', $field['type'] );
+		$this->assertSame( [ true, false ], array_column( $field['choices'], 'disabled' ) );
+		$this->assertFalse( $field['choices'][0]['selected'] );
+		$this->assertSame( [ 99.0, 1.0 ], array_column( array_column( $field['choices'], 'pricing' ), 'amount' ) );
+		$this->assertFalse( $field['choices'][1]['pricing']['per_unit'] );
+		$this->assertFalse( $mapped['needs_review'] );
+	}
 
 	/**
 	 * Shaped after production group 607379 (swatch with fx formulas).

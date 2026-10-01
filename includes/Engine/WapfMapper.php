@@ -33,6 +33,7 @@ final class WapfMapper {
 		'select'        => 'select',
 		'radio'         => 'radio',
 		'checkbox'      => 'checkbox',
+		'checkboxes'    => 'checkbox',
 		'image-swatch-qty' => 'image_quantity',
 		'text-swatch'   => 'swatch',
 		'multi-text-swatch' => 'swatch',
