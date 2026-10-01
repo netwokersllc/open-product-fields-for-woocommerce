@@ -151,8 +151,8 @@ final class FieldGroup {
 			];
 			if ( 'image_quantity' === ( $field['type'] ?? '' ) ) {
 				$quantity_settings = is_array( $choice['quantity'] ?? null ) ? $choice['quantity'] : [];
-				$minimum = max( 0, min( 999, (int) ( $quantity_settings['min'] ?? 0 ) ) );
-				$maximum = max( $minimum, min( 999, (int) ( $quantity_settings['max'] ?? 999 ) ) );
+				$minimum = max( 0, min( 999999, (int) ( $quantity_settings['min'] ?? 0 ) ) );
+				$maximum = max( $minimum, min( 999999, (int) ( $quantity_settings['max'] ?? 999999 ) ) );
 				$normalized_choice['quantity'] = [
 					'default' => max( $minimum, min( $maximum, (int) ( $quantity_settings['default'] ?? 0 ) ) ),
 					'min' => $minimum,

@@ -33,6 +33,7 @@ final class WapfMapper {
 		'select'        => 'select',
 		'radio'         => 'radio',
 		'checkbox'      => 'checkbox',
+		'image-swatch-qty' => 'image_quantity',
 		'text-swatch'   => 'swatch',
 		'multi-text-swatch' => 'swatch',
 		'image-swatch'  => 'swatch',
@@ -124,7 +125,7 @@ final class WapfMapper {
 			$wapf_type = (string) ( $wapf_field['type'] ?? 'text' );
 			$field_id = $opf_ids_by_index[ $index ];
 
-			$has_choices = in_array( self::TYPE_MAP[ $wapf_type ], [ 'swatch', 'select', 'radio', 'checkbox' ], true );
+			$has_choices = in_array( self::TYPE_MAP[ $wapf_type ], [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ], true );
 			$image_swatch_settings = in_array( $wapf_type, [ 'image-swatch', 'multi-image-swatch' ], true ) ? self::map_image_swatch_settings( $wapf_field, $notes, $needs_review ) : [];
 			$color_swatch_settings = in_array( $wapf_type, [ 'color-swatch', 'multi-color-swatch' ], true ) ? self::map_color_swatch_settings( $wapf_field, $notes, $needs_review ) : [];
 			$selection_limits = in_array( $wapf_type, [ 'multi-text-swatch', 'multi-image-swatch', 'multi-color-swatch' ], true ) ? self::map_swatch_selection_limits( $wapf_field, $notes, $needs_review ) : [];
@@ -187,9 +188,31 @@ final class WapfMapper {
 				}
 			}
 
-			if ( in_array( $wapf_type, [ 'image-swatch', 'multi-image-swatch' ], true ) ) {
+			if ( in_array( $wapf_type, [ 'image-swatch', 'multi-image-swatch', 'image-swatch-qty' ], true ) ) {
 				$notes[] = sprintf( 'field "%s" is an image swatch; choice media references are imported, but image files are not bundled and attachment IDs may need remapping on the destination site.', (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' ) );
 				$needs_review = true;
+			}
+			if ( 'image-swatch-qty' === $wapf_type ) {
+				$options = is_array( $wapf_field['options'] ?? null ) ? $wapf_field['options'] : [];
+				$label = (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' );
+				if ( ! empty( $options['large_image'] ) ) {
+					$notes[] = sprintf( 'image quantity field "%s" uses WAPF enlarged-image zoom; OPF does not preserve that zoom behavior.', $label );
+					$needs_review = true;
+				}
+				if ( isset( $options['label_pos'] ) && 'default' !== $options['label_pos'] ) {
+					$notes[] = sprintf( 'image quantity field "%s" uses label position "%s"; OPF renders the label with its quantity input.', $label, (string) $options['label_pos'] );
+					$needs_review = true;
+				}
+				foreach ( [ 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile' ] as $layout_key ) {
+					if ( array_key_exists( $layout_key, $options ) && (int) $options[ $layout_key ] !== 3 ) {
+						$notes[] = sprintf( 'image quantity field "%s" has custom %s=%s; OPF does not preserve this WAPF column setting.', $label, $layout_key, (string) $options[ $layout_key ] );
+						$needs_review = true;
+					}
+				}
+				if ( ! empty( $wapf_field['required'] ) ) {
+					$notes[] = sprintf( 'image quantity field "%s" is required in WAPF; OPF quantity choices remain optional.', $label );
+					$needs_review = true;
+				}
 			}
 			if ( 'img' === $wapf_type && ! empty( $field['image_id'] ) ) {
 				$notes[] = sprintf( 'field "%s" uses a site-local image attachment ID; verify or remap the attachment on the destination site.', (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' ) );
@@ -490,6 +513,48 @@ final class WapfMapper {
 				'disabled' => (bool) ( $choice['disabled'] ?? false ),
 				'pricing'  => $pricing,
 			];
+			if ( 'image-swatch-qty' === ( $wapf_field['type'] ?? '' ) ) {
+				$choice_options = is_array( $choice['options'] ?? null ) ? $choice['options'] : [];
+				$minimum = 0;
+				$maximum = 999999;
+				$default = 0;
+				foreach ( [ 'min', 'max', 'default' ] as $key ) {
+					if ( ! array_key_exists( $key, $choice_options ) || '' === $choice_options[ $key ] || null === $choice_options[ $key ] ) {
+						continue;
+					}
+					$value = $choice_options[ $key ];
+					if ( is_int( $value ) || ( is_string( $value ) && preg_match( '/^-?\d+$/', $value ) ) ) {
+						if ( 'min' === $key ) {
+							$minimum = (int) $value;
+						} elseif ( 'max' === $key ) {
+							$maximum = (int) $value;
+						} else {
+							$default = (int) $value;
+						}
+					} else {
+						$notes[] = sprintf( 'image quantity choice "%s" has an invalid %s setting; WAPF integer conversion needs review.', $choice['label'] ?? $slug, $key );
+						$needs_review = true;
+					}
+				}
+				$field_options = is_array( $wapf_field['options'] ?? null ) ? $wapf_field['options'] : [];
+				if ( array_key_exists( 'max_choices', $field_options ) && '' !== $field_options['max_choices'] && null !== $field_options['max_choices'] ) {
+					if ( is_int( $field_options['max_choices'] ) || ( is_string( $field_options['max_choices'] ) && preg_match( '/^-?\d+$/', $field_options['max_choices'] ) ) ) {
+						$maximum = min( $maximum, (int) $field_options['max_choices'] );
+					} else {
+						$notes[] = sprintf( 'image quantity field "%s" has an invalid max_choices setting; WAPF integer conversion needs review.', (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' ) );
+						$needs_review = true;
+					}
+				}
+				if ( $minimum < 0 || $minimum > 999999 || $maximum < $minimum || $maximum > 999999 || $default < $minimum || $default > $maximum ) {
+					$notes[] = sprintf( 'image quantity choice "%s" has bounds/default that OPF normalizes; verify the imported quantity behavior.', $choice['label'] ?? $slug );
+					$needs_review = true;
+				}
+				$mapped_choice['quantity'] = [ 'default' => max( $minimum, min( $maximum, $default ) ), 'min' => max( 0, min( 999999, $minimum ) ), 'max' => max( max( 0, min( 999999, $minimum ) ), min( 999999, $maximum ) ) ];
+				if ( isset( $choice_options['weight'] ) && '' !== $choice_options['weight'] && 0.0 !== (float) $choice_options['weight'] ) {
+					$notes[] = sprintf( 'image quantity choice "%s" has WAPF weight metadata; OPF does not preserve choice-driven product weight.', $choice['label'] ?? $slug );
+					$needs_review = true;
+				}
+			}
 			if ( is_string( $choice['image'] ?? null ) ) {
 				$mapped_choice['image'] = $choice['image'];
 			}

@@ -101,6 +101,77 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( 481, $mapped['group']['fields'][0]['choices'][0]['image_id'] );
 	}
 
+	public function test_maps_wapf_extended_image_quantity_swatches_and_bounds_with_review_notes(): void {
+		$mapped = WapfMapper::map( [
+			'fields' => [
+				[
+					'id' => 'prints',
+					'label' => 'Prints',
+					'type' => 'image-swatch-qty',
+					'options' => [
+						'label_pos' => 'tooltip',
+						'items_per_row' => 4,
+						'display' => 'plus_min',
+						'max_choices' => 8,
+						'choices' => [
+							[
+								'slug' => 'oak', 'label' => 'Oak', 'image' => 'https://example.test/oak.jpg',
+								'attachment' => 481, 'pricing_type' => 'fixed', 'pricing_amount' => 2.5,
+								'options' => [ 'min' => 2, 'max' => 12, 'default' => 4, 'weight' => '0.25' ],
+							],
+							[
+								'slug' => 'ash', 'label' => 'Ash', 'pricing_type' => 'none',
+								'options' => [ 'max' => 5 ],
+							],
+						],
+					],
+				],
+			],
+		] );
+
+		$field = $mapped['group']['fields'][0];
+		$this->assertSame( 'image_quantity', $field['type'] );
+		$this->assertFalse( $field['multiple'] );
+		$this->assertCount( 2, $field['choices'] );
+		$this->assertSame( [ 'default' => 4, 'min' => 2, 'max' => 8 ], $field['choices'][0]['quantity'] );
+		$this->assertSame( [ 'default' => 0, 'min' => 0, 'max' => 5 ], $field['choices'][1]['quantity'] );
+		$this->assertSame( 481, $field['choices'][0]['image_id'] );
+		$this->assertSame( 'fixed', $field['choices'][0]['pricing']['type'] );
+		$this->assertTrue( $mapped['needs_review'], 'Image media, layout, and weight features not represented by OPF need review.' );
+		$this->assertStringContainsString( 'image swatch', implode( ' ', $mapped['notes'] ) );
+		$this->assertStringContainsString( 'label position', implode( ' ', $mapped['notes'] ) );
+		$this->assertStringContainsString( 'weight metadata', implode( ' ', $mapped['notes'] ) );
+	}
+
+	public function test_image_quantity_import_preserves_wapf_default_maximum(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'prints', 'label' => 'Prints', 'type' => 'image-swatch-qty',
+			'options' => [ 'choices' => [ [ 'slug' => 'oak', 'label' => 'Oak' ] ] ],
+		] ] ] );
+
+		$quantity = $mapped['group']['fields'][0]['choices'][0]['quantity'];
+		$this->assertSame( [ 'default' => 0, 'min' => 0, 'max' => 999999 ], $quantity );
+
+		$empty_cap = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'prints', 'type' => 'image-swatch-qty',
+			'options' => [ 'max_choices' => '', 'choices' => [ [ 'slug' => 'oak', 'label' => 'Oak' ] ] ],
+		] ] ] );
+		$this->assertSame( 999999, $empty_cap['group']['fields'][0]['choices'][0]['quantity']['max'] );
+
+		$zero_cap = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'prints', 'type' => 'image-swatch-qty',
+			'options' => [ 'max_choices' => 0, 'choices' => [ [ 'slug' => 'oak', 'label' => 'Oak' ] ] ],
+		] ] ] );
+		$this->assertSame( 0, $zero_cap['group']['fields'][0]['choices'][0]['quantity']['max'] );
+
+		$clamped_default = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'prints', 'type' => 'image-swatch-qty',
+			'options' => [ 'choices' => [ [ 'slug' => 'oak', 'label' => 'Oak', 'options' => [ 'min' => 2 ] ] ] ],
+		] ] ] );
+		$this->assertSame( [ 'default' => 2, 'min' => 2, 'max' => 999999 ], $clamped_default['group']['fields'][0]['choices'][0]['quantity'] );
+		$this->assertStringContainsString( 'bounds/default', implode( ' ', $clamped_default['notes'] ) );
+	}
+
 	public function test_maps_multi_color_swatches_selection_limits_and_color_choices(): void {
 		$mapped = WapfMapper::map( [
 			'fields' => [

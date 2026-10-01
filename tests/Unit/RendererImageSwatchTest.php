@@ -60,6 +60,18 @@ namespace OPF\Tests\Unit {
 			$this->assertStringContainsString( 'src="https://example.test/oak.jpg"', $html );
 		}
 
+		public function test_image_quantity_renders_wapf_maximum_bound(): void {
+			$group = new FieldGroup( [ 'fields' => [ [
+				'id' => 'images', 'label' => 'Prints', 'type' => 'image_quantity',
+				'choices' => [ [ 'slug' => 'oak', 'label' => 'Oak', 'quantity' => [ 'default' => 999999, 'max' => 999999 ] ] ],
+			] ] ] );
+			ob_start();
+			Renderer::render_group( '17', 'Prints', $group, 10.0 );
+			$html = (string) ob_get_clean();
+
+			$this->assertStringContainsString( 'value="999999" min="0" max="999999"', $html );
+		}
+
 		public function test_image_choice_renders_an_escaped_accessible_image_and_input(): void {
 			$group = new FieldGroup( [ 'fields' => [
 				[

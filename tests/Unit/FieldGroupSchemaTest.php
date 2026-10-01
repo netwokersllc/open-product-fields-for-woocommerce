@@ -125,6 +125,15 @@ final class FieldGroupSchemaTest extends TestCase {
 		$this->assertFalse( $field['required'] );
 	}
 
+	public function test_image_quantity_accepts_wapf_maximum_bound(): void {
+		$field = FieldGroup::normalize_field( [
+			'id' => 'prints', 'type' => 'image_quantity',
+			'choices' => [ [ 'slug' => 'oak', 'label' => 'Oak', 'quantity' => [ 'default' => 999999, 'min' => 0, 'max' => 999999 ] ] ],
+		] );
+
+		$this->assertSame( [ 'default' => 999999, 'min' => 0, 'max' => 999999 ], $field['choices'][0]['quantity'] );
+	}
+
 	public function test_disabled_repeaters_are_omitted_and_button_max_must_fit_integer_range(): void {
 		$disabled = FieldGroup::normalize_field( [ 'id' => 'name', 'type' => 'text', 'repeat' => [ 'enabled' => false, 'mode' => 'button' ] ] );
 		$this->assertArrayNotHasKey( 'repeat', $disabled );
