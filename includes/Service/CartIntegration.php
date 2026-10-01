@@ -20,6 +20,7 @@ use OPF\Engine\Calculator;
 use OPF\Engine\Evaluator;
 use OPF\Engine\FieldGroup;
 use OPF\Engine\FieldValue;
+use OPF\Engine\RepeaterField;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -489,7 +490,9 @@ final class CartIntegration {
 				if ( ! isset( $raw[ $gid ][ $fid ] ) ) {
 					continue;
 				}
-				$value = self::sanitize_value( $field, $raw[ $gid ][ $fid ] );
+				$value = ! empty( $field['repeat']['enabled'] )
+					? RepeaterField::sanitize( $field, $raw[ $gid ][ $fid ], static fn( $row ) => self::sanitize_value( $field, $row ) )
+					: self::sanitize_value( $field, $raw[ $gid ][ $fid ] );
 				if ( null !== $value ) {
 					$values[ $gid ][ $fid ] = $value;
 				}
@@ -568,6 +571,11 @@ final class CartIntegration {
 					continue;
 				}
 				$provided = array_key_exists( $field['id'], $given );
+				if ( ! empty( $field['repeat']['enabled'] ) ) {
+					$rows = $provided && is_array( $given[ $field['id'] ] ) ? $given[ $field['id'] ] : [];
+					$errors = array_merge( $errors, RepeaterField::validate( $field, $rows, $provided ) );
+					continue;
+				}
 				$value    = $provided && ! is_array( $given[ $field['id'] ] ) ? (string) $given[ $field['id'] ] : null;
 				if ( in_array( $field['type'], [ 'email', 'date', 'toggle' ], true ) ) {
 					$errors = array_merge( $errors, FieldValue::validate( $field, $value, $provided ) );

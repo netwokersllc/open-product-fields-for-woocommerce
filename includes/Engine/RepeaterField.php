@@ -60,4 +60,72 @@ final class RepeaterField {
 		}
 		return [ 'enabled' => true, 'mode' => 'button', 'max' => $max ];
 	}
+
+	/** Sanitize each submitted row while preserving row order and empty rows. */
+	public static function sanitize( array $field, $raw, callable $sanitize_row ): ?array {
+		if ( ! is_array( $raw ) ) {
+			return null;
+		}
+
+		$rows = [];
+		foreach ( array_values( $raw ) as $row ) {
+			$rows[] = $sanitize_row( $row );
+		}
+		return $rows ?: null;
+	}
+
+	/** Validate repeater row count and every non-empty row. */
+	public static function validate( array $field, array $rows, bool $provided ): array {
+		$label = (string) ( $field['label'] ?? '' );
+		$repeat = $field['repeat'] ?? [];
+		$errors = [];
+		$type = (string) ( $field['type'] ?? '' );
+
+		if ( 'quantity' === ( $repeat['mode'] ?? 'button' ) ) {
+			return [ sprintf( '"%s" uses quantity-based repeated rows that are not available yet.', $label ) ];
+		}
+		if ( ! in_array( $type, [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch' ], true ) ) {
+			return [ sprintf( '"%s" uses a field type that cannot be repeated yet.', $label ) ];
+		}
+
+		if ( ! $provided || ! $rows ) {
+			return ! empty( $field['required'] ) ? [ sprintf( '"%s" is a required field.', $label ) ] : [];
+		}
+
+		if ( 'button' === ( $repeat['mode'] ?? 'button' ) ) {
+			$max = (int) ( $repeat['max'] ?? self::DEFAULT_BUTTON_ROWS );
+			if ( count( $rows ) > $max ) {
+				return [ sprintf( '"%s" allows at most %d repeated rows.', $label, $max ) ];
+			}
+		}
+
+		foreach ( $rows as $index => $value ) {
+			$empty = null === $value || '' === $value || [] === $value || ( 'toggle' === $type && '0' === $value );
+			if ( $empty ) {
+				if ( ! empty( $field['required'] ) ) {
+					$errors[] = sprintf( '"%s" is required in repeated row %d.', $label, $index + 1 );
+				}
+				continue;
+			}
+
+			if ( in_array( $type, [ 'email', 'date', 'toggle' ], true ) ) {
+				$instance = array_merge( $field, [ 'required' => false ] );
+				$instance_errors = FieldValue::validate( $instance, is_scalar( $value ) ? (string) $value : null, true );
+				foreach ( $instance_errors as $error ) {
+					$errors[] = preg_replace( '/\\.$/', sprintf( ' in repeated row %d.', $index + 1 ), $error );
+				}
+			}
+
+			if ( in_array( $type, [ 'checkbox', 'swatch' ], true ) && ( 'checkbox' === $type || ! empty( $field['multiple'] ) ) ) {
+				$count = is_array( $value ) ? count( $value ) : 1;
+				foreach ( [ 'min_choices' => 'at least', 'max_choices' => 'at most' ] as $key => $description ) {
+					if ( isset( $field[ $key ] ) && ( 'min_choices' === $key ? $count < $field[ $key ] : $count > $field[ $key ] ) ) {
+						$errors[] = sprintf( '"%s" requires %s %d choices in repeated row %d.', $label, $description, $field[ $key ], $index + 1 );
+					}
+				}
+			}
+		}
+
+		return $errors;
+	}
 }
