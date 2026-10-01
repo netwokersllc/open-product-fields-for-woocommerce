@@ -43,6 +43,8 @@ final class CartIntegration {
 		add_filter( 'woocommerce_get_item_data', [ __CLASS__, 'display_item_data' ], 10, 2 );
 		add_action( 'woocommerce_checkout_create_order_line_item', [ __CLASS__, 'persist_order_item' ], 10, 4 );
 		add_filter( 'woocommerce_order_again_cart_item_data', [ __CLASS__, 'restore_order_again' ], 10, 3 );
+		add_filter( 'woocommerce_coupon_get_apply_quantity', [ __CLASS__, 'capture_coupon_apply_quantity' ], 10, 4 );
+		add_filter( 'woocommerce_coupon_get_discount_amount', [ __CLASS__, 'filter_coupon_discount_amount' ], 1000, 5 );
 		// Hide internal OPF meta from admin/customer order item display.
 		add_filter( 'woocommerce_hidden_order_itemmeta', [ __CLASS__, 'hidden_order_meta' ] );
 		add_filter( 'woocommerce_store_api_add_to_cart_data', [ __CLASS__, 'capture_store_api' ], 10, 2 );
@@ -91,6 +93,15 @@ final class CartIntegration {
 
 	/** Prevent recursive quantity splitting when a per-unit cart line is added. */
 	private static $splitting_quantity_repeats = false;
+
+	/** Quantity WooCommerce is applying for the current coupon line. */
+	private static $coupon_apply_quantity = 0;
+
+	/** Capture the eligible unit count Woo passes immediately before discount calculation. */
+	public static function capture_coupon_apply_quantity( $apply_quantity, $item, $coupon, $discounts ) {
+		self::$coupon_apply_quantity = max( 0, (int) $apply_quantity );
+		return $apply_quantity;
+	}
 
 	/**
 	 * Validate on add-to-cart. Runs for classic AND Store API paths.
@@ -367,6 +378,55 @@ final class CartIntegration {
 				$recursing = false;
 			}
 		}
+	}
+
+	/**
+	 * Keep percentage coupon discounts off OPF option prices when the coupon's
+	 * per-coupon exclusion is enabled. WAPF 3.1.5 stores that choice as
+	 * `wapf_excl_addons`, which also preserves imported coupon behavior.
+	 *
+	 * @param float       $discount           Proposed discount amount.
+	 * @param float       $discounting_amount Eligible amount after Woo limits.
+	 * @param array       $cart_item          Cart line.
+	 * @param bool        $single             Whether this is a single-item discount.
+	 * @param object|null $coupon             Coupon being calculated.
+	 */
+	public static function filter_coupon_discount_amount( $discount, $discounting_amount, $cart_item, $single, $coupon ) {
+		if ( ! \OPF\Service\Admin\CouponSettings::coupon_excludes_addons( $coupon ) ) {
+			return $discount;
+		}
+		if ( ! is_object( $coupon ) || ! method_exists( $coupon, 'is_type' ) || ! $coupon->is_type( 'percent' ) ) {
+			return $discount;
+		}
+		if ( ! is_array( $cart_item ) || ! isset( $cart_item['opf_base_price'], $cart_item['data'] ) || ! $cart_item['data'] instanceof \WC_Product || ! method_exists( $coupon, 'get_amount' ) ) {
+			return $discount;
+		}
+
+		return self::base_only_percent_discount(
+			(float) $discounting_amount,
+			(float) $cart_item['opf_base_price'],
+			(float) $cart_item['data']->get_price( 'edit' ),
+			max( 0, (int) self::$coupon_apply_quantity ),
+			(float) $coupon->get_amount()
+		);
+	}
+
+	/**
+	 * Calculate the discount on the eligible base-price share of a line.
+	 * WooCommerce's amount already includes prior sequential reductions; remove
+	 * the unchanged option add-on for each eligible unit before taking the
+	 * current coupon percentage.
+	 */
+	public static function base_only_percent_discount( float $discounting_amount, float $base_unit_price, float $adjusted_unit_price, int $eligible_quantity, float $percent ): float {
+		if ( $discounting_amount <= 0 || $base_unit_price < 0 || $adjusted_unit_price <= 0 || $percent <= 0 ) {
+			return 0.0;
+		}
+
+		$addon_unit_price = $adjusted_unit_price - $base_unit_price;
+		$eligible_base    = max( 0.0, $discounting_amount - ( $addon_unit_price * max( 0, $eligible_quantity ) ) );
+		// WooCommerce rounds the returned amount; premature flooring loses cents.
+		$base_discount = $eligible_base * ( $percent / 100 );
+		return min( max( 0.0, $discounting_amount ), max( 0.0, $base_discount ) );
 	}
 
 	/**

@@ -1,0 +1,55 @@
+{
+  "timestamp": "2026-10-01T23:44:32.322Z",
+  "url": "http://127.0.0.1:8091",
+  "viewport": [
+    1280,
+    960
+  ],
+  "mobileViewport": [
+    390,
+    844
+  ],
+  "checks": [
+    {
+      "label": "fixed-cart coupon hides the OPF percentage scope control",
+      "pass": true
+    },
+    {
+      "label": "selecting percent shows the native accessible checkbox, unchecked by default",
+      "pass": true
+    },
+    {
+      "label": "native update and reload preserves checked percent scope",
+      "pass": true
+    },
+    {
+      "label": "Woo coupon CRUD reload persists the imported WAPF metadata key",
+      "pass": true
+    },
+    {
+      "label": "switching to fixed-product hides the checkbox",
+      "pass": true
+    },
+    {
+      "label": "switching back to percent preserves checked state",
+      "pass": true
+    },
+    {
+      "label": "native unchecked save and reload restores the default off state",
+      "pass": true
+    },
+    {
+      "label": "percentage checkbox remains visible at mobile width",
+      "pass": true
+    },
+    {
+      "label": "keyboard Space toggles the native checkbox",
+      "pass": true
+    },
+    {
+      "label": "coupon editor has no uncaught browser errors",
+      "pass": true
+    }
+  ],
+  "errors": []
+}

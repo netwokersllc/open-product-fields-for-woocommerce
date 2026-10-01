@@ -40,6 +40,7 @@ define( 'OPF_URL', plugin_dir_url( __FILE__ ) );
 require_once OPF_DIR . 'includes/Autoloader.php';
 
 use OPF\Service\Admin\Builder;
+use OPF\Service\Admin\CouponSettings;
 use OPF\Service\Admin\ImportPage;
 use OPF\Service\Admin\Settings;
 use OPF\Service\Assets;
@@ -95,6 +96,7 @@ function opf_boot(): void {
 	Builder::init();
 	ImportPage::init();
 	Settings::init();
+	CouponSettings::init();
 	MetaPrettifier::init();
 
 	if ( defined( 'WP_CLI' ) && WP_CLI ) {

@@ -1,0 +1,19 @@
+== OPF coupon scope E2E ==
+  ok    new coupon defaults off with absent WAPF metadata
+  ok    native coupon editor saves WAPF-compatible opt-in metadata
+  ok    saving unchecked removes coupon opt-in and restores default behavior
+  ok    unselected percent coupon discounts base plus addon
+  ok    WordPress WXR import preserves percentage type, amount, and WAPF scope metadata
+  ok    native WordPress coupon export retains WAPF scope metadata
+  ok    imported WAPF coupon metadata excludes option price
+  ok    classic Woo checkout persists scoped coupon total and OPF selection
+  ok    fixed-product coupon remains unchanged despite scope metadata
+  ok    fixed-cart coupon remains unchanged despite scope metadata
+  ok    two sequential percent coupons discount only the three base units
+  ok    usage limit discounts one eligible base unit out of three
+  ok    fractional base discount uses Woo rounding instead of flooring
+        tax-inclusive Store API cart: total=121.0000 tax=11.0000 discount=10.0000 discount_tax=1.0000
+  ok    tax-inclusive Store API cart excludes the addon from the coupon
+        taxed order: subtotal=132.0000 line=121.0000 tax=11.0000 total=121.0000
+  ok    taxed Store API order persists discounted inclusive line and tax
+Success: All coupon scope E2E checks passed.
