@@ -43,6 +43,7 @@ use OPF\Service\Admin\Builder;
 use OPF\Service\Admin\ImportPage;
 use OPF\Service\Admin\Settings;
 use OPF\Service\Assets;
+use OPF\Service\AeliaIntegration;
 use OPF\Service\CartIntegration;
 use OPF\Service\Cli;
 use OPF\Service\FieldGroups;
@@ -88,6 +89,7 @@ function opf_boot(): void {
 	Assets::init();
 	WoocsIntegration::init();
 	WpmlIntegration::init();
+	AeliaIntegration::init();
 	Rest::init();
 	Importer::init();
 	Builder::init();
