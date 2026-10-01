@@ -118,6 +118,139 @@
 		return row;
 	}
 
+	function labeledControl( label, control ) {
+		return el( 'label', { class: 'opf-b-conditional-control' }, [
+			document.createTextNode( label ),
+			control,
+		] );
+	}
+
+	function conditionalRuleRow( field, conditional, rule ) {
+		var sources = model.fields.filter( function ( candidate ) { return candidate.id !== field.id; } );
+		var fieldOptions = sources.map( function ( candidate ) {
+			return el( 'option', { value: candidate.id, text: ( candidate.label || candidate.id ) + ' (' + candidate.id + ')' } );
+		} );
+		if ( rule.field && ! sources.some( function ( candidate ) { return candidate.id === rule.field; } ) ) {
+			fieldOptions.unshift( el( 'option', { value: rule.field, text: 'Unavailable field: ' + rule.field } ) );
+		}
+		if ( ! fieldOptions.length ) {
+			fieldOptions.push( el( 'option', { value: '', text: 'Add another field first' } ) );
+		}
+		var fieldSelect = el( 'select', { class: 'opf-b-input', 'aria-label': 'Condition field' }, fieldOptions );
+		fieldSelect.value = rule.field || '';
+		fieldSelect.disabled = ! sources.length;
+		fieldSelect.addEventListener( 'change', function () {
+			rule.field = fieldSelect.value;
+			rule.value = '';
+			rerender();
+		} );
+
+		var operatorLabels = [
+			[ 'is', 'Is' ], [ 'is_not', 'Is not' ], [ 'contains', 'Contains' ], [ 'not_contains', 'Does not contain' ],
+			[ 'greater', 'Is greater than' ], [ 'less', 'Is less than' ], [ 'empty', 'Is empty' ], [ 'not_empty', 'Is not empty' ],
+		];
+		var operatorSelect = el( 'select', { class: 'opf-b-input', 'aria-label': 'Condition operator' }, operatorLabels.map( function ( item ) {
+			var option = el( 'option', { value: item[ 0 ], text: item[ 1 ] } );
+			option.selected = item[ 0 ] === rule.operator;
+			return option;
+		} ) );
+		operatorSelect.addEventListener( 'change', function () {
+			rule.operator = operatorSelect.value;
+			if ( in_array( rule.operator, [ 'empty', 'not_empty' ], true ) ) rule.value = '';
+			rerender();
+		} );
+
+		var source = sources.find( function ( candidate ) { return candidate.id === rule.field; } );
+		var valueControl = null;
+		if ( ! in_array( rule.operator, [ 'empty', 'not_empty' ], true ) ) {
+			if ( source && in_array( source.type, [ 'select', 'radio', 'swatch', 'checkbox' ], true ) && source.choices.length ) {
+				var choiceOptions = source.choices.map( function ( choice ) {
+					return el( 'option', { value: choice.slug, text: choice.label + ' (' + choice.slug + ')' } );
+				} );
+				if ( rule.value && ! source.choices.some( function ( choice ) { return choice.slug === rule.value; } ) ) {
+					choiceOptions.unshift( el( 'option', { value: rule.value, text: 'Current value: ' + rule.value } ) );
+				}
+				valueControl = el( 'select', { class: 'opf-b-input', 'aria-label': 'Condition value' }, choiceOptions );
+				valueControl.value = rule.value;
+			} else if ( source && 'toggle' === source.type ) {
+				valueControl = el( 'select', { class: 'opf-b-input', 'aria-label': 'Condition value' }, [
+					el( 'option', { value: '1', text: 'Checked' } ),
+					el( 'option', { value: '', text: 'Not checked' } ),
+				] );
+				valueControl.value = rule.value;
+			} else {
+				var inputType = source && 'number' === source.type ? 'number' : ( source && 'date' === source.type ? 'date' : 'text' );
+				valueControl = el( 'input', { class: 'opf-b-input', type: inputType, value: rule.value || '', 'aria-label': 'Condition value' } );
+			}
+			valueControl.addEventListener( 'input', function () { rule.value = valueControl.value; } );
+			valueControl.addEventListener( 'change', function () { rule.value = valueControl.value; } );
+		}
+
+		var remove = el( 'button', { type: 'button', class: 'button button-link-delete', text: 'Remove rule', onclick: function () {
+			var index = conditional.rules.indexOf( rule );
+			if ( index !== -1 ) conditional.rules.splice( index, 1 );
+			rerender();
+		} } );
+		return el( 'div', { class: 'opf-b-conditional-rule' }, [
+			labeledControl( 'Field', fieldSelect ),
+			labeledControl( 'Operator', operatorSelect ),
+			valueControl ? labeledControl( 'Value', valueControl ) : el( 'span', { class: 'description', text: 'No value needed' } ),
+			remove,
+		] );
+	}
+
+	function conditionalEditor( field ) {
+		field.conditionals = Array.isArray( field.conditionals ) ? field.conditionals : [];
+		var sourceFields = model.fields.filter( function ( candidate ) { return candidate.id !== field.id; } );
+		var groups = field.conditionals.map( function ( conditional, groupIndex ) {
+			conditional.rules = Array.isArray( conditional.rules ) ? conditional.rules : [];
+			var action = el( 'select', { class: 'opf-b-input', 'aria-label': 'Visibility action' }, [
+				el( 'option', { value: 'show', text: 'Show this field if' } ),
+				el( 'option', { value: 'hide', text: 'Hide this field if' } ),
+			] );
+			action.value = conditional.action || 'show';
+			action.addEventListener( 'change', function () { conditional.action = action.value; } );
+			var logic = el( 'select', { class: 'opf-b-input', 'aria-label': 'How to combine rules' }, [
+				el( 'option', { value: 'all', text: 'All rules match' } ),
+				el( 'option', { value: 'any', text: 'Any rule matches' } ),
+			] );
+			logic.value = conditional.logic || 'all';
+			logic.addEventListener( 'change', function () { conditional.logic = logic.value; } );
+			var addRule = el( 'button', { type: 'button', class: 'button', text: '+ Add rule', onclick: function () {
+				conditional.rules.push( { field: sourceFields[ 0 ].id, operator: 'is', value: '' } );
+				rerender();
+			} } );
+			addRule.disabled = ! sourceFields.length;
+			var removeGroup = el( 'button', { type: 'button', class: 'button button-link-delete', text: 'Remove condition', onclick: function () {
+				field.conditionals.splice( groupIndex, 1 );
+				rerender();
+			} } );
+			var rules = conditional.rules.map( function ( rule ) { return conditionalRuleRow( field, conditional, rule ); } );
+			if ( ! rules.length ) {
+				rules.push( el( 'p', { class: 'description', text: 'Add at least one rule for this condition to take effect.' } ) );
+			}
+			return el( 'div', { class: 'opf-b-conditional-group' }, [
+				el( 'div', { class: 'opf-b-conditional-settings' }, [ labeledControl( 'Action', action ), labeledControl( 'Rule matching', logic ) ] ),
+			el( 'div', { class: 'opf-b-conditional-rules' }, rules ),
+			el( 'div', { class: 'opf-b-conditional-actions' }, [ addRule, removeGroup ] ),
+			] );
+		} );
+		var addCondition = el( 'button', { type: 'button', class: 'button', text: '+ Add condition', onclick: function () {
+			field.conditionals.push( {
+				action: 'show', logic: 'all',
+				rules: sourceFields.length ? [ { field: sourceFields[ 0 ].id, operator: 'is', value: '' } ] : [],
+			} );
+			rerender();
+		} } );
+		addCondition.disabled = ! sourceFields.length;
+		return el( 'div', { class: 'opf-b-conditional-editor' }, [
+			el( 'strong', { text: 'Visibility conditions' } ),
+			el( 'p', { class: 'description', text: 'Condition groups are combined as alternatives; rules inside each group use the selected matching rule.' } ),
+			el( 'div', { class: 'opf-b-conditional-groups' }, groups ),
+			addCondition,
+		] );
+	}
+
 	function fieldCard( field, index ) {
 		var label = el( 'input', { class: 'opf-b-input opf-b-label', value: field.label, placeholder: 'Field label' } );
 		label.addEventListener( 'input', function ( e ) {
@@ -145,12 +278,12 @@
 			field.required = req.checked;
 		} );
 
-		var desc = el( 'input', { class: 'opf-b-input', value: field.description || '', placeholder: 'Description (optional)' } );
+		var desc = el( 'input', { class: 'opf-b-input opf-b-description', value: field.description || '', placeholder: 'Description (optional)' } );
 		desc.addEventListener( 'input', function ( e ) {
 			field.description = e.target.value;
 		} );
 
-		var duplicate = el( 'button', { class: 'button opf-b-duplicate-field', text: 'Duplicate field', onclick: function () {
+		var duplicate = el( 'button', { type: 'button', class: 'button opf-b-duplicate-field', text: 'Duplicate field', onclick: function () {
 			var copy = JSON.parse( JSON.stringify( field ) );
 			copy.id = uniqueId( slugify( field.id || 'field' ) + '-copy' );
 			model.fields.splice( index + 1, 0, copy );
@@ -164,6 +297,7 @@
 
 		var head = el( 'div', { class: 'opf-b-field-head' }, [ label, typeSel, desc, req, duplicate, remove ] );
 		var card = el( 'div', { class: 'opf-b-field' }, [ head ] );
+		card.appendChild( conditionalEditor( field ) );
 
 		if ( field.choices.length ) {
 			var addChoice = el( 'button', { class: 'button', text: '+ Add choice', onclick: function () {

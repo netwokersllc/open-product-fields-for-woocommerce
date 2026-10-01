@@ -27,7 +27,7 @@
 
 .opf-b-field-head {
 	display: grid;
-	grid-template-columns: 2fr 140px 2fr auto auto;
+	grid-template-columns: 2fr 140px 2fr auto auto auto;
 	gap: 8px;
 	align-items: center;
 }
@@ -67,4 +67,59 @@
 	padding: 16px;
 	background: #fff;
 	min-height: 48px;
+}
+
+.opf-b-conditional-editor {
+	margin-top: 12px;
+	padding-top: 10px;
+	border-top: 1px solid #dcdcde;
+}
+
+.opf-b-conditional-group {
+	margin: 8px 0;
+	padding: 10px;
+	border: 1px solid #c3c4c7;
+	background: #f6f7f7;
+}
+
+.opf-b-conditional-settings {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+}
+
+.opf-b-conditional-control {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.opf-b-conditional-rule {
+	display: grid;
+	grid-template-columns: minmax(120px, 1fr) minmax(130px, 1fr) minmax(120px, 2fr) auto;
+	gap: 8px;
+	align-items: end;
+	margin-top: 8px;
+}
+
+.opf-b-conditional-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 8px;
+}
+
+@media (max-width: 782px) {
+	.opf-b-field-head {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.opf-b-field-head .opf-b-label,
+	.opf-b-field-head .opf-b-description {
+		grid-column: 1 / -1;
+	}
+
+	.opf-b-conditional-rule {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
 }
