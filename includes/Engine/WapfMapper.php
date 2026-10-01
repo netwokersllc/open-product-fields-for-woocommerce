@@ -114,6 +114,7 @@ final class WapfMapper {
 			$field_id = $opf_ids_by_index[ $index ];
 
 			$has_choices = in_array( self::TYPE_MAP[ $wapf_type ], [ 'swatch', 'select', 'radio', 'checkbox' ], true );
+			$image_swatch_settings = 'image-swatch' === $wapf_type ? self::map_image_swatch_settings( $wapf_field, $notes, $needs_review ) : [];
 			$content = '';
 			if ( 'paragraph' === self::TYPE_MAP[ $wapf_type ] ) {
 				$content = (string) ( $wapf_field['options']['p_content'] ?? $wapf_field['p_content'] ?? '' );
@@ -125,7 +126,7 @@ final class WapfMapper {
 			}
 
 			$field = FieldGroup::normalize_field(
-				[
+				array_merge( [
 					'id'           => $field_id,
 					'label'        => (string) ( $wapf_field['label'] ?? '' ),
 					'description'  => (string) ( $wapf_field['description'] ?? '' ),
@@ -139,7 +140,7 @@ final class WapfMapper {
 					'pricing'      => self::map_field_pricing( $wapf_field, $notes, $needs_review ),
 					'conditionals' => self::map_conditionals( $wapf_field, $notes, $opf_ids_by_wapf_id, $needs_review ),
 					'content'      => $content,
-				]
+				], $image_swatch_settings )
 			);
 			if ( 'paragraph' === $field['type'] ) {
 				if ( ! empty( $wapf_field['required'] ) ) {
@@ -153,7 +154,7 @@ final class WapfMapper {
 			}
 
 			if ( 'image-swatch' === $wapf_type ) {
-				$notes[] = sprintf( 'field "%s" is an image swatch; its image choices are retained, but WAPF label, grid, and zoom settings are not yet imported.', (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' ) );
+				$notes[] = sprintf( 'field "%s" is an image swatch; image choices and display settings are imported, but verify destination media and storefront presentation before publishing.', (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' ) );
 				$needs_review = true;
 			}
 
@@ -257,6 +258,56 @@ final class WapfMapper {
 			$choices[] = $mapped_choice;
 		}
 		return $choices;
+	}
+
+	/** Map the installed WAPF Extended image-swatch display settings. */
+	private static function map_image_swatch_settings( array $wapf_field, array &$notes, bool &$needs_review ): array {
+		$options = is_array( $wapf_field['options'] ?? null ) ? $wapf_field['options'] : [];
+		$settings = [];
+		$label = (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' );
+		$allowed = [
+			'label_pos' => [ 'default', 'out', 'hide', 'tooltip' ],
+			'grid_layout' => [ 'fixed', 'flexible' ],
+		];
+		foreach ( $allowed as $key => $values ) {
+			if ( ! array_key_exists( $key, $options ) ) {
+				continue;
+			}
+			if ( is_string( $options[ $key ] ) && in_array( $options[ $key ], $values, true ) ) {
+				$settings[ $key ] = $options[ $key ];
+			} else {
+				$notes[] = sprintf( 'image swatch "%s" has an unsupported %s setting; WAPF default applies.', $label, $key );
+				$needs_review = true;
+			}
+		}
+		$integer_settings = [
+			'item_width' => [ 20, 300 ],
+			'items_per_row' => [ 1, 15 ],
+			'items_per_row_tablet' => [ 1, 10 ],
+			'items_per_row_mobile' => [ 1, 10 ],
+		];
+		foreach ( $integer_settings as $key => $range ) {
+			if ( ! array_key_exists( $key, $options ) ) {
+				continue;
+			}
+			$value = $options[ $key ];
+			if ( ( is_int( $value ) || ( is_string( $value ) && ctype_digit( $value ) ) ) && (int) $value >= $range[0] && (int) $value <= $range[1] ) {
+				$settings[ $key ] = (int) $value;
+			} else {
+				$notes[] = sprintf( 'image swatch "%s" has an invalid %s setting; WAPF default applies.', $label, $key );
+				$needs_review = true;
+			}
+		}
+		if ( array_key_exists( 'large_image', $options ) ) {
+			$value = $options['large_image'];
+			if ( in_array( $value, [ true, false, 0, 1, '0', '1' ], true ) ) {
+				$settings['image_zoom'] = in_array( $value, [ true, 1, '1' ], true );
+			} else {
+				$notes[] = sprintf( 'image swatch "%s" has an invalid large_image setting; zoom setting needs review.', $label );
+				$needs_review = true;
+			}
+		}
+		return $settings;
 	}
 
 	/**

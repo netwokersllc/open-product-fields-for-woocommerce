@@ -159,12 +159,21 @@ final class WapfExporterTest extends TestCase {
 				'label' => 'Finish',
 				'type' => 'swatch',
 				'swatch_style' => 'image',
+				'image_zoom' => true,
+				'label_pos' => 'tooltip',
+				'grid_layout' => 'flexible',
+				'items_per_row' => 4,
+				'items_per_row_tablet' => 2,
+				'items_per_row_mobile' => 1,
 				'choices' => [ [ 'slug' => 'oak', 'label' => 'Oak', 'image' => 'https://example.test/oak.jpg', 'image_id' => 481 ] ],
 			] ],
 		] );
 
 		$payload = WapfExporter::build_payload( $group );
 		$this->assertSame( 'image-swatch', $payload['fields'][0]['type'] );
+		$this->assertTrue( $payload['fields'][0]['large_image'] );
+		$this->assertSame( 'tooltip', $payload['fields'][0]['label_pos'] );
+		$this->assertSame( [ 4, 2, 1 ], [ $payload['fields'][0]['items_per_row'], $payload['fields'][0]['items_per_row_tablet'], $payload['fields'][0]['items_per_row_mobile'] ] );
 		$this->assertSame( 'https://example.test/oak.jpg', $payload['fields'][0]['choices'][0]['image'] );
 		$this->assertSame( 481, $payload['fields'][0]['choices'][0]['attachment'] );
 	}

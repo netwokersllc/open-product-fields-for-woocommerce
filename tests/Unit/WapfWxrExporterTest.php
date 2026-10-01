@@ -79,6 +79,10 @@ final class WapfWxrExporterTest extends TestCase {
 				'label' => 'Finish',
 				'type' => 'swatch',
 				'swatch_style' => 'image',
+				'image_zoom' => true,
+				'label_pos' => 'tooltip',
+				'grid_layout' => 'flexible',
+				'item_width' => 96,
 				'choices' => [ [ 'slug' => 'oak', 'label' => 'Oak', 'image' => 'https://example.test/oak.jpg', 'image_id' => 481 ] ],
 			] ], 'rule_groups' => [] ],
 		] ], [ 'site_url' => 'https://example.test', 'site_title' => 'Example Store' ] );
@@ -90,6 +94,10 @@ final class WapfWxrExporterTest extends TestCase {
 		$group = unserialize( $content, [ 'allowed_classes' => false ] );
 
 		$this->assertSame( 'image-swatch', $group['fields'][0]['type'] );
+		$this->assertTrue( $group['fields'][0]['options']['large_image'] );
+		$this->assertSame( 'tooltip', $group['fields'][0]['options']['label_pos'] );
+		$this->assertSame( 'flexible', $group['fields'][0]['options']['grid_layout'] );
+		$this->assertSame( 96, $group['fields'][0]['options']['item_width'] );
 		$this->assertSame( 'https://example.test/oak.jpg', $group['fields'][0]['options']['choices'][0]['image'] );
 		$this->assertSame( 481, $group['fields'][0]['options']['choices'][0]['attachment'] );
 	}

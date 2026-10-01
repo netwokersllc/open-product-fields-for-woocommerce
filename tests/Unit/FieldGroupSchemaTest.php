@@ -80,6 +80,27 @@ final class FieldGroupSchemaTest extends TestCase {
 		$this->assertArrayNotHasKey( 'image_id', $field['choices'][1] );
 	}
 
+	public function test_image_swatch_layout_settings_are_bounded_and_normalized(): void {
+		$field = FieldGroup::normalize_field( [
+			'id' => 'finish',
+			'type' => 'swatch',
+			'swatch_style' => 'image',
+			'image_zoom' => true,
+			'label_pos' => 'tooltip',
+			'grid_layout' => 'flexible',
+			'items_per_row' => 4,
+			'items_per_row_tablet' => 2,
+			'items_per_row_mobile' => 1,
+			'choices' => [ [ 'slug' => 'oak', 'label' => 'Oak', 'image' => '/oak.jpg' ] ],
+		] );
+
+		$this->assertSame( 'image', $field['swatch_style'] );
+		$this->assertTrue( $field['image_zoom'] );
+		$this->assertSame( 'tooltip', $field['label_pos'] );
+		$this->assertSame( 'flexible', $field['grid_layout'] );
+		$this->assertSame( [ 4, 2, 1 ], [ $field['items_per_row'], $field['items_per_row_tablet'], $field['items_per_row_mobile'] ] );
+	}
+
 	public function test_duplicate_remaps_internal_field_references_and_formula_tokens(): void {
 		$result = FieldGroup::duplicate(
 			[

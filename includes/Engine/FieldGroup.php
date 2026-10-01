@@ -223,6 +223,27 @@ final class FieldGroup {
 			} );
 			if ( 'image' === ( $field['swatch_style'] ?? '' ) || $has_image_choice ) {
 				$normalized['swatch_style'] = 'image';
+				$label_pos = $field['label_pos'] ?? 'out';
+				if ( ! in_array( $label_pos, [ 'default', 'out', 'hide', 'tooltip' ], true ) ) {
+					throw new InvalidArgumentException( 'Image swatch label position must be default, out, hide, or tooltip.' );
+				}
+				$grid_layout = $field['grid_layout'] ?? 'fixed';
+				if ( ! in_array( $grid_layout, [ 'fixed', 'flexible' ], true ) ) {
+					throw new InvalidArgumentException( 'Image swatch grid layout must be fixed or flexible.' );
+				}
+				$normalized['label_pos'] = $label_pos;
+				$normalized['grid_layout'] = $grid_layout;
+				$normalized['item_width'] = self::bounded_integer( $field['item_width'] ?? 68, 20, 300, 'Image swatch width' );
+				$normalized['items_per_row'] = self::bounded_integer( $field['items_per_row'] ?? 3, 1, 15, 'Image swatch desktop columns' );
+				$normalized['items_per_row_tablet'] = self::bounded_integer( $field['items_per_row_tablet'] ?? 3, 1, 10, 'Image swatch tablet columns' );
+				$normalized['items_per_row_mobile'] = self::bounded_integer( $field['items_per_row_mobile'] ?? 3, 1, 10, 'Image swatch mobile columns' );
+				$image_zoom = $field['image_zoom'] ?? false;
+				if ( ! in_array( $image_zoom, [ true, false, 0, 1, '0', '1' ], true ) ) {
+					throw new InvalidArgumentException( 'Image swatch zoom setting must be boolean.' );
+				}
+				if ( in_array( $image_zoom, [ true, 1, '1' ], true ) && $has_image_choice ) {
+					$normalized['image_zoom'] = true;
+				}
 			}
 		}
 
@@ -293,6 +314,18 @@ final class FieldGroup {
 			}
 		}
 		return $normalized;
+	}
+
+	/** Validate bounded integer field settings. */
+	private static function bounded_integer( $value, int $minimum, int $maximum, string $label ): int {
+		if ( ! is_int( $value ) && ! ( is_string( $value ) && preg_match( '/^-?[0-9]+$/', $value ) ) ) {
+			throw new \InvalidArgumentException( $label . ' must be an integer.' );
+		}
+		$value = (int) $value;
+		if ( $value < $minimum || $value > $maximum ) {
+			throw new \InvalidArgumentException( sprintf( '%s must be between %d and %d.', $label, $minimum, $maximum ) );
+		}
+		return $value;
 	}
 
 	/**

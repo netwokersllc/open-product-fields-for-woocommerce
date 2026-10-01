@@ -67,7 +67,7 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( 15.5, $field['choices'][3]['pricing']['amount'] );
 	}
 
-	public function test_image_swatches_flag_visual_data_loss_for_review(): void {
+	public function test_image_swatches_preserve_media_and_map_display_settings_for_review(): void {
 		$mapped = WapfMapper::map( [
 			'fields' => [
 				[
@@ -75,6 +75,12 @@ final class WapfMapperTest extends TestCase {
 					'label' => 'Finish',
 					'type' => 'image-swatch',
 					'options' => [
+						'large_image' => true,
+						'label_pos' => 'tooltip',
+						'grid_layout' => 'flexible',
+						'items_per_row' => 4,
+						'items_per_row_tablet' => 2,
+						'items_per_row_mobile' => 1,
 						'choices' => [
 							[ 'slug' => 'oak', 'label' => 'Oak', 'attachment' => 481, 'image' => 'https://example.test/oak.jpg', 'pricing_type' => 'none' ],
 						],
@@ -86,6 +92,10 @@ final class WapfMapperTest extends TestCase {
 		$this->assertTrue( $mapped['needs_review'] );
 		$this->assertStringContainsString( 'image swatch', implode( ' ', $mapped['notes'] ) );
 		$this->assertSame( 'image', $mapped['group']['fields'][0]['swatch_style'] );
+		$this->assertTrue( $mapped['group']['fields'][0]['image_zoom'] );
+		$this->assertSame( 'tooltip', $mapped['group']['fields'][0]['label_pos'] );
+		$this->assertSame( 'flexible', $mapped['group']['fields'][0]['grid_layout'] );
+		$this->assertSame( [ 4, 2, 1 ], [ $mapped['group']['fields'][0]['items_per_row'], $mapped['group']['fields'][0]['items_per_row_tablet'], $mapped['group']['fields'][0]['items_per_row_mobile'] ] );
 		$this->assertSame( 'oak', $mapped['group']['fields'][0]['choices'][0]['slug'] );
 		$this->assertSame( 'https://example.test/oak.jpg', $mapped['group']['fields'][0]['choices'][0]['image'] );
 		$this->assertSame( 481, $mapped['group']['fields'][0]['choices'][0]['image_id'] );
