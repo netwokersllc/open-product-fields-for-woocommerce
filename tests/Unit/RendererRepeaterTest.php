@@ -55,5 +55,23 @@ namespace OPF\Tests\Unit {
 
 			$this->assertStringContainsString( 'name="opf[17][toppings][0][]"', $html );
 		}
+
+		public function test_quantity_repeater_renders_without_button_controls(): void {
+			$group = new FieldGroup( [ 'fields' => [ [
+				'id' => 'ticket_name',
+				'label' => 'Ticket name',
+				'type' => 'text',
+				'repeat' => [ 'enabled' => true, 'mode' => 'quantity', 'label' => 'Ticket {n}' ],
+			] ] ] );
+
+			ob_start();
+			Renderer::render_group( '17', 'Tickets', $group, 10.0 );
+			$html = (string) ob_get_clean();
+
+			$this->assertStringContainsString( 'data-opf-repeat="quantity"', $html );
+			$this->assertStringContainsString( 'name="opf[17][ticket_name][0]"', $html );
+			$this->assertStringNotContainsString( 'class="opf-field-repeat__add"', $html );
+			$this->assertStringNotContainsString( 'quantity-based repeated field is not available yet', $html );
+		}
 	}
 }

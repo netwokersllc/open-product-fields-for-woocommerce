@@ -238,7 +238,8 @@ final class Renderer {
 	private static function render_repeated_field( string $gid, array $field, array $values, float $base_price ): void {
 		$fid = (string) $field['id'];
 		$repeat = $field['repeat'];
-		if ( 'button' !== ( $repeat['mode'] ?? '' ) || ! in_array( $field['type'], [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch' ], true ) ) {
+		$mode = (string) ( $repeat['mode'] ?? '' );
+		if ( ! in_array( $mode, [ 'button', 'quantity' ], true ) || ! in_array( $field['type'], [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch' ], true ) ) {
 			echo '<div class="opf-field-container opf-field-repeat opf-field-repeat--unsupported" data-opf-field="' . esc_attr( $fid ) . '">';
 			echo '<div class="opf-field-label"><span>' . esc_html( $field['label'] ) . '</span></div>';
 			$message = 'button' === ( $repeat['mode'] ?? '' )
@@ -258,7 +259,7 @@ final class Renderer {
 		if ( $hidden ) {
 			$classes[] = 'opf-hide';
 		}
-		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-opf-field="' . esc_attr( $fid ) . '" data-opf-repeat="button" data-opf-repeat-max="' . esc_attr( (string) ( $repeat['max'] ?? 10000 ) ) . '" style="width:' . esc_attr( (string) $field['width'] ) . '%;">';
+		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-opf-field="' . esc_attr( $fid ) . '" data-opf-repeat="' . esc_attr( $mode ) . '" data-opf-repeat-max="' . esc_attr( (string) ( $repeat['max'] ?? 10000 ) ) . '" style="width:' . esc_attr( (string) $field['width'] ) . '%;">';
 		echo '<div class="opf-field-repeat__rows">';
 		$instance = $field;
 		$instance['_opf_source_id'] = $fid;

@@ -293,7 +293,9 @@ final class WapfMapper {
 			$needs_review = true;
 			$can_map_repeat = false;
 		}
-		if ( 'qty' === $type || 'section' === ( $wapf_field['type'] ?? '' ) ) {
+		$mapped_type = self::TYPE_MAP[ (string) ( $wapf_field['type'] ?? '' ) ] ?? '';
+		$repeatable_types = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch' ];
+		if ( 'section' === ( $wapf_field['type'] ?? '' ) || ( 'qty' === $type && ! in_array( $mapped_type, $repeatable_types, true ) ) ) {
 			$notes[] = sprintf( 'field "%s" uses quantity or section repeat behavior that OPF does not implement yet.', $label );
 			$needs_review = true;
 		}

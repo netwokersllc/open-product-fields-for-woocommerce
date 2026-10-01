@@ -373,7 +373,7 @@
 			if ( field.repeat && field.repeat.enabled ) {
 				var repeatMode = el( 'select', { class: 'opf-b-input', 'data-opf-repeat-mode': field.id }, [
 					el( 'option', { value: 'button', text: 'Customer adds rows with a button' } ),
-					el( 'option', { value: 'quantity', text: 'Match product quantity (not available yet)', disabled: true } ),
+					el( 'option', { value: 'quantity', text: 'Match product quantity' } ),
 				] );
 				repeatMode.value = field.repeat.mode || 'button';
 				repeatMode.addEventListener( 'change', function () {

@@ -37,6 +37,7 @@ final class CartIntegration {
 	public static function init(): void {
 		add_filter( 'woocommerce_add_to_cart_validation', [ __CLASS__, 'validate_add_to_cart' ], 10, 3 );
 		add_filter( 'woocommerce_add_cart_item_data', [ __CLASS__, 'attach' ], 10, 2 );
+		add_action( 'woocommerce_add_to_cart', [ __CLASS__, 'split_quantity_repeat_cart_item' ], 10, 6 );
 		add_filter( 'woocommerce_get_cart_item_from_session', [ __CLASS__, 'restore_from_session' ], 10, 2 );
 		add_action( 'woocommerce_before_calculate_totals', [ __CLASS__, 'apply_prices' ], 20, 1 );
 		add_filter( 'woocommerce_get_item_data', [ __CLASS__, 'display_item_data' ], 10, 2 );
@@ -88,6 +89,9 @@ final class CartIntegration {
 	 */
 	private static $store_api_raw = null;
 
+	/** Prevent recursive quantity splitting when a per-unit cart line is added. */
+	private static $splitting_quantity_repeats = false;
+
 	/**
 	 * Validate on add-to-cart. Runs for classic AND Store API paths.
 	 *
@@ -120,7 +124,7 @@ final class CartIntegration {
 
 		$values = self::collect_submitted( $product, self::$store_api_raw );
 		self::$store_api_raw = null; // Consumed: never leak into the next add.
-		$errors = self::validate_values( $product, $values );
+		$errors = self::validate_values( $product, $values, $quantity );
 
 		foreach ( $errors as $error ) {
 			wc_add_notice( $error, 'error' );
@@ -136,6 +140,10 @@ final class CartIntegration {
 	 * @param int   $product_id     Product id.
 	 */
 	public static function attach( array $cart_item_data, int $product_id ): array {
+		if ( self::$splitting_quantity_repeats ) {
+			return $cart_item_data;
+		}
+
 		if ( ! Renderer::visible_to_viewer() ) {
 			return $cart_item_data;
 		}
@@ -164,6 +172,137 @@ final class CartIntegration {
 		$cart_item_data['opf_base_price'] = (float) $product->get_price( 'edit' );
 
 		return $cart_item_data;
+	}
+
+	/**
+	 * Split quantity-repeated field values into per-unit cart lines, merging
+	 * identical clone configurations by increasing that line's quantity.
+	 *
+	 * @param string $cart_item_key Cart item key.
+	 * @param int    $product_id    Product id.
+	 * @param int    $quantity      Quantity added by this request.
+	 * @param int    $variation_id  Variation id.
+	 * @param array  $variation     Variation attributes.
+	 * @param array  $cart_item_data Submitted cart item data.
+	 */
+	public static function split_quantity_repeat_cart_item( $cart_item_key, $product_id, $quantity, $variation_id, $variation, $cart_item_data ): void {
+		if ( self::$splitting_quantity_repeats || (int) $quantity < 1 || ! function_exists( 'WC' ) || ! WC()->cart ) {
+			return;
+		}
+
+		$cart = WC()->cart;
+		$item = $cart->get_cart_item( $cart_item_key );
+		$values = is_array( $cart_item_data[ self::ITEM_KEY ] ?? null )
+			? $cart_item_data[ self::ITEM_KEY ]
+			: ( $item[ self::ITEM_KEY ] ?? [] );
+		if ( ! $item || ! is_array( $values ) ) {
+			return;
+		}
+
+		$product = wc_get_product( $variation_id ? $variation_id : $product_id );
+		if ( ! $product ) {
+			return;
+		}
+
+		$quantity_fields = [];
+		foreach ( FieldGroups::for_product( $product ) as $entry ) {
+			$gid = (string) $entry['id'];
+			foreach ( $entry['group']->data['fields'] as $field ) {
+				if ( ! empty( $field['repeat']['enabled'] ) && 'quantity' === ( $field['repeat']['mode'] ?? '' ) ) {
+					$quantity_fields[] = [ $gid, (string) $field['id'], $field ];
+				}
+			}
+		}
+		if ( ! $quantity_fields ) {
+			return;
+		}
+
+		$clone_groups = [];
+		for ( $unit_index = 0; $unit_index < (int) $quantity; $unit_index++ ) {
+			$unit_values = $values;
+			$canonical_values = $values;
+			$clone_labels = [];
+			foreach ( $quantity_fields as [ $gid, $fid, $field ] ) {
+				$source_rows = $values[ $gid ][ $fid ] ?? [];
+				if ( ! is_array( $source_rows ) ) {
+					$source_rows = [ $source_rows ];
+				}
+				if ( ! array_key_exists( $unit_index, $source_rows ) || null === $source_rows[ $unit_index ] || '' === $source_rows[ $unit_index ] || [] === $source_rows[ $unit_index ] ) {
+					unset( $unit_values[ $gid ][ $fid ], $canonical_values[ $gid ][ $fid ] );
+					continue;
+				}
+
+				$row = $source_rows[ $unit_index ];
+				$repeat_label = (string) ( $field['repeat']['label'] ?? '' );
+				$display_label = $unit_index > 0 && '' !== $repeat_label
+					? str_replace( '{n}', (string) ( $unit_index + 1 ), $repeat_label )
+					: (string) $field['label'];
+				$clone_labels[ $gid . ':' . $fid ] = $display_label;
+				$storage_index = $unit_index > 0 && false !== strpos( $repeat_label, '{n}' ) ? $unit_index : ( $unit_index > 0 && '' !== $repeat_label ? 1 : 0 );
+				$unit_values[ $gid ][ $fid ] = [ $storage_index => $row ];
+				$canonical_values[ $gid ][ $fid ] = [ 0 => $row ];
+			}
+
+			$signature = hash( 'sha256', serialize( [ (int) $product_id, (int) $variation_id, $canonical_values, $clone_labels ] ) );
+			if ( ! isset( $clone_groups[ $signature ] ) ) {
+				$clone_groups[ $signature ] = [ 'values' => $unit_values, 'quantity' => 0 ];
+			}
+			$clone_groups[ $signature ]['quantity']++;
+		}
+
+		if ( ! $clone_groups ) {
+			return;
+		}
+
+		$original_quantity = (int) ( $item['quantity'] ?? $quantity );
+		$original_values = $item[ self::ITEM_KEY ] ?? $values;
+		$previous_quantity = max( 0, $original_quantity - (int) $quantity );
+		$first = array_shift( $clone_groups );
+		$cart->cart_contents[ $cart_item_key ][ self::ITEM_KEY ] = $first['values'];
+		$cart->set_quantity( $cart_item_key, $previous_quantity + $first['quantity'], false );
+
+		if ( ! $clone_groups ) {
+			return;
+		}
+
+		$added_lines = [];
+		self::$splitting_quantity_repeats = true;
+		$add_failed = false;
+		try {
+			foreach ( $clone_groups as $clone_group ) {
+				$clone_data = $cart_item_data;
+				$clone_data[ self::ITEM_KEY ] = $clone_group['values'];
+				$clone_data['opf_base_price'] = (float) ( $item['opf_base_price'] ?? 0.0 );
+				unset( $clone_data['opf_fields_raw'] );
+				$previous_line_quantities = [];
+				foreach ( $cart->get_cart() as $existing_key => $existing_item ) {
+					$previous_line_quantities[ $existing_key ] = (int) $existing_item['quantity'];
+				}
+				$added_key = $cart->add_to_cart( $product_id, $clone_group['quantity'], $variation_id, $variation, $clone_data );
+				if ( false === $added_key ) {
+					$add_failed = true;
+					break;
+				}
+				$added_lines[] = [
+					'key' => $added_key,
+					'previous_quantity' => array_key_exists( $added_key, $previous_line_quantities ) ? $previous_line_quantities[ $added_key ] : null,
+				];
+			}
+		} finally {
+			self::$splitting_quantity_repeats = false;
+		}
+
+		if ( $add_failed ) {
+			foreach ( array_reverse( $added_lines ) as $added_line ) {
+				if ( null === $added_line['previous_quantity'] ) {
+					$cart->remove_cart_item( $added_line['key'] );
+				} else {
+					$cart->set_quantity( $added_line['key'], (int) $added_line['previous_quantity'], false );
+				}
+			}
+			$cart->cart_contents[ $cart_item_key ][ self::ITEM_KEY ] = $original_values;
+			$cart->set_quantity( $cart_item_key, $original_quantity, false );
+		}
 	}
 
 	/**
@@ -573,7 +712,7 @@ final class CartIntegration {
 	 * @param array<int|string, array<string, mixed>> $values Sanitized values.
 	 * @return string[]
 	 */
-	private static function validate_values( \WC_Product $product, array $values ): array {
+	private static function validate_values( \WC_Product $product, array $values, int $product_quantity = 1 ): array {
 		$errors = [];
 
 		foreach ( FieldGroups::for_product( $product ) as $entry ) {
@@ -588,7 +727,7 @@ final class CartIntegration {
 				$provided = array_key_exists( $field['id'], $given );
 				if ( ! empty( $field['repeat']['enabled'] ) ) {
 					$rows = $provided && is_array( $given[ $field['id'] ] ) ? $given[ $field['id'] ] : [];
-					$errors = array_merge( $errors, RepeaterField::validate( $field, $rows, $provided ) );
+					$errors = array_merge( $errors, RepeaterField::validate( $field, $rows, $provided, $product_quantity ) );
 					continue;
 				}
 				$value    = $provided && ! is_array( $given[ $field['id'] ] ) ? (string) $given[ $field['id'] ] : null;

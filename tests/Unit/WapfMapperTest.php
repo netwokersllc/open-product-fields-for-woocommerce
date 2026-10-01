@@ -242,6 +242,16 @@ final class WapfMapperTest extends TestCase {
 		$this->assertStringContainsString( 'quantity or section repeat behavior', implode( ' ', $mapped['notes'] ) );
 	}
 
+	public function test_maps_supported_quantity_repeated_fields_without_review(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'ticket-holder', 'label' => 'Ticket holder', 'type' => 'text',
+			'clone' => [ 'enabled' => true, 'type' => 'qty', 'label' => 'Ticket {n}' ],
+		] ] ] );
+
+		$this->assertFalse( $mapped['needs_review'] );
+		$this->assertSame( [ 'enabled' => true, 'mode' => 'quantity', 'label' => 'Ticket {n}' ], $mapped['group']['fields'][0]['repeat'] );
+	}
+
 	public function test_flags_custom_clone_settings_while_preserving_button_maximum(): void {
 		$mapped = WapfMapper::map( [ 'fields' => [ [
 			'id' => 'name', 'label' => 'Name', 'type' => 'text',

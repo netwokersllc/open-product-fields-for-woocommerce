@@ -86,38 +86,56 @@ final class RepeaterField {
 		}
 
 		$rows = [];
-		foreach ( array_values( $raw ) as $row ) {
-			$rows[] = $sanitize_row( $row );
+		if ( 'quantity' === ( $field['repeat']['mode'] ?? 'button' ) ) {
+			foreach ( $raw as $index => $row ) {
+				if ( ! is_int( $index ) || $index < 0 ) {
+					continue;
+				}
+				$rows[ $index ] = $sanitize_row( $row );
+			}
+			ksort( $rows, SORT_NUMERIC );
+		} else {
+			foreach ( array_values( $raw ) as $row ) {
+				$rows[] = $sanitize_row( $row );
+			}
 		}
 		return $rows ?: null;
 	}
 
 	/** Validate repeater row count and every non-empty row. */
-	public static function validate( array $field, array $rows, bool $provided ): array {
+	public static function validate( array $field, array $rows, bool $provided, int $product_quantity = 1 ): array {
 		$label = (string) ( $field['label'] ?? '' );
 		$repeat = $field['repeat'] ?? [];
 		$errors = [];
 		$type = (string) ( $field['type'] ?? '' );
+		$quantity_mode = 'quantity' === ( $repeat['mode'] ?? 'button' );
 
-		if ( 'quantity' === ( $repeat['mode'] ?? 'button' ) ) {
-			return [ sprintf( '"%s" uses quantity-based repeated rows that are not available yet.', $label ) ];
-		}
 		if ( ! in_array( $type, [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch' ], true ) ) {
 			return [ sprintf( '"%s" uses a field type that cannot be repeated yet.', $label ) ];
 		}
 
 		if ( ! $provided || ! $rows ) {
-			return ! empty( $field['required'] ) ? [ sprintf( '"%s" is a required field.', $label ) ] : [];
+			return ! empty( $field['required'] ) ? [ sprintf( '"%s" is required in repeated row 1.', $label ) ] : [];
 		}
 
-		if ( 'button' === ( $repeat['mode'] ?? 'button' ) ) {
+		if ( $quantity_mode ) {
+			$expected_rows = max( 1, $product_quantity );
+			$last_index = max( array_map( 'intval', array_keys( $rows ) ) );
+			if ( $last_index + 1 !== $expected_rows || count( $rows ) > $expected_rows ) {
+				return [ sprintf( '"%s" must have exactly %d rows to match product quantity.', $label, $expected_rows ) ];
+			}
+		}
+
+		if ( ! $quantity_mode ) {
 			$max = (int) ( $repeat['max'] ?? self::DEFAULT_BUTTON_ROWS );
 			if ( count( $rows ) > $max ) {
 				return [ sprintf( '"%s" allows at most %d repeated rows.', $label, $max ) ];
 			}
 		}
 
-		foreach ( $rows as $index => $value ) {
+		$row_indexes = $quantity_mode ? range( 0, max( 1, $product_quantity ) - 1 ) : array_keys( $rows );
+		foreach ( $row_indexes as $index ) {
+			$value = $rows[ $index ] ?? null;
 			$empty = null === $value || '' === $value || [] === $value || ( 'toggle' === $type && '0' === $value );
 			if ( $empty ) {
 				if ( ! empty( $field['required'] ) ) {
