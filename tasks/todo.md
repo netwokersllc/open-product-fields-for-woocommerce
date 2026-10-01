@@ -12,6 +12,6 @@
 
 | Task | Acceptance criteria | Owner / worktree | Verified | Blocked | Waivers |
 | --- | --- | --- | --- | --- | --- |
-| Source-key import parity | Map only source-confirmed date constraints; mapper tests prove supported values and review unsafe ones | Pending | No | No | None |
-| Formula quantity parity | `sumQty(field ID)` matches WAPF source and actual OPF quantity model; server/browser tests | Pending | No | No | None |
-| Price-reference browser parity | Browser totals writer uses ordered group prices, hidden source resolves safely; cart/order cross-group proof remains green | Pending | No | No | None |
+| Date-option import parity | Map source-confirmed date constraints; mapper tests prove supported values and review unsafe ones | `/root/date_import`, `gpt-6-luna`, `/tmp/opf-date-import`, 0 strikes | Pending | No | None |
+| `sumQty(field ID)` parity | Match Extended source and actual OPF quantity model; server/browser and lifecycle evidence | `/root/sumqty`, `gpt-6-luna`, `/tmp/opf-sumqty`, 0 strikes | Pending | No | None |
+| `[price.ID]` browser parity | Real Chromium verifies prior-group price, hidden source, totals, and no browser errors | `/root/priceid_browser`, `gpt-6-luna`, `/tmp/opf-priceid-browser`, 0 strikes | Pending | No | None |
