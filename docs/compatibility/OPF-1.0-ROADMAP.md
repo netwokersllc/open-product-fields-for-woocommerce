@@ -26,7 +26,7 @@ Extended plugin as inactive 3.1.5 with no update currently exposed in its
 update registry. The available-source audit is complete; this live-site check
 does not change the audited version boundary.
 
-## Progress now — 2026-10-01
+## Progress now — 2026-10-02
 
 The 132 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 “All versions” rows. Current recorded status:
@@ -36,8 +36,8 @@ The 132 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 | Baseline supported | 4 | Promising baseline only; not accepted as proof |
 | Supported | 5 | Fresh supported-row audit retained only independently justified evidence |
 | Supported with documented difference | 8 | Needs explicit non-regression review and acceptance |
-| Partial | 112 | Material parity or proof remains; 15 prior supported claims were withdrawn after source/test audit |
-| Gap | 3 | Known absent in the current OPF tree, including both upload capability rows |
+| Partial | 114 | Material parity or proof remains; 15 prior supported claims were withdrawn after source/test audit; both upload rows now have a private-storage foundation but still lack builder/import/export parity and additional lifecycle proof |
+| Gap | 1 | Known absent in the current OPF tree |
 | Needs audit | 0 | Available source, marketing claims, and every published release delta are mapped; exact release details remain scoped to partial rows |
 | **Total** | **132** | **G1 complete for available evidence; G2 remains open** |
 
@@ -63,6 +63,15 @@ supported after that review; the other claims are partial or identified as
 outside WAPF parity. See [the supported-row audit](SUPPORTED-ROW-AUDIT-2026-10-01.md).
 Current strict progress is **5/132 accepted supported rows**; this correction
 changes the evidence-based count, not previously implemented behavior.
+
+The upload field and Ajax UI advanced from `gap` to `partial` on the public
+branch after a reviewed private-storage foundation landed. Disposable
+Chromium/WooCommerce evidence covers upload and removal UX, ownership and file
+validation, classic and Store API carts, checkout/order persistence, protected
+downloads, and cleanup. WAPF builder controls and import/export fidelity,
+thumbnail previews, upload order-again, guest session-loss recovery, and
+broader platform/storage compatibility remain open; see [upload foundation
+evidence](UPLOAD-FOUNDATION-EVIDENCE-2026-10-01.md).
 
 `WAPF-FIELD-TEXT` advanced from baseline-supported to `supported`: native text
 defaults and builder controls now pass 24 real-Chromium checks and 23 disposable
