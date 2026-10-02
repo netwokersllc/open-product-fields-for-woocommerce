@@ -845,7 +845,9 @@ final class CartIntegration {
 					}
 				}
 				$value = ! empty( $repeat_field['repeat']['enabled'] )
-					? RepeaterField::sanitize( $repeat_field, $submitted[ $fid ], static fn( $row ) => self::sanitize_value( $field, $row, $structured ) )
+					? RepeaterField::sanitize( $repeat_field, $submitted[ $fid ], static function ( $row ) use ( $field, $structured ) {
+						return self::sanitize_value( $field, $row, $structured );
+					} )
 					: self::sanitize_value( $field, $submitted[ $fid ], $structured );
 				if ( null !== $value ) {
 					$values[ $gid ][ $fid ] = $value;
