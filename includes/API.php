@@ -200,12 +200,14 @@ final class API {
 			$product = $item->get_product();
 			if ( is_array( $snapshot ) ) {
 				$options = array_map(
-					static fn( array $field ): array => [
-						'id' => (string) ( $field['id'] ?? '' ),
-						'label' => (string) ( $field['label'] ?? $field['id'] ?? '' ),
-						'value' => $field['value'] ?? null,
-						'type' => (string) ( $field['type'] ?? '' ),
-					],
+					static function ( array $field ): array {
+						return [
+							'id' => (string) ( $field['id'] ?? '' ),
+							'label' => (string) ( $field['label'] ?? $field['id'] ?? '' ),
+							'value' => $field['value'] ?? null,
+							'type' => (string) ( $field['type'] ?? '' ),
+						];
+					},
 					array_filter( $snapshot, 'is_array' )
 				);
 			} else {
