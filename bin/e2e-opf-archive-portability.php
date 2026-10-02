@@ -1,6 +1,8 @@
 <?php
 /**
- * E2E proof that cross-site placement IDs are retained and held for review.
+ * E2E proof that cross-site placement IDs and media references are retained
+ * and held for review. Media files themselves are not portable, so the archive
+ * keeps the URL/ID metadata and flags the gap for review.
  * Run only against a disposable WordPress clone with OPF and WooCommerce active:
  * OPF_ARCHIVE_E2E_ALLOW=1 wp eval-file bin/e2e-opf-archive-portability.php
  *
@@ -23,7 +25,10 @@ $source_id = 0;
 $target_id = 0;
 try {
 	$data = OPF\Engine\FieldGroup::normalize( [
-		'fields' => [ [ 'id' => 'transfer-choice', 'label' => 'Transfer choice', 'type' => 'select', 'choices' => [ [ 'slug' => 'standard', 'label' => 'Standard' ] ] ] ],
+		'fields' => [
+			[ 'id' => 'transfer-choice', 'label' => 'Transfer choice', 'type' => 'select', 'choices' => [ [ 'slug' => 'standard', 'label' => 'Standard' ] ] ],
+			[ 'id' => 'fabric-guide', 'label' => 'Fabric guide', 'type' => 'content_image', 'image_url' => 'https://source.example.test/fabric.jpg', 'image_id' => 481 ],
+		],
 		'rule_groups' => [ [ 'rules' => [
 			[ 'subject' => 'product', 'operator' => 'in', 'terms' => [ '765432101' ] ],
 			[ 'subject' => 'category', 'operator' => 'in', 'terms' => [ '765432102' ] ],
@@ -45,11 +50,23 @@ try {
 		'language' => '',
 		'data' => $source_data,
 	] ], [ 'type' => 'group', 'id' => $source_id ] );
-	$assert_warning = in_array( 'product_target_ids_may_not_match', $package['groups'][0]['warnings'] ?? [], true );
-	if ( ! $assert_warning ) {
+	$group_warnings = $package['groups'][0]['warnings'] ?? [];
+	if ( ! in_array( 'product_target_ids_may_not_match', $group_warnings, true ) ) {
 		throw new RuntimeException( 'Export did not warn that placement IDs are site-local.' );
 	}
+	if ( ! in_array( 'media_files_not_included', $group_warnings, true ) ) {
+		throw new RuntimeException( 'Export did not warn that media files are not included.' );
+	}
 	$decoded = OPF\Service\ArchiveImporter::decode( (string) wp_json_encode( $package ) );
+	$decoded_image = [];
+	foreach ( $decoded['groups'][0]['data']['fields'] ?? [] as $decoded_field ) {
+		if ( 'content_image' === ( $decoded_field['type'] ?? '' ) ) {
+			$decoded_image = $decoded_field;
+		}
+	}
+	if ( 'https://source.example.test/fabric.jpg' !== ( $decoded_image['image_url'] ?? '' ) || 481 !== ( $decoded_image['image_id'] ?? 0 ) ) {
+		throw new RuntimeException( 'Decoded archive dropped the content image URL or ID.' );
+	}
 
 	$dry = OPF\Service\ArchiveImporter::import( $decoded, false );
 	if ( 1 !== $dry['imported'] || 0 !== $dry['skipped'] || 'dry-run' !== $dry['mode'] ) {
@@ -67,8 +84,9 @@ try {
 	$target = get_post( $target_id );
 	$notes = get_post_meta( $target_id, '_opf_needs_review', true );
 	$target_data = $target ? json_decode( (string) $target->post_content, true ) : null;
-	if ( ! $target || 'draft' !== $target->post_status || ! is_array( $notes ) || false === strpos( implode( ' ', $notes ), 'Site-local product, category, or tag targets' ) ) {
-		throw new RuntimeException( 'Imported site-local placement was not held as a review draft.' );
+	$notes_text = is_array( $notes ) ? implode( ' ', $notes ) : '';
+	if ( ! $target || 'draft' !== $target->post_status || ! is_array( $notes ) || false === strpos( $notes_text, 'Site-local product, category, or tag targets' ) || false === strpos( $notes_text, 'Media files are not included' ) ) {
+		throw new RuntimeException( 'Imported site-local placement and media references were not held as a review draft.' );
 	}
 	if ( $source_data !== $target_data ) {
 		throw new RuntimeException( 'Import changed or dropped the source placement IDs.' );
@@ -78,7 +96,7 @@ try {
 	if ( 0 !== $repeat['imported'] || 1 !== $repeat['skipped'] || 'already-imported' !== ( $repeat['groups'][0]['result'] ?? '' ) ) {
 		throw new RuntimeException( 'Repeated archive import did not skip the existing source group.' );
 	}
-	echo "ok archive portability warning, dry-run, preserved IDs, review draft, and idempotent repeat\n";
+	echo "ok archive portability warnings, dry-run, preserved IDs and media refs, review draft, and idempotent repeat\n";
 } finally {
 	$matches = get_posts( [
 		'post_type' => 'opf_field_group',
