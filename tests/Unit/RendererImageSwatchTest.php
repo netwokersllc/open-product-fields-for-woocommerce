@@ -176,7 +176,10 @@ namespace OPF\Tests\Unit {
 			$this->assertStringNotContainsString( 'onerror=', $html );
 			$this->assertSame( 1, $GLOBALS['opf_test_shortcode_calls'] );
 			$this->assertArrayHasKey( 'table', $GLOBALS['opf_test_content_allowed_html'] );
-			$this->assertArrayHasKey( 'img', $GLOBALS['opf_test_content_allowed_html'] );
+			$this->assertSame(
+				[ 'src' => [], 'target' => [], 'class' => [], 'alt' => [], 'style' => [], 'id' => [] ],
+				$GLOBALS['opf_test_content_allowed_html']['img']
+			);
 		}
 
 		public function test_content_image_renders_safe_url_as_non_submittable_content(): void {

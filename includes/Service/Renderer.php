@@ -397,7 +397,7 @@ final class Renderer {
 					'th' => [ 'class' => [], 'style' => [], 'id' => [] ],
 					'thead' => [ 'class' => [], 'style' => [], 'id' => [] ],
 					'tbody' => [ 'class' => [], 'style' => [], 'id' => [] ],
-					'img' => [ 'src' => [], 'class' => [], 'style' => [], 'id' => [] ],
+					'img' => [ 'src' => [], 'target' => [], 'class' => [], 'alt' => [], 'style' => [], 'id' => [] ],
 				];
 				$content = wp_kses( $field['content'], $allowed_html );
 				if ( ! empty( $field['process_shortcodes'] ) && function_exists( 'do_shortcode' ) ) {
