@@ -56,15 +56,30 @@ if ( 'setup' === $mode ) {
 	foreach ( $fields as &$field ) { $field['conditionals'] = []; }
 	unset( $field );
 	$raw = [ 'fields' => $fields, 'conditions' => [], 'layout' => [ 'labels_position' => 'above', 'instructions_position' => 'field', 'mark_required' => true ], 'variables' => [] ];
-	$source = wp_insert_post( [ 'post_type' => 'wapf_product', 'post_status' => 'draft', 'post_title' => 'Formula native source' ] );
-	$target = wp_insert_post( [ 'post_type' => 'wapf_product', 'post_status' => 'draft', 'post_title' => 'Formula Tools destination' ] );
+	$state = [ 'source' => 0, 'target' => 0, 'cases' => $cases, 'owned' => [] ];
+	update_option( 'opf_formula_roundtrip_state', $state );
+	try {
+	foreach ( [ 'source' => 'Formula native source', 'target' => 'Formula Tools destination' ] as $key => $title ) {
+		$id = wp_insert_post( [ 'post_type' => 'wapf_product', 'post_status' => 'draft', 'post_title' => $title ], true );
+		$assert( ! is_wp_error( $id ) && $id > 0, 'Could not create ' . $key . ' fixture.' );
+		$state[ $key ] = $id;
+		$state['owned'][] = $id;
+		update_option( 'opf_formula_roundtrip_state', $state );
+		if ( $key === getenv( 'OPF_FORMULA_ROUNDTRIP_FAIL_SETUP_AFTER' ) ) { throw new RuntimeException( 'Injected setup failure after ' . $key ); }
+	}
+	$source = $state['source'];
 	$model = Field_Groups::raw_json_to_field_group( $raw + [ 'id' => $source, 'type' => 'wapf_product' ] );
 	Field_Groups::save( $model, 'wapf_product', $source, 'Formula native source', 'publish' );
 	$write( 'wapf-model-export.json', [ 'fields' => Field_Groups::field_group_to_raw_fields_json( Field_Groups::get_by_id( $source ) ), 'conditions' => $model->rules_groups, 'layout' => $model->layout, 'variables' => $model->variables ] );
-	$state = [ 'source' => $source, 'target' => $target, 'cases' => $cases, 'owned' => [ $source, $target ] ];
-	update_option( 'opf_formula_roundtrip_state', $state );
+	if ( 'export' === getenv( 'OPF_FORMULA_ROUNDTRIP_FAIL_SETUP_AFTER' ) ) { throw new RuntimeException( 'Injected setup failure after export' ); }
 	$write( 'native-seed.json', $raw );
 	$write( 'state.json', $state );
+	} catch ( Throwable $error ) {
+		foreach ( $state['owned'] as $id ) { wp_delete_post( $id, true ); }
+		delete_option( 'opf_formula_roundtrip_state' );
+		FieldGroups::flush_cache();
+		throw $error;
+	}
 	echo wp_json_encode( $state );
 	return;
 }
@@ -90,6 +105,9 @@ Field_Groups::save( $model, 'wapf_product', $state['target'], 'Formula model des
 $reloaded = Field_Groups::get_by_id( $state['target'] );
 $assert( 'count' === $reloaded->fields[0]->id, 'OPF exported field IDs were not persisted by native converter.' );
 $write( 'wapf-model-reexport.json', [ 'fields' => Field_Groups::field_group_to_raw_fields_json( $reloaded ), 'conditions' => $reloaded->rules_groups, 'layout' => $reloaded->layout, 'variables' => $reloaded->variables ] );
+$raw_reexport = json_decode( file_get_contents( $dir . '/wapf-model-reexport.json' ), true );
+$from_raw_export = Field_Groups::raw_json_to_field_group( $raw_reexport + [ 'id' => $state['target'], 'type' => 'wapf_product' ] );
+$assert( $first_map['group'] === WapfMapper::map( $from_raw_export->to_array() )['group'], 'Native raw export reimport changed mapped OPF group data.' );
 $product = new WC_Product_Simple();
 $product->set_name( 'Formula local import fixture' );
 $product->set_regular_price( '100' );
@@ -101,11 +119,11 @@ $dry = Importer::run( false );
 $assert( 3 === $dry['imported'] && 0 === $dry['skipped'], 'Legacy importer dry-run expected two global and one local source.' );
 $assert( ! get_posts( [ 'post_type' => 'opf_field_group', 'post_status' => 'any' ] ), 'Legacy dry-run wrote groups.' );
 $committed = Importer::run( true );
+foreach ( $committed['groups'] as $entry ) { if ( ! empty( $entry['opf_id'] ) ) { $state['owned'][] = $entry['opf_id']; } }
+update_option( 'opf_formula_roundtrip_state', $state );
 $assert( 3 === $committed['imported'] && 0 === $committed['skipped'], 'Legacy import failed.' );
 $groups = [];
 foreach ( $committed['groups'] as $entry ) {
-	$state['owned'][] = $entry['opf_id'];
-	update_option( 'opf_formula_roundtrip_state', $state );
 	$assert( ! $entry['needs_review'], 'Supported formula import unexpectedly needs review: ' . wp_json_encode( $entry ) );
 	$groups[ (string) $entry['source'] ] = FieldGroups::group_from_post( get_post( $entry['opf_id'] ) )->data;
 }
@@ -153,12 +171,13 @@ foreach ( [ 1, 4 ] as $qty ) {
 	unset( $cart_field );
 	foreach ( array_values( $state['cases'] ) as $index => $formula ) {
 		$native = Fields::do_pricing( false, 'fx', $formula, 100, 100, $qty, '3', $product_id, $cart_fields, [ $state['source'] ], 0, 8 / $qty );
-		$native_choice_back = Fields::do_pricing( false, 'fx', $reloaded->fields[3]->options['choices'][ $index ]['pricing_amount'], 100, 100, $qty, '3', $product_id, $roundtrip_fields, [ $state['target'] ], 0, 8 / $qty );
-		$native_field_back = Fields::do_pricing( false, 'fx', $reloaded->fields[4 + $index ]->pricing->amount, 100, 100, $qty, '3', $product_id, $roundtrip_fields, [ $state['target'] ], 0, 8 / $qty );
+		$native_choice_back = Fields::do_pricing( false, 'fx', $from_raw_export->fields[3]->options['choices'][ $index ]['pricing_amount'], 100, 100, $qty, '3', $product_id, $roundtrip_fields, [ $state['target'] ], 0, 8 / $qty );
+		$native_field_back = Fields::do_pricing( false, 'fx', $from_raw_export->fields[4 + $index ]->pricing->amount, 100, 100, $qty, '3', $product_id, $roundtrip_fields, [ $state['target'] ], 0, 8 / $qty );
 		$choice = $group['fields'][3]['choices'][ $index ]['pricing'];
 		$field = $group['fields'][4 + $index ]['pricing'];
 		$actual_choice = Calculator::choice_addon( $choice, 100, $qty, 8 / $qty, $values, $product_id, $prices );
 		$actual_field = Calculator::field_pricing_addon( $field, '3', 100, $qty, 8 / $qty, $values, $product_id, $prices );
+		$assert( 0.0 === Calculator::field_pricing_addon( $field, ' ', 100, $qty, 8 / $qty, $values, $product_id, $prices ), 'PHP scalar empty-input guard failed.' );
 		$assert( abs( $native - $actual_choice ) < 0.000001 && abs( $native - $actual_field ) < 0.000001, 'Native/OPF formula mismatch: ' . wp_json_encode( [ $formula, $qty, $native, $actual_choice, $actual_field ] ) );
 		$assert( abs( $native - $native_choice_back ) < 0.000001 && abs( $native - $native_field_back ) < 0.000001, 'Native pricing changed after export/import model round-trip.' );
 		$rows[] = [ 'case' => array_keys( $state['cases'] )[ $index ], 'qty' => $qty, 'native' => $native, 'native_roundtrip_choice' => $native_choice_back, 'native_roundtrip_field' => $native_field_back, 'php_choice' => $actual_choice, 'php_field' => $actual_field, 'choice' => $choice, 'field' => $field, 'values' => $values, 'prices' => $prices, 'addons' => 8 / $qty ];
@@ -170,8 +189,25 @@ foreach ( [ 'if(2 < 5; 1; 2)', 'len(abc)', 'datediff(01-10-2023; 01-12-2023)', '
 	$raw['fields'][3]['choices'] = [ [ 'slug' => 'boundary', 'label' => 'Boundary', 'pricing_type' => 'fx', 'pricing_amount' => $formula ] ];
 	$boundary_model = Field_Groups::raw_json_to_field_group( $raw + [ 'id' => $state['source'], 'type' => 'wapf_product' ] );
 	$mapped = WapfMapper::map( $boundary_model->to_array() );
-	$boundaries[] = [ 'formula' => $formula, 'needs_review' => $mapped['needs_review'], 'pricing' => $mapped['group']['fields'][3]['choices'][0]['pricing'], 'notes' => $mapped['notes'] ];
+	$pricing = $mapped['group']['fields'][3]['choices'][0]['pricing'];
+	$retained = in_array( $formula, [ 'sumQty(FlagsID)', 'files(FlagsID)' ], true );
+	$assert( ( $retained ? 'formula' : 'none' ) === $pricing['type'], 'Unexpected retained/dropped behavior: ' . $formula );
+	$expected_notes = [];
+	if ( $retained ) {
+		$remapped = str_replace( 'FlagsID', 'flags', $formula );
+		$assert( $remapped === $pricing['formula_raw'] && $remapped === $pricing['formula'], 'Retained boundary formula lost remapping.' );
+		$expected_notes[] = 'field "Boundary" formula contains references whose runtime behavior is not implemented yet (' . strtolower( $remapped ) . '); pricing needs review.';
+	} else {
+		$assert( '' === $pricing['formula'] && '' === $pricing['formula_raw'] && 0.0 === (float) $pricing['amount'], 'Dropped boundary retained pricing.' );
+		if ( '[field.COUNTID] + [price.FEEID]' === $formula || '[field.missing]' === $formula ) {
+			$ids = '[field.missing]' === $formula ? 'missing' : 'COUNTID, FEEID';
+			$expected_notes[] = 'field "Boundary" formula references unavailable or ambiguous WAPF field IDs (' . $ids . '); pricing needs review.';
+		}
+		$expected_notes[] = 'choice "Boundary" formula could not be translated: ' . $formula;
+	}
+	$assert( $expected_notes === $mapped['notes'], 'Unexpected boundary notes: ' . wp_json_encode( $mapped['notes'] ) );
+	$boundaries[] = [ 'formula' => $formula, 'expected_behavior' => $retained ? 'formula-retained-with-review' : 'pricing-dropped-with-review', 'needs_review' => $mapped['needs_review'], 'pricing' => $pricing, 'notes' => $mapped['notes'] ];
 	$assert( $mapped['needs_review'], 'Expected explicit boundary review for ' . $formula );
 }
-$write( 'php-results.json', [ 'environment' => [ 'php' => PHP_VERSION, 'wordpress' => get_bloginfo( 'version' ), 'woocommerce' => WC_VERSION, 'database' => FQDB, 'opf' => realpath( OPF_DIR ), 'functions' => Helper::get_all_formula_functions() ], 'rows' => $rows, 'boundaries' => $boundaries, 'legacy_dry' => $dry, 'legacy_committed' => $committed, 'archive' => $archive ] );
-echo 'PHP: 24 native formula comparisons pass for both choice and field pricing before/after native model round-trip; global/local import, exact OPF archive, repeats, casing export and 9 explicit review boundaries pass.';
+$write( 'php-results.json', [ 'context_provenance' => 'Fixture-authored synthetic base/addons/field-value/field-price contexts; production cart/storefront context construction is out of scope.', 'environment' => [ 'php' => PHP_VERSION, 'wordpress' => get_bloginfo( 'version' ), 'woocommerce' => WC_VERSION, 'database' => FQDB, 'opf' => realpath( OPF_DIR ), 'functions' => Helper::get_all_formula_functions() ], 'scalar_empty_input_guards' => count( $rows ), 'raw_export_reimport_exact_opf_group' => true, 'rows' => $rows, 'boundaries' => $boundaries, 'legacy_dry' => $dry, 'legacy_committed' => $committed, 'archive' => $archive ] );
+echo 'PHP: 24 synthetic-context WAPF evaluator comparisons pass for choice/scalar pricing and reimported raw-export formulas; scalar empty-input guards, persisted global/local import, exact archive, repeats, casing and 9 precise retained/dropped review checks pass.';

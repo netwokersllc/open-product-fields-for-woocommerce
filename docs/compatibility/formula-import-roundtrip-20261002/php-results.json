@@ -1,10 +1,11 @@
 {
+    "context_provenance": "Fixture-authored synthetic base/addons/field-value/field-price contexts; production cart/storefront context construction is out of scope.",
     "environment": {
         "php": "8.5.11",
         "wordpress": "7.1.2",
         "woocommerce": "11.1.0",
         "database": "/tmp/opf-formula-roundtrip-wp/wp-content/database/.ht.sqlite",
-        "opf": "/tmp/opf-formula-import-roundtrip",
+        "opf": "/tmp/opf-formula-import-proof-audit",
         "functions": [
             "min",
             "max",
@@ -31,6 +32,8 @@
             "month"
         ]
     },
+    "scalar_empty_input_guards": 24,
+    "raw_export_reimport_exact_opf_group": true,
     "rows": [
         {
             "case": "flat",
@@ -876,6 +879,7 @@
     "boundaries": [
         {
             "formula": "if(2 < 5; 1; 2)",
+            "expected_behavior": "pricing-dropped-with-review",
             "needs_review": true,
             "pricing": {
                 "type": "none",
@@ -890,6 +894,7 @@
         },
         {
             "formula": "len(abc)",
+            "expected_behavior": "pricing-dropped-with-review",
             "needs_review": true,
             "pricing": {
                 "type": "none",
@@ -904,6 +909,7 @@
         },
         {
             "formula": "datediff(01-10-2023; 01-12-2023)",
+            "expected_behavior": "pricing-dropped-with-review",
             "needs_review": true,
             "pricing": {
                 "type": "none",
@@ -918,6 +924,7 @@
         },
         {
             "formula": "today()",
+            "expected_behavior": "pricing-dropped-with-review",
             "needs_review": true,
             "pricing": {
                 "type": "none",
@@ -932,6 +939,7 @@
         },
         {
             "formula": "lookuptable(table; 1)",
+            "expected_behavior": "pricing-dropped-with-review",
             "needs_review": true,
             "pricing": {
                 "type": "none",
@@ -946,6 +954,7 @@
         },
         {
             "formula": "sumQty(FlagsID)",
+            "expected_behavior": "formula-retained-with-review",
             "needs_review": true,
             "pricing": {
                 "type": "formula",
@@ -960,6 +969,7 @@
         },
         {
             "formula": "files(FlagsID)",
+            "expected_behavior": "formula-retained-with-review",
             "needs_review": true,
             "pricing": {
                 "type": "formula",
@@ -974,6 +984,7 @@
         },
         {
             "formula": "[field.COUNTID] + [price.FEEID]",
+            "expected_behavior": "pricing-dropped-with-review",
             "needs_review": true,
             "pricing": {
                 "type": "none",
@@ -989,6 +1000,7 @@
         },
         {
             "formula": "[field.missing]",
+            "expected_behavior": "pricing-dropped-with-review",
             "needs_review": true,
             "pricing": {
                 "type": "none",
@@ -1011,7 +1023,7 @@
         "needs_review": [],
         "groups": [
             {
-                "source": "39",
+                "source": "60",
                 "result": "imported",
                 "opf_id": 0,
                 "title": "Formula model destination",
@@ -1021,7 +1033,7 @@
                 "notes": []
             },
             {
-                "source": "38",
+                "source": "59",
                 "result": "imported",
                 "opf_id": 0,
                 "title": "Formula native source",
@@ -1031,7 +1043,7 @@
                 "notes": []
             },
             {
-                "source": "meta:40",
+                "source": "meta:61",
                 "result": "imported",
                 "opf_id": 0,
                 "title": "Formula local import fixture \u2014 Count",
@@ -1053,9 +1065,9 @@
         "needs_review": [],
         "groups": [
             {
-                "source": "39",
+                "source": "60",
                 "result": "imported",
-                "opf_id": 41,
+                "opf_id": 62,
                 "title": "Formula model destination",
                 "fields": 16,
                 "status": "publish",
@@ -1063,9 +1075,9 @@
                 "notes": []
             },
             {
-                "source": "38",
+                "source": "59",
                 "result": "imported",
-                "opf_id": 42,
+                "opf_id": 63,
                 "title": "Formula native source",
                 "fields": 16,
                 "status": "publish",
@@ -1073,9 +1085,9 @@
                 "notes": []
             },
             {
-                "source": "meta:40",
+                "source": "meta:61",
                 "result": "imported",
-                "opf_id": 43,
+                "opf_id": 64,
                 "title": "Formula local import fixture \u2014 Count",
                 "fields": 16,
                 "status": "publish",
@@ -1093,9 +1105,9 @@
         "skipped": 0,
         "groups": [
             {
-                "source_id": 41,
+                "source_id": 62,
                 "result": "imported",
-                "opf_id": 44,
+                "opf_id": 65,
                 "status": "draft",
                 "needs_review": false
             }

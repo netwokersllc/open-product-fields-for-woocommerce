@@ -1,4 +1,5 @@
-PHP: 24 native formula comparisons pass for both choice and field pricing before/after native model round-trip; global/local import, exact OPF archive, repeats, casing export and 9 explicit review boundaries pass.
-Chromium: 24 native comparisons pass for both choice and field pricing; served JS equals worktree bytes; no formula page errors.
+PHP: 24 synthetic-context WAPF evaluator comparisons pass for choice/scalar pricing and reimported raw-export formulas; scalar empty-input guards, persisted global/local import, exact archive, repeats, casing and 9 precise retained/dropped review checks pass.
+Chromium: 24 synthetic-context WAPF evaluator comparisons pass through select/text choiceOrFieldAddon branches; empty/whitespace scalar guards pass; served JS equals worktree bytes; no formula execution page errors.
 WAPF Tools UI boundary: invalid-license notice, 16 model fields, empty UI export, success message but empty UI reexport. Licensed UI remapping remains unproven.
 Cleaned all owned products, WAPF groups, OPF groups and fixture option.
+Independent read-only SQLite audit: zero fixture posts/meta/option, HPOS orders, order items and item metadata. Three injected partial-setup failures also cleaned.

@@ -1,7 +1,9 @@
 {
-  "started": "2026-10-02T11:01:35.446Z",
-  "finished": "2026-10-02T11:01:39.681Z",
+  "started": "2026-10-02T11:20:49.138Z",
+  "finished": "2026-10-02T11:20:55.018Z",
   "chromium": "147.0.7727.15",
+  "context_provenance": "Fixture-authored synthetic base/addons/field-value/field-price contexts; production cart/storefront context construction is out of scope.",
+  "js_entrypoint": "choiceOrFieldAddon: selected select choice and nonempty text field; empty/whitespace text input guards",
   "served_frontend_sha256": "0ed89fc96d3eb6fcab43e25b7969bca240db40c3add6919b1371a944daecc66a",
   "tools": {
     "licensed_ui_blocked": true,
@@ -12,6 +14,10 @@
     "admin_page_errors": [
       "Failed to fetch",
       "Failed to fetch"
+    ],
+    "blocked_external_origins": [
+      "https://secure.gravatar.com",
+      "https://api.studiowombat.com"
     ]
   },
   "rows": [
@@ -20,168 +26,216 @@
       "qty": 1,
       "native": 7,
       "js_choice": 7,
-      "js_field": 7
+      "js_field": 7,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "qty-middle",
       "qty": 1,
       "native": 7,
       "js_choice": 7,
-      "js_field": 7
+      "js_field": 7,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "qty-tail",
       "qty": 1,
       "native": 7,
       "js_choice": 7,
-      "js_field": 7
+      "js_field": 7,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "qty-head",
       "qty": 1,
       "native": 7,
       "js_choice": 7,
-      "js_field": 7
+      "js_field": 7,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "base-options",
       "qty": 1,
       "native": 18,
       "js_choice": 18,
-      "js_field": 18
+      "js_field": 18,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "sibling-value-price",
       "qty": 1,
       "native": 11,
       "js_choice": 11,
-      "js_field": 11
+      "js_field": 11,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "checked",
       "qty": 1,
       "native": 5,
       "js_choice": 5,
-      "js_field": 5
+      "js_field": 5,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "min-max",
       "qty": 1,
       "native": 9,
       "js_choice": 9,
-      "js_field": 9
+      "js_field": 9,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "round-pow",
       "qty": 1,
       "native": 1.29,
       "js_choice": 1.29,
-      "js_field": 1.29
+      "js_field": 1.29,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "abs-floor-ceil",
       "qty": 1,
       "native": 9,
       "js_choice": 9,
-      "js_field": 9
+      "js_field": 9,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "sqrt-trig",
       "qty": 1,
       "native": 4,
       "js_choice": 4,
-      "js_field": 4
+      "js_field": 4,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "all-eleven",
       "qty": 1,
       "native": 12,
       "js_choice": 12,
-      "js_field": 12
+      "js_field": 12,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "flat",
       "qty": 4,
       "native": 1.75,
       "js_choice": 1.75,
-      "js_field": 1.75
+      "js_field": 1.75,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "qty-middle",
       "qty": 4,
       "native": 3.25,
       "js_choice": 3.25,
-      "js_field": 3.25
+      "js_field": 3.25,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "qty-tail",
       "qty": 4,
       "native": 7,
       "js_choice": 7,
-      "js_field": 7
+      "js_field": 7,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "qty-head",
       "qty": 4,
       "native": 7,
       "js_choice": 7,
-      "js_field": 7
+      "js_field": 7,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "base-options",
       "qty": 4,
       "native": 3,
       "js_choice": 3,
-      "js_field": 3
+      "js_field": 3,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "sibling-value-price",
       "qty": 4,
       "native": 1.25,
       "js_choice": 1.25,
-      "js_field": 1.25
+      "js_field": 1.25,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "checked",
       "qty": 4,
       "native": 1.25,
       "js_choice": 1.25,
-      "js_field": 1.25
+      "js_field": 1.25,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "min-max",
       "qty": 4,
       "native": 2.25,
       "js_choice": 2.25,
-      "js_field": 2.25
+      "js_field": 2.25,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "round-pow",
       "qty": 4,
       "native": 0.3225,
       "js_choice": 0.3225,
-      "js_field": 0.3225
+      "js_field": 0.3225,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "abs-floor-ceil",
       "qty": 4,
       "native": 2.25,
       "js_choice": 2.25,
-      "js_field": 2.25
+      "js_field": 2.25,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "sqrt-trig",
       "qty": 4,
       "native": 1,
       "js_choice": 1,
-      "js_field": 1
+      "js_field": 1,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     },
     {
       "case": "all-eleven",
       "qty": 4,
       "native": 12,
       "js_choice": 12,
-      "js_field": 12
+      "js_field": 12,
+      "js_field_empty": 0,
+      "js_field_whitespace": 0
     }
   ],
   "runtime_page_errors": []

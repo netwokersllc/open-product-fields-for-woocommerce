@@ -1,0 +1,21 @@
+{
+  "checked_at": "2026-10-02T11:20:55.712916+00:00",
+  "database": "/tmp/opf-formula-roundtrip-wp/wp-content/database/.ht.sqlite",
+  "mechanism": "Separate Python sqlite3 process; SQLite URI mode=ro; no WordPress runtime",
+  "queries": {
+    "fixture_posts": "SELECT COUNT(*) FROM wpt_posts WHERE post_type IN ('product','wapf_product','opf_field_group')",
+    "fixture_meta": "SELECT COUNT(*) FROM wpt_postmeta WHERE meta_key IN ('_wapf_fieldgroup','_opf_imported_from','_opf_archive_import_key')",
+    "fixture_option": "SELECT COUNT(*) FROM wpt_options WHERE option_name='opf_formula_roundtrip_state'",
+    "hpos_orders": "SELECT COUNT(*) FROM wpt_wc_orders",
+    "order_items": "SELECT COUNT(*) FROM wpt_woocommerce_order_items",
+    "order_item_meta": "SELECT COUNT(*) FROM wpt_woocommerce_order_itemmeta"
+  },
+  "counts": {
+    "fixture_posts": 0,
+    "fixture_meta": 0,
+    "fixture_option": 0,
+    "hpos_orders": 0,
+    "order_items": 0,
+    "order_item_meta": 0
+  }
+}
