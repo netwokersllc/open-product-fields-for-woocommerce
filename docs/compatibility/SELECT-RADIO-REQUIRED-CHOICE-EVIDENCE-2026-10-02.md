@@ -4,12 +4,12 @@
 
 This proof covers required select/radio choices: empty initial selection when no default exists, default selection when configured, optional select clearing, accessible names, keyboard operation, server validation, flat-fee pricing, WAPF Free round trips, classic and Store API checkout/order persistence, and order-again.
 
-- Public feature branch base verified during the final run: `d82d21e`.
-- Disabled-default fix commit: `523c0c47d230bb3891c638f9ac00bf0ce5113a35`.
+- Public feature branch base verified during the final run: `d82d21e38a849199b3dae4817d099926e8bc5da8`.
+- Disabled-default fix commit: `de9d4227fb633639e52fa3451ad3a52c0c061998`.
 - Runtime: isolated copy of the local WordPress test site at `/tmp/opf-select-radio-runtime-20261001`, loopback only (`127.0.0.1:8174`); no production site was used.
 - Runtime versions: WordPress 7.1.2, PHP 8.5.11, WooCommerce 11.1.0, WAPF Free 1.6.21.
 - WAPF package: `/tmp/wapf-free-1.6.21.zip`, SHA-256 `9741270796d61583df9a66ab2b154434b7f2d6237569372489e3efd00e197db6`.
-- The runtime plugin tree matched the lane worktree across all 1,984 files. The served `assets/js/opf-builder.js` SHA-256 matched the worktree at `5065579c74f51c13aa1684ed219fea75b79f649a821688d82992859ec64f6fdb`.
+- The runtime plugin tree matched the lane worktree across all 1,984 files after rebasing. The served `assets/js/opf-builder.js` SHA-256 matched the worktree at `5065579c74f51c13aa1684ed219fea75b79f649a821688d82992859ec64f6fdb`.
 
 ## Changes
 
@@ -44,6 +44,7 @@ OPF_CHOICE_E2E_ALLOW=1 OPF_CHOICE_ARTIFACT_DIR=/tmp/opf-select-radio-proof-curre
 OPF_CHOICE_BASE_URL=http://127.0.0.1:8174 OPF_CHOICE_ARTIFACT_DIR=/tmp/opf-select-radio-proof-current OPF_CHOICE_BROWSER_PHASE=wapf node /tmp/opf-select-radio-runtime-20261001/e2e-select-radio-browser-test.mjs
 OPF_CHOICE_E2E_ALLOW=1 OPF_CHOICE_ARTIFACT_DIR=/tmp/opf-select-radio-proof-current OPF_CHOICE_E2E_PHASE=verify-comparator wp --path=/tmp/opf-select-radio-runtime-20261001 eval-file /tmp/opf-select-radio-runtime-20261001/e2e-select-radio-lifecycle.php
 OPF_CHOICE_E2E_ALLOW=1 OPF_CHOICE_ARTIFACT_DIR=/tmp/opf-select-radio-proof-current OPF_CHOICE_E2E_PHASE=prepare-again wp --path=/tmp/opf-select-radio-runtime-20261001 eval-file /tmp/opf-select-radio-runtime-20261001/e2e-select-radio-lifecycle.php
+wp --path=/tmp/opf-select-radio-runtime-20261001 eval-file /tmp/opf-select-radio-runtime-20261001/draft-wapf-comparator.php
 OPF_CHOICE_BASE_URL=http://127.0.0.1:8174 OPF_CHOICE_ARTIFACT_DIR=/tmp/opf-select-radio-proof-current OPF_CHOICE_BROWSER_PHASE=again node /tmp/opf-select-radio-runtime-20261001/e2e-select-radio-browser-test.mjs
 OPF_CHOICE_E2E_ALLOW=1 OPF_CHOICE_ARTIFACT_DIR=/tmp/opf-select-radio-proof-current OPF_CHOICE_E2E_PHASE=verify-again wp --path=/tmp/opf-select-radio-runtime-20261001 eval-file /tmp/opf-select-radio-runtime-20261001/e2e-select-radio-lifecycle.php
 ```
