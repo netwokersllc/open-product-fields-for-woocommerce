@@ -12,8 +12,9 @@ ledger row, or runtime product code was changed.
 - Runtime: WooCommerce 11.1.0, WordPress clone backed by SQLite, PHP 8.5.11,
   WAPF Extended 3.1.5, OPF loaded from this worktree.
 - Clone: `/tmp/opf-quantity-fee-woo-20261002`.
-- Fixture: [`bin/e2e-price-quantity-flat.php`](../../bin/e2e-price-quantity-flat.php).
-- Run: `OPF_QFL_E2E_ALLOW=1 wp --path=/tmp/opf-quantity-fee-woo-20261002 eval-file bin/e2e-price-quantity-flat.php`.
+- Fixtures: `bin/e2e-price-quantity-flat.php` and the authenticated browser
+  fixture scripts in commits `ccd63b7` and `6d39b24`.
+- Run: `OPF_QFL_PROOF_ALLOW=1 bin/run-e2e-price-quantity-flat-proof.sh`.
 - Products: taxable, virtual products at $10.00; selected fee $0.335; requested
   quantities 1 and 3. Tax-exclusive prices, standard temporary 8.25% rate.
 - Request paths: classic `WC_Cart::add_to_cart()` and the Woo Store API
@@ -72,42 +73,45 @@ the link:
 
 The test uses `pre_wp_mail` in a clone-only MU plugin to intercept all
 outgoing WordPress mail before completing source orders. Four mail calls were
-short-circuited during order setup. Test addresses use the reserved
-`.invalid` domain. Browser output: [`qfl-order-again-browser-results.json`](qfl-order-again-browser-results.json), with **23/23 checks passing** and no
-uncaught page errors.
+short-circuited during order setup; the successful run artifact records
+browser-phase interceptions as well, and records zero messages sent. Fixture
+state is saved only after both checkout orders are created. Test addresses use the reserved
+`.invalid` domain. Browser output: [`qfl-order-again-browser-results.json`](qfl-order-again-browser-results.json), with **23/23 checks passing**, an explicit completion marker and run ID, and no uncaught page errors. The browser result records the choice parsed from the actual cart item data.
 Screenshots were saved outside the repository at
 `/tmp/opf-qfl-order-again-wapf-cart.png` and
 `/tmp/opf-qfl-order-again-opf-cart.png`.
 
-Reproduction commands, from this worktree:
+The runner installs and removes the clone-only MU-plugin symlink, starts and
+stops the loopback server, runs both fixtures, verifies the browser artifact,
+and cleans up in its exit trap. Reproduction command, from this worktree:
 
 ```sh
-ln -s /tmp/opf-quantity-fee-lifecycle-20261002/bin/e2e-price-quantity-flat-order-again-mu.php /tmp/opf-quantity-fee-woo-20261002/wp-content/mu-plugins/qfl-order-again.php
-OPF_QFL_ORDER_AGAIN_ALLOW=1 wp --path=/tmp/opf-quantity-fee-woo-20261002 eval-file bin/e2e-price-quantity-flat-order-again.php
-wp --path=/tmp/opf-quantity-fee-woo-20261002 server --host=127.0.0.1 --port=8207
-OPF_QFL_ORDER_AGAIN_ALLOW=1 node bin/e2e-price-quantity-flat-order-again.mjs
-OPF_QFL_ORDER_AGAIN_ALLOW=1 OPF_QFL_ORDER_AGAIN_PHASE=verify wp --path=/tmp/opf-quantity-fee-woo-20261002 eval-file bin/e2e-price-quantity-flat-order-again.php
-OPF_QFL_ORDER_AGAIN_ALLOW=1 OPF_QFL_ORDER_AGAIN_PHASE=cleanup wp --path=/tmp/opf-quantity-fee-woo-20261002 eval-file bin/e2e-price-quantity-flat-order-again.php
-rm /tmp/opf-quantity-fee-woo-20261002/wp-content/mu-plugins/qfl-order-again.php
+OPF_QFL_PROOF_ALLOW=1 bin/run-e2e-price-quantity-flat-proof.sh
 ```
 
 After the browser and verifier passed, cleanup removed the temporary products,
 group, customer, completed orders, tax rate, cart, and saved test state, then
-restored all tax options. The server was stopped with Ctrl-C and `ss` confirmed
-port 8207 closed; the MU-plugin symlink was removed. Post-cleanup queries found
-no test state, tax rate, QFL products/groups, orders 83/84, or test customer.
+restored all tax options. The runner stopped its isolated server process group
+and verified port 8207 closed; the fixture removed its exact-target MU-plugin
+symlink. Post-cleanup queries found no test state, tax rate, QFL
+products/groups, fixture orders, or test customer.
 
 ## Cleanup and result
 
 The fixture's `finally` cleanup removed the temporary tax rate, both fixture
 products, the OPF field group, both checkout orders, and cart data, then
-restored the tax options. A post-run query observed zero temporary tax rows,
-zero QFL products/groups, no orders 58/59, zero cart items, and restored
-options (`woocommerce_calc_taxes=no`, `woocommerce_prices_include_tax=no`,
-`woocommerce_tax_display_shop=excl`, `woocommerce_tax_based_on=shipping`).
+restored the tax options. Successful run artifacts record the actual order IDs
+and confirm that `wc_get_order()` returns no fixture orders, no temporary tax
+rows/products/groups/customer or fixture state remain, the cart is empty, and
+all original tax options (including shop/cart tax display) were restored. See
+[`qfl-main-e2e-results.json`](qfl-main-e2e-results.json) and
+[`qfl-order-again-run-results.json`](qfl-order-again-run-results.json); they
+retain exact cart/order totals, metadata, plugin versions, suppressed mail
+count, and cleanup outcomes.
 
-Result: **supported** for native WAPF Pro `qt` fixed fee pricing through
-classic cart, Store API cart, checkout order persistence, the authenticated
-My Account order-again button flow, line tax, and the exercised quantity
-rounding case. This proof covers WAPF Extended 3.1.5 and WooCommerce 11.1.0
-only.
+Result: **supported with documented difference** for native WAPF Pro `qt`
+fixed fee pricing through classic cart, Store API cart, checkout order
+persistence, the authenticated My Account order-again button flow, line tax,
+and the exercised quantity rounding case. OPF represents `qt` as a fixed
+per-unit choice; WooCommerce line quantity supplies the equivalent scaling.
+This proof covers WAPF Extended 3.1.5 and WooCommerce 11.1.0 only.

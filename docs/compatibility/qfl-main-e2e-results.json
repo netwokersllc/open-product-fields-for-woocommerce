@@ -1,0 +1,319 @@
+{
+    "completed": true,
+    "run_id": "e36deac4-9c51-4062-bf18-aca2a7f0e0da",
+    "runtime": {
+        "woocommerce": "11.1.0",
+        "wapf": "3.1.5",
+        "opf_source": "/tmp/opf-quantity-fee-lifecycle-20261002",
+        "tax_rate_id": 20
+    },
+    "results": {
+        "classic/wapf/q1": {
+            "status": "passed",
+            "lines": [
+                {
+                    "quantity": 1,
+                    "unit_price_raw": 10.335,
+                    "line_subtotal": 10.335,
+                    "line_subtotal_tax": 0.85,
+                    "line_total": 10.335,
+                    "line_tax": 0.85,
+                    "choice_meta": [
+                        {
+                            "id": "plan",
+                            "type": "select",
+                            "raw": [
+                                "qtyflat"
+                            ],
+                            "values": [
+                                {
+                                    "label": "Quantity flat fee",
+                                    "price": 0.335,
+                                    "price_type": "qt",
+                                    "slug": "qtyflat",
+                                    "calc_price": 0.335,
+                                    "pricing_hint": "(+&#36;0.34)"
+                                }
+                            ],
+                            "clone_type": "",
+                            "clone_idx": 0,
+                            "label": "Plan",
+                            "hide_cart": false,
+                            "hide_checkout": false,
+                            "hide_order": false,
+                            "calc_weight": false
+                        }
+                    ]
+                }
+            ]
+        },
+        "classic/opf/q1": {
+            "status": "passed",
+            "lines": [
+                {
+                    "quantity": 1,
+                    "unit_price_raw": 10.335,
+                    "line_subtotal": 10.335,
+                    "line_subtotal_tax": 0.85,
+                    "line_total": 10.335,
+                    "line_tax": 0.85,
+                    "choice_meta": {
+                        "137": {
+                            "plan": "qtyflat"
+                        }
+                    }
+                }
+            ]
+        },
+        "store_api/wapf/q1": {
+            "status": "passed",
+            "lines": [
+                {
+                    "quantity": 1,
+                    "unit_price_raw": 10.335,
+                    "line_subtotal": 10.335,
+                    "line_subtotal_tax": 0.85,
+                    "line_total": 10.335,
+                    "line_tax": 0.85,
+                    "choice_meta": [
+                        {
+                            "id": "plan",
+                            "type": "select",
+                            "raw": [
+                                "qtyflat"
+                            ],
+                            "values": [
+                                {
+                                    "label": "Quantity flat fee",
+                                    "price": 0.335,
+                                    "price_type": "qt",
+                                    "slug": "qtyflat",
+                                    "calc_price": 0.335,
+                                    "pricing_hint": "(+&#36;0.34)"
+                                }
+                            ],
+                            "clone_type": "",
+                            "clone_idx": 0,
+                            "label": "Plan",
+                            "hide_cart": false,
+                            "hide_checkout": false,
+                            "hide_order": false,
+                            "calc_weight": false
+                        }
+                    ]
+                }
+            ]
+        },
+        "store_api/opf/q1": {
+            "status": "passed",
+            "lines": [
+                {
+                    "quantity": 1,
+                    "unit_price_raw": 10.335,
+                    "line_subtotal": 10.335,
+                    "line_subtotal_tax": 0.85,
+                    "line_total": 10.335,
+                    "line_tax": 0.85,
+                    "choice_meta": {
+                        "137": {
+                            "plan": "qtyflat"
+                        }
+                    }
+                }
+            ]
+        },
+        "classic/wapf/q3": {
+            "status": "passed",
+            "lines": [
+                {
+                    "quantity": 3,
+                    "unit_price_raw": 10.335,
+                    "line_subtotal": 31.005,
+                    "line_subtotal_tax": 2.56,
+                    "line_total": 31.005,
+                    "line_tax": 2.56,
+                    "choice_meta": [
+                        {
+                            "id": "plan",
+                            "type": "select",
+                            "raw": [
+                                "qtyflat"
+                            ],
+                            "values": [
+                                {
+                                    "label": "Quantity flat fee",
+                                    "price": 0.335,
+                                    "price_type": "qt",
+                                    "slug": "qtyflat",
+                                    "calc_price": 0.335,
+                                    "pricing_hint": "(+&#36;0.34)"
+                                }
+                            ],
+                            "clone_type": "",
+                            "clone_idx": 0,
+                            "label": "Plan",
+                            "hide_cart": false,
+                            "hide_checkout": false,
+                            "hide_order": false,
+                            "calc_weight": false
+                        }
+                    ]
+                }
+            ]
+        },
+        "classic/opf/q3": {
+            "status": "passed",
+            "lines": [
+                {
+                    "quantity": 3,
+                    "unit_price_raw": 10.335,
+                    "line_subtotal": 31.005,
+                    "line_subtotal_tax": 2.56,
+                    "line_total": 31.005,
+                    "line_tax": 2.56,
+                    "choice_meta": {
+                        "137": {
+                            "plan": "qtyflat"
+                        }
+                    }
+                }
+            ]
+        },
+        "store_api/wapf/q3": {
+            "status": "passed",
+            "lines": [
+                {
+                    "quantity": 3,
+                    "unit_price_raw": 10.335,
+                    "line_subtotal": 31.005,
+                    "line_subtotal_tax": 2.56,
+                    "line_total": 31.005,
+                    "line_tax": 2.56,
+                    "choice_meta": [
+                        {
+                            "id": "plan",
+                            "type": "select",
+                            "raw": [
+                                "qtyflat"
+                            ],
+                            "values": [
+                                {
+                                    "label": "Quantity flat fee",
+                                    "price": 0.335,
+                                    "price_type": "qt",
+                                    "slug": "qtyflat",
+                                    "calc_price": 0.335,
+                                    "pricing_hint": "(+&#36;0.34)"
+                                }
+                            ],
+                            "clone_type": "",
+                            "clone_idx": 0,
+                            "label": "Plan",
+                            "hide_cart": false,
+                            "hide_checkout": false,
+                            "hide_order": false,
+                            "calc_weight": false
+                        }
+                    ]
+                }
+            ]
+        },
+        "store_api/opf/q3": {
+            "status": "passed",
+            "lines": [
+                {
+                    "quantity": 3,
+                    "unit_price_raw": 10.335,
+                    "line_subtotal": 31.005,
+                    "line_subtotal_tax": 2.56,
+                    "line_total": 31.005,
+                    "line_tax": 2.56,
+                    "choice_meta": {
+                        "137": {
+                            "plan": "qtyflat"
+                        }
+                    }
+                }
+            ]
+        },
+        "checkout_order/wapf/q3": {
+            "order_id": 138,
+            "status": "pending",
+            "total": 33.57,
+            "items": [
+                {
+                    "quantity": 3,
+                    "line_total": 31.005,
+                    "line_tax": 2.56,
+                    "engine_meta": {
+                        "version": "3.1.5",
+                        "fields": {
+                            "plan": {
+                                "id": "plan",
+                                "type": "select",
+                                "label": "Plan",
+                                "value": "Quantity flat fee (+&#36;0.34)",
+                                "values": [
+                                    {
+                                        "label": "Quantity flat fee",
+                                        "price": 0.335,
+                                        "price_type": "qt",
+                                        "slug": "qtyflat",
+                                        "calc_price": 0.335,
+                                        "pricing_hint": "(+&#36;0.34)"
+                                    }
+                                ]
+                            }
+                        },
+                        "settings": {
+                            "Plan": [
+                                {
+                                    "field": "plan",
+                                    "hide": false
+                                }
+                            ]
+                        },
+                        "cart_item_key": "3108279b1e82077ee11834be12efdfbd"
+                    }
+                }
+            ]
+        },
+        "checkout_order/opf/q3": {
+            "order_id": 139,
+            "status": "pending",
+            "total": 33.57,
+            "items": [
+                {
+                    "quantity": 3,
+                    "line_total": 31.005,
+                    "line_tax": 2.56,
+                    "engine_meta": "{\"137\":{\"plan\":\"qtyflat\"}}"
+                }
+            ]
+        }
+    },
+    "cleanup": {
+        "order_ids": [
+            138,
+            139
+        ],
+        "orders_absent": true,
+        "order_id_absence": {
+            "138": true,
+            "139": true
+        },
+        "product_ids": [
+            135,
+            136
+        ],
+        "products_absent": true,
+        "group_ids": [
+            137
+        ],
+        "groups_absent": true,
+        "tax_rate_id": 20,
+        "tax_rate_absent": true,
+        "options_restored": true,
+        "cart_empty": true
+    }
+}

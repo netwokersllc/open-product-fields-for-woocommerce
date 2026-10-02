@@ -15,7 +15,7 @@ $assert = static function ( bool $condition, string $message ): void {
 	}
 };
 
-$option_names = [ 'woocommerce_calc_taxes', 'woocommerce_prices_include_tax', 'woocommerce_tax_display_shop', 'woocommerce_tax_based_on' ];
+$option_names = [ 'woocommerce_calc_taxes', 'woocommerce_prices_include_tax', 'woocommerce_tax_display_shop', 'woocommerce_tax_display_cart', 'woocommerce_tax_based_on' ];
 $old_options = [];
 foreach ( $option_names as $name ) {
 	$old_options[ $name ] = get_option( $name );
@@ -26,11 +26,36 @@ $group_ids = [];
 $order_ids = [];
 $tax_rate_id = 0;
 $results = [];
+$runtime = [ 'woocommerce' => WC()->version, 'wapf' => '3.1.5', 'opf_source' => realpath( WP_PLUGIN_DIR . '/open-product-fields-for-woocommerce' ) ];
+$run_id = wp_generate_uuid4();
+$contains = static function ( $value, string $needle ) use ( &$contains ): bool {
+	if ( is_string( $value ) ) {
+		return false !== strpos( $value, $needle );
+	}
+	if ( is_array( $value ) ) {
+		foreach ( $value as $child ) { if ( $contains( $child, $needle ) ) { return true; } }
+	}
+	return false;
+};
+$cleanup = [];
+$safe_write = static function ( string $path, string $contents ): void {
+	if ( is_link( $path ) ) { throw new RuntimeException( "Refusing symlink artifact path: $path" ); }
+	$temp = $path . '.' . bin2hex( random_bytes( 8 ) ) . '.tmp';
+	$handle = fopen( $temp, 'x' );
+	if ( false === $handle ) { throw new RuntimeException( "Cannot create artifact temp: $temp" ); }
+	try {
+		if ( strlen( $contents ) !== fwrite( $handle, $contents ) || ! fflush( $handle ) ) { throw new RuntimeException( "Cannot write artifact temp: $temp" ); }
+	} catch ( Throwable $error ) { fclose( $handle ); @unlink( $temp ); throw $error; }
+	fclose( $handle );
+	chmod( $temp, 0600 );
+	if ( is_link( $path ) || ! rename( $temp, $path ) ) { @unlink( $temp ); throw new RuntimeException( "Cannot safely replace artifact: $path" ); }
+};
 
 try {
 	update_option( 'woocommerce_calc_taxes', 'yes' );
 	update_option( 'woocommerce_prices_include_tax', 'no' );
 	update_option( 'woocommerce_tax_display_shop', 'excl' );
+	update_option( 'woocommerce_tax_display_cart', 'excl' );
 	update_option( 'woocommerce_tax_based_on', 'base' );
 	$tax_rate_id = WC_Tax::_insert_tax_rate( [
 		'tax_rate_country' => '', 'tax_rate_state' => '', 'tax_rate' => '8.25',
@@ -145,9 +170,13 @@ try {
 			$response = rest_get_server()->dispatch( $request );
 			$assert( in_array( $response->get_status(), [ 200, 201 ], true ), "$engine Store API add failed at qty=$quantity: " . wp_json_encode( $response->get_data() ) );
 		}
-		$lines = $cart_snapshot( $product_id );
-		$assert( 1 === count( $lines ), "$engine $path did not create exactly one fixture line." );
-		$assert( $quantity === $lines[0]['quantity'], "$engine $path cart quantity mismatch." );
+	$lines = $cart_snapshot( $product_id );
+	$assert( 1 === count( $lines ), "$engine $path did not create exactly one fixture line." );
+	$assert( $quantity === $lines[0]['quantity'], "$engine $path cart quantity mismatch." );
+	$expected_line = round( 10.335 * $quantity, 3 );
+	$expected_tax = 1 === $quantity ? 0.85 : 2.56;
+	$assert( 10.335 === $lines[0]['unit_price_raw'] && $expected_line === $lines[0]['line_subtotal'] && $expected_line === $lines[0]['line_total'], "$engine $path q=$quantity exact price mismatch: " . wp_json_encode( $lines[0] ) );
+	$assert( $expected_tax === $lines[0]['line_subtotal_tax'] && $expected_tax === $lines[0]['line_tax'], "$engine $path q=$quantity exact tax mismatch: " . wp_json_encode( $lines[0] ) );
 		return [ 'status' => 'passed', 'lines' => $lines ];
 	};
 
@@ -158,7 +187,7 @@ try {
 		}
 	}
 
-	$make_order = static function ( string $engine, int $product_id, int $quantity ) use ( $add, &$order_ids, $assert ): array {
+	$make_order = static function ( string $engine, int $product_id, int $quantity ) use ( $add, &$order_ids, $assert, $run_id, $contains ): array {
 		$add( $engine, 'classic', $product_id, $quantity );
 		$order_id = WC()->checkout()->create_order( [
 			'billing_email' => 'qfl-e2e@example.test', 'billing_first_name' => 'QFL', 'billing_last_name' => 'E2E',
@@ -167,6 +196,8 @@ try {
 		$assert( ! is_wp_error( $order_id ) && $order_id > 0, "$engine checkout order creation failed: " . ( is_wp_error( $order_id ) ? $order_id->get_error_message() : 'no id' ) );
 		$order_ids[] = (int) $order_id;
 		$order = wc_get_order( $order_id );
+		$order->update_meta_data( '_opf_qfl_fixture_run', $run_id );
+		$order->save();
 		$order->set_customer_id( 1 );
 		$order->save();
 		$items = [];
@@ -179,7 +210,10 @@ try {
 			];
 		}
 		$assert( 1 === count( $items ) && $quantity === $items[0]['quantity'], "$engine order item quantity did not persist." );
-		$assert( $items[0]['line_total'] > 30, "$engine quantity-scaled fee did not persist to order line: " . wp_json_encode( $items ) );
+		$assert( 31.005 === $items[0]['line_total'] && 2.56 === $items[0]['line_tax'], "$engine exact q=3 order line/tax mismatch: " . wp_json_encode( $items ) );
+		$assert( 33.57 === round( (float) $order->get_total(), 2 ), "$engine q=3 order total mismatch: " . $order->get_total() );
+		$assert( $contains( $items[0]['engine_meta'], 'qtyflat' ), "$engine order choice metadata missing qtyflat: " . wp_json_encode( $items[0]['engine_meta'] ) );
+		if ( 'wapf' === $engine ) { $assert( $contains( $items[0]['engine_meta'], 'qt' ), 'WAPF order metadata missing native qt pricing type.' ); }
 
 		return [ 'order_id' => (int) $order_id, 'status' => $order->get_status(), 'total' => round( (float) $order->get_total(), 4 ), 'items' => $items ];
 	};
@@ -189,14 +223,13 @@ try {
 	$assert( round( $results['classic/wapf/q1']['lines'][0]['line_subtotal'], 2 ) === round( $results['classic/opf/q1']['lines'][0]['line_subtotal'], 2 ), 'q=1 native and OPF subtotals differ.' );
 	$assert( round( $results['classic/wapf/q3']['lines'][0]['line_subtotal'], 2 ) === round( $results['classic/opf/q3']['lines'][0]['line_subtotal'], 2 ), 'q=3 native and OPF subtotals differ.' );
 	$assert( round( $results['classic/wapf/q3']['lines'][0]['line_tax'], 2 ) === round( $results['classic/opf/q3']['lines'][0]['line_tax'], 2 ), 'q=3 native and OPF tax differs.' );
-
-	echo wp_json_encode( [ 'runtime' => [ 'woocommerce' => WC()->version, 'wapf' => '3.1.5', 'opf_source' => realpath( WP_PLUGIN_DIR . '/open-product-fields-for-woocommerce' ), 'tax_rate_id' => $tax_rate_id ], 'results' => $results ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ), "\n";
 } finally {
 	if ( WC()->cart ) {
 		WC()->cart->empty_cart( true );
 	}
 	foreach ( $order_ids as $order_id ) {
-		wp_delete_post( $order_id, true );
+		$order = wc_get_order( $order_id );
+		if ( $order && $run_id === $order->get_meta( '_opf_qfl_fixture_run', true ) ) { $order->delete( true ); }
 	}
 	foreach ( $group_ids as $group_id ) {
 		wp_delete_post( $group_id, true );
@@ -210,4 +243,24 @@ try {
 	foreach ( $old_options as $name => $value ) {
 		update_option( $name, $value );
 	}
+	$cleanup = [
+		'order_ids' => array_values( $order_ids ),
+		'orders_absent' => array_reduce( $order_ids, static fn( bool $ok, int $id ): bool => $ok && false === wc_get_order( $id ), true ),
+		'order_id_absence' => array_reduce( $order_ids, static function ( array $result, int $id ): array { $result[ (string) $id ] = false === wc_get_order( $id ); return $result; }, [] ),
+		'product_ids' => array_values( $product_ids ),
+		'products_absent' => array_reduce( $product_ids, static fn( bool $ok, int $id ): bool => $ok && ! wc_get_product( $id ), true ),
+		'group_ids' => array_values( $group_ids ),
+		'groups_absent' => array_reduce( $group_ids, static fn( bool $ok, int $id ): bool => $ok && ! get_post( $id ), true ),
+		'tax_rate_id' => (int) $tax_rate_id,
+		'tax_rate_absent' => ! $tax_rate_id || ! WC_Tax::_get_tax_rate( $tax_rate_id ),
+		'options_restored' => true,
+		'cart_empty' => ! WC()->cart || 0 === WC()->cart->get_cart_contents_count(),
+	];
+	foreach ( $old_options as $name => $value ) { $cleanup['options_restored'] = $cleanup['options_restored'] && get_option( $name ) === $value; }
+	$assert( ! in_array( false, $cleanup, true ), 'Main fixture cleanup verification failed: ' . wp_json_encode( $cleanup ) );
 }
+
+$artifact = [ 'completed' => true, 'run_id' => $run_id, 'runtime' => $runtime + [ 'tax_rate_id' => $tax_rate_id ], 'results' => $results, 'cleanup' => $cleanup ];
+$artifact_path = __DIR__ . '/../docs/compatibility/qfl-main-e2e-results.json';
+$safe_write( $artifact_path, wp_json_encode( $artifact, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) . "\n" );
+echo wp_json_encode( $artifact, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ), "\n";
