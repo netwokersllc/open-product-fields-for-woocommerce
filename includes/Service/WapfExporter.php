@@ -24,7 +24,7 @@ final class WapfExporter {
 		self::assert_keys( $group, [ 'schema', 'fields', 'rule_groups', 'mark_required', 'labels_position' ], 'group' );
 		foreach ( ( $group['fields'] ?? [] ) as $field ) {
 			if ( is_array( $field ) ) {
-				self::assert_keys( $field, array_merge( [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'content', 'content_format', 'process_shortcodes', 'image_url', 'image_id', 'swatch_style', 'multiple', 'min_choices', 'max_choices', 'color_layout', 'color_size', 'color_label_pos', 'image_zoom', 'label_pos', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], 'toggle' === ( $field['type'] ?? '' ) ? [ 'message', 'default' ] : [] ), 'field' );
+			self::assert_keys( $field, array_merge( [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'content', 'content_format', 'process_shortcodes', 'image_url', 'image_id', 'swatch_style', 'multiple', 'min_choices', 'max_choices', 'color_layout', 'color_size', 'color_label_pos', 'image_zoom', 'label_pos', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], 'toggle' === ( $field['type'] ?? '' ) ? [ 'message', 'default' ] : [] ), 'field' );
 			}
 		}
 		foreach ( ( $group['rule_groups'] ?? [] ) as $rule_group ) {
@@ -88,10 +88,10 @@ final class WapfExporter {
 
 	/** @param array<string,mixed> $field */
 	private static function map_field( array $field, array $field_ids, array $field_types ): array {
-		self::assert_keys( $field, array_merge( [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'content', 'content_format', 'process_shortcodes', 'image_url', 'image_id', 'swatch_style', 'multiple', 'min_choices', 'max_choices', 'color_layout', 'color_size', 'color_label_pos', 'image_zoom', 'label_pos', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], 'toggle' === ( $field['type'] ?? '' ) ? [ 'message', 'default' ] : [] ), 'field' );
+			self::assert_keys( $field, array_merge( [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'content', 'content_format', 'process_shortcodes', 'image_url', 'image_id', 'swatch_style', 'multiple', 'min_choices', 'max_choices', 'color_layout', 'color_size', 'color_label_pos', 'image_zoom', 'label_pos', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], 'toggle' === ( $field['type'] ?? '' ) ? [ 'message', 'default' ] : [] ), 'field' );
 		$type_map = [
 			'text' => 'text', 'textarea' => 'textarea', 'email' => 'email', 'url' => 'url',
-			'number' => 'number', 'toggle' => 'true-false', 'select' => 'select',
+			'number' => 'number', 'toggle' => 'true-false', 'select' => 'select', 'image_quantity' => 'image-swatch-qty',
 			'radio' => 'radio', 'checkbox' => 'checkboxes', 'swatch' => 'text-swatch', 'paragraph' => 'content', 'content_image' => 'img', 'section' => 'section', 'section_end' => 'sectionend',
 		];
 		$type = $field['type'];
@@ -188,7 +188,14 @@ final class WapfExporter {
 				$out['max_choices'] = $field['max_choices'];
 			}
 		}
-		if ( in_array( $type, [ 'select', 'radio', 'checkbox', 'swatch' ], true ) ) {
+		if ( 'image_quantity' === $type ) {
+			foreach ( [ 'min_choices', 'max_choices' ] as $key ) {
+				if ( isset( $field[ $key ] ) ) {
+					$out[ $key ] = $field[ $key ];
+				}
+			}
+		}
+		if ( in_array( $type, [ 'select', 'radio', 'checkbox', 'swatch', 'image_quantity' ], true ) ) {
 			$out['choices'] = [];
 			foreach ( $field['choices'] as $choice ) {
 				if ( 'swatch' === $type && ! in_array( $out['type'], [ 'image-swatch', 'multi-image-swatch' ], true ) && ( ! empty( $choice['image'] ) || ! empty( $choice['image_id'] ) ) ) {
@@ -198,7 +205,7 @@ final class WapfExporter {
 					throw new \InvalidArgumentException( 'WAPF Tools import sanitizes choice labels; HTML is not exported.' );
 				}
 				$pricing = $choice['pricing'];
-				$pricing_type = self::map_choice_pricing( $pricing );
+				$pricing_type = self::map_choice_pricing( $pricing, $field_ids );
 				$wapf_choice = [
 					'slug' => $choice['slug'], 'label' => $choice['label'], 'selected' => $choice['selected'],
 					'disabled' => $choice['disabled'],
@@ -218,6 +225,19 @@ final class WapfExporter {
 					}
 					$wapf_choice['color'] = $choice['color'];
 				}
+				if ( 'image-swatch-qty' === $out['type'] ) {
+					$wapf_choice['options'] = [
+						'min' => $choice['quantity']['min'],
+						'max' => $choice['quantity']['max'],
+						'default' => $choice['quantity']['default'],
+					];
+					if ( ! empty( $choice['image'] ) ) {
+						$wapf_choice['image'] = $choice['image'];
+					}
+					if ( ! empty( $choice['image_id'] ) ) {
+						$wapf_choice['attachment'] = $choice['image_id'];
+					}
+				}
 				$out['choices'][] = $wapf_choice;
 			}
 		}
@@ -236,7 +256,7 @@ final class WapfExporter {
 	}
 
 	/** @param array<string,mixed> $pricing @return array{type:string,amount:float} */
-	private static function map_choice_pricing( array $pricing ): array {
+	private static function map_choice_pricing( array $pricing, array $field_ids ): array {
 		if ( 'none' === $pricing['type'] ) {
 			return [ 'type' => 'none', 'amount' => 0.0 ];
 		}
@@ -246,7 +266,26 @@ final class WapfExporter {
 		if ( 'percent' === $pricing['type'] ) {
 			return [ 'type' => 'percent', 'amount' => $pricing['amount'] ];
 		}
+		if ( 'formula' === $pricing['type'] ) {
+			return self::map_formula_pricing( $pricing, $field_ids );
+		}
 		throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve formula choice pricing.' );
+	}
+
+	/** Export only an imported raw formula whose syntax and field IDs remain representable. */
+	private static function map_formula_pricing( array $pricing, array $field_ids ): array {
+		$formula = $pricing['formula_raw'] ?? '';
+		if ( ! is_string( $formula ) || '' === trim( $formula ) || null === \OPF\Engine\WapfMapper::normalize_formula( $formula ) ) {
+			throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve formula pricing without a supported source expression.' );
+		}
+		preg_match_all( '/\[(?:field|price)\.([A-Za-z0-9_-]+)\]|\b(?:checked|files|sumQty)\s*\(\s*([A-Za-z0-9_-]+)\s*\)/i', $formula, $matches, PREG_SET_ORDER );
+		foreach ( $matches as $match ) {
+			$reference = '' !== ( $match[1] ?? '' ) ? $match[1] : ( $match[2] ?? '' );
+			if ( ! in_array( $reference, $field_ids, true ) ) {
+				throw new \InvalidArgumentException( sprintf( 'WAPF Tools export cannot preserve unresolved formula reference "%s".', $reference ) );
+			}
+		}
+		return [ 'type' => 'fx', 'amount' => $formula ];
 	}
 
 	/** @param array<string,mixed> $field @return array<int,array<string,mixed>> */

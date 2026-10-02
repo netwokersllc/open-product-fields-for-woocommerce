@@ -590,6 +590,20 @@ final class WapfMapperTest extends TestCase {
 		$this->assertStringContainsString( 'runtime behavior is not implemented yet', implode( ' ', $mapped['notes'] ) );
 	}
 
+	public function test_sumqty_image_quantity_formula_reference_is_remapped_and_raw_source_is_preserved(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [
+			[ 'id' => 'wapf-image-id-91', 'label' => 'Prints', 'type' => 'image-swatch-qty', 'options' => [ 'choices' => [ [ 'slug' => 'oak', 'label' => 'Oak' ] ] ] ],
+			[ 'id' => 'wapf-fee-id-92', 'label' => 'Fee', 'type' => 'select', 'options' => [ 'choices' => [ [ 'slug' => 'selected', 'label' => 'Selected', 'pricing_type' => 'fx', 'pricing_amount' => 'sumQty(wapf-image-id-91)*[qty]' ] ] ] ],
+		] ] );
+		$pricing = $mapped['group']['fields'][1]['choices'][0]['pricing'];
+
+		$this->assertSame( 'prints', $mapped['group']['fields'][0]['id'] );
+		$this->assertSame( 'sumQty(prints)*[qty]', $pricing['formula_raw'] );
+		$this->assertSame( 'sumQty(prints)', $pricing['formula'] );
+		$this->assertTrue( $mapped['needs_review'], 'Unresolved WAPF formula pricing semantics must remain visible for migration review.' );
+		$this->assertStringContainsString( 'sumqty(prints)', strtolower( implode( ' ', $mapped['notes'] ) ) );
+	}
+
 	public function test_prior_field_price_reference_is_mapped_without_manual_review(): void {
 		$mapped = WapfMapper::map( [
 			'fields' => [

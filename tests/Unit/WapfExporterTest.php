@@ -75,6 +75,27 @@ final class WapfExporterTest extends TestCase {
 		$this->assertTrue( $round_trip['group']['fields'][0]['choices'][0]['disabled'] );
 	}
 
+	public function test_sumqty_image_quantity_formula_round_trips_with_remapped_field_id_and_raw_expression(): void {
+		$source = [ 'fields' => [
+			[ 'id' => 'wapf-image-id-91', 'label' => 'Prints', 'type' => 'image-swatch-qty', 'options' => [ 'choices' => [ [ 'slug' => 'oak', 'label' => 'Oak', 'options' => [ 'min' => 0, 'max' => 8, 'default' => 0 ] ] ] ] ],
+			[ 'id' => 'wapf-fee-id-92', 'label' => 'Fee', 'type' => 'select', 'options' => [ 'choices' => [ [ 'slug' => 'selected', 'label' => 'Selected', 'pricing_type' => 'fx', 'pricing_amount' => 'sumQty(wapf-image-id-91)*[qty]' ] ] ] ],
+		] ];
+		$imported = WapfMapper::map( $source );
+		$payload = WapfExporter::build_payload( $imported['group'] );
+		$round_trip_fields = array_map( static function ( array $field ): array {
+			$field['options'] = array_intersect_key( $field, array_flip( [ 'choices', 'min_choices', 'max_choices', 'large_image', 'label_pos', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile' ] ) );
+			return $field;
+		}, $payload['fields'] );
+		$round_trip = WapfMapper::map( [ 'fields' => $round_trip_fields ] );
+
+		$this->assertSame( 'image-swatch-qty', $payload['fields'][0]['type'] );
+		$this->assertSame( [ 'min' => 0, 'max' => 8, 'default' => 0 ], $payload['fields'][0]['choices'][0]['options'] );
+		$this->assertSame( [ 'type' => 'fx', 'amount' => 'sumQty(prints)*[qty]' ], [ 'type' => $payload['fields'][1]['choices'][0]['pricing_type'], 'amount' => $payload['fields'][1]['choices'][0]['pricing_amount'] ] );
+		$this->assertSame( 'sumQty(prints)*[qty]', $round_trip['group']['fields'][1]['choices'][0]['pricing']['formula_raw'] );
+		$this->assertSame( 'sumQty(prints)', $round_trip['group']['fields'][1]['choices'][0]['pricing']['formula'] );
+		$this->assertTrue( $round_trip['needs_review'], 'The formula pricing review flag must survive export/import.' );
+	}
+
 	public function test_exports_paragraph_as_wapf_content_with_plain_p_content(): void {
 		$payload = WapfExporter::build_payload( FieldGroup::normalize( [
 			'fields' => [ [ 'id' => 'care-note', 'label' => '', 'type' => 'paragraph', 'content' => "Wash cold.\nDo not bleach." ] ],
