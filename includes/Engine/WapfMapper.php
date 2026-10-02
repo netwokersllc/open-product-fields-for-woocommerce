@@ -156,6 +156,16 @@ final class WapfMapper {
 			}
 			$repeat = self::map_repeat_settings( $wapf_field, $notes, $needs_review );
 			$date_settings = 'date' === $wapf_type ? self::map_date_settings( $wapf_field, $notes, $needs_review ) : [];
+			$toggle_settings = [];
+			if ( 'true-false' === $wapf_type ) {
+				$toggle_settings['message'] = (string) ( $wapf_field['options']['message'] ?? $wapf_field['message'] ?? '' );
+				$default = $wapf_field['options']['default'] ?? $wapf_field['default'] ?? 'unchecked';
+				if ( ! in_array( $default, [ 'checked', 'unchecked' ], true ) ) {
+					$notes[] = 'Toggle default is unsupported; imported as unchecked.';
+					$needs_review = true;
+				}
+				$toggle_settings['default'] = 'checked' === $default ? '1' : '0';
+			}
 
 			$field = FieldGroup::normalize_field(
 				array_merge( [
@@ -178,7 +188,7 @@ final class WapfMapper {
 					'content_format' => $content_format,
 					'process_shortcodes' => $process_shortcodes,
 					'repeat' => $repeat,
-				], $image_swatch_settings, $color_swatch_settings, $selection_limits, $quantity_limits, $date_settings )
+				], $image_swatch_settings, $color_swatch_settings, $selection_limits, $quantity_limits, $date_settings, $toggle_settings )
 			);
 			if ( 'paragraph' === $field['type'] ) {
 				if ( ! empty( $wapf_field['required'] ) ) {

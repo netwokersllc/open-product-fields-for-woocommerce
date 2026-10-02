@@ -1,0 +1,12 @@
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.5.11
+Configuration: /tmp/opf-toggle-lifecycle-20261002/phpunit.xml.dist
+
+................................................................. 65 / 85 ( 76%)
+....................                                              85 / 85 (100%)
+
+Time: 00:00.021, Memory: 12.00 MB
+
+OK, but there were issues!
+Tests: 85, Assertions: 360, PHPUnit Deprecations: 1.

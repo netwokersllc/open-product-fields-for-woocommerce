@@ -1,0 +1,18 @@
+{
+  "time": "2026-10-02T06:58:00.871189+00:00",
+  "base": "http://127.0.0.1:8193",
+  "files": {
+    "assets/js/opf-builder.js": {
+      "served_sha256": "27e26d3a4b12b5bb007a7cf7dc65db086d762832ef7c0b216c5f9b382f839fa1",
+      "source_sha256": "27e26d3a4b12b5bb007a7cf7dc65db086d762832ef7c0b216c5f9b382f839fa1",
+      "match": true,
+      "bytes": 45873
+    },
+    "assets/js/opf-frontend.js": {
+      "served_sha256": "e68174e9f2b2b44923c9b014f0fe107d65124c9be813ced4ee24d577fc9d2548",
+      "source_sha256": "e68174e9f2b2b44923c9b014f0fe107d65124c9be813ced4ee24d577fc9d2548",
+      "match": true,
+      "bytes": 57595
+    }
+  }
+}

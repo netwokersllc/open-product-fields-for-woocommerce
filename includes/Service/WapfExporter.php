@@ -24,7 +24,7 @@ final class WapfExporter {
 		self::assert_keys( $group, [ 'schema', 'fields', 'rule_groups', 'mark_required', 'labels_position' ], 'group' );
 		foreach ( ( $group['fields'] ?? [] ) as $field ) {
 			if ( is_array( $field ) ) {
-				self::assert_keys( $field, [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'content', 'content_format', 'process_shortcodes', 'image_url', 'image_id', 'swatch_style', 'multiple', 'min_choices', 'max_choices', 'color_layout', 'color_size', 'color_label_pos', 'image_zoom', 'label_pos', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], 'field' );
+				self::assert_keys( $field, array_merge( [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'content', 'content_format', 'process_shortcodes', 'image_url', 'image_id', 'swatch_style', 'multiple', 'min_choices', 'max_choices', 'color_layout', 'color_size', 'color_label_pos', 'image_zoom', 'label_pos', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], 'toggle' === ( $field['type'] ?? '' ) ? [ 'message', 'default' ] : [] ), 'field' );
 			}
 		}
 		foreach ( ( $group['rule_groups'] ?? [] ) as $rule_group ) {
@@ -88,7 +88,7 @@ final class WapfExporter {
 
 	/** @param array<string,mixed> $field */
 	private static function map_field( array $field, array $field_ids, array $field_types ): array {
-		self::assert_keys( $field, [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'content', 'content_format', 'process_shortcodes', 'image_url', 'image_id', 'swatch_style', 'multiple', 'min_choices', 'max_choices', 'color_layout', 'color_size', 'color_label_pos', 'image_zoom', 'label_pos', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], 'field' );
+		self::assert_keys( $field, array_merge( [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'content', 'content_format', 'process_shortcodes', 'image_url', 'image_id', 'swatch_style', 'multiple', 'min_choices', 'max_choices', 'color_layout', 'color_size', 'color_label_pos', 'image_zoom', 'label_pos', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], 'toggle' === ( $field['type'] ?? '' ) ? [ 'message', 'default' ] : [] ), 'field' );
 		$type_map = [
 			'text' => 'text', 'textarea' => 'textarea', 'email' => 'email', 'url' => 'url',
 			'number' => 'number', 'toggle' => 'true-false', 'select' => 'select',
@@ -137,6 +137,17 @@ final class WapfExporter {
 		}
 		if ( 'date' === $type ) {
 			throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve OPF date-field settings.' );
+		}
+		if ( 'toggle' === $type ) {
+			if ( isset( $field['message'] ) ) {
+				if ( preg_match( '/[<>\r\n]/', $field['message'] ) ) {
+					throw new \InvalidArgumentException( 'WAPF Tools import sanitizes toggle messages; this message cannot be preserved.' );
+				}
+				$out['message'] = $field['message'];
+			}
+			if ( isset( $field['default'] ) ) {
+				$out['default'] = '1' === $field['default'] ? 'checked' : 'unchecked';
+			}
 		}
 		if ( 'paragraph' === $type ) {
 			if ( 'p' === $out['type'] && empty( $field['process_shortcodes'] ) ) {

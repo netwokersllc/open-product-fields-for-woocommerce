@@ -691,7 +691,10 @@ final class Renderer {
 				break;
 			case 'toggle':
 				echo '<input type="hidden" name="' . esc_attr( $name ) . '" value="0" />';
-				echo '<input type="checkbox" value="1" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
+				echo '<input type="checkbox" value="1" ' . $shared . ( '1' === ( $field['default'] ?? '0' ) ? ' checked' : '' ) . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
+				if ( '' !== ( $field['message'] ?? '' ) ) {
+					echo '<label for="opf-' . esc_attr( $gid . '-' . $fid ) . '">' . esc_html( $field['message'] ) . '</label>';
+				}
 				break;
 			default:
 				echo '<input type="text" value="' . esc_attr( (string) ( $field['default'] ?? '' ) ) . '" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
@@ -764,7 +767,7 @@ final class Renderer {
 			return (string) ( $field['default'] ?? '' );
 		}
 		if ( 'toggle' === $field['type'] ) {
-			return '0';
+			return (string) ( $field['default'] ?? '0' );
 		}
 		if ( in_array( $field['type'], [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {
 			$selected = [];

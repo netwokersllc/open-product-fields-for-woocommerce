@@ -1,0 +1,5 @@
+ok fixture exists
+ok fixture cleanup
+ok installed Free reference fixture cleanup
+ok fixture posts user all four orders and state verified absent
+ok reference product and state verified absent

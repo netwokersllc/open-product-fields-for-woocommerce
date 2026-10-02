@@ -1,0 +1,7 @@
+ok Free native checked default and required semantics
+ok Free optional unchecked default
+ok Free message renders escaped beside checkbox with accessible label
+ok Free hidden false and checked true transport order
+ok Free keyboard Space toggles native checkbox
+ok Free native required unchecked blocks submit
+ok Free no uncaught browser errors

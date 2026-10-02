@@ -1,0 +1,32 @@
+ok admin exposes toggle type
+ok admin real REST save succeeds
+ok admin reload retains label type required message default
+ok admin reload retains Not checked zero condition
+ok native checkbox has accessible field and message labels
+ok required and checked defaults render
+ok optional unchecked is native and optional
+ok false dependent initially visible and true dependent hidden disabled
+ok Space toggles native checkbox and updates dependent state
+ok Space restores false condition
+ok accessibility tree exposes native checkboxes and checked state
+ok native form carries hidden zero before checked one and unchecked zero
+ok native required unchecked blocks submit
+ok forged classic HTTP rejects required false
+ok forged Store API HTTP rejects required false
+ok rejected HTTP requests leave empty cart
+ok mobile controls and message fit viewport
+ok classic0 real cart exact boolean and checked-only price
+ok classic0 actual classic checkout HTTP succeeds
+ok classic0 confirmation displays native boolean
+ok classic1 real cart exact boolean and checked-only price
+ok classic1 actual classic checkout HTTP succeeds
+ok classic1 confirmation displays native boolean
+ok actual Store API add-item 0 succeeds
+ok blocks0 real cart exact boolean and checked-only price
+ok blocks0 actual Checkout Block Store API checkout succeeds
+ok blocks0 confirmation displays native boolean
+ok actual Store API add-item 1 succeeds
+ok blocks1 real cart exact boolean and checked-only price
+ok blocks1 actual Checkout Block Store API checkout succeeds
+ok blocks1 confirmation displays native boolean
+ok no uncaught browser errors

@@ -237,6 +237,20 @@ final class FieldGroup {
 			'pricing'      => $pricing,
 			'conditionals' => $conditionals,
 		];
+		if ( 'toggle' === $type ) {
+			if ( array_key_exists( 'message', $field ) ) {
+				if ( ! is_scalar( $field['message'] ) ) {
+					throw new \InvalidArgumentException( 'Toggle message must be a scalar value.' );
+				}
+				$normalized['message'] = trim( strip_tags( (string) $field['message'] ) );
+			}
+			if ( array_key_exists( 'default', $field ) ) {
+				if ( ! in_array( $field['default'], [ true, false, 1, 0, '1', '0' ], true ) ) {
+					throw new \InvalidArgumentException( 'Toggle default must be boolean.' );
+				}
+				$normalized['default'] = in_array( $field['default'], [ true, 1, '1' ], true ) ? '1' : '0';
+			}
+		}
 		if ( 'url' === $type && array_key_exists( 'default', $field ) ) {
 			if ( ! is_scalar( $field['default'] ) ) {
 				throw new \InvalidArgumentException( 'URL default must be a scalar value.' );

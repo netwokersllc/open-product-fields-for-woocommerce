@@ -1,0 +1,13 @@
+ok classic0 actual order-again action exists
+ok classic0 order-again real cart preserves boolean
+ok classic0 order-again real cart retains price
+ok classic1 actual order-again action exists
+ok classic1 order-again real cart preserves boolean
+ok classic1 order-again real cart retains price
+ok blocks0 actual order-again action exists
+ok blocks0 order-again real cart preserves boolean
+ok blocks0 order-again real cart retains price
+ok blocks1 actual order-again action exists
+ok blocks1 order-again real cart preserves boolean
+ok blocks1 order-again real cart retains price
+ok no uncaught browser errors

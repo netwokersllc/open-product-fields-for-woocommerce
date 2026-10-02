@@ -1,0 +1,7 @@
+- text: Accept *
+- checkbox "Accept & continue" [checked]
+- text: Accept & continue Wrap
+- checkbox "Wrap & ribbon (+$2.00)"
+- text: Wrap & ribbon (+$2.00) Product total $10.00 Options total $0.00 Grand total $10.00 WAPF true false reference quantity
+- spinbutton "Product quantity": "1"
+- button "Add to cart"

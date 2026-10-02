@@ -580,6 +580,11 @@ const init = () => {
 				fieldEl.classList.toggle( 'opf-field--hidden', ! visible );
 				fieldEl.classList.toggle( 'opf-hide', ! visible );
 				fieldEl.toggleAttribute( 'hidden', ! visible );
+				// Hidden required toggles must not block native form validation or submit
+				// their hidden false value. Re-enable both controls when shown again.
+				if ( 'toggle' === def.type ) {
+					fieldEl.querySelectorAll( 'input' ).forEach( ( input ) => { input.disabled = ! visible; } );
+				}
 				if ( 'image_quantity' === def.type ) {
 					const inputs = Array.from( fieldEl.querySelectorAll( '.opf-image-quantity__input' ) );
 					const enabledInputs = inputs.filter( ( input ) => ! input.disabled );
@@ -982,6 +987,7 @@ const choiceAddonDisplay = (pricing, base, qty, addons, val, fieldValues = {}, f
 };
 
 const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}, fieldPrices = {}, formulaBase = base) => {
+  if (def.type === 'toggle' && String(value ?? '') !== '1') return 0;
   if (def.type === 'image_quantity') {
     const quantities = value && value._opf_type === 'image_quantity' ? value.quantities || {} : {};
     return (def.choices || []).reduce((sum, choice) => {

@@ -1,0 +1,11 @@
+- text: Accept terms edited *
+- checkbox "Accept terms edited * Accept & continue" [checked]
+- text: Accept & continue Gift wrap
+- checkbox "Gift wrap"
+- text: Preset choice
+- checkbox "Preset choice Preset & checked" [checked]
+- text: Preset & checked false_only *
+- checkbox "false_only *"
+- text: OPF toggle lifecycle fixture quantity
+- spinbutton "Product quantity": "1"
+- button "Add to cart"

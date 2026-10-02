@@ -289,7 +289,7 @@
 			} else if ( source && 'toggle' === source.type ) {
 				valueControl = el( 'select', { class: 'opf-b-input', 'aria-label': 'Condition value' }, [
 					el( 'option', { value: '1', text: 'Checked' } ),
-					el( 'option', { value: '', text: 'Not checked' } ),
+					el( 'option', { value: '0', text: 'Not checked' } ),
 				] );
 				valueControl.value = rule.value;
 			} else {
@@ -426,6 +426,16 @@
 
 		var head = el( 'div', { class: 'opf-b-field-head' }, [ label, typeSel, desc, req, duplicate, remove ] );
 		var card = el( 'div', { class: 'opf-b-field' }, [ head ] );
+		if ( 'toggle' === field.type ) {
+			var message = el( 'input', { class: 'opf-b-input', type: 'text', value: field.message || '', 'aria-label': 'Checkbox message' } );
+			message.addEventListener( 'input', function () { field.message = message.value; } );
+			var toggleDefault = el( 'select', { class: 'opf-b-input', 'aria-label': 'Default value' }, [
+				el( 'option', { value: '0', text: 'Unchecked' } ), el( 'option', { value: '1', text: 'Checked' } ),
+			] );
+			toggleDefault.value = field.default === '1' ? '1' : '0';
+			toggleDefault.addEventListener( 'change', function () { field.default = toggleDefault.value; } );
+			card.appendChild( el( 'div', { class: 'opf-b-constraints' }, [ labeledControl( 'Checkbox message', message ), labeledControl( 'Default value', toggleDefault ) ] ) );
+		}
 		if ( [ 'text', 'url' ].indexOf( field.type ) !== -1 ) {
 			var textSettings = el( 'div', { class: 'opf-b-constraints' } );
 			[ [ 'placeholder', 'Placeholder' ], [ 'default', 'Default value' ] ].forEach( function ( setting ) {

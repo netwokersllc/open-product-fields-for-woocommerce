@@ -1,0 +1,63 @@
+ok fixture exists
+ok admin persists native type label required message and checked default
+ok admin false condition persists canonical zero
+ok WAPF import retains checked unchecked messages required and false condition without review
+ok actual Free Tools model accepts OPF toggle settings
+ok actual Free Tools roundtrip retains field semantics
+ok Free sanitizer observed 0 as false
+ok Free sanitizer observed 1 as true
+ok Free sanitizer observed on as false
+ok Free sanitizer observed garbage as false
+ok classic rejects required unchecked or malformed "0"
+ok Store API rejects required unchecked or malformed "0"
+ok classic rejects required unchecked or malformed ""
+ok Store API rejects required unchecked or malformed ""
+ok classic rejects required unchecked or malformed "garbage"
+ok Store API rejects required unchecked or malformed "garbage"
+ok classic rejects required unchecked or malformed ["1"]
+ok Store API rejects required unchecked or malformed ["1"]
+ok classic valid 0
+ok classic persists exact boolean and default 0 and filters hidden forged zero
+ok classic prices checked only 0
+ok Store API valid 0
+ok Store API persists exact boolean and default 0 and filters hidden forged zero
+ok Store API prices checked only 0
+ok classic valid 1
+ok classic persists exact boolean and default 1 and filters hidden forged zero
+ok classic prices checked only 1
+ok Store API valid 1
+ok Store API persists exact boolean and default 1 and filters hidden forged zero
+ok Store API prices checked only 1
+ok classic0 durable order reloads
+ok classic0 persists exact boolean with hidden field absent
+ok classic0 public metadata describes boolean
+ok classic0 persists checked-only price
+ok classic0 get_content_html includes boolean metadata
+ok classic0 get_content_plain includes boolean metadata
+ok classic0 order again actual cart attachment preserves exact booleans
+ok classic0 order again retains checked-only price
+ok classic1 durable order reloads
+ok classic1 persists exact boolean with hidden field absent
+ok classic1 public metadata describes boolean
+ok classic1 persists checked-only price
+ok classic1 get_content_html includes boolean metadata
+ok classic1 get_content_plain includes boolean metadata
+ok classic1 order again actual cart attachment preserves exact booleans
+ok classic1 order again retains checked-only price
+ok blocks0 durable order reloads
+ok blocks0 persists exact boolean with hidden field absent
+ok blocks0 public metadata describes boolean
+ok blocks0 persists checked-only price
+ok blocks0 get_content_html includes boolean metadata
+ok blocks0 get_content_plain includes boolean metadata
+ok blocks0 order again actual cart attachment preserves exact booleans
+ok blocks0 order again retains checked-only price
+ok blocks1 durable order reloads
+ok blocks1 persists exact boolean with hidden field absent
+ok blocks1 public metadata describes boolean
+ok blocks1 persists checked-only price
+ok blocks1 get_content_html includes boolean metadata
+ok blocks1 get_content_plain includes boolean metadata
+ok blocks1 order again actual cart attachment preserves exact booleans
+ok blocks1 order again retains checked-only price
+SUCCESS toggle lifecycle

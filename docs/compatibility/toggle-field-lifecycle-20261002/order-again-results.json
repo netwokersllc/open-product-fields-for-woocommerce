@@ -1,0 +1,59 @@
+{
+  "base": "http://127.0.0.1:8193",
+  "time": "2026-10-02T06:54:38.320Z",
+  "checks": [
+    {
+      "label": "classic0 actual order-again action exists",
+      "pass": true
+    },
+    {
+      "label": "classic0 order-again real cart preserves boolean",
+      "pass": true
+    },
+    {
+      "label": "classic0 order-again real cart retains price",
+      "pass": true
+    },
+    {
+      "label": "classic1 actual order-again action exists",
+      "pass": true
+    },
+    {
+      "label": "classic1 order-again real cart preserves boolean",
+      "pass": true
+    },
+    {
+      "label": "classic1 order-again real cart retains price",
+      "pass": true
+    },
+    {
+      "label": "blocks0 actual order-again action exists",
+      "pass": true
+    },
+    {
+      "label": "blocks0 order-again real cart preserves boolean",
+      "pass": true
+    },
+    {
+      "label": "blocks0 order-again real cart retains price",
+      "pass": true
+    },
+    {
+      "label": "blocks1 actual order-again action exists",
+      "pass": true
+    },
+    {
+      "label": "blocks1 order-again real cart preserves boolean",
+      "pass": true
+    },
+    {
+      "label": "blocks1 order-again real cart retains price",
+      "pass": true
+    },
+    {
+      "label": "no uncaught browser errors",
+      "pass": true
+    }
+  ],
+  "errors": []
+}

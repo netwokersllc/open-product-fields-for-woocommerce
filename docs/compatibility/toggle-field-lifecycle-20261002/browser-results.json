@@ -1,0 +1,135 @@
+{
+  "base": "http://127.0.0.1:8193",
+  "time": "2026-10-02T06:54:18.396Z",
+  "checks": [
+    {
+      "label": "admin exposes toggle type",
+      "pass": true
+    },
+    {
+      "label": "admin real REST save succeeds",
+      "pass": true
+    },
+    {
+      "label": "admin reload retains label type required message default",
+      "pass": true
+    },
+    {
+      "label": "admin reload retains Not checked zero condition",
+      "pass": true
+    },
+    {
+      "label": "native checkbox has accessible field and message labels",
+      "pass": true
+    },
+    {
+      "label": "required and checked defaults render",
+      "pass": true
+    },
+    {
+      "label": "optional unchecked is native and optional",
+      "pass": true
+    },
+    {
+      "label": "false dependent initially visible and true dependent hidden disabled",
+      "pass": true
+    },
+    {
+      "label": "Space toggles native checkbox and updates dependent state",
+      "pass": true
+    },
+    {
+      "label": "Space restores false condition",
+      "pass": true
+    },
+    {
+      "label": "accessibility tree exposes native checkboxes and checked state",
+      "pass": true
+    },
+    {
+      "label": "native form carries hidden zero before checked one and unchecked zero",
+      "pass": true
+    },
+    {
+      "label": "native required unchecked blocks submit",
+      "pass": true
+    },
+    {
+      "label": "forged classic HTTP rejects required false",
+      "pass": true
+    },
+    {
+      "label": "forged Store API HTTP rejects required false",
+      "pass": true
+    },
+    {
+      "label": "rejected HTTP requests leave empty cart",
+      "pass": true
+    },
+    {
+      "label": "mobile controls and message fit viewport",
+      "pass": true
+    },
+    {
+      "label": "classic0 real cart exact boolean and checked-only price",
+      "pass": true
+    },
+    {
+      "label": "classic0 actual classic checkout HTTP succeeds",
+      "pass": true
+    },
+    {
+      "label": "classic0 confirmation displays native boolean",
+      "pass": true
+    },
+    {
+      "label": "classic1 real cart exact boolean and checked-only price",
+      "pass": true
+    },
+    {
+      "label": "classic1 actual classic checkout HTTP succeeds",
+      "pass": true
+    },
+    {
+      "label": "classic1 confirmation displays native boolean",
+      "pass": true
+    },
+    {
+      "label": "actual Store API add-item 0 succeeds",
+      "pass": true
+    },
+    {
+      "label": "blocks0 real cart exact boolean and checked-only price",
+      "pass": true
+    },
+    {
+      "label": "blocks0 actual Checkout Block Store API checkout succeeds",
+      "pass": true
+    },
+    {
+      "label": "blocks0 confirmation displays native boolean",
+      "pass": true
+    },
+    {
+      "label": "actual Store API add-item 1 succeeds",
+      "pass": true
+    },
+    {
+      "label": "blocks1 real cart exact boolean and checked-only price",
+      "pass": true
+    },
+    {
+      "label": "blocks1 actual Checkout Block Store API checkout succeeds",
+      "pass": true
+    },
+    {
+      "label": "blocks1 confirmation displays native boolean",
+      "pass": true
+    },
+    {
+      "label": "no uncaught browser errors",
+      "pass": true
+    }
+  ],
+  "errors": []
+}

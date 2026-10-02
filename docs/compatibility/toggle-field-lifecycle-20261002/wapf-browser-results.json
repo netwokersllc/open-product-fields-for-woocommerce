@@ -1,0 +1,35 @@
+{
+  "base": "http://127.0.0.1:8194",
+  "time": "2026-10-02T06:51:46.180Z",
+  "checks": [
+    {
+      "label": "Free native checked default and required semantics",
+      "pass": true
+    },
+    {
+      "label": "Free optional unchecked default",
+      "pass": true
+    },
+    {
+      "label": "Free message renders escaped beside checkbox with accessible label",
+      "pass": true
+    },
+    {
+      "label": "Free hidden false and checked true transport order",
+      "pass": true
+    },
+    {
+      "label": "Free keyboard Space toggles native checkbox",
+      "pass": true
+    },
+    {
+      "label": "Free native required unchecked blocks submit",
+      "pass": true
+    },
+    {
+      "label": "Free no uncaught browser errors",
+      "pass": true
+    }
+  ],
+  "errors": []
+}

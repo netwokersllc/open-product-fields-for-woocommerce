@@ -65,6 +65,9 @@ final class Calculator {
 		}
 
 		$total = 0.0;
+		if ( 'toggle' === $field['type'] && '1' !== (string) $value ) {
+			return 0.0;
+		}
 
 		switch ( $field['type'] ) {
 			case 'swatch':

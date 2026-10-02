@@ -188,6 +188,19 @@ final class CartIntegration {
 		$values = $restored
 			? self::sanitize_submitted( $product, $cart_item_data[ self::ITEM_KEY ], true )
 			: self::collect_submitted( $product, $raw );
+		// Native hidden toggles are disabled in the browser. Apply the same rule
+		// to forged payloads before cart/order persistence.
+		foreach ( FieldGroups::for_product( $product ) as $entry ) {
+			$gid = (string) $entry['id'];
+			$given = $values[ $gid ] ?? [];
+			$section_repeats = self::section_repeat_context( $entry['group']->data['fields'] );
+			foreach ( $entry['group']->data['fields'] as $field ) {
+				if ( 'toggle' === $field['type'] && empty( $field['repeat']['enabled'] ) && ! isset( $section_repeats[ $field['id'] ] ) && ! Evaluator::is_visible( $field, $given ) ) {
+					unset( $values[ $gid ][ $field['id'] ] );
+				}
+			}
+			if ( isset( $values[ $gid ] ) && ! $values[ $gid ] ) { unset( $values[ $gid ] ); }
+		}
 		$upload_errors = Uploads::validate_product( $product, $values );
 		if ( $upload_errors ) {
 			if ( defined( 'REST_REQUEST' ) && REST_REQUEST && class_exists( \Automattic\WooCommerce\StoreApi\Exceptions\RouteException::class ) ) {
@@ -838,7 +851,7 @@ final class CartIntegration {
 					$repeat_field['repeat'] = $section_repeats[ $fid ];
 				}
 				if ( ! array_key_exists( $fid, $submitted ) ) {
-					if ( in_array( $field['type'], [ 'text', 'url' ], true ) && empty( $repeat_field['repeat']['enabled'] ) && isset( $field['default'] ) ) {
+					if ( in_array( $field['type'], [ 'text', 'url', 'toggle' ], true ) && empty( $repeat_field['repeat']['enabled'] ) && isset( $field['default'] ) ) {
 						$submitted[ $fid ] = $field['default'];
 					} else {
 						continue;
