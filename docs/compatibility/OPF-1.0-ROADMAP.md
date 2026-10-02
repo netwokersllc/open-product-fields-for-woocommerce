@@ -98,7 +98,8 @@ The 2026-10-02 upload security audit also fixed checkout retries after a
 draft/pending order had claimed the upload. Disposable WooCommerce checks prove
 same-owner retry and rebind, preserved order-item download metadata, live-order
 claim protection, and download ACLs. Hard-deleted-order files can still remain
-stored indefinitely; the [audit](UPLOAD-SECURITY-AUDIT-2026-10-02.md) records it.
+until their TTL expires and scheduled cleanup runs; the
+[audit](UPLOAD-SECURITY-AUDIT-2026-10-02.md) records this residual risk.
 
 `WAPF-FIELD-TEXT` advanced from baseline-supported to `supported`: native text
 defaults and builder controls now pass 24 real-Chromium checks and 23 disposable

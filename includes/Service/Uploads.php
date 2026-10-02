@@ -305,6 +305,14 @@ final class Uploads {
 		return array_values( array_unique( $value ) );
 	}
 
+	/** Return the existing WC order bound to this record, or null if stale. */
+	private static function bound_order( array $record ): ?\WC_Order {
+		$order_id = (int) ( $record['order_id'] ?? 0 );
+		if ( ! $order_id || ! function_exists( 'wc_get_order' ) ) return null;
+		$order = wc_get_order( $order_id );
+		return $order instanceof \WC_Order ? $order : null;
+	}
+
 	/**
 	 * An order claims a token only while that order is no longer retryable:
 	 * checkout-draft, pending, and failed bindings belong to the in-flight
@@ -312,10 +320,8 @@ final class Uploads {
 	 * A deleted order's binding is stale and cannot claim the file either.
 	 */
 	private static function claimed( array $record ): bool {
-		$order_id = (int) ( $record['order_id'] ?? 0 );
-		if ( ! $order_id || ! function_exists( 'wc_get_order' ) ) return false;
-		$order = wc_get_order( $order_id );
-		return $order instanceof \WC_Order && ! $order->has_status( 'checkout-draft' ) && ! $order->needs_payment();
+		$order = self::bound_order( $record );
+		return $order && ! $order->has_status( 'checkout-draft' ) && ! $order->needs_payment();
 	}
 
 	public static function validate_tokens( array $field, array $tokens, int $pid, string $gid ): array {
@@ -395,7 +401,7 @@ final class Uploads {
 	public static function remove( \WP_REST_Request $request ) {
 		$token = (string) $request['token']; $record = self::record( $token );
 		if ( ! $record || ! hash_equals( $record['owner'], self::owner() ) ) return self::error( 'opf_upload_missing', 'File not found.', 404 );
-		if ( ! empty( $record['cart'] ) || ! empty( $record['order_id'] ) ) return self::error( 'opf_upload_claimed', 'This file is attached to a cart or order.', 409 );
+		if ( ! empty( $record['cart'] ) || self::bound_order( $record ) ) return self::error( 'opf_upload_claimed', 'This file is attached to a cart or order.', 409 );
 		try { self::delete( $token ); } catch ( \Throwable $error ) { return self::error( 'opf_upload_storage', 'Private upload storage is unavailable.', 503 ); }
 		return new \WP_REST_Response( null, 204 );
 	}
@@ -444,7 +450,9 @@ final class Uploads {
 			if ( ! $lock || ! flock( $lock, LOCK_EX ) ) return;
 			$records = self::records();
 			foreach ( $records as $token => $record ) {
-				if ( ! empty( $record['order_id'] ) || $record['created'] + self::TTL > time() ) continue;
+				// Keep files attached to any extant order, even retryable drafts;
+				// a deleted/GC'd order leaves a stale reference that TTL can reap.
+				if ( self::bound_order( $record ) || $record['created'] + self::TTL > time() ) continue;
 				self::delete( $token );
 			}
 			// Recover interrupted moves whose database record was never written.

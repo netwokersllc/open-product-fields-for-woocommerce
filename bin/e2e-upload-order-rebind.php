@@ -118,6 +118,13 @@ try {
 	$order->set_status( 'pending' );
 	$order->save();
 	$check( 'pending order still needs payment', $order->needs_payment() );
+	$record = Uploads::record( $token );
+	$record['created'] = time() - DAY_IN_SECONDS - 1;
+	update_option( 'opf_upload_' . $token, $record, false );
+	Uploads::cleanup();
+	$check( 'expired token on a retryable order is retained', is_file( $path ) && null !== Uploads::record( $token ) );
+	$record['created'] = time();
+	update_option( 'opf_upload_' . $token, $record, false );
 
 	// Retry surface 1: checkout revalidation over the same cart line.
 	wc_clear_notices();
@@ -147,6 +154,32 @@ try {
 	Uploads::persist( [ (string) $group_id => [ 'art' => [ $token ] ] ], $next_item, $next );
 	$record = Uploads::record( $token );
 	$check( 'token rebinds to replacement draft', (int) $record['order_id'] === $next->get_id() );
+
+	// Deleted-order bindings are stale, so both owner deletion and scheduled
+	// cleanup must treat them as unattached rather than permanently claimed.
+	$stale_token = bin2hex( random_bytes( 32 ) );
+	$stale_path  = OPF_UPLOAD_PRIVATE_DIR . '/' . $stale_token . '.bin';
+	file_put_contents( $stale_path, $png );
+	add_option( 'opf_upload_' . $stale_token, [
+		'name' => 'art.png', 'mime' => 'image/png', 'size' => strlen( $png ), 'owner' => $owner,
+		'product_id' => $product_id, 'group_id' => (string) $group_id, 'field_id' => 'art',
+		'created' => time(), 'order_id' => $order_id, 'cart' => false,
+	], '', false );
+
+	$cleanup_token = bin2hex( random_bytes( 32 ) );
+	$cleanup_path  = OPF_UPLOAD_PRIVATE_DIR . '/' . $cleanup_token . '.bin';
+	file_put_contents( $cleanup_path, $png );
+	add_option( 'opf_upload_' . $cleanup_token, [
+		'name' => 'art.png', 'mime' => 'image/png', 'size' => strlen( $png ), 'owner' => $owner,
+		'product_id' => $product_id, 'group_id' => (string) $group_id, 'field_id' => 'art',
+		'created' => time() - DAY_IN_SECONDS - 1, 'order_id' => $order_id, 'cart' => false,
+	], '', false );
+	Uploads::cleanup();
+	$check( 'expired upload bound only to a deleted order is reclaimed', null === Uploads::record( $cleanup_token ) && ! is_file( $cleanup_path ) );
+	$delete_request = new WP_REST_Request( 'DELETE', '/opf/v1/uploads/' . $stale_token );
+	$delete_request->set_param( 'token', $stale_token );
+	$delete_response = Uploads::remove( $delete_request );
+	$check( 'owner can delete upload bound only to a deleted order', ! is_wp_error( $delete_response ) && $delete_response->get_status() === 204 && null === Uploads::record( $stale_token ) );
 
 	// A live order still claims the file: it cannot seed a different order.
 	$next->set_status( 'processing' );
@@ -201,6 +234,15 @@ try {
 	}
 	if ( isset( $group_id ) ) {
 		wp_delete_post( $group_id, true );
+	}
+	foreach ( [ 'stale_token', 'cleanup_token' ] as $token_var ) {
+		if ( isset( $$token_var ) ) {
+			$extra_path = OPF_UPLOAD_PRIVATE_DIR . '/' . $$token_var . '.bin';
+			if ( is_file( $extra_path ) || is_link( $extra_path ) ) {
+				unlink( $extra_path );
+			}
+			delete_option( 'opf_upload_' . $$token_var );
+		}
 	}
 	if ( isset( $product_id ) ) {
 		$p = wc_get_product( $product_id );

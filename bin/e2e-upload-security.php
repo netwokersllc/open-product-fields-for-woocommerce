@@ -13,6 +13,8 @@ $path = OPF_UPLOAD_PRIVATE_DIR . '/' . $token . '.bin';
 $png = base64_decode( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ1cAAAAASUVORK5CYII=' );
 $record = [ 'owner' => $owner, 'product_id' => 10, 'group_id' => '11', 'field_id' => 'art', 'name' => 'security.png', 'mime' => 'image/png', 'size' => strlen( $png ), 'created' => time(), 'order_id' => 0, 'cart' => false ];
 $field = OPF\Engine\FieldGroup::normalize_field( [ 'id' => 'art', 'type' => 'upload', 'label' => 'Artwork', 'multiple' => true ] );
+$claiming = null;
+$retained_order = null;
 file_put_contents( $path, $png ); chmod( $path, 0600 ); add_option( 'opf_upload_' . $token, $record, '', false );
 try {
 	$checked = Uploads::validate_file( [ 'name' => 'evil"<img>.png', 'tmp_name' => $path, 'error' => UPLOAD_ERR_OK ], $field );
@@ -43,7 +45,6 @@ try {
 	$record['order_id'] = $claiming->get_id(); update_option( 'opf_upload_' . $token, $record, false );
 	$check( 'live order-bound token replay rejected', [] !== Uploads::validate_tokens( $field, [ $token ], 10, '11' ) );
 	$record['order_id'] = 0; update_option( 'opf_upload_' . $token, $record, false );
-	$claiming->delete( true );
 	$check( 'duplicate token normalizes to one reference', [ $token ] === Uploads::tokens( [ $token, $token ] ) );
 	rename( $path, $path . '.saved' ); symlink( '/etc/passwd', $path );
 	$check( 'symlink private byte path rejected', [] !== Uploads::validate_tokens( $field, [ $token ], 10, '11' ) );
@@ -52,7 +53,8 @@ try {
 	Uploads::cleanup();
 	$check( 'expired temporary bytes and metadata removed', ! is_file( $path ) && null === Uploads::record( $token ) );
 	$order_token = bin2hex( random_bytes( 32 ) ); $order_path = OPF_UPLOAD_PRIVATE_DIR . '/' . $order_token . '.bin';
-	$record['order_id'] = 13; file_put_contents( $order_path, 'proof' ); add_option( 'opf_upload_' . $order_token, $record, '', false );
+	$retained_order = wc_create_order(); $retained_order->set_status( 'processing' ); $retained_order->save();
+	$record['order_id'] = $retained_order->get_id(); file_put_contents( $order_path, 'proof' ); add_option( 'opf_upload_' . $order_token, $record, '', false );
 	Uploads::cleanup();
 	$check( 'order files retained by scheduled temporary cleanup', is_file( $order_path ) && null !== Uploads::record( $order_token ) );
 	unlink( $order_path ); delete_option( 'opf_upload_' . $order_token );
@@ -74,6 +76,13 @@ try {
 	$check( 'global storage lock excludes competing process', pcntl_wexitstatus( $status ) === 0 );
 	echo wp_json_encode( [ 'checks' => $checks ], JSON_PRETTY_PRINT ) . "\n";
 } finally {
+	foreach ( [ $claiming, $retained_order ] as $order ) {
+		if ( $order instanceof WC_Order && $order->get_id() && wc_get_order( $order->get_id() ) ) {
+			$order->delete( true );
+		}
+	}
+	if ( isset( $order_path ) && ( is_link( $order_path ) || is_file( $order_path ) ) ) unlink( $order_path );
+	if ( isset( $order_token ) ) delete_option( 'opf_upload_' . $order_token );
 	if ( is_link( $path ) || is_file( $path ) ) unlink( $path );
 	if ( is_file( $path . '.saved' ) ) unlink( $path . '.saved' );
 	delete_option( 'opf_upload_' . $token );

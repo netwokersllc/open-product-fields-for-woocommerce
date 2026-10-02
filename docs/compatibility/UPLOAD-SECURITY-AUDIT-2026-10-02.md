@@ -13,7 +13,7 @@ Isolated worktree `/tmp/opf-upload-security-review-20261002`, HEAD base
 | Ownership/session binding | Sound: owner = `hash_hmac(sha256, WC session customer id, wp_salt)`; tokens validated against product, group, field, owner, TTL (`Uploads.php:161-164, 321-331`). |
 | Classic + Store API cart/checkout validation | One defect found and fixed (below). `woocommerce_check_cart_items` fires on both checkouts (`WC_Checkout::check_cart_items`, `CartController::validate_cart` → `Checkout.php:421/577`); `woocommerce_checkout_create_order_line_item` and `woocommerce_new_order_item` fire on both paths. |
 | Download permissions | Sound: session owner, bound-order customer, or `manage_woocommerce`; private/no-store + `nosniff`; streamed via `rest_pre_serve_request` (`Uploads.php:401-411`). |
-| Deletion/retention | Sound with residual risk noted below. `remove` refuses cart/order-bound files; `cleanup` keeps order-bound records; `delete_order_uploads` is nonce + `manage_woocommerce` gated and only deletes records bound to that order (`Uploads.php:105-126, 393-399, 438-460`). |
+| Deletion/retention | Sound with residual risk noted below. `remove` refuses cart-bound files and records for extant orders; `cleanup` retains files for extant orders (including retryable drafts) and reaps expired stale-order references; `delete_order_uploads` is nonce + `manage_woocommerce` gated (`Uploads.php:105-126, 393-399, 438-460`). |
 | Path traversal | Sound: tokens are strict `[a-f0-9]{64}`, paths are derived not user-controlled, symlinks rejected at file and root level, realpath equality enforced (`Uploads.php:202-229`). |
 | File type / size / DoS | Sound: extension allowlist + `wp_check_filetype_and_ext` + real `finfo` content sniffing (never browser MIME), per-field size cap vs `wp_max_upload_size`, per-field/session file counts, site-wide byte/file caps, exclusive lock over quota + move (`Uploads.php:231-246, 263-291`). Active-content extensions (php, html, svg, js…) are unconditionally refused. |
 | WAPF Extended 3.1.5 comparison | OPF is stricter: WAPF stores under public `uploads/wapf/<field>/<md5(customer_id)>/` protected only by `.htaccess`/`index.php`, trusts the submitted MIME string, and has no order binding — so it has no retry defect but offers far weaker isolation. |
@@ -46,12 +46,13 @@ still absolute, so the "one upload per completed purchase" invariant holds.
 ## Exact commands and results
 
 ```
-# Reproduction (pre-fix): check 8 failed — checkout retry blocked
+# Reproduction (pre-fix): check 9 failed — checkout retry blocked
 wp --path=/tmp/opf-upload-security-wp eval-file bin/e2e-upload-order-rebind.php
 
-# Post-fix: 16/16 checks pass (retry accepted, draft resync keeps meta,
+# Post-fix: 19/19 checks pass (retry accepted, draft resync keeps meta,
 # rebind to replacement draft, processing-order token stays claimed,
-# live-order token not rebound, unrelated session 404, order customer 200)
+# live-order token not rebound, stale-order cleanup/deletion, unrelated session 404,
+# order customer 200)
 wp --path=/tmp/opf-upload-security-wp eval-file bin/e2e-upload-order-rebind.php
 
 # Regression suite (existing e2e, guard adapted for this clone's private dir):
@@ -71,12 +72,10 @@ php -l bin/e2e-upload-order-rebind.php
 
 ## Residual risks (documented, unchanged or accepted)
 
-1. **Retention of stale order bindings.** Records/files bound to orders that
-   are later deleted (including WooCommerce-GC'd drafts) are retained
-   indefinitely; `cleanup` skips all `order_id`-bound records by design and
-   admin deletion only reaches records still bound to that order. Pre-existing
-   behavior; the fix reduces new occurrences by rebinding retryable tokens but
-   does not reclaim files whose orders disappear.
+1. **Stale-order cleanup depends on scheduled cleanup.** A deleted/GC'd order
+   no longer blocks owner deletion or rebinding. Its file remains until the
+   upload TTL expires and scheduled cleanup runs; if that job is disabled or
+   repeatedly fails, the orphan remains on disk.
 2. **Fail-closed edges.** A bound order that exists but is neither
    `checkout-draft` nor `needs_payment()` — e.g. `$0` pending, cancelled, or a
    custom status — keeps its claim; the shopper must re-upload. Conservative
