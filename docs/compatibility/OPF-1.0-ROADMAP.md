@@ -33,10 +33,10 @@ The 132 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 
 | Status | Rows | Meaning for the gate |
 | --- | ---: | --- |
-| Baseline supported | 2 | Promising baseline only; not accepted as proof |
-| Supported | 8 | Select and radio now join the independently audited rows after source-matched browser, WAPF Free, and commerce lifecycle proof |
-| Supported with documented difference | 8 | Needs explicit non-regression review and acceptance |
-| Partial | 113 | Material parity or proof remains; 15 prior supported claims were withdrawn after source/test audit; both upload rows now have a private-storage foundation but still lack builder/import/export parity and additional lifecycle proof |
+| Baseline supported | 1 | Promising baseline only; not accepted as proof |
+| Supported | 9 | Select, radio, email, and generic cart/order lifecycle have executed behavior and commerce evidence |
+| Supported with documented difference | 9 | Includes the native toggle lifecycle; differences need explicit non-regression review and acceptance |
+| Partial | 112 | Material parity or proof remains; 15 prior supported claims were withdrawn after source/test audit; both upload rows now have a private-storage foundation but still lack builder/import/export parity and additional lifecycle proof |
 | Gap | 1 | Known absent in the current OPF tree |
 | Needs audit | 0 | Available source, marketing claims, and every published release delta are mapped; exact release details remain scoped to partial rows |
 | **Total** | **132** | **G1 complete for available evidence; G2 remains open** |
@@ -61,11 +61,16 @@ pricing-hint path remain unverified. Neither row counts as supported.
 A fresh evidence review removed 15 stale `supported` claims. Five rows remained
 after that review; email later advanced separately based on new lifecycle
 evidence. See [the supported-row audit](SUPPORTED-ROW-AUDIT-2026-10-01.md).
-Current strict progress is **8/132 accepted supported rows (6.1%)**. The select
+Current strict progress is **9/132 accepted supported rows (6.8%)**. The select
 and radio rows advanced from baseline-supported after the source-matched
 required-choice lifecycle passed in Chromium, WAPF Free, classic and Store API
 commerce, persisted orders, and order-again. See
 [select/radio lifecycle evidence](SELECT-RADIO-REQUIRED-CHOICE-EVIDENCE-2026-10-02.md).
+
+The generic Classic/Blocks cart-to-order row advanced from baseline-supported
+after fresh browser and durable-order evidence passed all three Classic/Store
+API add and checkout combinations. See
+[cart/order lifecycle evidence](CART-ORDER-LIFECYCLE-EVIDENCE-2026-10-02.md).
 
 `WAPF-FIELD-EMAIL` advanced from `partial` to `supported` on 2026-10-02.
 Chromium and disposable WooCommerce/WAPF Free evidence covers admin

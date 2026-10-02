@@ -121,6 +121,16 @@ quantity matrix. `vendor/bin/phpunit`: **283 tests, 1,112 assertions, all
 pass** (one pre-existing metadata deprecation). `node --test tests/js/*.test.cjs`:
 **14/14 pass**. `php -l` and `node --check` clean on changed files.
 
+After integrating this slice with the toggle and date-format changes, the
+browser/cart/order scenario was rerun against the combined source at commit
+`8696c00c3a3edde67848a93085e10abfafb43cd0` (before docs-only ledger updates).
+It again passed all four browser/cart total comparisons, validation cases,
+order persistence, source-byte comparison, and cleanup with no page errors.
+Combined-source hashes were `includes/Engine/Calculator.php`
+`009f747a4f22e76f02f30b01dd2633f2b4cc9457a07aec9aaec8115991ad901a` and
+`assets/js/opf-frontend.js`
+`f2a84f1efbf8404f8283626f103bb1af1472b2d67f1b70b910c90e15d6881d55`.
+
 ## Documented gap — general formula quantity multiplication (separate issue)
 
 This is recorded explicitly, not hidden: OPF's `formula` pricing is always
