@@ -49,6 +49,6 @@ final class Settings {
 		if ( is_string( $value ) && DateFormat::is_valid( $value ) ) {
 			return DateFormat::normalize( $value );
 		}
-		return DateFormat::normalize( get_option( 'opf_date_format', get_option( 'wapf_date_format', DateFormat::DEFAULT_FORMAT ) ) );
+		return DateFormat::configured();
 	}
 }
