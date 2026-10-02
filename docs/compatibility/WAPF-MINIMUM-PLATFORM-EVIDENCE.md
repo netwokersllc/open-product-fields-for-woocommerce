@@ -288,7 +288,7 @@ integration proof.
    return annotations. Run actual activation, REST save/preview success/error, storefront,
    classic/Store API cart, checkout, order metadata, and order-again on
    PHP 7.4/WordPress 6.5/WooCommerce 9.0. This establishes OPF's own floor first.
-2. Backport incompatible syntax in the four files still rejected by PHP 7.1;
+2. Backport incompatible syntax in the three files still rejected by PHP 7.1;
    preserve closure captures explicitly. The archive JSON dependency now has
    PHP 7.1 runtime proof above; extend it to populated archives after the
    syntax backport. Prove valid/malformed archives
@@ -325,3 +325,18 @@ syntax failures: `Engine/Calculator.php:22`, `Engine/FieldGroup.php:35`,
 contain typed properties or arrow functions. PHP 7.1 platform parity remains
 open; this syntax-only result does not prove PHP 7.1 WordPress/WooCommerce
 activation or a commerce lifecycle.
+
+## WAPF exporter PHP 7.1 syntax follow-up — 2026-10-02
+
+Public commit `892d7e8` replaced the two static arrow callbacks in
+`Service/WapfExporter.php` with static closures. The changed file passes actual
+PHP 7.1.33 lint. Focused exporter/mapper tests pass (53 tests / 231 assertions)
+and the full suite passes (276 tests / 1,070 assertions, with one existing
+metadata deprecation). A 24-case full export/import probe and an 18-case direct
+mapper probe were byte-identical before and after, including matching failures
+and zero warnings.
+
+A fresh lint of all 36 shipped PHP files now leaves three syntax failures:
+`Engine/Calculator.php:22`, `Engine/FieldGroup.php:35`, and
+`Service/CartIntegration.php:848`. This remains syntax-only evidence; the
+PHP 7.1 runtime and WAPF platform row are not yet proven.
