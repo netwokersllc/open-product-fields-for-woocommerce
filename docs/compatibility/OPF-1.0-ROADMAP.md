@@ -94,6 +94,11 @@ downloads, and cleanup. WAPF builder controls and import/export fidelity,
 thumbnail previews, upload order-again, guest session-loss recovery, and
 broader platform/storage compatibility remain open; see [upload foundation
 evidence](UPLOAD-FOUNDATION-EVIDENCE-2026-10-01.md).
+The 2026-10-02 upload security audit also fixed checkout retries after a
+draft/pending order had claimed the upload. Disposable WooCommerce checks prove
+same-owner retry and rebind, preserved order-item download metadata, live-order
+claim protection, and download ACLs. Hard-deleted-order files can still remain
+stored indefinitely; the [audit](UPLOAD-SECURITY-AUDIT-2026-10-02.md) records it.
 
 `WAPF-FIELD-TEXT` advanced from baseline-supported to `supported`: native text
 defaults and builder controls now pass 24 real-Chromium checks and 23 disposable
