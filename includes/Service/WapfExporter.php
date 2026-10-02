@@ -245,7 +245,9 @@ final class WapfExporter {
 			if ( 'show' !== $conditional['action'] ) {
 				throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve hide conditionals.' );
 			}
-			$blocks = 'any' === $conditional['logic'] ? array_map( static fn( $rule ) => [ $rule ], $conditional['rules'] ) : [ $conditional['rules'] ];
+			$blocks = 'any' === $conditional['logic'] ? array_map( static function ( $rule ) {
+				return [ $rule ];
+			}, $conditional['rules'] ) : [ $conditional['rules'] ];
 			foreach ( $blocks as $rules ) {
 				$mapped = [];
 				foreach ( $rules as $rule ) {
@@ -315,7 +317,9 @@ final class WapfExporter {
 		return [
 			'subject' => 'product',
 			'condition' => $subject,
-			'value' => array_map( static fn( $id ) => [ 'id' => (string) $id, 'text' => (string) $id ], $rule['terms'] ),
+			'value' => array_map( static function ( $id ) {
+				return [ 'id' => (string) $id, 'text' => (string) $id ];
+			}, $rule['terms'] ),
 		];
 	}
 
