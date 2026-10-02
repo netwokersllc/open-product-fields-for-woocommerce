@@ -909,7 +909,10 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
           const value = fieldValues[fieldId];
           const quantities = value && value._opf_type === 'image_quantity' ? value.quantities : null;
           result = quantities && typeof quantities === 'object'
-            ? Object.values(quantities).reduce((sum, quantity) => sum + (/^\d+$/.test(String(quantity)) ? Number(quantity) : 0), 0)
+            ? Object.values(quantities).reduce((sum, quantity) => {
+              const isQuantity = typeof quantity === 'number' || typeof quantity === 'string';
+              return sum + (isQuantity && /^\d+$/.test(String(quantity)) ? Number(quantity) : 0);
+            }, 0)
             : 0;
           break;
         }

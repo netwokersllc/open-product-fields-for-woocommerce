@@ -371,7 +371,8 @@ final class Calculator {
 					return 0;
 				}
 				return array_sum( array_map( static function ( $quantity ): int {
-					return is_scalar( $quantity ) && preg_match( '/^\\d+$/', (string) $quantity ) ? (int) $quantity : 0;
+					$is_quantity = is_int( $quantity ) || is_float( $quantity ) || is_string( $quantity );
+					return $is_quantity && preg_match( '/^\\d+$/', (string) $quantity ) ? (int) $quantity : 0;
 				}, $value['quantities'] ) );
 			},
 			'round' => static function ( array $args, array $context ) use ( $numeric ) {
