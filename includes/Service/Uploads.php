@@ -305,13 +305,26 @@ final class Uploads {
 		return array_values( array_unique( $value ) );
 	}
 
+	/**
+	 * An order claims a token only while that order is no longer retryable:
+	 * checkout-draft, pending, and failed bindings belong to the in-flight
+	 * purchase, so the shopper's retry or re-checkout must still validate.
+	 * A deleted order's binding is stale and cannot claim the file either.
+	 */
+	private static function claimed( array $record ): bool {
+		$order_id = (int) ( $record['order_id'] ?? 0 );
+		if ( ! $order_id || ! function_exists( 'wc_get_order' ) ) return false;
+		$order = wc_get_order( $order_id );
+		return $order instanceof \WC_Order && ! $order->has_status( 'checkout-draft' ) && ! $order->needs_payment();
+	}
+
 	public static function validate_tokens( array $field, array $tokens, int $pid, string $gid ): array {
 		if ( ! $tokens ) return ! empty( $field['required'] ) ? [ sprintf( '"%s" is a required field.', $field['label'] ) ] : [];
 		if ( count( $tokens ) > self::max_files( $field ) ) return [ 'Too many uploaded files.' ];
 		foreach ( $tokens as $token ) {
 			$record = self::record( $token );
 			try { $path = self::path( $token ); } catch ( \Throwable $error ) { $path = null; }
-			if ( ! $record || ! $path || ! hash_equals( $record['owner'], self::owner() ) || $record['product_id'] !== $pid || $record['group_id'] !== $gid || $record['field_id'] !== $field['id'] || ! empty( $record['order_id'] ) || $record['created'] + self::TTL <= time() ) return [ 'An uploaded file is unavailable. Please upload it again.' ];
+			if ( ! $record || ! $path || ! hash_equals( $record['owner'], self::owner() ) || $record['product_id'] !== $pid || $record['group_id'] !== $gid || $record['field_id'] !== $field['id'] || self::claimed( $record ) || $record['created'] + self::TTL <= time() ) return [ 'An uploaded file is unavailable. Please upload it again.' ];
 			$checked = self::validate_file( [ 'name' => $record['name'], 'tmp_name' => $path, 'error' => UPLOAD_ERR_OK ], $field );
 			if ( is_wp_error( $checked ) || $checked['size'] !== $record['size'] ) return [ 'An uploaded file no longer meets this field’s requirements. Please upload it again.' ];
 		}
@@ -340,7 +353,7 @@ final class Uploads {
 			foreach ( $tokens as $token ) {
 				if ( ! is_string( $token ) ) continue;
 				$record = self::record( $token );
-				if ( $record && hash_equals( $record['owner'], self::owner() ) && empty( $record['order_id'] ) ) {
+				if ( $record && hash_equals( $record['owner'], self::owner() ) && ! self::claimed( $record ) ) {
 					$record['cart'] = true; $record['created'] = time();
 					update_option( self::PREFIX . $token, $record, false );
 				}
@@ -355,9 +368,11 @@ final class Uploads {
 			foreach ( $tokens as $token ) {
 				if ( ! is_string( $token ) ) continue;
 				$record = self::record( $token );
-				if ( ! $record || ! hash_equals( $record['owner'], self::owner() ) || ! empty( $record['order_id'] ) ) continue;
-				$record['order_id'] = $order->get_id();
-				update_option( self::PREFIX . $token, $record, false );
+				if ( ! $record || ! hash_equals( $record['owner'], self::owner() ) || self::claimed( $record ) ) continue;
+				if ( (int) $record['order_id'] !== (int) $order->get_id() ) {
+					$record['order_id'] = $order->get_id();
+					update_option( self::PREFIX . $token, $record, false );
+				}
 				$references[] = [ 'token' => $token, 'name' => $record['name'] ];
 			}
 		}
@@ -370,7 +385,7 @@ final class Uploads {
 		foreach ( (array) $item->get_meta( '_opf_uploads', true ) as $file ) {
 			if ( ! is_array( $file ) || ! isset( $file['token'] ) ) continue;
 			$record = self::record( $file['token'] );
-			if ( $record && empty( $record['order_id'] ) && hash_equals( $record['owner'], self::owner() ) ) {
+			if ( $record && ! self::claimed( $record ) && hash_equals( $record['owner'], self::owner() ) ) {
 				$record['order_id'] = (int) $order_id;
 				update_option( self::PREFIX . $file['token'], $record, false );
 			}

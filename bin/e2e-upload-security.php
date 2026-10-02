@@ -37,9 +37,13 @@ try {
 	$expired_download = Uploads::download( $request );
 	$check( 'expired cart bytes cannot be downloaded before cron cleanup', is_wp_error( $expired_download ) && $expired_download->get_error_data()['status'] === 404 );
 	$record['cart'] = false;
-	$record['created'] = time(); $record['order_id'] = 13; update_option( 'opf_upload_' . $token, $record, false );
-	$check( 'order-bound token replay rejected', [] !== Uploads::validate_tokens( $field, [ $token ], 10, '11' ) );
+	$record['created'] = time();
+	$claiming = wc_create_order();
+	$claiming->set_status( 'processing' ); $claiming->save();
+	$record['order_id'] = $claiming->get_id(); update_option( 'opf_upload_' . $token, $record, false );
+	$check( 'live order-bound token replay rejected', [] !== Uploads::validate_tokens( $field, [ $token ], 10, '11' ) );
 	$record['order_id'] = 0; update_option( 'opf_upload_' . $token, $record, false );
+	$claiming->delete( true );
 	$check( 'duplicate token normalizes to one reference', [ $token ] === Uploads::tokens( [ $token, $token ] ) );
 	rename( $path, $path . '.saved' ); symlink( '/etc/passwd', $path );
 	$check( 'symlink private byte path rejected', [] !== Uploads::validate_tokens( $field, [ $token ], 10, '11' ) );
