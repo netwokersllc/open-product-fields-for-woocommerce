@@ -35,12 +35,16 @@ final class Rest {
 				[
 					'methods'             => 'GET',
 					'callback'            => [ __CLASS__, 'list_groups' ],
-					'permission_callback' => static fn() => current_user_can( 'manage_woocommerce' ),
+					'permission_callback' => static function () {
+						return current_user_can( 'manage_woocommerce' );
+					},
 				],
 				[
 					'methods'             => 'POST',
 					'callback'            => [ __CLASS__, 'save_group' ],
-					'permission_callback' => static fn() => current_user_can( 'manage_woocommerce' ),
+					'permission_callback' => static function () {
+						return current_user_can( 'manage_woocommerce' );
+					},
 					'args'                => [
 						'id'    => [ 'type' => 'integer', 'default' => 0 ],
 						'title' => [ 'type' => 'string', 'required' => true ],
@@ -57,7 +61,9 @@ final class Rest {
 				[
 					'methods'             => 'POST',
 					'callback'            => [ __CLASS__, 'preview' ],
-					'permission_callback' => static fn() => current_user_can( 'manage_woocommerce' ),
+					'permission_callback' => static function () {
+						return current_user_can( 'manage_woocommerce' );
+					},
 					'args'                => [
 						'data'       => [ 'type' => 'object', 'required' => true ],
 						'product_id' => [ 'type' => 'integer', 'default' => 0 ],
