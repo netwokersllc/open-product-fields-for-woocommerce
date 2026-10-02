@@ -7,6 +7,8 @@
 
 namespace OPF\Service;
 
+use OPF\Engine\DateFormat;
+
 defined( 'ABSPATH' ) || exit;
 
 final class Assets {
@@ -63,7 +65,7 @@ final class Assets {
 		// no-op here. Classic inline scripts execute immediately — before the
 		// deferred module — which is exactly the ordering the registry needs.
 		if ( $registry ) {
-			$date_format = function_exists( 'get_option' ) ? get_option( 'wapf_date_format', 'mm-dd-yyyy' ) : 'mm-dd-yyyy';
+			$date_format = self::frontend_date_format();
 			$today       = function_exists( 'current_time' ) ? current_time( 'Y-m-d' ) : gmdate( 'Y-m-d' );
 			wp_print_inline_script_tag(
 				'window.OPF_FIELDS = ' . wp_json_encode( $registry, JSON_UNESCAPED_UNICODE ) . ';'
@@ -78,6 +80,23 @@ final class Assets {
 			);
 		}
 		wp_enqueue_style( 'opf-frontend' );
+	}
+
+	/**
+	 * Frontend date format precedence: an explicit valid OPF setting wins,
+	 * then a valid WAPF value, then the canonical default.
+	 */
+	private static function frontend_date_format(): string {
+		if ( ! function_exists( 'get_option' ) ) {
+			return DateFormat::DEFAULT_FORMAT;
+		}
+		foreach ( [ 'opf_date_format', 'wapf_date_format' ] as $option ) {
+			$value = get_option( $option, null );
+			if ( DateFormat::is_valid( $value ) ) {
+				return DateFormat::normalize( $value );
+			}
+		}
+		return DateFormat::DEFAULT_FORMAT;
 	}
 
 	/**

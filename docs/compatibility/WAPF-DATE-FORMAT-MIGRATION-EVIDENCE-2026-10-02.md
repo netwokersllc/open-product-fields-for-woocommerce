@@ -22,4 +22,4 @@ The focused tests cover dry-run no-write, copy-once/idempotence, absent source, 
 
 ## Remaining parity
 
-WAPF renders a text date control with the selected format; OPF's native date input still follows browser formatting. OPF's `Assets.php` also initializes `window.OPF_DATE_FORMAT` directly from the WAPF option, so JavaScript that reads that global has a separate setting-precedence gap when the OPF option differs. End-to-end native date UI and commerce lifecycle parity remain unproven here. The `WAPF-DATE-FORMAT` ledger row therefore remains partial.
+WAPF renders a text date control with the selected format; OPF's native date input still follows browser formatting. A follow-up change closes the JavaScript precedence gap in `Assets.php`: `window.OPF_DATE_FORMAT` now resolves a valid `opf_date_format`, then a valid `wapf_date_format`, then `mm-dd-yyyy` — see [WAPF-DATE-FORMAT-JS-PRECEDENCE-EVIDENCE-2026-10-02.md](WAPF-DATE-FORMAT-JS-PRECEDENCE-EVIDENCE-2026-10-02.md). End-to-end native date UI and commerce lifecycle parity remain unproven here. The `WAPF-DATE-FORMAT` ledger row therefore remains partial.
