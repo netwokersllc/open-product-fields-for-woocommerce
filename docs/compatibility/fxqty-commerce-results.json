@@ -1,0 +1,1042 @@
+{
+    "wapf\/flatfx\/1": {
+        "added": true,
+        "cart": [
+            {
+                "key": "a4cf3c987649191933484dc8bfb9a90b",
+                "qty": 1,
+                "unit": 120,
+                "line_total": 120,
+                "opf": null,
+                "wapf": [
+                    {
+                        "id": "plan",
+                        "values": [
+                            {
+                                "label": "Flat formula",
+                                "price": "[price] * 0.2",
+                                "price_type": "fx",
+                                "slug": "flatfx",
+                                "calc_price": 20,
+                                "pricing_hint": "(+&#36;20.00)"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "opf\/flatfx\/1": {
+        "added": true,
+        "cart": [
+            {
+                "key": "3f42f197f94b3bfbc205e9debf83b21b",
+                "qty": 1,
+                "unit": 120,
+                "line_total": 120,
+                "opf": {
+                    "33": {
+                        "plan": "flatfx"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "imp\/flatfx\/1": {
+        "added": true,
+        "cart": [
+            {
+                "key": "820298d0bbf042b6441b245c29c39fe7",
+                "qty": 1,
+                "unit": 120,
+                "line_total": 120,
+                "opf": {
+                    "35": {
+                        "plan": "flatfx"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "wapf\/scaledfx\/1": {
+        "added": true,
+        "cart": [
+            {
+                "key": "f47fa6684736c2028d70301336717ecc",
+                "qty": 1,
+                "unit": 120,
+                "line_total": 120,
+                "opf": null,
+                "wapf": [
+                    {
+                        "id": "plan",
+                        "values": [
+                            {
+                                "label": "Scaled formula",
+                                "price": "([price] * 0.2) * [qty]",
+                                "price_type": "fx",
+                                "slug": "scaledfx",
+                                "calc_price": 20,
+                                "pricing_hint": "(+&#36;20.00)"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "opf\/scaledfx\/1": {
+        "added": true,
+        "cart": [
+            {
+                "key": "ecc804b1e93504d2796cb9466014ab97",
+                "qty": 1,
+                "unit": 120,
+                "line_total": 120,
+                "opf": {
+                    "33": {
+                        "plan": "scaledfx"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "imp\/scaledfx\/1": {
+        "added": true,
+        "cart": [
+            {
+                "key": "a6b7cf3f478eb0b9a038498ed8fe9e86",
+                "qty": 1,
+                "unit": 120,
+                "line_total": 120,
+                "opf": {
+                    "35": {
+                        "plan": "scaledfx"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "wapf\/flatfee\/1": {
+        "added": true,
+        "cart": [
+            {
+                "key": "8a5171701ea8692f7f371e39fd35b4fc",
+                "qty": 1,
+                "unit": 105,
+                "line_total": 105,
+                "opf": null,
+                "wapf": [
+                    {
+                        "id": "plan",
+                        "values": [
+                            {
+                                "label": "Flat fee",
+                                "price": 5,
+                                "price_type": "fixed",
+                                "slug": "flatfee",
+                                "calc_price": 5,
+                                "pricing_hint": "(+&#36;5.00)"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "opf\/flatfee\/1": {
+        "added": true,
+        "cart": [
+            {
+                "key": "b1fb9be881a933647028938af7a6a115",
+                "qty": 1,
+                "unit": 105,
+                "line_total": 105,
+                "opf": {
+                    "33": {
+                        "plan": "flatfee"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "imp\/flatfee\/1": {
+        "added": true,
+        "cart": [
+            {
+                "key": "22271e84df7f2bb1d32d0f0b84dc7b0e",
+                "qty": 1,
+                "unit": 105,
+                "line_total": 105,
+                "opf": {
+                    "35": {
+                        "plan": "flatfee"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "wapf\/qtfee\/1": {
+        "added": true,
+        "cart": [
+            {
+                "key": "6bf3c90d4d08d1b1cef5ce238999fde0",
+                "qty": 1,
+                "unit": 105,
+                "line_total": 105,
+                "opf": null,
+                "wapf": [
+                    {
+                        "id": "plan",
+                        "values": [
+                            {
+                                "label": "Qty fee",
+                                "price": 5,
+                                "price_type": "qt",
+                                "slug": "qtfee",
+                                "calc_price": 5,
+                                "pricing_hint": "(+&#36;5.00)"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "opf\/qtfee\/1": {
+        "added": true,
+        "cart": [
+            {
+                "key": "1322c1fb5dcb4a379ee227aace163623",
+                "qty": 1,
+                "unit": 105,
+                "line_total": 105,
+                "opf": {
+                    "33": {
+                        "plan": "qtfee"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "imp\/qtfee\/1": {
+        "added": true,
+        "cart": [
+            {
+                "key": "ab6a69237a6d7a16bc615738f7ea11fe",
+                "qty": 1,
+                "unit": 105,
+                "line_total": 105,
+                "opf": {
+                    "35": {
+                        "plan": "qtfee"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "wapf\/pct\/1": {
+        "added": true,
+        "cart": [
+            {
+                "key": "1770de5682957b964bbec8b0bb49aad6",
+                "qty": 1,
+                "unit": 110,
+                "line_total": 110,
+                "opf": null,
+                "wapf": [
+                    {
+                        "id": "plan",
+                        "values": [
+                            {
+                                "label": "Percent",
+                                "price": 10,
+                                "price_type": "percent",
+                                "slug": "pct",
+                                "calc_price": 10,
+                                "pricing_hint": "(+&#36;10.00)"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "opf\/pct\/1": {
+        "added": true,
+        "cart": [
+            {
+                "key": "0dc769c4fb11532d3a927e0523819ae2",
+                "qty": 1,
+                "unit": 110,
+                "line_total": 110,
+                "opf": {
+                    "33": {
+                        "plan": "pct"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "imp\/pct\/1": {
+        "added": true,
+        "cart": [
+            {
+                "key": "ad899d3d50269335fcc24286b7b134ba",
+                "qty": 1,
+                "unit": 110,
+                "line_total": 110,
+                "opf": {
+                    "35": {
+                        "plan": "pct"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "wapf\/flatpct\/1": {
+        "added": true,
+        "cart": [
+            {
+                "key": "bb19f7737612d2fc01cfedf08cd6a42c",
+                "qty": 1,
+                "unit": 110,
+                "line_total": 110,
+                "opf": null,
+                "wapf": [
+                    {
+                        "id": "plan",
+                        "values": [
+                            {
+                                "label": "Flat percent",
+                                "price": 10,
+                                "price_type": "p",
+                                "slug": "flatpct",
+                                "calc_price": 10,
+                                "pricing_hint": "(+&#36;10.00)"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "opf\/flatpct\/1": {
+        "added": true,
+        "cart": [
+            {
+                "key": "b36c1d8e1826944d512ab93567bf1f4f",
+                "qty": 1,
+                "unit": 110,
+                "line_total": 110,
+                "opf": {
+                    "33": {
+                        "plan": "flatpct"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "imp\/flatpct\/1": {
+        "added": true,
+        "cart": [
+            {
+                "key": "5c9196fdec1c37ef527452469612f065",
+                "qty": 1,
+                "unit": 110,
+                "line_total": 110,
+                "opf": {
+                    "35": {
+                        "plan": "flatpct"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "wapf\/flatfx\/4": {
+        "added": true,
+        "cart": [
+            {
+                "key": "a4cf3c987649191933484dc8bfb9a90b",
+                "qty": 4,
+                "unit": 105,
+                "line_total": 420,
+                "opf": null,
+                "wapf": [
+                    {
+                        "id": "plan",
+                        "values": [
+                            {
+                                "label": "Flat formula",
+                                "price": "[price] * 0.2",
+                                "price_type": "fx",
+                                "slug": "flatfx",
+                                "calc_price": 5,
+                                "pricing_hint": "(+&#36;5.00)"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "opf\/flatfx\/4": {
+        "added": true,
+        "cart": [
+            {
+                "key": "3f42f197f94b3bfbc205e9debf83b21b",
+                "qty": 4,
+                "unit": 105,
+                "line_total": 420,
+                "opf": {
+                    "33": {
+                        "plan": "flatfx"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "imp\/flatfx\/4": {
+        "added": true,
+        "cart": [
+            {
+                "key": "820298d0bbf042b6441b245c29c39fe7",
+                "qty": 4,
+                "unit": 105,
+                "line_total": 420,
+                "opf": {
+                    "35": {
+                        "plan": "flatfx"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "wapf\/scaledfx\/4": {
+        "added": true,
+        "cart": [
+            {
+                "key": "f47fa6684736c2028d70301336717ecc",
+                "qty": 4,
+                "unit": 120,
+                "line_total": 480,
+                "opf": null,
+                "wapf": [
+                    {
+                        "id": "plan",
+                        "values": [
+                            {
+                                "label": "Scaled formula",
+                                "price": "([price] * 0.2) * [qty]",
+                                "price_type": "fx",
+                                "slug": "scaledfx",
+                                "calc_price": 20,
+                                "pricing_hint": "(+&#36;20.00)"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "opf\/scaledfx\/4": {
+        "added": true,
+        "cart": [
+            {
+                "key": "ecc804b1e93504d2796cb9466014ab97",
+                "qty": 4,
+                "unit": 120,
+                "line_total": 480,
+                "opf": {
+                    "33": {
+                        "plan": "scaledfx"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "imp\/scaledfx\/4": {
+        "added": true,
+        "cart": [
+            {
+                "key": "a6b7cf3f478eb0b9a038498ed8fe9e86",
+                "qty": 4,
+                "unit": 120,
+                "line_total": 480,
+                "opf": {
+                    "35": {
+                        "plan": "scaledfx"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "wapf\/flatfee\/4": {
+        "added": true,
+        "cart": [
+            {
+                "key": "8a5171701ea8692f7f371e39fd35b4fc",
+                "qty": 4,
+                "unit": 101.25,
+                "line_total": 405,
+                "opf": null,
+                "wapf": [
+                    {
+                        "id": "plan",
+                        "values": [
+                            {
+                                "label": "Flat fee",
+                                "price": 5,
+                                "price_type": "fixed",
+                                "slug": "flatfee",
+                                "calc_price": 1.25,
+                                "pricing_hint": "(+&#36;1.25)"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "opf\/flatfee\/4": {
+        "added": true,
+        "cart": [
+            {
+                "key": "b1fb9be881a933647028938af7a6a115",
+                "qty": 4,
+                "unit": 101.25,
+                "line_total": 405,
+                "opf": {
+                    "33": {
+                        "plan": "flatfee"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "imp\/flatfee\/4": {
+        "added": true,
+        "cart": [
+            {
+                "key": "22271e84df7f2bb1d32d0f0b84dc7b0e",
+                "qty": 4,
+                "unit": 101.25,
+                "line_total": 405,
+                "opf": {
+                    "35": {
+                        "plan": "flatfee"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "wapf\/qtfee\/4": {
+        "added": true,
+        "cart": [
+            {
+                "key": "6bf3c90d4d08d1b1cef5ce238999fde0",
+                "qty": 4,
+                "unit": 105,
+                "line_total": 420,
+                "opf": null,
+                "wapf": [
+                    {
+                        "id": "plan",
+                        "values": [
+                            {
+                                "label": "Qty fee",
+                                "price": 5,
+                                "price_type": "qt",
+                                "slug": "qtfee",
+                                "calc_price": 5,
+                                "pricing_hint": "(+&#36;5.00)"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "opf\/qtfee\/4": {
+        "added": true,
+        "cart": [
+            {
+                "key": "1322c1fb5dcb4a379ee227aace163623",
+                "qty": 4,
+                "unit": 105,
+                "line_total": 420,
+                "opf": {
+                    "33": {
+                        "plan": "qtfee"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "imp\/qtfee\/4": {
+        "added": true,
+        "cart": [
+            {
+                "key": "ab6a69237a6d7a16bc615738f7ea11fe",
+                "qty": 4,
+                "unit": 105,
+                "line_total": 420,
+                "opf": {
+                    "35": {
+                        "plan": "qtfee"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "wapf\/pct\/4": {
+        "added": true,
+        "cart": [
+            {
+                "key": "1770de5682957b964bbec8b0bb49aad6",
+                "qty": 4,
+                "unit": 110,
+                "line_total": 440,
+                "opf": null,
+                "wapf": [
+                    {
+                        "id": "plan",
+                        "values": [
+                            {
+                                "label": "Percent",
+                                "price": 10,
+                                "price_type": "percent",
+                                "slug": "pct",
+                                "calc_price": 10,
+                                "pricing_hint": "(+&#36;10.00)"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "opf\/pct\/4": {
+        "added": true,
+        "cart": [
+            {
+                "key": "0dc769c4fb11532d3a927e0523819ae2",
+                "qty": 4,
+                "unit": 110,
+                "line_total": 440,
+                "opf": {
+                    "33": {
+                        "plan": "pct"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "imp\/pct\/4": {
+        "added": true,
+        "cart": [
+            {
+                "key": "ad899d3d50269335fcc24286b7b134ba",
+                "qty": 4,
+                "unit": 110,
+                "line_total": 440,
+                "opf": {
+                    "35": {
+                        "plan": "pct"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "wapf\/flatpct\/4": {
+        "added": true,
+        "cart": [
+            {
+                "key": "bb19f7737612d2fc01cfedf08cd6a42c",
+                "qty": 4,
+                "unit": 102.5,
+                "line_total": 410,
+                "opf": null,
+                "wapf": [
+                    {
+                        "id": "plan",
+                        "values": [
+                            {
+                                "label": "Flat percent",
+                                "price": 10,
+                                "price_type": "p",
+                                "slug": "flatpct",
+                                "calc_price": 2.5,
+                                "pricing_hint": "(+&#36;2.50)"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "opf\/flatpct\/4": {
+        "added": true,
+        "cart": [
+            {
+                "key": "b36c1d8e1826944d512ab93567bf1f4f",
+                "qty": 4,
+                "unit": 102.5,
+                "line_total": 410,
+                "opf": {
+                    "33": {
+                        "plan": "flatpct"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "imp\/flatpct\/4": {
+        "added": true,
+        "cart": [
+            {
+                "key": "5c9196fdec1c37ef527452469612f065",
+                "qty": 4,
+                "unit": 102.5,
+                "line_total": 410,
+                "opf": {
+                    "35": {
+                        "plan": "flatpct"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "store\/opf\/flatfx\/1": {
+        "status": 201,
+        "cart": [
+            {
+                "key": "3f42f197f94b3bfbc205e9debf83b21b",
+                "qty": 1,
+                "unit": 120,
+                "line_total": 120,
+                "opf": {
+                    "33": {
+                        "plan": "flatfx"
+                    }
+                },
+                "wapf": null
+            }
+        ],
+        "error": null
+    },
+    "store\/opf\/flatfx\/4": {
+        "status": 201,
+        "cart": [
+            {
+                "key": "3f42f197f94b3bfbc205e9debf83b21b",
+                "qty": 4,
+                "unit": 105,
+                "line_total": 420,
+                "opf": {
+                    "33": {
+                        "plan": "flatfx"
+                    }
+                },
+                "wapf": null
+            }
+        ],
+        "error": null
+    },
+    "store\/opf\/scaledfx\/1": {
+        "status": 201,
+        "cart": [
+            {
+                "key": "ecc804b1e93504d2796cb9466014ab97",
+                "qty": 1,
+                "unit": 120,
+                "line_total": 120,
+                "opf": {
+                    "33": {
+                        "plan": "scaledfx"
+                    }
+                },
+                "wapf": null
+            }
+        ],
+        "error": null
+    },
+    "store\/opf\/scaledfx\/4": {
+        "status": 201,
+        "cart": [
+            {
+                "key": "ecc804b1e93504d2796cb9466014ab97",
+                "qty": 4,
+                "unit": 120,
+                "line_total": 480,
+                "opf": {
+                    "33": {
+                        "plan": "scaledfx"
+                    }
+                },
+                "wapf": null
+            }
+        ],
+        "error": null
+    },
+    "store\/opf\/qtfee\/1": {
+        "status": 201,
+        "cart": [
+            {
+                "key": "1322c1fb5dcb4a379ee227aace163623",
+                "qty": 1,
+                "unit": 105,
+                "line_total": 105,
+                "opf": {
+                    "33": {
+                        "plan": "qtfee"
+                    }
+                },
+                "wapf": null
+            }
+        ],
+        "error": null
+    },
+    "store\/opf\/qtfee\/4": {
+        "status": 201,
+        "cart": [
+            {
+                "key": "1322c1fb5dcb4a379ee227aace163623",
+                "qty": 4,
+                "unit": 105,
+                "line_total": 420,
+                "opf": {
+                    "33": {
+                        "plan": "qtfee"
+                    }
+                },
+                "wapf": null
+            }
+        ],
+        "error": null
+    },
+    "store\/wapf\/flatfx\/1": {
+        "status": 201,
+        "cart": [
+            {
+                "key": "a4cf3c987649191933484dc8bfb9a90b",
+                "qty": 1,
+                "unit": 120,
+                "line_total": 120,
+                "opf": null,
+                "wapf": [
+                    {
+                        "id": "plan",
+                        "values": [
+                            {
+                                "label": "Flat formula",
+                                "price": "[price] * 0.2",
+                                "price_type": "fx",
+                                "slug": "flatfx",
+                                "calc_price": 20,
+                                "pricing_hint": "(+&#36;20.00)"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "error": null
+    },
+    "store\/wapf\/flatfx\/4": {
+        "status": 201,
+        "cart": [
+            {
+                "key": "a4cf3c987649191933484dc8bfb9a90b",
+                "qty": 4,
+                "unit": 105,
+                "line_total": 420,
+                "opf": null,
+                "wapf": [
+                    {
+                        "id": "plan",
+                        "values": [
+                            {
+                                "label": "Flat formula",
+                                "price": "[price] * 0.2",
+                                "price_type": "fx",
+                                "slug": "flatfx",
+                                "calc_price": 5,
+                                "pricing_hint": "(+&#36;5.00)"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "error": null
+    },
+    "store\/wapf\/scaledfx\/1": {
+        "status": 201,
+        "cart": [
+            {
+                "key": "f47fa6684736c2028d70301336717ecc",
+                "qty": 1,
+                "unit": 120,
+                "line_total": 120,
+                "opf": null,
+                "wapf": [
+                    {
+                        "id": "plan",
+                        "values": [
+                            {
+                                "label": "Scaled formula",
+                                "price": "([price] * 0.2) * [qty]",
+                                "price_type": "fx",
+                                "slug": "scaledfx",
+                                "calc_price": 20,
+                                "pricing_hint": "(+&#36;20.00)"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "error": null
+    },
+    "store\/wapf\/scaledfx\/4": {
+        "status": 201,
+        "cart": [
+            {
+                "key": "f47fa6684736c2028d70301336717ecc",
+                "qty": 4,
+                "unit": 120,
+                "line_total": 480,
+                "opf": null,
+                "wapf": [
+                    {
+                        "id": "plan",
+                        "values": [
+                            {
+                                "label": "Scaled formula",
+                                "price": "([price] * 0.2) * [qty]",
+                                "price_type": "fx",
+                                "slug": "scaledfx",
+                                "calc_price": 20,
+                                "pricing_hint": "(+&#36;20.00)"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "error": null
+    },
+    "leg\/legfx\/1": {
+        "added": true,
+        "cart": [
+            {
+                "key": "8cf03e44d99b89530acc21ea1743e19c",
+                "qty": 1,
+                "unit": 120,
+                "line_total": 120,
+                "opf": {
+                    "37": {
+                        "plan": "legfx"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "leg\/legfee\/1": {
+        "added": true,
+        "cart": [
+            {
+                "key": "f841c733b51bd95d9d99caec480f7808",
+                "qty": 1,
+                "unit": 105,
+                "line_total": 105,
+                "opf": {
+                    "37": {
+                        "plan": "legfee"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "leg\/legfx\/4": {
+        "added": true,
+        "cart": [
+            {
+                "key": "8cf03e44d99b89530acc21ea1743e19c",
+                "qty": 4,
+                "unit": 120,
+                "line_total": 480,
+                "opf": {
+                    "37": {
+                        "plan": "legfx"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "leg\/legfee\/4": {
+        "added": true,
+        "cart": [
+            {
+                "key": "f841c733b51bd95d9d99caec480f7808",
+                "qty": 4,
+                "unit": 101.25,
+                "line_total": 405,
+                "opf": {
+                    "37": {
+                        "plan": "legfee"
+                    }
+                },
+                "wapf": null
+            }
+        ]
+    },
+    "order\/opf": {
+        "lines": [
+            {
+                "qty": 4,
+                "total": 420,
+                "opf_meta": "{\"33\":{\"plan\":\"flatfx\"}}"
+            }
+        ],
+        "order_total": 420
+    },
+    "order\/wapf": {
+        "lines": [
+            {
+                "qty": 4,
+                "total": 420,
+                "opf_meta": ""
+            }
+        ],
+        "order_total": 420
+    }
+}

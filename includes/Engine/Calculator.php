@@ -2,10 +2,13 @@
 /**
  * Server-side pricing engine. The only place addon money is computed.
  *
- * Semantics (documented contract):
- *  - Fixed pricing is flat per cart line unless its per_unit flag is enabled.
- *  - percent : unit_price * amount / 100
- *  - fixed   : amount (shop currency; currency plugins may convert via opf_fixed_price filter)
+ * Semantics (documented contract — WAPF 3.1.5 do_pricing parity):
+ *  - Every pricing type computes a `result` (fixed=amount,
+ *    percent=base*amount/100, formula=evaluated expression).
+ *  - per_unit=false → the line adds `result` once (per-unit share result/qty).
+ *  - per_unit=true  → the line adds `result` per unit.
+ *  - Quantity-repeat fields (WAPF clone_type=qty) use the qty_based row:
+ *    per_unit=false → result per unit, per_unit=true → result*qty per unit.
  *  - formula : expression over [price] (base unit price), [addons] (addons computed
  *              before this choice, per unit), [qty] (line quantity), [val] (text input).
  *
@@ -44,13 +47,18 @@ final class Calculator {
 		if ( ! empty( $field['repeat']['enabled'] ) ) {
 			$instance_field = $field;
 			unset( $instance_field['repeat'] );
+			$instance_context = $context;
+			// WAPF clone_type=qty → qty_based do_pricing semantics.
+			$instance_context['qty_based'] = 'quantity' === (string) ( $field['repeat']['mode'] ?? '' );
 			$instances = is_array( $value ) ? $value : ( null === $value ? [] : [ $value ] );
 			$total = 0.0;
 			foreach ( $instances as $instance_value ) {
-				$total += self::field_addon( $instance_field, $instance_value, $context );
+				$total += self::field_addon( $instance_field, $instance_value, $instance_context );
 			}
 			return max( 0.0, $total );
 		}
+
+		$qty_based = ! empty( $context['qty_based'] );
 
 		if ( 'image_quantity' === ( $field['type'] ?? '' ) ) {
 			$total = 0.0;
@@ -58,7 +66,7 @@ final class Calculator {
 			foreach ( $field['choices'] as $choice ) {
 				$quantity = max( 0, (int) ( $quantities[ $choice['slug'] ] ?? 0 ) );
 				if ( $quantity && empty( $choice['disabled'] ) ) {
-					$total += $quantity * self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices );
+					$total += $quantity * self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices, $qty_based );
 				}
 			}
 			return max( 0.0, (float) $total );
@@ -78,7 +86,7 @@ final class Calculator {
 				foreach ( $slugs as $slug ) {
 					foreach ( $field['choices'] as $choice ) {
 						if ( $choice['slug'] === (string) $slug && ! $choice['disabled'] ) {
-							$total += self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices );
+							$total += self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices, $qty_based );
 							if ( ! in_array( $field['type'], [ 'checkbox' ], true ) && !( 'swatch' === $field['type'] && ! empty( $field['multiple'] ) ) ) {
 								break;
 							}
@@ -90,7 +98,7 @@ final class Calculator {
 			default:
 				// Text-like fields use field-level pricing only.
 				$amount = is_scalar( $value ) ? (string) $value : '';
-				$total += self::field_pricing_addon( $field['pricing'], $amount, $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices );
+				$total += self::field_pricing_addon( $field['pricing'], $amount, $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices, $qty_based );
 				break;
 		}
 
@@ -98,49 +106,78 @@ final class Calculator {
 	}
 
 	/**
+	 * Does this pricing block scale with line quantity? Explicit flags win;
+	 * otherwise WAPF-type defaults: percent scales, fixed/formula are flat.
+	 *
+	 * @param array<string,mixed> $pricing Pricing block.
+	 */
+	private static function pricing_is_per_unit( array $pricing ): bool {
+		return array_key_exists( 'per_unit', $pricing )
+			? ! empty( $pricing['per_unit'] )
+			: ! in_array( (string) ( $pricing['type'] ?? '' ), [ 'fixed', 'formula' ], true );
+	}
+
+	/**
 	 * Addon for a single choice — expressed as the PER-UNIT contribution to
-	 * the line price. Flat (per_unit=false) amounts are divided by quantity
-	 * so the line total adds exactly the flat fee (WAPF parity).
+	 * the line price (WAPF do_pricing parity):
+	 *  - normal fields      : per_unit ? result : result/qty
+	 *  - qty-based fields   : per_unit ? result*qty : result
+	 * (WAPF clone_type=qty; OPF repeat.mode=quantity splits those fields
+	 * into cart lines whose quantity is the identical-unit count.)
 	 *
 	 * @param array<string,mixed> $pricing Normalized choice pricing.
 	 */
-	public static function choice_addon( array $pricing, float $price, int $qty, float $addons, array $field_values = [], int $product_id = 0, array $field_prices = [] ): float {
+	public static function choice_addon( array $pricing, float $price, int $qty, float $addons, array $field_values = [], int $product_id = 0, array $field_prices = [], bool $qty_based = false ): float {
 		$qty = max( 1, $qty );
+		$result = null;
 		switch ( $pricing['type'] ) {
 			case 'fixed':
-				$amount = (float) $pricing['amount'];
-				return empty( $pricing['per_unit'] ) ? $amount / $qty : $amount;
+				$result = (float) $pricing['amount'];
+				break;
 			case 'percent':
-				return $price * ( (float) $pricing['amount'] / 100 );
+				$result = $price * ( (float) $pricing['amount'] / 100 );
+				break;
 			case 'formula':
-				return self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, '', null, $field_values, $product_id, $field_prices );
+				$result = self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, '', null, $field_values, $product_id, $field_prices );
+				break;
 			default:
 				return 0.0;
 		}
+		if ( $qty_based ) {
+			return self::pricing_is_per_unit( $pricing ) ? $result * $qty : $result;
+		}
+		return self::pricing_is_per_unit( $pricing ) ? $result : $result / $qty;
 	}
 
 	/**
 	 * Field-level pricing for text-like input — per-unit contribution
-	 * (see normalize_pricing for the semantics table).
+	 * (same truth table as choice_addon; see normalize_pricing).
 	 *
 	 * @param array<string,mixed> $pricing Normalized field pricing.
 	 */
-	public static function field_pricing_addon( array $pricing, string $value, float $price, int $qty, float $addons, array $field_values = [], int $product_id = 0, array $field_prices = [] ): float {
+	public static function field_pricing_addon( array $pricing, string $value, float $price, int $qty, float $addons, array $field_values = [], int $product_id = 0, array $field_prices = [], bool $qty_based = false ): float {
 		if ( '' === trim( $value ) ) {
 			return 0.0;
 		}
 		$qty = max( 1, $qty );
+		$result = null;
 		switch ( $pricing['type'] ) {
 			case 'fixed':
-				$amount = (float) $pricing['amount'];
-				return empty( $pricing['per_unit'] ) ? $amount / $qty : $amount;
+				$result = (float) $pricing['amount'];
+				break;
 			case 'percent':
-				return $price * ( (float) $pricing['amount'] / 100 );
+				$result = $price * ( (float) $pricing['amount'] / 100 );
+				break;
 			case 'formula':
-				return self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, $value, null, $field_values, $product_id, $field_prices );
+				$result = self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, $value, null, $field_values, $product_id, $field_prices );
+				break;
 			default:
 				return 0.0;
 		}
+		if ( $qty_based ) {
+			return self::pricing_is_per_unit( $pricing ) ? $result * $qty : $result;
+		}
+		return self::pricing_is_per_unit( $pricing ) ? $result : $result / $qty;
 	}
 
 	/**

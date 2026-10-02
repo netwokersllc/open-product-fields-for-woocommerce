@@ -157,6 +157,7 @@ final class Renderer {
 								'amount'     => (float) $c['pricing']['amount'],
 								'formula'    => (string) $c['pricing']['formula'],
 								'formula_raw' => (string) ( $c['pricing']['formula_raw'] ?? '' ),
+								'per_unit'   => ! empty( $c['pricing']['per_unit'] ),
 							],
 						];
 					}, (array) ( $field['choices'] ?? [] ) ),
@@ -164,6 +165,8 @@ final class Renderer {
 						'type'    => $field['pricing']['type'],
 						'amount'  => (float) $field['pricing']['amount'],
 						'formula' => (string) ( $field['pricing']['formula'] ?? '' ),
+						'formula_raw' => (string) ( $field['pricing']['formula_raw'] ?? '' ),
+						'per_unit' => ! empty( $field['pricing']['per_unit'] ),
 					],
 				];
 			}
@@ -600,10 +603,17 @@ final class Renderer {
 	}
 
 	/**
-	 * Legacy data attributes for the theme's live-total math, verbatim:
-	 *  - percent : data-opf-price = percent amount
-	 *  - fixed   : data-opf-price = amount
-	 *  - formula : data-opf-price = raw legacy expression (theme evaluates it)
+	 * Legacy data attributes for the theme's live-total math. The theme
+	 * interprets `data-opf-pricetype` with WAPF semantics (its evaluator
+	 * treats fx results as per-unit after stripping an outermost *[qty]
+	 * factor, qt as a per-unit amount, fixed as a flat per-line fee), so
+	 * each OPF pricing block is encoded into the equivalent WAPF shape:
+	 *  - percent per-unit → "percent" amount
+	 *  - percent flat     → "fx" expression ([price]*a/100)/[qty]
+	 *  - fixed flat       → "fixed" amount
+	 *  - fixed per-unit   → "qt" amount
+	 *  - formula per-unit → "fx" (expr) — the theme evaluates per unit
+	 *  - formula flat     → "fx" (expr)/[qty] — per-unit share, flat line
 	 *
 	 * @param array<string,mixed> $pricing Pricing block.
 	 */
@@ -611,10 +621,18 @@ final class Renderer {
 		if ( 'none' === $pricing['type'] ) {
 			return '';
 		}
-		$price = 'formula' === $pricing['type']
-			? (string) ( $pricing['formula_raw'] ?? $pricing['formula'] )
-			: (string) (float) $pricing['amount'];
-		$type  = 'formula' === $pricing['type'] ? 'fx' : $pricing['type'];
+		$per_unit = ! empty( $pricing['per_unit'] );
+		if ( 'formula' === $pricing['type'] ) {
+			$expr  = '' !== trim( (string) $pricing['formula'] ) ? (string) $pricing['formula'] : '0';
+			$type  = 'fx';
+			$price = $per_unit ? '(' . $expr . ')' : '(' . $expr . ') / [qty]';
+		} elseif ( 'percent' === $pricing['type'] && ! $per_unit ) {
+			$type  = 'fx';
+			$price = '([price] * ' . ( (float) $pricing['amount'] / 100 ) . ') / [qty]';
+		} else {
+			$type  = 'fixed' === $pricing['type'] && $per_unit ? 'qt' : $pricing['type'];
+			$price = (string) (float) $pricing['amount'];
+		}
 		return sprintf( ' data-opf-pricetype="%s" data-opf-price="%s"', esc_attr( $type ), esc_attr( $price ) );
 	}
 

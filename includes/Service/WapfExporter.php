@@ -127,7 +127,7 @@ final class WapfExporter {
 			'width'       => $field['width'],
 			'class'       => $field['css_class'],
 			'conditionals' => self::map_conditionals( $field, $field_ids, $field_types ),
-			'pricing'     => self::map_field_pricing( $field['pricing'] ),
+			'pricing'     => self::map_field_pricing( $field['pricing'], $field_ids ),
 		];
 		if ( '' !== $field['placeholder'] ) {
 			if ( preg_match( '/[<>\r\n]/', $field['placeholder'] ) ) {
@@ -245,14 +245,12 @@ final class WapfExporter {
 	}
 
 	/** @param array<string,mixed> $pricing */
-	private static function map_field_pricing( array $pricing ): array {
+	private static function map_field_pricing( array $pricing, array $field_ids ): array {
 		if ( 'none' === $pricing['type'] ) {
 			return [ 'enabled' => false, 'type' => 'fixed', 'amount' => 0 ];
 		}
-		if ( 'fixed' !== $pricing['type'] || $pricing['per_unit'] ) {
-			throw new \InvalidArgumentException( 'WAPF Tools import cannot preserve this field-level pricing mode.' );
-		}
-		return [ 'enabled' => true, 'type' => 'fixed', 'amount' => $pricing['amount'] ];
+		$mapped = self::map_wapf_pricing_type( $pricing, $field_ids );
+		return [ 'enabled' => true, 'type' => $mapped['type'], 'amount' => $mapped['amount'] ];
 	}
 
 	/** @param array<string,mixed> $pricing @return array{type:string,amount:float} */
@@ -260,16 +258,32 @@ final class WapfExporter {
 		if ( 'none' === $pricing['type'] ) {
 			return [ 'type' => 'none', 'amount' => 0.0 ];
 		}
+		return self::map_wapf_pricing_type( $pricing, $field_ids );
+	}
+
+	/**
+	 * Express an OPF pricing block in WAPF quantity semantics:
+	 *  - fixed flat      → 'fixed'; fixed per-unit → 'qt'.
+	 *  - percent per-unit → 'percent'; percent flat → 'p'.
+	 *  - formula flat    → 'fx' verbatim; formula per-unit → 'fx' wrapped in
+	 *    "* [qty]" so WAPF's fx/qty normalization returns the same line total.
+	 *
+	 * @param array<string,mixed> $pricing
+	 * @param string[]            $field_ids
+	 * @return array{type:string,amount:mixed}
+	 */
+	private static function map_wapf_pricing_type( array $pricing, array $field_ids ): array {
+		$per_unit = ! empty( $pricing['per_unit'] );
 		if ( 'fixed' === $pricing['type'] ) {
-			return [ 'type' => $pricing['per_unit'] ? 'qt' : 'fixed', 'amount' => $pricing['amount'] ];
+			return [ 'type' => $per_unit ? 'qt' : 'fixed', 'amount' => $pricing['amount'] ];
 		}
 		if ( 'percent' === $pricing['type'] ) {
-			return [ 'type' => 'percent', 'amount' => $pricing['amount'] ];
+			return [ 'type' => $per_unit ? 'percent' : 'p', 'amount' => $pricing['amount'] ];
 		}
 		if ( 'formula' === $pricing['type'] ) {
 			return self::map_formula_pricing( $pricing, $field_ids );
 		}
-		throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve formula choice pricing.' );
+		throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve this pricing mode.' );
 	}
 
 	/** Export only an imported raw formula whose syntax and field IDs remain representable. */

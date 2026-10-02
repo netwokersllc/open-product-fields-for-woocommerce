@@ -16,8 +16,13 @@ final class FieldGroup {
 
 	/**
 	 * Current schema version.
+	 *
+	 * 1 → 2: pricing `per_unit` semantics became WAPF-faithful — formula
+	 * defaults to flat-per-line (fx) instead of forced per-unit. Schema 1
+	 * records get per_unit=true injected on unflagged percent/formula
+	 * pricing so stored data keeps its original behavior.
 	 */
-	public const SCHEMA = 1;
+	public const SCHEMA = 2;
 
 	/**
 	 * Supported field types.
@@ -63,13 +68,26 @@ final class FieldGroup {
 		if ( $schema > self::SCHEMA ) {
 			throw new \InvalidArgumentException( 'OPF field group schema is newer than this plugin version.' );
 		}
+		$declared_schema = $schema;
 
 		while ( $schema < self::SCHEMA ) {
 			switch ( $schema ) {
 				case 0:
-					// Legacy OPF groups had no explicit schema value.
+					// Schema-absent payloads are newly authored data — apply
+					// current defaults rather than legacy per-unit semantics.
 					$data['schema'] = 1;
 					$schema         = 1;
+					break;
+
+				case 1:
+					// Schema 1 forced percent/formula pricing to per_unit.
+					// Only records that explicitly declared schema 1 (stored
+					// groups) get the flag injected so behavior is preserved.
+					if ( 1 === $declared_schema ) {
+						$data = self::migrate_schema_1_pricing( $data );
+					}
+					$data['schema'] = 2;
+					$schema         = 2;
 					break;
 
 				default:
@@ -77,6 +95,36 @@ final class FieldGroup {
 			}
 		}
 
+		return $data;
+	}
+
+	/**
+	 * Schema 1 → 2: make the old forced per_unit on percent/formula explicit.
+	 *
+	 * @param array<string,mixed> $data Persisted group data.
+	 * @return array<string,mixed>
+	 */
+	private static function migrate_schema_1_pricing( array $data ): array {
+		foreach ( ( $data['fields'] ?? [] ) as $field_index => $field ) {
+			if ( ! is_array( $field ) ) {
+				continue;
+			}
+			if ( isset( $field['pricing'] ) && is_array( $field['pricing'] ) ) {
+				$type = (string) ( $field['pricing']['type'] ?? 'none' );
+				if ( in_array( $type, [ 'percent', 'formula' ], true ) && ! array_key_exists( 'per_unit', $field['pricing'] ) ) {
+					$data['fields'][ $field_index ]['pricing']['per_unit'] = true;
+				}
+			}
+			foreach ( ( $field['choices'] ?? [] ) as $choice_index => $choice ) {
+				if ( ! is_array( $choice ) || ! is_array( $choice['pricing'] ?? null ) ) {
+					continue;
+				}
+				$type = (string) ( $choice['pricing']['type'] ?? 'none' );
+				if ( in_array( $type, [ 'percent', 'formula' ], true ) && ! array_key_exists( 'per_unit', $choice['pricing'] ) ) {
+					$data['fields'][ $field_index ]['choices'][ $choice_index ]['pricing']['per_unit'] = true;
+				}
+			}
+		}
 		return $data;
 	}
 
@@ -503,11 +551,18 @@ final class FieldGroup {
 	/**
 	 * Normalize a pricing block.
 	 *
-	 * Semantics (WAPF-parity, verified against the legacy engine and theme):
-	 *  - percent : per-unit — scales with line quantity.
-	 *  - formula : per-unit — scales with line quantity (imported WAPF
-	 *              formulas have their qty-compensation factor stripped).
-	 *  - fixed   : FLAT per line by default (`per_unit` opt-in to scale).
+	 * Semantics (WAPF 3.1.5 parity — see class-fields.php::do_pricing):
+	 * every type computes a `result` (fixed=amount, percent=base*a/100,
+	 * formula=evaluated expression); `per_unit` decides whether the line
+	 * total scales with quantity:
+	 *  - per_unit=false → per-unit addon is result/qty (flat per line).
+	 *  - per_unit=true  → per-unit addon is result (scales with line qty).
+	 *
+	 * Defaults when `per_unit` is absent (WAPF faithful):
+	 *  - fixed   → flat (WAPF "fixed" price type).
+	 *  - formula → flat (WAPF "fx" on a normal field).
+	 *  - percent → per-unit (WAPF "percent").
+	 * Schema-1 records keep their old forced per-unit flag via migrate().
 	 *
 	 * @param array<string,mixed> $pricing Raw pricing.
 	 * @return array<string,mixed>
@@ -522,9 +577,9 @@ final class FieldGroup {
 			$type   = 'none';
 			$amount = 0.0;
 		}
-		$per_unit = 'fixed' === $type
-			? (bool) ( $pricing['per_unit'] ?? false )
-			: true;
+		$per_unit = array_key_exists( 'per_unit', $pricing )
+			? (bool) $pricing['per_unit']
+			: ! in_array( $type, [ 'fixed', 'formula' ], true );
 
 		return [
 			'type'        => $type,

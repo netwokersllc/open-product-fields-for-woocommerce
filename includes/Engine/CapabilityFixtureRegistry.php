@@ -51,7 +51,7 @@ final class CapabilityFixtureRegistry {
 					],
 				],
 				'expected_normalization' => [
-					'schema' => 1,
+					'schema' => FieldGroup::SCHEMA,
 					'fields' => [
 						[
 							'id'           => 'engraving',
@@ -92,7 +92,7 @@ final class CapabilityFixtureRegistry {
 					],
 				],
 				'expected_normalization' => [
-					'schema' => 1,
+					'schema' => FieldGroup::SCHEMA,
 					'fields' => [
 						[
 							'id'           => 'contact-email',
@@ -133,7 +133,7 @@ final class CapabilityFixtureRegistry {
 					],
 				],
 				'expected_normalization' => [
-					'schema' => 1,
+					'schema' => FieldGroup::SCHEMA,
 					'fields' => [
 						[
 							'id'           => 'gift-wrap',
@@ -180,7 +180,7 @@ final class CapabilityFixtureRegistry {
 					],
 				],
 				'expected_normalization' => [
-					'schema' => 1,
+					'schema' => FieldGroup::SCHEMA,
 					'fields' => [
 						[
 							'id'           => 'finish',

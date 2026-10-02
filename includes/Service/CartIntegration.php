@@ -526,6 +526,8 @@ final class CartIntegration {
 								'field_values' => $clone_values,
 								'field_prices' => $clone_prices,
 								'product_id'   => $product->get_id(),
+								// WAPF clone_type=qty → qty_based do_pricing row.
+								'qty_based'    => 'quantity' === (string) ( $priced_field['repeat']['mode'] ?? '' ),
 							]
 						);
 						$row_prices[ $row_index ] = $row_addon;

@@ -49,9 +49,9 @@ if ( 'create' === $mode ) {
 				[ 'slug' => 'disabled', 'label' => 'Disabled', 'disabled' => true, 'quantity' => [ 'min' => 0, 'max' => 4 ], 'pricing' => [ 'type' => 'fixed', 'amount' => 100 ] ],
 			] ],
 			[ 'id' => 'notes', 'label' => 'Notes', 'type' => 'text' ],
-			[ 'id' => 'fee', 'label' => 'Quantity fee', 'type' => 'select', 'choices' => [ [ 'slug' => 'selected', 'label' => 'Selected', 'pricing' => [ 'type' => 'formula', 'formula' => 'sumQty(prints)', 'formula_raw' => 'sumQty(prints)*[qty]' ] ] ] ],
-			[ 'id' => 'unrelated', 'label' => 'Wrong type fee', 'type' => 'select', 'choices' => [ [ 'slug' => 'selected', 'label' => 'Selected', 'pricing' => [ 'type' => 'formula', 'formula' => 'sumQty(notes)', 'formula_raw' => 'sumQty(notes)*[qty]' ] ] ] ],
-			[ 'id' => 'missing', 'label' => 'Missing field fee', 'type' => 'select', 'choices' => [ [ 'slug' => 'selected', 'label' => 'Selected', 'pricing' => [ 'type' => 'formula', 'formula' => 'sumQty(absent)', 'formula_raw' => 'sumQty(absent)*[qty]' ] ] ] ],
+			[ 'id' => 'fee', 'label' => 'Quantity fee', 'type' => 'select', 'choices' => [ [ 'slug' => 'selected', 'label' => 'Selected', 'pricing' => [ 'type' => 'formula', 'formula' => 'sumQty(prints)', 'formula_raw' => 'sumQty(prints)*[qty]', 'per_unit' => true ] ] ] ],
+			[ 'id' => 'unrelated', 'label' => 'Wrong type fee', 'type' => 'select', 'choices' => [ [ 'slug' => 'selected', 'label' => 'Selected', 'pricing' => [ 'type' => 'formula', 'formula' => 'sumQty(notes)', 'formula_raw' => 'sumQty(notes)*[qty]', 'per_unit' => true ] ] ] ],
+			[ 'id' => 'missing', 'label' => 'Missing field fee', 'type' => 'select', 'choices' => [ [ 'slug' => 'selected', 'label' => 'Selected', 'pricing' => [ 'type' => 'formula', 'formula' => 'sumQty(absent)', 'formula_raw' => 'sumQty(absent)*[qty]', 'per_unit' => true ] ] ] ],
 		], 'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'product', 'operator' => 'in', 'terms' => [ (string) $product_id ] ] ] ] ] ], [ 'title' => 'OPF private sumQty browser fixture' ] );
 		$assert( $group_id > 0, 'Could not create group.' );
 		FieldGroups::flush_cache();

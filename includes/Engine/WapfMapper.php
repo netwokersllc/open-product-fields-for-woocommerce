@@ -495,8 +495,11 @@ final class WapfMapper {
 					$pricing = [ 'type' => 'fixed', 'amount' => (float) $amt, 'formula' => '', 'per_unit' => true ];
 					break;
 				case 'percent':
+					$pricing = [ 'type' => 'percent', 'amount' => (float) $amt, 'formula' => '', 'per_unit' => true ];
+					break;
 				case 'p':
-					$pricing = [ 'type' => 'percent', 'amount' => (float) $amt, 'formula' => '' ];
+					// WAPF p = percent of the base once per line (flat).
+					$pricing = [ 'type' => 'percent', 'amount' => (float) $amt, 'formula' => '', 'per_unit' => false ];
 					break;
 				case 'fx':
 					$formula_raw = self::map_formula_references( (string) $amt, $opf_ids_by_wapf_id, $notes, $needs_review, (string) ( $choice['label'] ?? $slug ), $source_order_by_wapf_id, $current_order );
@@ -507,8 +510,11 @@ final class WapfMapper {
 						$pricing = [ 'type' => 'none', 'amount' => 0.0, 'formula' => '' ];
 					} else {
 						// formula_raw keeps the legacy expression (incl. its qty
-						// factor) for the theme's live-total display math.
-						$pricing = [ 'type' => 'formula', 'amount' => 0.0, 'formula' => $formula, 'formula_raw' => $formula_raw, 'per_unit' => true ];
+						// factor) for the theme's live-total display math. WAPF
+						// fx on a normal field is flat per line; an outermost
+						// *[qty] compensation factor means the author intended
+						// per-unit scaling.
+						$pricing = [ 'type' => 'formula', 'amount' => 0.0, 'formula' => $formula, 'formula_raw' => $formula_raw, 'per_unit' => self::formula_had_qty_factor( $formula_raw ) ];
 					}
 					break;
 				case 'none':
@@ -737,7 +743,25 @@ final class WapfMapper {
 			return null;
 		}
 		$formula = str_replace( '[options_total]', '[addons]', $formula );
-		// Strip compensating quantity factor (repeat, e.g. "* [qty]" or "[qty]*").
+		$formula = self::strip_outer_qty_factor( $formula );
+		if ( '' === $formula ) {
+			return null;
+		}
+		// Validate supported arithmetic after replacing known dynamic inputs with
+		// numeric probes; the runtime still evaluates the saved expression safely.
+		$probe = str_replace( [ '[price]', '[qty]', '[addons]', '[val]' ], '1', $formula );
+		$probe = preg_replace( '/\[(?:field|price)\.[a-zA-Z0-9_-]+\]/i', '1', $probe );
+		$probe = preg_replace( '/\b(?:checked|files|sumQty)\s*\(\s*[a-zA-Z0-9_-]+\s*\)/i', '1', $probe );
+		if ( ! self::is_math_formula_probe( $probe ) ) {
+			return null;
+		}
+		return $formula;
+	}
+
+	/**
+	 * Strip compensating outermost quantity factors ("* [qty]" / "[qty] *").
+	 */
+	private static function strip_outer_qty_factor( string $formula ): string {
 		$changed = true;
 		while ( $changed ) {
 			$changed = false;
@@ -751,18 +775,17 @@ final class WapfMapper {
 				$changed = true;
 			}
 		}
-		if ( '' === $formula ) {
-			return null;
-		}
-		// Validate supported arithmetic after replacing known dynamic inputs with
-		// numeric probes; the runtime still evaluates the saved expression safely.
-		$probe = str_replace( [ '[price]', '[qty]', '[addons]', '[val]' ], '1', $formula );
-		$probe = preg_replace( '/\[(?:field|price)\.[a-zA-Z0-9_-]+\]/i', '1', $probe );
-		$probe = preg_replace( '/\b(?:checked|files|sumQty)\s*\(\s*[a-zA-Z0-9_-]+\s*\)/i', '1', $probe );
-		if ( ! self::is_math_formula_probe( $probe ) ) {
-			return null;
-		}
 		return $formula;
+	}
+
+	/**
+	 * Did the legacy WAPF expression carry an outermost *[qty] factor? That
+	 * factor compensated WAPF's per-unit normalization (fx divides by qty),
+	 * so its presence means the author intended per-unit scaling.
+	 */
+	private static function formula_had_qty_factor( string $formula_raw ): bool {
+		$renamed = str_replace( '[options_total]', '[addons]', trim( $formula_raw ) );
+		return self::strip_outer_qty_factor( $renamed ) !== $renamed;
 	}
 
 	/**
@@ -820,16 +843,20 @@ final class WapfMapper {
 		$amt  = (float) ( $pricing['amount'] ?? 0 );
 		switch ( $type ) {
 			case 'fixed':
+				return [ 'type' => 'fixed', 'amount' => $amt, 'formula' => '', 'per_unit' => false ];
 			case 'qt':
-				return [ 'type' => 'fixed', 'amount' => $amt, 'formula' => '' ];
+				// qt = per-unit fixed (amount*qty line total).
+				return [ 'type' => 'fixed', 'amount' => $amt, 'formula' => '', 'per_unit' => true ];
 			case 'percent':
+				return [ 'type' => 'percent', 'amount' => $amt, 'formula' => '', 'per_unit' => true ];
 			case 'p':
-				return [ 'type' => 'percent', 'amount' => $amt, 'formula' => '' ];
+				// p = percent of the base once per line (flat).
+				return [ 'type' => 'percent', 'amount' => $amt, 'formula' => '', 'per_unit' => false ];
 			case 'fx':
 				$formula_raw = self::map_formula_references( (string) ( $pricing['amount'] ?? '' ), $opf_ids_by_wapf_id, $notes, $needs_review, $label, $source_order_by_wapf_id, $current_order );
 				$formula = null === $formula_raw ? null : self::normalize_formula( $formula_raw );
 				if ( null !== $formula ) {
-					return [ 'type' => 'formula', 'amount' => 0.0, 'formula' => $formula ];
+					return [ 'type' => 'formula', 'amount' => 0.0, 'formula' => $formula, 'formula_raw' => $formula_raw, 'per_unit' => self::formula_had_qty_factor( $formula_raw ) ];
 				}
 				$notes[] = sprintf( 'field "%s" formula could not be translated: %s', $label, (string) ( $pricing['amount'] ?? '' ) );
 				$needs_review = true;

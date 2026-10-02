@@ -981,22 +981,30 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
   return isFinite(out) ? out : 0;
 };
 
-const choiceAddonDisplay = (pricing, base, qty, addons, val, fieldValues = {}, fieldPrices = {}, formulaBase = base) => {
+// Per-unit contribution of one pricing block (WAPF do_pricing parity):
+// normal fields → per_unit ? result : result/qty; quantity-repeat (WAPF
+// clone_type=qty) fields → per_unit ? result*qty : result.
+const choiceUnitAddon = (pricing, base, qty, addons, val, fieldValues = {}, fieldPrices = {}, formulaBase = base, qtyBased = false) => {
   const t = pricing.type;
-  if (t === 'fixed') return parseFloat(pricing.amount) || 0;
-  if (t === 'percent') return base * ((parseFloat(pricing.amount) || 0) / 100);
-  if (t === 'formula') return evalFormula(pricing.formula_raw || pricing.formula, formulaBase, qty, addons, val, fieldValues, null, fieldPrices);
-  return 0;
+  let result = 0;
+  if (t === 'fixed') result = parseFloat(pricing.amount) || 0;
+  else if (t === 'percent') result = base * ((parseFloat(pricing.amount) || 0) / 100);
+  else if (t === 'formula') result = evalFormula(pricing.formula || pricing.formula_raw, formulaBase, qty, addons, val, fieldValues, null, fieldPrices);
+  else return 0;
+  const perUnit = pricing.per_unit !== undefined && pricing.per_unit !== null
+    ? !!pricing.per_unit
+    : !(t === 'fixed' || t === 'formula');
+  return qtyBased ? (perUnit ? result * qty : result) : (perUnit ? result : result / qty);
 };
 
-const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}, fieldPrices = {}, formulaBase = base) => {
+const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}, fieldPrices = {}, formulaBase = base, qtyBased = false) => {
   if (def.type === 'toggle' && String(value ?? '') !== '1') return 0;
   if (def.type === 'image_quantity') {
     const quantities = value && value._opf_type === 'image_quantity' ? value.quantities || {} : {};
     return (def.choices || []).reduce((sum, choice) => {
       const count = Math.max(0, parseInt(quantities[choice.slug], 10) || 0);
       if (!count || choice.disabled) return sum;
-      return sum + count * choiceAddonDisplay(choice.pricing || {}, base, qty, addons, '', fieldValues, fieldPrices, formulaBase);
+      return sum + count * choiceUnitAddon(choice.pricing || {}, base, qty, addons, '', fieldValues, fieldPrices, formulaBase, qtyBased);
     }, 0);
   }
   if (def.type === 'swatch' || def.type === 'select' || def.type === 'radio' || def.type === 'checkbox') {
@@ -1004,19 +1012,12 @@ const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}
     let sum = 0;
     (def.choices || []).forEach((c) => {
       if (!slugs.includes(c.slug) || c.disabled) return;
-      const p = c.pricing || {};
-      if (p.type === 'fixed') sum += parseFloat(p.amount) || 0;
-      else if (p.type === 'percent') sum += base * ((parseFloat(p.amount) || 0) / 100);
-      else if (p.type === 'formula') sum += evalFormula(p.formula_raw || p.formula, formulaBase, qty, addons, val, fieldValues, null, fieldPrices);
+      sum += choiceUnitAddon(c.pricing || {}, base, qty, addons, val, fieldValues, fieldPrices, formulaBase, qtyBased);
     });
     return sum;
   }
-  const p = def.pricing || {};
   if (!String(value || '').trim()) return 0;
-  if (p.type === 'fixed') return parseFloat(p.amount) || 0;
-  if (p.type === 'percent') return base * ((parseFloat(p.amount) || 0) / 100);
-  if (p.type === 'formula') return evalFormula(p.formula_raw || p.formula, formulaBase, qty, addons, val, fieldValues, null, fieldPrices);
-  return 0;
+  return choiceUnitAddon(def.pricing || {}, base, qty, addons, val, fieldValues, fieldPrices, formulaBase, qtyBased);
 };
 
 
@@ -1031,7 +1032,8 @@ const writeTotals = () => {
   const qtyInput = document.querySelector('form.cart input[name="quantity"], form.cart .qty');
   const qty = Math.max(1, parseInt(qtyInput && qtyInput.value, 10) || 1);
 
-  let optionsTotal = 0;
+  let optionsTotal = 0; // line-space display total
+  let addonsPU = 0; // running per-unit addon sum — the [addons] context space
   const fieldPrices = {};
   document.querySelectorAll('[data-opf-group]').forEach((groupEl) => {
     const gid = groupEl.getAttribute('data-opf-group');
@@ -1112,6 +1114,39 @@ const writeTotals = () => {
         values[fid] = '';
       }
     });
+    // WAPF clone_type=qty parity: quantity-repeat units merge into cart lines
+    // whose quantity is the count of identical units. The clone signature is
+    // the WHOLE unit — every quantity-scope field's value at that index —
+    // exactly what CartIntegration::split_quantity_repeat_cart_item hashes.
+    const qtyRepeaters = Array.from(fields).filter((el) => el.getAttribute('data-opf-repeat') === 'quantity');
+    const unitCount = Math.max(qty, ...qtyRepeaters.map((el) => el.querySelectorAll('.opf-field-repeat__rows > [data-opf-repeat-instance]').length));
+    const unitSigs = qtyRepeaters.length
+      ? Array.from({ length: unitCount }, (_, unitIndex) => JSON.stringify(Object.fromEntries(qtyRepeaters.map((repeater) => {
+        const cid = repeater.getAttribute('data-opf-field');
+        if (repeater.hasAttribute('data-opf-section-repeat')) {
+          const instance = repeater.querySelectorAll('.opf-field-repeat__rows > [data-opf-repeat-instance]')[unitIndex];
+          const scoped = {};
+          if (instance) {
+            instance.querySelectorAll('[data-opf-field]').forEach((scopedField) => {
+              const scopedId = scopedField.getAttribute('data-opf-field');
+              if (!scopedId || scopedField.hasAttribute('data-opf-section-repeat')) return;
+              scoped[scopedId] = readFieldControl(scopedField, (window.OPF_FIELDS || {})[gid]?.[scopedId] || {});
+            });
+          }
+          return [cid, scoped];
+        }
+        return [cid, Array.isArray(values[cid]) ? (values[cid][unitIndex] ?? null) : null];
+      }))))
+      : [];
+    // unitIndex → { count, firstIndex } — identical-unit group size + leader.
+    const unitGroups = unitSigs.map((sig, unitIndex) => {
+      let count = 0;
+      let firstIndex = -1;
+      unitSigs.forEach((other, otherIndex) => {
+        if (other === sig) { if (firstIndex < 0) firstIndex = otherIndex; count++; }
+      });
+      return { count, firstIndex };
+    });
     fields.forEach((fieldEl) => {
       const fid = fieldEl.getAttribute('data-opf-field');
       const def = (window.OPF_FIELDS || {})[gid]?.[fid];
@@ -1124,24 +1159,58 @@ const writeTotals = () => {
       const sectionRows = sectionRepeater ? Array.from(sectionRepeater.querySelectorAll('.opf-field-repeat__rows > [data-opf-repeat-instance]')) : [];
       const sectionIndex = sectionInstance ? sectionRows.indexOf(sectionInstance) : null;
       const value = sectionInstance ? readFieldControl(fieldEl, def) : values[fid];
-      let addon;
+      const sectionQtyRepeat = sectionRepeater && sectionRepeater.getAttribute('data-opf-repeat') === 'quantity';
       if (fieldEl.matches('[data-opf-repeat]') && Array.isArray(value)) {
+        const isQtyRepeat = fieldEl.getAttribute('data-opf-repeat') === 'quantity' && unitGroups.length;
+        // 'quantity' rows collapse to one merged unit per signature; 'button'
+        // rows stay separate units on the same cart line.
+        const rows = isQtyRepeat
+          ? Array.from(value.reduce((map, rowValue, rowIndex) => {
+            const group = unitGroups[rowIndex] || { count: 1, firstIndex: rowIndex };
+            if (group.firstIndex !== rowIndex) return map;
+            map.set(unitSigs[rowIndex], { rowValue, count: group.count, firstIndex: rowIndex });
+            return map;
+          }, new Map()).values())
+          : value.map((rowValue, rowIndex) => ({ rowValue, count: 1, firstIndex: rowIndex }));
         const rowPrices = [];
-        addon = value.reduce((sum, rowValue, rowIndex) => {
+        let fieldPU = 0;
+        rows.forEach((row) => {
+          const rowQty = isQtyRepeat ? row.count : qty;
           const clonePrices = Object.fromEntries(Object.entries(fieldPrices).map(([previousId, previousPrice]) => [
             previousId,
-            Array.isArray(previousPrice) ? (previousPrice[rowIndex] || 0) : previousPrice,
+            Array.isArray(previousPrice) ? (previousPrice[row.firstIndex] || 0) : previousPrice,
           ]));
-          const rowAddon = choiceOrFieldAddon(def, rowValue, base, qty, optionsTotal + sum, typeof rowValue === 'string' ? rowValue : '', valuesForFormula(fieldEl, rowIndex), clonePrices, formulaBase);
-          rowPrices[rowIndex] = rowAddon;
-          return sum + rowAddon;
-        }, 0);
+          const rowPU = choiceOrFieldAddon(def, row.rowValue, base, rowQty, addonsPU + fieldPU, typeof row.rowValue === 'string' ? row.rowValue : '', valuesForFormula(fieldEl, row.firstIndex), clonePrices, formulaBase, isQtyRepeat);
+          rowPrices.push(rowPU);
+          fieldPU += rowPU;
+          optionsTotal += rowPU * rowQty;
+        });
         if (!Object.prototype.hasOwnProperty.call(fieldPrices, fid)) fieldPrices[fid] = rowPrices;
+        addonsPU += fieldPU;
       } else {
-        addon = choiceOrFieldAddon(def, value, base, qty, optionsTotal, value && typeof value === 'string' ? value : '', valuesForFormula(fieldEl, sectionIndex), fieldPrices, formulaBase);
-        if (!Object.prototype.hasOwnProperty.call(fieldPrices, fid)) fieldPrices[fid] = addon;
+        // Inner fields of a quantity-mode section repeat belong to the merged
+        // clone line: per-unit context is the identical-unit count, and only
+        // the group's first instance contributes.
+        const sectionGroup = sectionQtyRepeat && sectionIndex !== null && unitGroups[sectionIndex] ? unitGroups[sectionIndex] : null;
+        if (sectionGroup && sectionGroup.firstIndex !== sectionIndex) return;
+        const rowQty = sectionGroup ? sectionGroup.count : qty;
+        const scopedPrices = sectionGroup
+          ? Object.fromEntries(Object.entries(fieldPrices).map(([previousId, previousPrice]) => [
+            previousId,
+            Array.isArray(previousPrice) ? (previousPrice[sectionIndex] || 0) : previousPrice,
+          ]))
+          : fieldPrices;
+        const fieldPU = choiceOrFieldAddon(def, value, base, rowQty, addonsPU, value && typeof value === 'string' ? value : '', valuesForFormula(fieldEl, sectionIndex), scopedPrices, formulaBase, !!sectionQtyRepeat);
+        if (sectionGroup) {
+          const perRow = Array.isArray(fieldPrices[fid]) ? fieldPrices[fid] : [];
+          perRow[sectionIndex] = fieldPU;
+          fieldPrices[fid] = perRow;
+        } else if (!Object.prototype.hasOwnProperty.call(fieldPrices, fid)) {
+          fieldPrices[fid] = fieldPU;
+        }
+        optionsTotal += fieldPU * rowQty;
+        addonsPU += fieldPU;
       }
-      optionsTotal += addon;
     });
   });
 

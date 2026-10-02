@@ -48,7 +48,7 @@ final class Builder {
 	 */
 	public static function render_builder( \WP_Post $post ): void {
 		$group = \OPF\Service\FieldGroups::group_from_post( $post );
-		$model = $group ? $group->data : [ 'schema' => 1, 'fields' => [], 'rule_groups' => [], 'mark_required' => true, 'labels_position' => 'above' ];
+		$model = $group ? $group->data : [ 'schema' => \OPF\Engine\FieldGroup::SCHEMA, 'fields' => [], 'rule_groups' => [], 'mark_required' => true, 'labels_position' => 'above' ];
 		?>
 		<div id="opf-builder-app"
 			data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>"

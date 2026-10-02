@@ -1,0 +1,95 @@
+{
+  "flatfx/1": {
+    "options": "$20.00",
+    "grand": "$120.00",
+    "product": "$100.00"
+  },
+  "scaledfx/1": {
+    "options": "$20.00",
+    "grand": "$120.00",
+    "product": "$100.00"
+  },
+  "flatfee/1": {
+    "options": "$5.00",
+    "grand": "$105.00",
+    "product": "$100.00"
+  },
+  "qtfee/1": {
+    "options": "$5.00",
+    "grand": "$105.00",
+    "product": "$100.00"
+  },
+  "pct/1": {
+    "options": "$10.00",
+    "grand": "$110.00",
+    "product": "$100.00"
+  },
+  "flatpct/1": {
+    "options": "$10.00",
+    "grand": "$110.00",
+    "product": "$100.00"
+  },
+  "flatfx/4": {
+    "options": "$20.00",
+    "grand": "$420.00",
+    "product": "$400.00"
+  },
+  "scaledfx/4": {
+    "options": "$80.00",
+    "grand": "$480.00",
+    "product": "$400.00"
+  },
+  "flatfee/4": {
+    "options": "$5.00",
+    "grand": "$405.00",
+    "product": "$400.00"
+  },
+  "qtfee/4": {
+    "options": "$20.00",
+    "grand": "$420.00",
+    "product": "$400.00"
+  },
+  "pct/4": {
+    "options": "$40.00",
+    "grand": "$440.00",
+    "product": "$400.00"
+  },
+  "flatpct/4": {
+    "options": "$10.00",
+    "grand": "$410.00",
+    "product": "$400.00"
+  },
+  "attrs": [
+    {
+      "value": "flatfx",
+      "t": "fx",
+      "p": "([price] * 0.2) / [qty]"
+    },
+    {
+      "value": "scaledfx",
+      "t": "fx",
+      "p": "([price] * 0.2)"
+    },
+    {
+      "value": "flatfee",
+      "t": "fixed",
+      "p": "5"
+    },
+    {
+      "value": "qtfee",
+      "t": "qt",
+      "p": "5"
+    },
+    {
+      "value": "pct",
+      "t": "percent",
+      "p": "10"
+    },
+    {
+      "value": "flatpct",
+      "t": "fx",
+      "p": "([price] * 0.1) / [qty]"
+    }
+  ],
+  "js_errors": []
+}

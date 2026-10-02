@@ -1,0 +1,190 @@
+{
+    "native": [
+        {
+            "slug": "flatfx",
+            "label": "Flat formula",
+            "selected": false,
+            "disabled": false,
+            "pricing": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "[price] * 0.2",
+                "formula_raw": "",
+                "per_unit": false
+            }
+        },
+        {
+            "slug": "scaledfx",
+            "label": "Scaled formula",
+            "selected": false,
+            "disabled": false,
+            "pricing": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "[price] * 0.2",
+                "formula_raw": "",
+                "per_unit": true
+            }
+        },
+        {
+            "slug": "flatfee",
+            "label": "Flat fee",
+            "selected": false,
+            "disabled": false,
+            "pricing": {
+                "type": "fixed",
+                "amount": 5,
+                "formula": "",
+                "formula_raw": "",
+                "per_unit": false
+            }
+        },
+        {
+            "slug": "qtfee",
+            "label": "Qty fee",
+            "selected": false,
+            "disabled": false,
+            "pricing": {
+                "type": "fixed",
+                "amount": 5,
+                "formula": "",
+                "formula_raw": "",
+                "per_unit": true
+            }
+        },
+        {
+            "slug": "pct",
+            "label": "Percent",
+            "selected": false,
+            "disabled": false,
+            "pricing": {
+                "type": "percent",
+                "amount": 10,
+                "formula": "",
+                "formula_raw": "",
+                "per_unit": true
+            }
+        },
+        {
+            "slug": "flatpct",
+            "label": "Flat percent",
+            "selected": false,
+            "disabled": false,
+            "pricing": {
+                "type": "percent",
+                "amount": 10,
+                "formula": "",
+                "formula_raw": "",
+                "per_unit": false
+            }
+        }
+    ],
+    "imported": [
+        {
+            "slug": "flatfx",
+            "label": "Flat formula",
+            "selected": false,
+            "disabled": false,
+            "pricing": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "[price] * 0.2",
+                "formula_raw": "[price] * 0.2",
+                "per_unit": false
+            }
+        },
+        {
+            "slug": "scaledfx",
+            "label": "Scaled formula",
+            "selected": false,
+            "disabled": false,
+            "pricing": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "([price] * 0.2)",
+                "formula_raw": "([price] * 0.2) * [qty]",
+                "per_unit": true
+            }
+        },
+        {
+            "slug": "flatfee",
+            "label": "Flat fee",
+            "selected": false,
+            "disabled": false,
+            "pricing": {
+                "type": "fixed",
+                "amount": 5,
+                "formula": "",
+                "formula_raw": "",
+                "per_unit": false
+            }
+        },
+        {
+            "slug": "qtfee",
+            "label": "Qty fee",
+            "selected": false,
+            "disabled": false,
+            "pricing": {
+                "type": "fixed",
+                "amount": 5,
+                "formula": "",
+                "formula_raw": "",
+                "per_unit": true
+            }
+        },
+        {
+            "slug": "pct",
+            "label": "Percent",
+            "selected": false,
+            "disabled": false,
+            "pricing": {
+                "type": "percent",
+                "amount": 10,
+                "formula": "",
+                "formula_raw": "",
+                "per_unit": true
+            }
+        },
+        {
+            "slug": "flatpct",
+            "label": "Flat percent",
+            "selected": false,
+            "disabled": false,
+            "pricing": {
+                "type": "percent",
+                "amount": 10,
+                "formula": "",
+                "formula_raw": "",
+                "per_unit": false
+            }
+        }
+    ],
+    "legacy": [
+        {
+            "slug": "legfx",
+            "label": "Legacy formula",
+            "selected": false,
+            "disabled": false,
+            "pricing": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "[price] * 0.2",
+                "formula_raw": "",
+                "per_unit": true
+            }
+        },
+        {
+            "slug": "legfee",
+            "label": "Legacy fee",
+            "selected": false,
+            "disabled": false,
+            "pricing": {
+                "type": "fixed",
+                "amount": 5,
+                "formula": "",
+                "formula_raw": "",
+                "per_unit": false
+            }
+        }
+    ]
+}

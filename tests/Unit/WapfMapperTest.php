@@ -549,8 +549,12 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( '[field.weight] + checked(plan) * [qty]', $mapped_choice['pricing']['formula_raw'] );
 		$this->assertSame( '[field.weight] + checked(plan)', $mapped_choice['pricing']['formula'] );
 		$this->assertSame( 4.0, \OPF\Engine\Calculator::evaluate_formula( $mapped_choice['pricing']['formula'], 10.0, 1, 0.0, '', null, [ 'weight' => '4' ] ) );
-		$this->assertSame( '', $mapped['group']['fields'][1]['pricing']['formula_raw'] );
+		// Field-level fx keeps the verbatim expression like choice fx does;
+		// its outermost *[qty] marks it as intended per-unit scaling.
+		$this->assertSame( '[field.plan] * [qty]', $mapped['group']['fields'][1]['pricing']['formula_raw'] );
 		$this->assertSame( '[field.plan]', $mapped['group']['fields'][1]['pricing']['formula'] );
+		$this->assertTrue( $mapped['group']['fields'][1]['pricing']['per_unit'] );
+		$this->assertTrue( $mapped_choice['pricing']['per_unit'] );
 	}
 
 	public function test_formula_reference_to_unavailable_field_is_flagged_for_review(): void {
@@ -602,6 +606,44 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( 'sumQty(prints)', $pricing['formula'] );
 		$this->assertTrue( $mapped['needs_review'], 'Unresolved WAPF formula pricing semantics must remain visible for migration review.' );
 		$this->assertStringContainsString( 'sumqty(prints)', strtolower( implode( ' ', $mapped['notes'] ) ) );
+	}
+
+	public function test_imported_fx_without_qty_factor_is_flat_per_line(): void {
+		// WAPF fx on a normal field divides the result by line qty, so a
+		// formula WITHOUT an outermost *[qty] imports as flat per line.
+		$mapped = WapfMapper::map( [
+			'fields' => [ [
+				'id' => 'plan', 'label' => 'Plan', 'type' => 'select',
+				'options' => [ 'choices' => [
+					[ 'slug' => 'flat', 'label' => 'Flat', 'pricing_type' => 'fx', 'pricing_amount' => '[price] * 0.2' ],
+					[ 'slug' => 'scaled', 'label' => 'Scaled', 'pricing_type' => 'fx', 'pricing_amount' => '([price] * 0.2) * [qty]' ],
+				] ],
+			] ],
+		] );
+		$this->assertFalse( $mapped['needs_review'] );
+		$flat = $mapped['group']['fields'][0]['choices'][0]['pricing'];
+		$this->assertSame( 'formula', $flat['type'] );
+		$this->assertFalse( $flat['per_unit'] );
+		$this->assertSame( '[price] * 0.2', $flat['formula'] );
+		$this->assertSame( '[price] * 0.2', $flat['formula_raw'] );
+		$scaled = $mapped['group']['fields'][0]['choices'][1]['pricing'];
+		$this->assertTrue( $scaled['per_unit'] );
+		$this->assertSame( '([price] * 0.2)', $scaled['formula'] );
+		$this->assertSame( '([price] * 0.2) * [qty]', $scaled['formula_raw'] );
+	}
+
+	public function test_imported_p_is_flat_percent_and_qt_is_per_unit_fixed(): void {
+		$mapped = WapfMapper::map( [
+			'fields' => [
+				[ 'id' => 'gift', 'label' => 'Gift', 'type' => 'text', 'pricing' => [ 'enabled' => true, 'type' => 'p', 'amount' => 10 ] ],
+				[ 'id' => 'fee', 'label' => 'Fee', 'type' => 'text', 'pricing' => [ 'enabled' => true, 'type' => 'qt', 'amount' => 5 ] ],
+			],
+		] );
+		$this->assertFalse( $mapped['needs_review'] );
+		$this->assertSame( 'percent', $mapped['group']['fields'][0]['pricing']['type'] );
+		$this->assertFalse( $mapped['group']['fields'][0]['pricing']['per_unit'] );
+		$this->assertSame( 'fixed', $mapped['group']['fields'][1]['pricing']['type'] );
+		$this->assertTrue( $mapped['group']['fields'][1]['pricing']['per_unit'] );
 	}
 
 	public function test_prior_field_price_reference_is_mapped_without_manual_review(): void {
