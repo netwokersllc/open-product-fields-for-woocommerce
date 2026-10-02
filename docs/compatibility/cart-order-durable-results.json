@@ -1,0 +1,204 @@
+{
+    "time": "2026-10-02T07:00:20+00:00",
+    "wordpress": "7.1.2",
+    "woocommerce": "11.1.0",
+    "php": "8.5.11",
+    "plugin_dir": "\/tmp\/opf-cart-order-lifecycle-20261002",
+    "checks": [
+        {
+            "label": "three browser checkout paths recorded",
+            "pass": true
+        },
+        {
+            "label": "classic-to-classic actual Woo order reloads",
+            "pass": true
+        },
+        {
+            "label": "classic-to-classic one native Woo line",
+            "pass": true
+        },
+        {
+            "label": "classic-to-classic exact eight structured values persist",
+            "pass": true
+        },
+        {
+            "label": "classic-to-classic quantity and fixed fee persist",
+            "pass": true
+        },
+        {
+            "label": "classic-to-classic public metadata Audit text exact",
+            "pass": true
+        },
+        {
+            "label": "classic-to-classic public metadata Audit textarea exact",
+            "pass": true
+        },
+        {
+            "label": "classic-to-classic public metadata Audit email exact",
+            "pass": true
+        },
+        {
+            "label": "classic-to-classic public metadata Audit URL exact",
+            "pass": true
+        },
+        {
+            "label": "classic-to-classic public metadata Audit toggle exact",
+            "pass": true
+        },
+        {
+            "label": "classic-to-classic public metadata Audit select exact",
+            "pass": true
+        },
+        {
+            "label": "classic-to-classic public metadata Audit radio exact",
+            "pass": true
+        },
+        {
+            "label": "classic-to-classic public metadata Audit checkboxes exact",
+            "pass": true
+        },
+        {
+            "label": "classic-to-classic field snapshot persists",
+            "pass": true
+        },
+        {
+            "label": "classic-to-classic generated HTML email contains display labels and escaped values",
+            "pass": true
+        },
+        {
+            "label": "classic-to-classic generated plain email contains display labels",
+            "pass": true
+        },
+        {
+            "label": "store-to-blocks actual Woo order reloads",
+            "pass": true
+        },
+        {
+            "label": "store-to-blocks one native Woo line",
+            "pass": true
+        },
+        {
+            "label": "store-to-blocks exact eight structured values persist",
+            "pass": true
+        },
+        {
+            "label": "store-to-blocks quantity and fixed fee persist",
+            "pass": true
+        },
+        {
+            "label": "store-to-blocks public metadata Audit text exact",
+            "pass": true
+        },
+        {
+            "label": "store-to-blocks public metadata Audit textarea exact",
+            "pass": true
+        },
+        {
+            "label": "store-to-blocks public metadata Audit email exact",
+            "pass": true
+        },
+        {
+            "label": "store-to-blocks public metadata Audit URL exact",
+            "pass": true
+        },
+        {
+            "label": "store-to-blocks public metadata Audit toggle exact",
+            "pass": true
+        },
+        {
+            "label": "store-to-blocks public metadata Audit select exact",
+            "pass": true
+        },
+        {
+            "label": "store-to-blocks public metadata Audit radio exact",
+            "pass": true
+        },
+        {
+            "label": "store-to-blocks public metadata Audit checkboxes exact",
+            "pass": true
+        },
+        {
+            "label": "store-to-blocks field snapshot persists",
+            "pass": true
+        },
+        {
+            "label": "store-to-blocks generated HTML email contains display labels and escaped values",
+            "pass": true
+        },
+        {
+            "label": "store-to-blocks generated plain email contains display labels",
+            "pass": true
+        },
+        {
+            "label": "classic-to-blocks actual Woo order reloads",
+            "pass": true
+        },
+        {
+            "label": "classic-to-blocks one native Woo line",
+            "pass": true
+        },
+        {
+            "label": "classic-to-blocks exact eight structured values persist",
+            "pass": true
+        },
+        {
+            "label": "classic-to-blocks quantity and fixed fee persist",
+            "pass": true
+        },
+        {
+            "label": "classic-to-blocks public metadata Audit text exact",
+            "pass": true
+        },
+        {
+            "label": "classic-to-blocks public metadata Audit textarea exact",
+            "pass": true
+        },
+        {
+            "label": "classic-to-blocks public metadata Audit email exact",
+            "pass": true
+        },
+        {
+            "label": "classic-to-blocks public metadata Audit URL exact",
+            "pass": true
+        },
+        {
+            "label": "classic-to-blocks public metadata Audit toggle exact",
+            "pass": true
+        },
+        {
+            "label": "classic-to-blocks public metadata Audit select exact",
+            "pass": true
+        },
+        {
+            "label": "classic-to-blocks public metadata Audit radio exact",
+            "pass": true
+        },
+        {
+            "label": "classic-to-blocks public metadata Audit checkboxes exact",
+            "pass": true
+        },
+        {
+            "label": "classic-to-blocks field snapshot persists",
+            "pass": true
+        },
+        {
+            "label": "classic-to-blocks generated HTML email contains display labels and escaped values",
+            "pass": true
+        },
+        {
+            "label": "classic-to-blocks generated plain email contains display labels",
+            "pass": true
+        }
+    ],
+    "orders": {
+        "classic-to-classic": 9248237,
+        "store-to-blocks": 9248238,
+        "classic-to-blocks": 9248239
+    },
+    "source_sha256": {
+        "includes\/Service\/CartIntegration.php": "a8f6af2b585eec20f9788c6b662f5ace7410cc47fd959197c659bcaf7c4c8922",
+        "includes\/Service\/Renderer.php": "0e5914cdc8472f863f37475ca6b18c9153c1a094488371ea7aa8134d3d759b35",
+        "includes\/Engine\/FieldValue.php": "cb2cd1bb007de47db3022cff33fd1a3b634547c82703eca025e3171fd205030a",
+        "includes\/Engine\/FieldGroup.php": "8e0275a55f18bf22a02b8fa28760ed319a677bb2f5fcd645366bef0ad54fbcfd"
+    }
+}

@@ -1,0 +1,99 @@
+{
+  "base": "http://127.0.0.1:8195",
+  "time": "2026-10-02T06:59:50.257Z",
+  "checks": [
+    {
+      "label": "classic-to-classic one cart line with quantity two",
+      "pass": true
+    },
+    {
+      "label": "classic-to-classic eight display fields and fixed fee once across two units",
+      "pass": true
+    },
+    {
+      "label": "classic-to-classic classic cart DOM retains eight field labels and choices",
+      "pass": true
+    },
+    {
+      "label": "classic-to-classic blocks cart DOM retains eight field labels and choices",
+      "pass": true
+    },
+    {
+      "label": "classic-to-classic checkout DOM retains eight field labels and choices",
+      "pass": true
+    },
+    {
+      "label": "classic-to-classic actual Classic checkout HTTP succeeds",
+      "pass": true
+    },
+    {
+      "label": "classic-to-classic confirmation retains eight field labels and values",
+      "pass": true
+    },
+    {
+      "label": "store-to-blocks real Store API add succeeds",
+      "pass": true
+    },
+    {
+      "label": "store-to-blocks one cart line with quantity two",
+      "pass": true
+    },
+    {
+      "label": "store-to-blocks eight display fields and fixed fee once across two units",
+      "pass": true
+    },
+    {
+      "label": "store-to-blocks classic cart DOM retains eight field labels and choices",
+      "pass": true
+    },
+    {
+      "label": "store-to-blocks blocks cart DOM retains eight field labels and choices",
+      "pass": true
+    },
+    {
+      "label": "store-to-blocks checkout DOM retains eight field labels and choices",
+      "pass": true
+    },
+    {
+      "label": "store-to-blocks actual Block checkout HTTP succeeds",
+      "pass": true
+    },
+    {
+      "label": "store-to-blocks confirmation retains eight field labels and values",
+      "pass": true
+    },
+    {
+      "label": "classic-to-blocks one cart line with quantity two",
+      "pass": true
+    },
+    {
+      "label": "classic-to-blocks eight display fields and fixed fee once across two units",
+      "pass": true
+    },
+    {
+      "label": "classic-to-blocks classic cart DOM retains eight field labels and choices",
+      "pass": true
+    },
+    {
+      "label": "classic-to-blocks blocks cart DOM retains eight field labels and choices",
+      "pass": true
+    },
+    {
+      "label": "classic-to-blocks checkout DOM retains eight field labels and choices",
+      "pass": true
+    },
+    {
+      "label": "classic-to-blocks actual Block checkout HTTP succeeds",
+      "pass": true
+    },
+    {
+      "label": "classic-to-blocks confirmation retains eight field labels and values",
+      "pass": true
+    },
+    {
+      "label": "no uncaught browser errors",
+      "pass": true
+    }
+  ],
+  "errors": []
+}
