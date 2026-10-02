@@ -1,0 +1,1 @@
+{"browser":"Chromium","observations":[{"oak":2,"ash":3,"quantity":1,"total":28},{"oak":2,"ash":3,"quantity":2,"total":43},{"oak":3,"ash":0,"quantity":2,"total":32},{"oak":5,"ash":3,"quantity":2,"total":55}],"invalid":["aggregate minimum","aggregate maximum","fraction"],"page_errors":[],"served_js_matches_worktree":true}
