@@ -129,14 +129,26 @@ final class FormulaLinePricingTest extends TestCase {
 	}
 
 	public function test_new_payloads_default_formula_to_flat_wapf_fx_parity(): void {
-		foreach ( [ [], [ 'schema' => FieldGroup::SCHEMA ] ] as $extra ) {
-			$group = FieldGroup::normalize( $extra + [
-				'fields' => [ [
-					'id' => 'plan', 'type' => 'select',
-					'choices' => [ [ 'slug' => 'a', 'label' => 'A', 'pricing' => [ 'type' => 'formula', 'formula' => '[price] * 0.2' ] ] ],
-				] ],
-			] );
-			$this->assertFalse( $group['fields'][0]['choices'][0]['pricing']['per_unit'] );
-		}
+		$group = FieldGroup::normalize( [
+			'schema' => FieldGroup::SCHEMA,
+			'fields' => [ [
+				'id' => 'plan', 'type' => 'select',
+				'choices' => [ [ 'slug' => 'a', 'label' => 'A', 'pricing' => [ 'type' => 'formula', 'formula' => '[price] * 0.2' ] ] ],
+			] ],
+		] );
+		$this->assertFalse( $group['fields'][0]['choices'][0]['pricing']['per_unit'] );
+	}
+
+	public function test_schema_absent_legacy_records_keep_their_forced_per_unit_defaults(): void {
+		$group = FieldGroup::normalize( [
+			'fields' => [ [
+				'id' => 'plan', 'type' => 'select',
+				'choices' => [ [ 'slug' => 'a', 'label' => 'A', 'pricing' => [ 'type' => 'formula', 'formula' => '[price] * 0.2' ] ] ],
+				'pricing' => [ 'type' => 'percent', 'amount' => 10 ],
+			] ],
+		] );
+		$this->assertSame( FieldGroup::SCHEMA, $group['schema'] );
+		$this->assertTrue( $group['fields'][0]['choices'][0]['pricing']['per_unit'] );
+		$this->assertTrue( $group['fields'][0]['pricing']['per_unit'] );
 	}
 }

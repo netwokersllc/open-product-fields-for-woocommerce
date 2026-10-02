@@ -18,9 +18,9 @@ final class FieldGroup {
 	 * Current schema version.
 	 *
 	 * 1 → 2: pricing `per_unit` semantics became WAPF-faithful — formula
-	 * defaults to flat-per-line (fx) instead of forced per-unit. Schema 1
-	 * records get per_unit=true injected on unflagged percent/formula
-	 * pricing so stored data keeps its original behavior.
+	 * defaults to flat-per-line (fx) instead of forced per-unit. Schema 0/1
+	 * records get per_unit=true injected on unflagged percent/formula pricing
+	 * so stored data keeps its original behavior.
 	 */
 	public const SCHEMA = 2;
 
@@ -71,10 +71,10 @@ final class FieldGroup {
 		$declared_schema = $schema;
 
 		while ( $schema < self::SCHEMA ) {
-			switch ( $schema ) {
+				switch ( $schema ) {
 				case 0:
-					// Schema-absent payloads are newly authored data — apply
-					// current defaults rather than legacy per-unit semantics.
+					// Legacy groups had no schema marker. Preserve their former
+					// forced per-unit defaults before advancing the version.
 					$data['schema'] = 1;
 					$schema         = 1;
 					break;
@@ -83,8 +83,8 @@ final class FieldGroup {
 					// Schema 1 forced percent/formula pricing to per_unit.
 					// Only records that explicitly declared schema 1 (stored
 					// groups) get the flag injected so behavior is preserved.
-					if ( 1 === $declared_schema ) {
-						$data = self::migrate_schema_1_pricing( $data );
+					if ( in_array( $declared_schema, [ 0, 1 ], true ) ) {
+						$data = self::migrate_legacy_pricing( $data );
 					}
 					$data['schema'] = 2;
 					$schema         = 2;
@@ -99,12 +99,12 @@ final class FieldGroup {
 	}
 
 	/**
-	 * Schema 1 → 2: make the old forced per_unit on percent/formula explicit.
+	 * Legacy schema 0/1 → 2: make old forced per_unit explicit.
 	 *
 	 * @param array<string,mixed> $data Persisted group data.
 	 * @return array<string,mixed>
 	 */
-	private static function migrate_schema_1_pricing( array $data ): array {
+	private static function migrate_legacy_pricing( array $data ): array {
 		foreach ( ( $data['fields'] ?? [] ) as $field_index => $field ) {
 			if ( ! is_array( $field ) ) {
 				continue;

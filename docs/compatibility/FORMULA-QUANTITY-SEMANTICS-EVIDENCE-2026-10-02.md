@@ -61,10 +61,10 @@ the evaluated expression (formula). Then:
 
 ## Compatibility surfaces
 
-- **Migration**: `FieldGroup::SCHEMA` 1 → 2. Records that *declare*
-  `schema: 1` get `per_unit=true` injected on unflagged percent/formula
-  pricing, preserving the old forced-per-unit behavior at read time
-  (`FieldGroup::migrate_schema_1_pricing`). Schema-absent and schema-2
+- **Migration**: `FieldGroup::SCHEMA` 1 → 2. Schema-absent legacy records and
+  records that declare `schema: 1` get `per_unit=true` injected on unflagged
+  percent/formula pricing, preserving the old forced-per-unit behavior at
+  read time (`FieldGroup::migrate_legacy_pricing`). Newly authored schema-2
   payloads get the new defaults. Builder seed now emits
   `FieldGroup::SCHEMA`.
 - **Import** (`WapfMapper`): `fixed` → fixed flat; `qt` → fixed per-unit;
@@ -141,7 +141,7 @@ separate requests — a clone-harness artifact, not a plugin behavior change.
 
 ## Test coverage added
 
-- `tests/Unit/FormulaLinePricingTest.php` — 14 tests pinning both rows of
+- `tests/Unit/FormulaLinePricingTest.php` — 15 tests pinning both rows of
   the truth table (flat/scaled formula, `p`, `qt`, qty-based variants) plus
   schema-1 migration and new-payload defaults.
 - `tests/Unit/WapfMapperTest.php` — fx `per_unit` derivation, `p` → flat
