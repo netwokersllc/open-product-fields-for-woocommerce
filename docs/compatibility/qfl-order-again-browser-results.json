@@ -1,6 +1,6 @@
 {
   "completed": true,
-  "run_id": "a5056acb-8886-4871-9553-4f573a983cfb",
+  "run_id": "8dbb6fef-0ebc-4c2b-83de-aded162e4d52",
   "base": "http://127.0.0.1:8207",
   "checks": [
     {
@@ -126,8 +126,11 @@
     "opf_source": "/tmp/opf-quantity-fee-lifecycle-20261002"
   },
   "orders": {
-    "wapf": 143,
-    "opf": 144
+    "wapf": 153,
+    "opf": 154
   },
-  "suppressed_mail_calls": 4
+  "mail_suppression_setup": {
+    "hook_calls": 4,
+    "short_circuit_returns": 4
+  }
 }

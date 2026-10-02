@@ -1,6 +1,6 @@
 {
     "completed": true,
-    "run_id": "a5056acb-8886-4871-9553-4f573a983cfb",
+    "run_id": "8dbb6fef-0ebc-4c2b-83de-aded162e4d52",
     "runtime": {
         "woocommerce": "11.1.0",
         "wapf": "3.1.5",
@@ -8,7 +8,7 @@
     },
     "orders": {
         "wapf": {
-            "id": 143,
+            "id": 153,
             "status": "completed",
             "total": 33.57,
             "items": [
@@ -44,13 +44,13 @@
                                 }
                             ]
                         },
-                        "cart_item_key": "7b776e882726b4a31a1c45e69ef38c4d"
+                        "cart_item_key": "e5a01fec59ae962b6a36b15907fcca99"
                     }
                 }
             ]
         },
         "opf": {
-            "id": 144,
+            "id": 154,
             "status": "completed",
             "total": 33.57,
             "items": [
@@ -58,20 +58,21 @@
                     "quantity": 3,
                     "line_total": 31.005,
                     "line_tax": 2.56,
-                    "choice_meta": "{\"142\":{\"plan\":\"qtyflat\"}}"
+                    "choice_meta": "{\"152\":{\"plan\":\"qtyflat\"}}"
                 }
             ]
         }
     },
-    "mail_calls": {
-        "setup_intercepted": 4,
-        "browser_phase_intercepted": 0,
-        "total_intercepted": 4,
-        "sent": 0
+    "mail_suppression": {
+        "setup_hook_calls": 4,
+        "setup_short_circuit_returns": 4,
+        "browser_hook_calls": 0,
+        "browser_short_circuit_returns": 0,
+        "every_hook_returned_true": true
     },
     "browser": {
         "completed": true,
-        "run_id": "a5056acb-8886-4871-9553-4f573a983cfb",
+        "run_id": "8dbb6fef-0ebc-4c2b-83de-aded162e4d52",
         "base": "http://127.0.0.1:8207",
         "checks": [
             {
@@ -197,33 +198,43 @@
             "opf_source": "/tmp/opf-quantity-fee-lifecycle-20261002"
         },
         "orders": {
-            "wapf": 143,
-            "opf": 144
+            "wapf": 153,
+            "opf": 154
         },
-        "suppressed_mail_calls": 4
+        "mail_suppression_setup": {
+            "hook_calls": 4,
+            "short_circuit_returns": 4
+        }
+    },
+    "verification": {
+        "passed": true,
+        "run_id": "8dbb6fef-0ebc-4c2b-83de-aded162e4d52",
+        "browser_result_sha256": "76bf9d3bdc7efc31180496407f4017c971ed456b195186cf1416442928ef6c34"
     },
     "cleanup": {
         "order_ids": [
-            143,
-            144
+            153,
+            154
         ],
         "orders_absent_via_wc_get_order": true,
         "product_ids": [
-            140,
-            141
+            150,
+            151
         ],
         "products_absent": true,
         "group_ids": [
-            142
+            152
         ],
         "groups_absent": true,
-        "customer_id": 10,
+        "customer_id": 11,
         "customer_absent": true,
-        "tax_rate_id": 21,
+        "tax_rate_id": 23,
         "tax_rate_absent": true,
         "cart_empty": true,
         "fixture_state_absent": true,
+        "verification_sentinel_absent": true,
         "mu_symlink_absent": true,
+        "every_pre_wp_mail_call_short_circuited": true,
         "options_restored": true
     }
 }

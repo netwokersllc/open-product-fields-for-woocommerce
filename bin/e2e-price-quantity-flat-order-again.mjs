@@ -112,5 +112,5 @@ try {
 if ( checks.length !== expectedLabels.length || checks.some( ( entry, index ) => entry.label !== expectedLabels[index] || !entry.pass ) || errors.length || Object.keys( observed ).length !== 2 ) {
 	throw new Error( 'Browser result did not reach the exact complete successful check set; refusing artifact write.' );
 }
-const artifact = { completed: true, run_id: state.run_id, base, checks, errors, observed, runtime: state.runtime, orders: state.orders, suppressed_mail_calls: state.suppressed_mail_calls };
+const artifact = { completed: true, run_id: state.run_id, base, checks, errors, observed, runtime: state.runtime, orders: state.orders, mail_suppression_setup: { hook_calls: state.setup_mail_hook_calls, short_circuit_returns: state.setup_mail_short_circuits } };
 safeAtomicWrite( new URL( '../docs/compatibility/qfl-order-again-browser-results.json', import.meta.url ).pathname, JSON.stringify( artifact, null, 2 ) + '\n' );

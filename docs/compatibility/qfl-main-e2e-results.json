@@ -1,11 +1,11 @@
 {
     "completed": true,
-    "run_id": "e36deac4-9c51-4062-bf18-aca2a7f0e0da",
+    "run_id": "0c429305-f1c3-4d4c-afb7-1495f58167e2",
     "runtime": {
         "woocommerce": "11.1.0",
         "wapf": "3.1.5",
         "opf_source": "/tmp/opf-quantity-fee-lifecycle-20261002",
-        "tax_rate_id": 20
+        "tax_rate_id": 22
     },
     "results": {
         "classic/wapf/q1": {
@@ -58,7 +58,7 @@
                     "line_total": 10.335,
                     "line_tax": 0.85,
                     "choice_meta": {
-                        "137": {
+                        "147": {
                             "plan": "qtyflat"
                         }
                     }
@@ -115,7 +115,7 @@
                     "line_total": 10.335,
                     "line_tax": 0.85,
                     "choice_meta": {
-                        "137": {
+                        "147": {
                             "plan": "qtyflat"
                         }
                     }
@@ -172,7 +172,7 @@
                     "line_total": 31.005,
                     "line_tax": 2.56,
                     "choice_meta": {
-                        "137": {
+                        "147": {
                             "plan": "qtyflat"
                         }
                     }
@@ -229,7 +229,7 @@
                     "line_total": 31.005,
                     "line_tax": 2.56,
                     "choice_meta": {
-                        "137": {
+                        "147": {
                             "plan": "qtyflat"
                         }
                     }
@@ -237,7 +237,7 @@
             ]
         },
         "checkout_order/wapf/q3": {
-            "order_id": 138,
+            "order_id": 148,
             "status": "pending",
             "total": 33.57,
             "items": [
@@ -273,13 +273,13 @@
                                 }
                             ]
                         },
-                        "cart_item_key": "3108279b1e82077ee11834be12efdfbd"
+                        "cart_item_key": "a5b8d54c305e6f92d4d751348a4277fa"
                     }
                 }
             ]
         },
         "checkout_order/opf/q3": {
-            "order_id": 139,
+            "order_id": 149,
             "status": "pending",
             "total": 33.57,
             "items": [
@@ -287,31 +287,31 @@
                     "quantity": 3,
                     "line_total": 31.005,
                     "line_tax": 2.56,
-                    "engine_meta": "{\"137\":{\"plan\":\"qtyflat\"}}"
+                    "engine_meta": "{\"147\":{\"plan\":\"qtyflat\"}}"
                 }
             ]
         }
     },
     "cleanup": {
         "order_ids": [
-            138,
-            139
+            148,
+            149
         ],
         "orders_absent": true,
         "order_id_absence": {
-            "138": true,
-            "139": true
+            "148": true,
+            "149": true
         },
         "product_ids": [
-            135,
-            136
+            145,
+            146
         ],
         "products_absent": true,
         "group_ids": [
-            137
+            147
         ],
         "groups_absent": true,
-        "tax_rate_id": 20,
+        "tax_rate_id": 22,
         "tax_rate_absent": true,
         "options_restored": true,
         "cart_empty": true

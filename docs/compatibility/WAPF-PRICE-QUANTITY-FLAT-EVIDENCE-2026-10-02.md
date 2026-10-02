@@ -73,9 +73,11 @@ the link:
 
 The test uses `pre_wp_mail` in a clone-only MU plugin to intercept all
 outgoing WordPress mail before completing source orders. Four mail calls were
-short-circuited during order setup; the successful run artifact records
-browser-phase interceptions as well, and records zero messages sent. Fixture
-state is saved only after both checkout orders are created. Test addresses use the reserved
+short-circuited during order setup; the successful run artifact records the
+measured setup and browser hook counts and whether every call returned true.
+Because `pre_wp_mail` returns true for each counted call, WordPress stops
+before invoking the mail transport. Fixture state is saved only after both
+checkout orders are created. Test addresses use the reserved
 `.invalid` domain. Browser output: [`qfl-order-again-browser-results.json`](qfl-order-again-browser-results.json), with **23/23 checks passing**, an explicit completion marker and run ID, and no uncaught page errors. The browser result records the choice parsed from the actual cart item data.
 Screenshots were saved outside the repository at
 `/tmp/opf-qfl-order-again-wapf-cart.png` and

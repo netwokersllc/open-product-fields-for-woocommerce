@@ -39,7 +39,7 @@ $contains = static function ( $value, string $needle ) use ( &$contains ): bool 
 };
 $cleanup = [];
 $safe_write = static function ( string $path, string $contents ): void {
-	if ( is_link( $path ) ) { throw new RuntimeException( "Refusing symlink artifact path: $path" ); }
+	if ( is_link( dirname( $path ) ) || is_link( $path ) ) { throw new RuntimeException( "Refusing symlink artifact path or parent directory: $path" ); }
 	$temp = $path . '.' . bin2hex( random_bytes( 8 ) ) . '.tmp';
 	$handle = fopen( $temp, 'x' );
 	if ( false === $handle ) { throw new RuntimeException( "Cannot create artifact temp: $temp" ); }

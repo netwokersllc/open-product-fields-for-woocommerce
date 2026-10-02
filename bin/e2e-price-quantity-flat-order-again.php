@@ -11,6 +11,7 @@ if ( realpath( ABSPATH ) !== '/tmp/opf-quantity-fee-woo-20261002' || '1' !== get
 
 $phase = getenv( 'OPF_QFL_ORDER_AGAIN_PHASE' ) ?: 'setup';
 $state_key = 'opf_qfl_order_again_state';
+$verification_key = 'opf_qfl_order_again_verified';
 $option_names = [ 'woocommerce_calc_taxes', 'woocommerce_prices_include_tax', 'woocommerce_tax_display_shop', 'woocommerce_tax_display_cart', 'woocommerce_tax_based_on' ];
 $assert = static function ( bool $condition, string $message ): void {
 	if ( ! $condition ) { throw new RuntimeException( $message ); }
@@ -45,23 +46,32 @@ $remove_order = static function ( int $id, string $run_id ): bool {
 	$order->delete( true );
 	return false === wc_get_order( $id );
 };
+$remove_fresh_order = static function ( int $id, array $created_ids ): bool {
+	if ( ! in_array( $id, $created_ids, true ) ) { throw new RuntimeException( "Refusing rollback of order $id not returned by this setup's create_order call." ); }
+	$order = wc_get_order( $id );
+	if ( $order ) { $order->delete( true ); }
+	return false === wc_get_order( $id );
+};
 
 if ( 'setup' === $phase ) {
 	$assert( ! get_option( $state_key ), 'no stale qflat order-again fixture state' );
+	$assert( ! get_option( $verification_key ), 'no stale qflat verifier success sentinel' );
 	$original_options = [];
 	foreach ( $option_names as $name ) { $original_options[ $name ] = get_option( $name ); }
 	$run_id = wp_generate_uuid4();
 	$state = [ 'run_id' => $run_id, 'runtime' => [ 'woocommerce' => WC()->version, 'wapf' => '3.1.5', 'opf_source' => realpath( WP_PLUGIN_DIR . '/open-product-fields-for-woocommerce' ) ], 'original_options' => $original_options, 'products' => [], 'groups' => [], 'orders' => [], 'user' => 0, 'tax_rate_id' => 0, 'login_tokens' => [], 'probe_tokens' => [] ];
+	$created_order_ids = [];
+	$state_option_created = false;
+	$state_file_created = false;
 	try {
 		if ( is_link( $artifact_dir ) ) { throw new RuntimeException( 'Refusing symlink artifact directory.' ); }
 		wp_mkdir_p( $artifact_dir );
 		if ( is_link( $state_path ) ) { throw new RuntimeException( 'Refusing symlink state artifact.' ); }
+		if ( file_exists( $state_path ) ) { throw new RuntimeException( 'Refusing stale fixture state artifact; preserving existing file.' ); }
 		$browser_result_path = __DIR__ . '/../docs/compatibility/qfl-order-again-browser-results.json';
 		if ( is_link( $browser_result_path ) ) { throw new RuntimeException( 'Refusing symlink browser result artifact.' ); }
-		@unlink( $browser_result_path );
 		$run_result_path = __DIR__ . '/../docs/compatibility/qfl-order-again-run-results.json';
 		if ( is_link( $run_result_path ) ) { throw new RuntimeException( 'Refusing symlink run result artifact.' ); }
-		@unlink( $run_result_path );
 		update_option( 'woocommerce_calc_taxes', 'yes' );
 		update_option( 'woocommerce_prices_include_tax', 'no' );
 		update_option( 'woocommerce_tax_display_shop', 'excl' );
@@ -119,7 +129,7 @@ if ( 'setup' === $phase ) {
 		$assert( $state['user'] > 0, 'isolated customer account created' );
 
 		if ( ! WC()->cart ) { wc_load_cart(); }
-		$make_order = static function ( string $engine, int $product_id ) use ( &$state, $opf_group, $assert, $run_id ): int {
+		$make_order = static function ( string $engine, int $product_id ) use ( &$state, &$created_order_ids, $opf_group, $assert, $run_id ): int {
 			WC()->cart->empty_cart( true );
 			WC()->session->set( 'cart', [] );
 			WC()->session->set( 'cart_totals', null );
@@ -144,6 +154,7 @@ if ( 'setup' === $phase ) {
 			] );
 			$assert( ! is_wp_error( $order_id ) && $order_id > 0, "$engine q=3 checkout order created" );
 			$order_id = (int) $order_id;
+			$created_order_ids[] = $order_id;
 			$state['orders'][ $engine ] = $order_id;
 			$order = wc_get_order( $order_id );
 			$assert( $order instanceof WC_Order, "$engine new order loads through Woo CRUD / HPOS" );
@@ -172,25 +183,31 @@ if ( 'setup' === $phase ) {
 			$state['login_tokens'][ $engine ] = bin2hex( random_bytes( 32 ) );
 			$state['probe_tokens'][ $engine ] = bin2hex( random_bytes( 32 ) );
 		}
-		$state['suppressed_mail_calls'] = (int) ( $GLOBALS['opf_qfl_suppressed_mail_count'] ?? 0 );
-		$state['suppressed_mail_calls_browser'] = 0;
+		$state['setup_mail_hook_calls'] = (int) ( $GLOBALS['opf_qfl_pre_wp_mail_calls'] ?? 0 );
+		$state['setup_mail_short_circuits'] = (int) ( $GLOBALS['opf_qfl_pre_wp_mail_short_circuits'] ?? 0 );
+		$state['browser_mail_hook_calls'] = 0;
+		$state['browser_mail_short_circuits'] = 0;
 		update_option( $state_key, $state );
+		$state_option_created = true;
 		WC()->cart->empty_cart( true );
 		$safe_write( $state_path, wp_json_encode( $state, JSON_PRETTY_PRINT ) );
+		$state_file_created = true;
 		$assert( has_filter( 'pre_wp_mail' ) !== false, 'pre_wp_mail blocker installed for this clone request' );
-		$assert( $state['suppressed_mail_calls'] > 0, 'outbound mail intercepted during setup' );
-		echo wp_json_encode( [ 'phase' => 'setup', 'runtime' => $state['runtime'], 'run_id' => $run_id, 'orders' => $state['orders'], 'suppressed_mail_calls' => $state['suppressed_mail_calls'] ], JSON_PRETTY_PRINT ), "\n";
+		$assert( $state['setup_mail_hook_calls'] > 0 && $state['setup_mail_hook_calls'] === $state['setup_mail_short_circuits'], 'each setup wp_mail hook call was short-circuited by pre_wp_mail=true' );
+		echo wp_json_encode( [ 'phase' => 'setup', 'runtime' => $state['runtime'], 'run_id' => $run_id, 'orders' => $state['orders'], 'pre_wp_mail_calls' => $state['setup_mail_hook_calls'], 'pre_wp_mail_short_circuits' => $state['setup_mail_short_circuits'] ], JSON_PRETTY_PRINT ), "\n";
 	} catch ( Throwable $error ) {
-		foreach ( $state['orders'] as $id ) { if ( $id ) { $remove_order( (int) $id, $run_id ); } }
-		foreach ( $state['groups'] as $id ) { wp_delete_post( (int) $id, true ); }
-		foreach ( $state['products'] as $id ) { wp_delete_post( (int) $id, true ); }
-		if ( $state['user'] ) { wp_delete_user( (int) $state['user'] ); }
-		if ( $state['tax_rate_id'] ) { WC_Tax::_delete_tax_rate( (int) $state['tax_rate_id'] ); }
-		foreach ( $original_options as $name => $value ) { update_option( $name, $value ); }
-		delete_option( $state_key );
-		if ( is_link( $state_path ) ) { throw new RuntimeException( 'Refusing to remove symlink state artifact during rollback.' ); }
-		@unlink( $state_path );
-		$remove_mu_link();
+		$rollback_errors = [];
+		$attempt_rollback = static function ( callable $cleanup ) use ( &$rollback_errors ): void { try { $cleanup(); } catch ( Throwable $rollback_error ) { $rollback_errors[] = $rollback_error->getMessage(); } };
+		foreach ( $created_order_ids as $id ) { $attempt_rollback( static function () use ( $remove_fresh_order, $id, $created_order_ids ): void { if ( ! $remove_fresh_order( (int) $id, $created_order_ids ) ) { throw new RuntimeException( "Fresh order $id remains after Woo CRUD rollback." ); } } ); }
+		foreach ( $state['groups'] as $id ) { $attempt_rollback( static function () use ( $id ): void { if ( $id ) { wp_delete_post( (int) $id, true ); if ( get_post( (int) $id ) ) { throw new RuntimeException( "OPF group $id remains after rollback." ); } } } ); }
+		foreach ( $state['products'] as $id ) { $attempt_rollback( static function () use ( $id ): void { if ( $id ) { wp_delete_post( (int) $id, true ); if ( wc_get_product( (int) $id ) ) { throw new RuntimeException( "Product $id remains after rollback." ); } } } ); }
+		if ( $state['user'] ) { $attempt_rollback( static function () use ( $state ): void { wp_delete_user( (int) $state['user'] ); if ( get_userdata( (int) $state['user'] ) ) { throw new RuntimeException( 'Customer remains after rollback.' ); } } ); }
+		if ( $state['tax_rate_id'] ) { $attempt_rollback( static function () use ( $state ): void { WC_Tax::_delete_tax_rate( (int) $state['tax_rate_id'] ); if ( WC_Tax::_get_tax_rate( (int) $state['tax_rate_id'] ) ) { throw new RuntimeException( 'Temporary tax rate remains after rollback.' ); } } ); }
+		foreach ( $original_options as $name => $value ) { $attempt_rollback( static function () use ( $name, $value ): void { update_option( $name, $value ); if ( get_option( $name ) !== $value ) { throw new RuntimeException( "Option $name was not restored during rollback." ); } } ); }
+		if ( $state_option_created ) { $attempt_rollback( static function () use ( $state_key ): void { delete_option( $state_key ); if ( false !== get_option( $state_key, false ) ) { throw new RuntimeException( 'Fixture state remains after rollback.' ); } } ); }
+		if ( $state_file_created ) { $attempt_rollback( static function () use ( $state_path ): void { if ( is_link( $state_path ) ) { throw new RuntimeException( 'Refusing to remove symlink state artifact during rollback.' ); } @unlink( $state_path ); if ( file_exists( $state_path ) ) { throw new RuntimeException( 'Fixture state file remains after rollback.' ); } } ); }
+		$attempt_rollback( $remove_mu_link );
+		if ( $rollback_errors ) { throw new RuntimeException( $error->getMessage() . '; rollback errors: ' . implode( '; ', $rollback_errors ), 0, $error ); }
 		throw $error;
 	}
 	return;
@@ -200,6 +217,7 @@ $state = get_option( $state_key );
 $assert( is_array( $state ) && ! empty( $state['orders'] ), 'fixture state exists' );
 if ( 'verify' === $phase ) {
 	$browser_result_path = __DIR__ . '/../docs/compatibility/qfl-order-again-browser-results.json';
+	$assert( ! is_link( $browser_result_path ), 'browser result artifact is not a symlink' );
 	$assert( is_file( $browser_result_path ), 'real browser result artifact exists' );
 	$browser_result = json_decode( file_get_contents( $browser_result_path ), true );
 	$expected_labels = [
@@ -222,6 +240,7 @@ if ( 'verify' === $phase ) {
 	$assert( $expected_labels === $actual_labels && 23 === count( $actual_labels ), 'browser artifact has exact 23 expected labels in order' );
 	$assert( empty( $browser_result['errors'] ) && 23 === count( array_filter( $browser_result['checks'], static fn( $check ) => true === ( $check['pass'] ?? false ) ) ), 'all exact authenticated browser checks passed with no errors' );
 	$assert( $browser_result['orders'] === $state['orders'] && $browser_result['runtime'] === $state['runtime'], 'browser artifact records this run’s order IDs and runtime versions' );
+	$assert( $browser_result['mail_suppression_setup'] === [ 'hook_calls' => $state['setup_mail_hook_calls'], 'short_circuit_returns' => $state['setup_mail_short_circuits'] ], 'browser artifact records measured setup mail interception' );
 	foreach ( $state['orders'] as $engine => $order_id ) {
 		$order = wc_get_order( $order_id );
 		$item = $order ? current( $order->get_items() ) : false;
@@ -238,10 +257,16 @@ if ( 'verify' === $phase ) {
 		$choice_ok = 'wapf' === $engine ? ( 'qtyflat' === ( $choice['slug'] ?? '' ) && 'qt' === ( $choice['price_type'] ?? '' ) ) : ( 'qtyflat' === ( $choice['slug'] ?? '' ) );
 		$assert( 3 === (int) ( $observed['quantity'] ?? 0 ) && 31.005 === (float) ( $observed['line_subtotal'] ?? 0 ) && 31.005 === (float) ( $observed['line_total'] ?? 0 ) && 2.56 === (float) ( $observed['line_subtotal_tax'] ?? 0 ) && 2.56 === (float) ( $observed['line_tax'] ?? 0 ) && $choice_ok, "$engine browser restored actual choice and q=3 exact line/tax values" );
 	}
+	$verification = [ 'passed' => true, 'run_id' => $state['run_id'], 'browser_result_sha256' => hash_file( 'sha256', $browser_result_path ), 'checked_labels' => $expected_labels, 'verified_at_utc' => gmdate( 'c' ) ];
+	update_option( $verification_key, $verification );
+	$stored_verification = get_option( $verification_key, false );
+	if ( ! is_array( $stored_verification ) || $stored_verification !== $verification ) { delete_option( $verification_key ); throw new RuntimeException( 'Could not persist this run’s successful verification sentinel.' ); }
+	echo "ok successful verification sentinel stored for run {$state['run_id']}\n";
 	return;
 }
 if ( 'cleanup' !== $phase ) { throw new RuntimeException( 'Phase must be setup, verify, or cleanup.' ); }
 
+$verification = get_option( $verification_key, false );
 if ( WC()->cart ) { WC()->cart->empty_cart( true ); }
 $orders_before_cleanup = [];
 foreach ( $state['orders'] as $engine => $id ) {
@@ -260,7 +285,20 @@ if ( ! empty( $state['user'] ) ) { wp_delete_user( (int) $state['user'] ); }
 if ( ! empty( $state['tax_rate_id'] ) ) { WC_Tax::_delete_tax_rate( (int) $state['tax_rate_id'] ); }
 foreach ( $state['original_options'] as $name => $value ) { update_option( $name, $value ); }
 delete_option( $state_key );
+$browser_result_path = __DIR__ . '/../docs/compatibility/qfl-order-again-browser-results.json';
+$browser_result = null;
+if ( ! is_link( $browser_result_path ) && is_file( $browser_result_path ) ) { $browser_result = json_decode( file_get_contents( $browser_result_path ), true ); }
+$verification_valid = is_array( $verification )
+	&& true === ( $verification['passed'] ?? false )
+	&& ( $verification['run_id'] ?? '' ) === $state['run_id']
+	&& is_array( $browser_result )
+	&& ( $browser_result['run_id'] ?? '' ) === $state['run_id']
+	&& true === ( $browser_result['completed'] ?? false )
+	&& hash_file( 'sha256', $browser_result_path ) === ( $verification['browser_result_sha256'] ?? '' );
+$verification_deleted = delete_option( $verification_key );
 $remove_mu_link();
+$all_mail_calls_short_circuited = $state['setup_mail_hook_calls'] === $state['setup_mail_short_circuits']
+	&& (int) ( $state['browser_mail_hook_calls'] ?? 0 ) === (int) ( $state['browser_mail_short_circuits'] ?? 0 );
 $cleanup = [
 	'order_ids' => array_values( $state['orders'] ),
 	'orders_absent_via_wc_get_order' => ! in_array( false, $deleted_orders, true ) && array_reduce( $state['orders'], static fn( bool $ok, int $id ): bool => $ok && false === wc_get_order( $id ), true ),
@@ -274,15 +312,16 @@ $cleanup = [
 	'tax_rate_absent' => ! WC_Tax::_get_tax_rate( (int) $state['tax_rate_id'] ),
 	'cart_empty' => ! WC()->cart || 0 === WC()->cart->get_cart_contents_count(),
 	'fixture_state_absent' => false === get_option( $state_key, false ),
+	'verification_sentinel_absent' => false === get_option( $verification_key, false ),
 	'mu_symlink_absent' => ! is_link( '/tmp/opf-quantity-fee-woo-20261002/wp-content/mu-plugins/qfl-order-again.php' ),
+	'every_pre_wp_mail_call_short_circuited' => $all_mail_calls_short_circuited,
 	'options_restored' => true,
 ];
 foreach ( $state['original_options'] as $name => $value ) { $cleanup['options_restored'] = $cleanup['options_restored'] && get_option( $name ) === $value; }
 $assert( ! in_array( false, $cleanup, true ), 'cleanup verification passed: ' . wp_json_encode( $cleanup ) );
-$browser_result_path = __DIR__ . '/../docs/compatibility/qfl-order-again-browser-results.json';
-$browser_result = is_file( $browser_result_path ) && ! is_link( $browser_result_path ) ? json_decode( file_get_contents( $browser_result_path ), true ) : null;
-if ( is_array( $browser_result ) && ( $browser_result['run_id'] ?? '' ) === $state['run_id'] && true === ( $browser_result['completed'] ?? false ) ) {
-	$run_artifact = [ 'completed' => true, 'run_id' => $state['run_id'], 'runtime' => $state['runtime'], 'orders' => $orders_before_cleanup, 'mail_calls' => [ 'setup_intercepted' => $state['suppressed_mail_calls'], 'browser_phase_intercepted' => (int) ( $state['suppressed_mail_calls_browser'] ?? 0 ), 'total_intercepted' => $state['suppressed_mail_calls'] + (int) ( $state['suppressed_mail_calls_browser'] ?? 0 ), 'sent' => 0 ], 'browser' => $browser_result, 'cleanup' => $cleanup ];
+
+if ( $verification_valid && $verification_deleted && ! in_array( false, $cleanup, true ) ) {
+	$run_artifact = [ 'completed' => true, 'run_id' => $state['run_id'], 'runtime' => $state['runtime'], 'orders' => $orders_before_cleanup, 'mail_suppression' => [ 'setup_hook_calls' => $state['setup_mail_hook_calls'], 'setup_short_circuit_returns' => $state['setup_mail_short_circuits'], 'browser_hook_calls' => (int) ( $state['browser_mail_hook_calls'] ?? 0 ), 'browser_short_circuit_returns' => (int) ( $state['browser_mail_short_circuits'] ?? 0 ), 'every_hook_returned_true' => $all_mail_calls_short_circuited ], 'browser' => $browser_result, 'verification' => [ 'passed' => true, 'run_id' => $verification['run_id'], 'browser_result_sha256' => $verification['browser_result_sha256'] ], 'cleanup' => $cleanup ];
 	$run_path = __DIR__ . '/../docs/compatibility/qfl-order-again-run-results.json';
 	$safe_write( $run_path, wp_json_encode( $run_artifact, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) . "\n" );
 }
