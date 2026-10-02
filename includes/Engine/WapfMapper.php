@@ -503,7 +503,7 @@ final class WapfMapper {
 					break;
 				case 'fx':
 					$formula_raw = self::map_formula_references( (string) $amt, $opf_ids_by_wapf_id, $notes, $needs_review, (string) ( $choice['label'] ?? $slug ), $source_order_by_wapf_id, $current_order );
-					$formula = null === $formula_raw ? null : self::normalize_formula( $formula_raw );
+					$formula = null === $formula_raw ? null : self::normalize_formula( $formula_raw, ! empty( $wapf_field['qty_based'] ) );
 					if ( null === $formula ) {
 						$notes[] = sprintf( 'choice "%s" formula could not be translated: %s', $choice['label'] ?? $slug, (string) $amt );
 						$needs_review = true;
@@ -731,19 +731,22 @@ final class WapfMapper {
 	/**
 	 * WAPF formula → OPF formula.
 	 *
-	 * WAPF normalized per-unit results by dividing by quantity, so formulas
+	 * WAPF normally divides formula results by product quantity, so formulas
 	 * in the wild end with "* [qty]" to compensate. OPF is per-unit, so a
-	 * trailing quantity multiplication is stripped. Variables map 1:1
+	 * trailing quantity multiplication is stripped unless WAPF's qty_based
+	 * field option disables that division. Variables map 1:1
 	 * ([price], [options_total]→[addons], [qty], [val]); source field IDs
 	 * are remapped to the destination IDs before the expression is stored.
 	 */
-	public static function normalize_formula( string $formula ): ?string {
+	public static function normalize_formula( string $formula, bool $qty_based = false ): ?string {
 		$formula = trim( $formula );
 		if ( '' === $formula ) {
 			return null;
 		}
 		$formula = str_replace( '[options_total]', '[addons]', $formula );
-		$formula = self::strip_outer_qty_factor( $formula );
+		if ( ! $qty_based ) {
+			$formula = self::strip_outer_qty_factor( $formula );
+		}
 		if ( '' === $formula ) {
 			return null;
 		}
@@ -854,7 +857,7 @@ final class WapfMapper {
 				return [ 'type' => 'percent', 'amount' => $amt, 'formula' => '', 'per_unit' => false ];
 			case 'fx':
 				$formula_raw = self::map_formula_references( (string) ( $pricing['amount'] ?? '' ), $opf_ids_by_wapf_id, $notes, $needs_review, $label, $source_order_by_wapf_id, $current_order );
-				$formula = null === $formula_raw ? null : self::normalize_formula( $formula_raw );
+				$formula = null === $formula_raw ? null : self::normalize_formula( $formula_raw, ! empty( $wapf_field['qty_based'] ) );
 				if ( null !== $formula ) {
 					return [ 'type' => 'formula', 'amount' => 0.0, 'formula' => $formula, 'formula_raw' => $formula_raw, 'per_unit' => self::formula_had_qty_factor( $formula_raw ) ];
 				}

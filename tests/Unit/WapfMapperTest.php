@@ -521,6 +521,44 @@ final class WapfMapperTest extends TestCase {
 		$this->assertNull( WapfMapper::normalize_formula( '' ) );
 	}
 
+	/**
+	 * Installed WAPF Extended 3.1.5 `class-cart.php:56-58` treats `qty_based`
+	 * as an independent field option, and `class-fields.php:298-311` preserves
+	 * the formula's quantity factor when it is enabled. Source files were read
+	 * from the disposable installed tree at
+	 * /tmp/opf-sumqty-woo-wordpress/wp-content/plugins/advanced-product-fields-for-woocommerce-extended.
+	 */
+	public function test_qty_based_field_preserves_formula_quantity_factor_for_choice_and_field_pricing(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [
+			[
+				'id' => 'plan',
+				'label' => 'Plan',
+				'type' => 'select',
+				'qty_based' => true,
+				'options' => [ 'choices' => [
+					[ 'slug' => 'selected', 'label' => 'Selected', 'pricing_type' => 'fx', 'pricing_amount' => '([price] + [options_total]) * 2 * [qty]' ],
+				] ],
+				'pricing' => [ 'enabled' => true, 'type' => 'fx', 'amount' => '([price] + [options_total]) * 3 * [qty]' ],
+			],
+			[
+				'id' => 'ordinary',
+				'label' => 'Ordinary',
+				'type' => 'select',
+				'qty_based' => false,
+				'options' => [ 'choices' => [
+					[ 'slug' => 'selected', 'label' => 'Selected', 'pricing_type' => 'fx', 'pricing_amount' => '([price] + [options_total]) * 2 * [qty]' ],
+				] ],
+			],
+		] ] );
+		$this->assertSame( '([price] + [addons]) * 2 * [qty]', $mapped['group']['fields'][0]['choices'][0]['pricing']['formula'] );
+		$this->assertSame( '([price] + [options_total]) * 2 * [qty]', $mapped['group']['fields'][0]['choices'][0]['pricing']['formula_raw'] );
+		$this->assertSame( '([price] + [addons]) * 3 * [qty]', $mapped['group']['fields'][0]['pricing']['formula'] );
+		$this->assertSame( '([price] + [addons]) * 2', $mapped['group']['fields'][1]['choices'][0]['pricing']['formula'] );
+		$this->assertSame( 60.0, \OPF\Engine\Calculator::evaluate_formula( $mapped['group']['fields'][0]['choices'][0]['pricing']['formula'], 10.0, 3, 0.0 ) );
+		$this->assertSame( 90.0, \OPF\Engine\Calculator::evaluate_formula( $mapped['group']['fields'][0]['pricing']['formula'], 10.0, 3, 0.0 ) );
+		$this->assertSame( 20.0, \OPF\Engine\Calculator::evaluate_formula( $mapped['group']['fields'][1]['choices'][0]['pricing']['formula'], 10.0, 3, 0.0 ) );
+	}
+
 	public function test_formula_field_references_map_to_destination_ids_including_later_fields(): void {
 		$mapped = WapfMapper::map( [
 			'fields' => [
