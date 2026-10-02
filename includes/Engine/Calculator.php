@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
 final class Calculator {
 
 	/** @var array<string,callable> */
-	private static array $formula_functions = [];
+	private static $formula_functions = [];
 
 	/** Register a trusted extension callback through OPF\API. */
 	public static function register_formula_function( string $function, callable $callback ): void {
@@ -332,13 +332,19 @@ final class Calculator {
 			return $functions;
 		}
 
-		$numeric = static fn( string $expression, array $context ): float => self::formula_numeric_value( $expression, $context );
+		$numeric = static function ( string $expression, array $context ): float {
+			return self::formula_numeric_value( $expression, $context );
+		};
 		$functions = [
 			'min' => static function ( array $args, array $context ) use ( $numeric ) {
-				return $args ? min( array_map( static fn( $arg ): float => $numeric( (string) $arg, $context ), $args ) ) : 0;
+				return $args ? min( array_map( static function ( $arg ) use ( $numeric, $context ): float {
+					return $numeric( (string) $arg, $context );
+				}, $args ) ) : 0;
 			},
 			'max' => static function ( array $args, array $context ) use ( $numeric ) {
-				return $args ? max( array_map( static fn( $arg ): float => $numeric( (string) $arg, $context ), $args ) ) : 0;
+				return $args ? max( array_map( static function ( $arg ) use ( $numeric, $context ): float {
+					return $numeric( (string) $arg, $context );
+				}, $args ) ) : 0;
 			},
 			'len' => static function ( array $args ): int {
 				$text = (string) ( $args[0] ?? '' );
@@ -361,23 +367,41 @@ final class Calculator {
 				if ( ! is_array( $value ) || 'image_quantity' !== ( $value['_opf_type'] ?? '' ) || ! is_array( $value['quantities'] ?? null ) ) {
 					return 0;
 				}
-				return array_sum( array_map( static fn( $quantity ): int => is_scalar( $quantity ) && preg_match( '/^\\d+$/', (string) $quantity ) ? (int) $quantity : 0, $value['quantities'] ) );
+				return array_sum( array_map( static function ( $quantity ): int {
+					return is_scalar( $quantity ) && preg_match( '/^\\d+$/', (string) $quantity ) ? (int) $quantity : 0;
+				}, $value['quantities'] ) );
 			},
 			'round' => static function ( array $args, array $context ) use ( $numeric ) {
 				$value = $numeric( (string) ( $args[0] ?? '' ), $context );
 				$precision = isset( $args[1] ) && '' !== trim( (string) $args[1] ) ? (int) $numeric( (string) $args[1], $context ) : 0;
 				return round( $value, $precision );
 			},
-			'abs' => static fn( array $args, array $context ): float => abs( $numeric( (string) ( $args[0] ?? '' ), $context ) ),
-			'floor' => static fn( array $args, array $context ): float => floor( $numeric( (string) ( $args[0] ?? '' ), $context ) ),
-			'ceil' => static fn( array $args, array $context ): float => ceil( $numeric( (string) ( $args[0] ?? '' ), $context ) ),
+			'abs' => static function ( array $args, array $context ) use ( $numeric ): float {
+				return abs( $numeric( (string) ( $args[0] ?? '' ), $context ) );
+			},
+			'floor' => static function ( array $args, array $context ) use ( $numeric ): float {
+				return floor( $numeric( (string) ( $args[0] ?? '' ), $context ) );
+			},
+			'ceil' => static function ( array $args, array $context ) use ( $numeric ): float {
+				return ceil( $numeric( (string) ( $args[0] ?? '' ), $context ) );
+			},
 			// Preserve sqrt's domain error so expansion fails the entire formula
 			// closed, matching browser Math.sqrt and WAPF's native PHP sqrt.
-			'sqrt' => static fn( array $args, array $context ): float => sqrt( $numeric( (string) ( $args[0] ?? '' ), $context ) ),
-			'pow' => static fn( array $args, array $context ): float => 2 === count( $args ) ? pow( $numeric( (string) $args[0], $context ), $numeric( (string) $args[1], $context ) ) : NAN,
-			'sin' => static fn( array $args, array $context ): float => sin( $numeric( (string) ( $args[0] ?? '' ), $context ) ),
-			'cos' => static fn( array $args, array $context ): float => cos( $numeric( (string) ( $args[0] ?? '' ), $context ) ),
-			'tan' => static fn( array $args, array $context ): float => tan( $numeric( (string) ( $args[0] ?? '' ), $context ) ),
+			'sqrt' => static function ( array $args, array $context ) use ( $numeric ): float {
+				return sqrt( $numeric( (string) ( $args[0] ?? '' ), $context ) );
+			},
+			'pow' => static function ( array $args, array $context ) use ( $numeric ): float {
+				return 2 === count( $args ) ? pow( $numeric( (string) $args[0], $context ), $numeric( (string) $args[1], $context ) ) : NAN;
+			},
+			'sin' => static function ( array $args, array $context ) use ( $numeric ): float {
+				return sin( $numeric( (string) ( $args[0] ?? '' ), $context ) );
+			},
+			'cos' => static function ( array $args, array $context ) use ( $numeric ): float {
+				return cos( $numeric( (string) ( $args[0] ?? '' ), $context ) );
+			},
+			'tan' => static function ( array $args, array $context ) use ( $numeric ): float {
+				return tan( $numeric( (string) ( $args[0] ?? '' ), $context ) );
+			},
 			'if' => static function ( array $args, array $context ) use ( $numeric ) {
 				if ( 3 !== count( $args ) ) {
 					return NAN;
