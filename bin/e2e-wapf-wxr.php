@@ -1,7 +1,8 @@
 <?php
 /**
- * Prove OPF WXR export through WordPress Importer and WAPF's field-group reader.
- * Run only on a disposable WordPress clone with WooCommerce, OPF, and WAPF active:
+ * Prove OPF WXR export through WordPress Importer and WAPF Extended's field-group
+ * reader, including a formula-priced field parsed back as `fx` pricing.
+ * Run only on a disposable WordPress clone with WooCommerce, OPF, and WAPF Extended active:
  * OPF_WXR_E2E_ALLOW=1 wp eval-file bin/e2e-wapf-wxr.php
  *
  * @package open-product-fields-for-woocommerce
@@ -13,8 +14,8 @@ if ( '1' !== getenv( 'OPF_WXR_E2E_ALLOW' ) ) {
 if ( ! class_exists( 'WooCommerce' ) || ! class_exists( OPF\Service\WapfWxrExporter::class ) ) {
 	throw new RuntimeException( 'Activate WooCommerce and OPF before running this proof.' );
 }
-if ( ! function_exists( 'wapf' ) || ! class_exists( 'SW_WAPF\Includes\Classes\Field_Groups' ) ) {
-	throw new RuntimeException( 'Activate WAPF before running this proof.' );
+if ( ! function_exists( 'wapf_pro' ) || ! class_exists( 'SW_WAPF_PRO\Includes\Classes\Field_Groups' ) ) {
+	throw new RuntimeException( 'Activate WAPF Extended before running this proof.' );
 }
 
 $importer_file = WP_PLUGIN_DIR . '/wordpress-importer/wordpress-importer.php';
@@ -44,6 +45,9 @@ $source_id = 0;
 $wxr_path = '';
 try {
 	$data = OPF\Engine\FieldGroup::normalize( [
+		// Schema 2 keeps formula pricing flat unless per_unit is explicit, so the
+		// exported fx amount stays the exact expression instead of "* [qty]".
+		'schema' => OPF\Engine\FieldGroup::SCHEMA,
 		'fields' => [
 			[
 				'id' => 'wxr-finish',
@@ -66,6 +70,17 @@ try {
 				'label' => '',
 				'type' => 'paragraph',
 				'content' => "Wipe with a soft cloth.\nAvoid bleach.",
+			],
+			[
+				'id' => 'wxrfactor',
+				'label' => 'Factor',
+				'type' => 'number',
+			],
+			[
+				'id' => 'wxrfee',
+				'label' => 'Formula fee',
+				'type' => 'text',
+				'pricing' => [ 'type' => 'formula', 'formula' => '[field.wxrfactor] * 0.25', 'per_unit' => false ],
 			],
 		],
 	] );
@@ -115,13 +130,15 @@ try {
 		throw new RuntimeException( 'WordPress Importer did not create exactly one WAPF global group.' );
 	}
 	$target_id = (int) $matches[0];
-	$target = SW_WAPF\Includes\Classes\Field_Groups::get_by_id( $target_id );
-	if ( ! $target || 'wapf_product' !== $target->type || 3 !== count( $target->fields ) ) {
-		throw new RuntimeException( 'WAPF could not parse the imported group and its three fields.' );
+	$target = SW_WAPF_PRO\Includes\Classes\Field_Groups::get_by_id( $target_id );
+	if ( ! $target || 'wapf_product' !== $target->type || 5 !== count( $target->fields ) ) {
+		throw new RuntimeException( 'WAPF could not parse the imported group and its five fields.' );
 	}
 	$finish = $target->fields[0];
 	$personalization = $target->fields[1];
 	$paragraph = $target->fields[2];
+	$factor = $target->fields[3];
+	$fx_fee = $target->fields[4];
 	if ( 'select' !== $finish->type || 'fixed' !== ( $finish->options['choices'][0]['pricing_type'] ?? '' ) || 2.5 !== (float) ( $finish->options['choices'][0]['pricing_amount'] ?? 0 ) ) {
 		throw new RuntimeException( 'WAPF did not preserve the select choice and its fixed pricing.' );
 	}
@@ -131,7 +148,16 @@ try {
 	if ( 'content' !== $paragraph->type || "Wipe with a soft cloth.\nAvoid bleach." !== ( $paragraph->options['p_content'] ?? '' ) ) {
 		throw new RuntimeException( 'WAPF did not preserve the static paragraph content.' );
 	}
-	echo "ok WXR export, WordPress Importer, WAPF group parsing, choice pricing, conditionals, and paragraph content\n";
+	if ( 'number' !== $factor->type || 'wxrfactor' !== $factor->id ) {
+		throw new RuntimeException( 'WAPF did not preserve the numeric factor field.' );
+	}
+	// Field::from_array copies pricing verbatim, so an fx amount must equal the
+	// exported expression byte-for-byte. This proves the expression survives
+	// the round trip; it does not prove WAPF evaluates it.
+	if ( 'text' !== $fx_fee->type || 'fx' !== $fx_fee->pricing->type || '[field.wxrfactor] * 0.25' !== $fx_fee->pricing->amount || true !== $fx_fee->pricing->enabled ) {
+		throw new RuntimeException( 'WAPF did not preserve the formula-priced field as an fx pricing expression: ' . wp_json_encode( [ 'type' => $fx_fee->type, 'pricing' => $fx_fee->pricing ] ) );
+	}
+	echo "ok WXR export, WordPress Importer, WAPF group parsing, choice pricing, conditionals, paragraph content, and fx formula expression\n";
 } finally {
 	$matches = get_posts( [
 		'post_type' => 'wapf_product',
