@@ -288,7 +288,7 @@ integration proof.
    return annotations. Run actual activation, REST save/preview success/error, storefront,
    classic/Store API cart, checkout, order metadata, and order-again on
    PHP 7.4/WordPress 6.5/WooCommerce 9.0. This establishes OPF's own floor first.
-2. Backport incompatible syntax in the three files still rejected by PHP 7.1;
+2. Backport incompatible syntax in the two files still rejected by PHP 7.1;
    preserve closure captures explicitly. The archive JSON dependency now has
    PHP 7.1 runtime proof above; extend it to populated archives after the
    syntax backport. Prove valid/malformed archives
@@ -340,3 +340,19 @@ A fresh lint of all 36 shipped PHP files now leaves three syntax failures:
 `Engine/Calculator.php:22`, `Engine/FieldGroup.php:35`, and
 `Service/CartIntegration.php:848`. This remains syntax-only evidence; the
 PHP 7.1 runtime and WAPF platform row are not yet proven.
+
+## FieldGroup PHP 7.1 syntax follow-up — 2026-10-02
+
+Public commit `c4600d4` removes the typed property declaration from
+`Engine/FieldGroup.php`; its array PHPDoc, normalizing constructor, and internal
+array assignments remain. Actual PHP 7.1.33 lint passes. Focused schema/upload
+tests pass (34 tests / 83 assertions), and the full suite passes (276 tests /
+1,070 assertions, with one existing metadata deprecation). A five-fixture
+normalization/serialization probe, including upload defaults and settings, is
+byte-identical on PHP 8.5 before/after and PHP 7.1 after.
+
+A fresh lint of all 36 shipped PHP files now leaves two syntax failures:
+`Engine/Calculator.php:22` and `Service/CartIntegration.php:848`. The removed
+runtime property type enforcement is a small internal type-safety loss; current
+constructor and in-repository assignment paths pass arrays. PHP 7.1 platform
+parity remains open pending these failures and full runtime/commerce-floor proof.
