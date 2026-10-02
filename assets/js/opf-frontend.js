@@ -1032,6 +1032,70 @@ const writeTotals = () => {
   const qtyInput = document.querySelector('form.cart input[name="quantity"], form.cart .qty');
   const qty = Math.max(1, parseInt(qtyInput && qtyInput.value, 10) || 1);
 
+  // The server validates every quantity repeater against product quantity
+  // before it splits cart lines. Never show a payable total for mismatched or
+  // gapped rows while the customer edits the form.
+  const quantityRepeaters = [];
+  let invalidQuantityRows = false;
+  document.querySelectorAll('[data-opf-group]').forEach((groupEl) => {
+    const gid = groupEl.getAttribute('data-opf-group');
+    groupEl.querySelectorAll('[data-opf-repeat="quantity"][data-opf-field]').forEach((repeater) => {
+      const rows = repeater.querySelector(':scope > .opf-field-repeat__rows');
+      const instances = rows ? Array.from(rows.querySelectorAll(':scope > [data-opf-repeat-instance]')) : [];
+      if (instances.length !== qty) invalidQuantityRows = true;
+      instances.forEach((instance, index) => {
+        const namedInputs = Array.from(instance.querySelectorAll('[name]'));
+        if (namedInputs.some((input) => {
+          const match = /\[(\d+)\](?:\[\])?$/.exec(input.name);
+          return !match || Number(match[1]) !== index;
+        })) invalidQuantityRows = true;
+      });
+      quantityRepeaters.push({ gid, repeater, instances });
+    });
+  });
+  if (invalidQuantityRows) {
+    totalsEl.querySelectorAll('.opf-product-total, .wapf-product-total, .opf-options-total, .wapf-options-total, .opf-grand-total, .wapf-grand-total').forEach((el) => { el.textContent = ''; });
+    return;
+  }
+
+  const readRepeatControl = (element, def) => {
+    if (def.type === 'image_quantity') {
+      const quantities = {};
+      element.querySelectorAll('.opf-image-quantity__input').forEach((input) => { quantities[input.dataset.choiceSlug] = Math.max(0, parseInt(input.value, 10) || 0); });
+      return { _opf_type: 'image_quantity', quantities };
+    }
+    if (def.type === 'toggle') {
+      const checkbox = element.querySelector('input[type="checkbox"]');
+      return checkbox && checkbox.checked ? '1' : '0';
+    }
+    if (def.type === 'checkbox' || (def.type === 'swatch' && def.multiple)) {
+      return Array.from(element.querySelectorAll('input[type="checkbox"]:checked')).map((input) => input.value);
+    }
+    const checked = element.querySelector('input:checked');
+    const input = checked || element.querySelector('input:not([type="hidden"]), textarea, select');
+    return input ? input.value : '';
+  };
+  // Match the product-wide server split signature. Repeater labels are
+  // presentation only; cart unit identity is group id + field id + row value.
+  const unitSigs = quantityRepeaters.length
+    ? Array.from({ length: qty }, (_, unitIndex) => JSON.stringify(quantityRepeaters.map(({ gid, repeater, instances }) => {
+      const fid = repeater.getAttribute('data-opf-field');
+      const instance = instances[unitIndex];
+      if (repeater.hasAttribute('data-opf-section-repeat')) {
+        const scoped = {};
+        if (instance) {
+          instance.querySelectorAll('[data-opf-field]').forEach((scopedField) => {
+            const scopedId = scopedField.getAttribute('data-opf-field');
+            if (!scopedId || scopedField.hasAttribute('data-opf-section-repeat')) return;
+            scoped[scopedId] = readRepeatControl(scopedField, (window.OPF_FIELDS || {})[gid]?.[scopedId] || {});
+          });
+        }
+        return [gid + ':' + fid, scoped];
+      }
+      return [gid + ':' + fid, instance ? readRepeatControl(instance, (window.OPF_FIELDS || {})[gid]?.[fid] || {}) : null];
+    })))
+    : [];
+
   let optionsTotal = 0; // line-space display total
   let addonsPU = 0; // running per-unit addon sum — the [addons] context space
   const fieldPrices = {};
@@ -1118,26 +1182,6 @@ const writeTotals = () => {
     // whose quantity is the count of identical units. The clone signature is
     // the WHOLE unit — every quantity-scope field's value at that index —
     // exactly what CartIntegration::split_quantity_repeat_cart_item hashes.
-    const qtyRepeaters = Array.from(fields).filter((el) => el.getAttribute('data-opf-repeat') === 'quantity');
-    const unitCount = Math.max(qty, ...qtyRepeaters.map((el) => el.querySelectorAll('.opf-field-repeat__rows > [data-opf-repeat-instance]').length));
-    const unitSigs = qtyRepeaters.length
-      ? Array.from({ length: unitCount }, (_, unitIndex) => JSON.stringify(Object.fromEntries(qtyRepeaters.map((repeater) => {
-        const cid = repeater.getAttribute('data-opf-field');
-        if (repeater.hasAttribute('data-opf-section-repeat')) {
-          const instance = repeater.querySelectorAll('.opf-field-repeat__rows > [data-opf-repeat-instance]')[unitIndex];
-          const scoped = {};
-          if (instance) {
-            instance.querySelectorAll('[data-opf-field]').forEach((scopedField) => {
-              const scopedId = scopedField.getAttribute('data-opf-field');
-              if (!scopedId || scopedField.hasAttribute('data-opf-section-repeat')) return;
-              scoped[scopedId] = readFieldControl(scopedField, (window.OPF_FIELDS || {})[gid]?.[scopedId] || {});
-            });
-          }
-          return [cid, scoped];
-        }
-        return [cid, Array.isArray(values[cid]) ? (values[cid][unitIndex] ?? null) : null];
-      }))))
-      : [];
     // unitIndex → { count, firstIndex } — identical-unit group size + leader.
     const unitGroups = unitSigs.map((sig, unitIndex) => {
       let count = 0;
