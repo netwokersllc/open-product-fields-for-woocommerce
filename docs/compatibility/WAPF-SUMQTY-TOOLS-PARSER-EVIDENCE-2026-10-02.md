@@ -60,9 +60,9 @@ runtime `Field::$meta` property as a top-level `meta` value (lines 67-76),
 while the Extended parser's reserved-key list (lines 161-169) does not include
 `meta`; the generic extra-attribute handling therefore retains it under
 `options`. This is WAPF's parser/projection delta. The formula and image
-quantity settings were byte/value-preserved. OPF's mapping change is scoped to
-`options.meta` handling only; no calculator or storefront JavaScript behavior
-was part of this lane.
+quantity settings were byte/value-preserved. OPF does not currently normalize
+this unrelated WAPF `options.meta` projection artifact. No calculator or
+storefront JavaScript behavior was part of this lane.
 
 For formula acceptance, the Extended parser sanitizes `pricing_amount` as
 textfield for `pricing_type === 'fx'` (`:217-223`), preserving this expression.
