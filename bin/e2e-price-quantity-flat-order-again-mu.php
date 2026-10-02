@@ -6,14 +6,15 @@ $GLOBALS['opf_qfl_pre_wp_mail_calls'] = 0;
 $GLOBALS['opf_qfl_pre_wp_mail_short_circuits'] = 0;
 add_filter( 'pre_wp_mail', static function ( $pre, $atts ) {
 	$GLOBALS['opf_qfl_pre_wp_mail_calls']++;
-	$GLOBALS['opf_qfl_pre_wp_mail_short_circuits']++;
+	$result = true;
+	if ( true === $result ) { $GLOBALS['opf_qfl_pre_wp_mail_short_circuits']++; }
 	$state = get_option( 'opf_qfl_order_again_state' );
 	if ( is_array( $state ) && ! empty( $state['run_id'] ) ) {
 		$state['browser_mail_hook_calls'] = (int) ( $state['browser_mail_hook_calls'] ?? 0 ) + 1;
-		$state['browser_mail_short_circuits'] = (int) ( $state['browser_mail_short_circuits'] ?? 0 ) + 1;
+		if ( true === $result ) { $state['browser_mail_short_circuits'] = (int) ( $state['browser_mail_short_circuits'] ?? 0 ) + 1; }
 		update_option( 'opf_qfl_order_again_state', $state );
 	}
-	return true;
+	return $result;
 }, PHP_INT_MAX, 2 );
 
 add_action( 'init', static function () {

@@ -1,6 +1,6 @@
 {
     "completed": true,
-    "run_id": "8dbb6fef-0ebc-4c2b-83de-aded162e4d52",
+    "run_id": "4071d4e2-dd01-440e-aaac-17073e8d4a2b",
     "runtime": {
         "woocommerce": "11.1.0",
         "wapf": "3.1.5",
@@ -8,7 +8,7 @@
     },
     "orders": {
         "wapf": {
-            "id": 153,
+            "id": 171,
             "status": "completed",
             "total": 33.57,
             "items": [
@@ -44,13 +44,13 @@
                                 }
                             ]
                         },
-                        "cart_item_key": "e5a01fec59ae962b6a36b15907fcca99"
+                        "cart_item_key": "b0cfdc869a71897d17ab0cacf05ebcb3"
                     }
                 }
             ]
         },
         "opf": {
-            "id": 154,
+            "id": 172,
             "status": "completed",
             "total": 33.57,
             "items": [
@@ -58,7 +58,7 @@
                     "quantity": 3,
                     "line_total": 31.005,
                     "line_tax": 2.56,
-                    "choice_meta": "{\"152\":{\"plan\":\"qtyflat\"}}"
+                    "choice_meta": "{\"170\":{\"plan\":\"qtyflat\"}}"
                 }
             ]
         }
@@ -72,7 +72,7 @@
     },
     "browser": {
         "completed": true,
-        "run_id": "8dbb6fef-0ebc-4c2b-83de-aded162e4d52",
+        "run_id": "4071d4e2-dd01-440e-aaac-17073e8d4a2b",
         "base": "http://127.0.0.1:8207",
         "checks": [
             {
@@ -198,8 +198,8 @@
             "opf_source": "/tmp/opf-quantity-fee-lifecycle-20261002"
         },
         "orders": {
-            "wapf": 153,
-            "opf": 154
+            "wapf": 171,
+            "opf": 172
         },
         "mail_suppression_setup": {
             "hook_calls": 4,
@@ -208,27 +208,27 @@
     },
     "verification": {
         "passed": true,
-        "run_id": "8dbb6fef-0ebc-4c2b-83de-aded162e4d52",
-        "browser_result_sha256": "76bf9d3bdc7efc31180496407f4017c971ed456b195186cf1416442928ef6c34"
+        "run_id": "4071d4e2-dd01-440e-aaac-17073e8d4a2b",
+        "browser_result_sha256": "2e5cbc3f48216a98a3abc73ca612481c6795525c723508365478f079ca87329a"
     },
     "cleanup": {
         "order_ids": [
-            153,
-            154
+            171,
+            172
         ],
         "orders_absent_via_wc_get_order": true,
         "product_ids": [
-            150,
-            151
+            168,
+            169
         ],
         "products_absent": true,
         "group_ids": [
-            152
+            170
         ],
         "groups_absent": true,
-        "customer_id": 11,
+        "customer_id": 12,
         "customer_absent": true,
-        "tax_rate_id": 23,
+        "tax_rate_id": 27,
         "tax_rate_absent": true,
         "cart_empty": true,
         "fixture_state_absent": true,

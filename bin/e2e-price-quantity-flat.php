@@ -38,6 +38,7 @@ $contains = static function ( $value, string $needle ) use ( &$contains ): bool 
 	return false;
 };
 $cleanup = [];
+$artifact_path = __DIR__ . '/../docs/compatibility/qfl-main-e2e-results.json';
 $safe_write = static function ( string $path, string $contents ): void {
 	if ( is_link( dirname( $path ) ) || is_link( $path ) ) { throw new RuntimeException( "Refusing symlink artifact path or parent directory: $path" ); }
 	$temp = $path . '.' . bin2hex( random_bytes( 8 ) ) . '.tmp';
@@ -50,6 +51,11 @@ $safe_write = static function ( string $path, string $contents ): void {
 	chmod( $temp, 0600 );
 	if ( is_link( $path ) || ! rename( $temp, $path ) ) { @unlink( $temp ); throw new RuntimeException( "Cannot safely replace artifact: $path" ); }
 };
+
+if ( is_link( $artifact_path ) ) { throw new RuntimeException( "Refusing symlink evidence artifact: $artifact_path" ); }
+if ( file_exists( $artifact_path ) && ! is_file( $artifact_path ) ) { throw new RuntimeException( "Refusing non-regular evidence artifact: $artifact_path" ); }
+if ( is_file( $artifact_path ) && ! unlink( $artifact_path ) ) { throw new RuntimeException( "Could not invalidate prior evidence artifact: $artifact_path" ); }
+if ( file_exists( $artifact_path ) ) { throw new RuntimeException( "Prior evidence artifact remains: $artifact_path" ); }
 
 try {
 	update_option( 'woocommerce_calc_taxes', 'yes' );
@@ -195,7 +201,9 @@ try {
 		] );
 		$assert( ! is_wp_error( $order_id ) && $order_id > 0, "$engine checkout order creation failed: " . ( is_wp_error( $order_id ) ? $order_id->get_error_message() : 'no id' ) );
 		$order_ids[] = (int) $order_id;
+		if ( '1' === getenv( 'OPF_QFL_TEST_FAIL_BEFORE_ORDER_MARKER' ) && 'wapf' === $engine ) { throw new RuntimeException( 'Injected rollback test before fixture order marker persistence.' ); }
 		$order = wc_get_order( $order_id );
+		$assert( $order instanceof WC_Order, "$engine created order cannot be loaded through Woo CRUD." );
 		$order->update_meta_data( '_opf_qfl_fixture_run', $run_id );
 		$order->save();
 		$order->set_customer_id( 1 );
@@ -229,7 +237,8 @@ try {
 	}
 	foreach ( $order_ids as $order_id ) {
 		$order = wc_get_order( $order_id );
-		if ( $order && $run_id === $order->get_meta( '_opf_qfl_fixture_run', true ) ) { $order->delete( true ); }
+		if ( $order ) { $order->delete( true ); }
+		if ( false !== wc_get_order( $order_id ) ) { throw new RuntimeException( "Fixture-created order $order_id remains after Woo CRUD rollback." ); }
 	}
 	foreach ( $group_ids as $group_id ) {
 		wp_delete_post( $group_id, true );
@@ -261,6 +270,5 @@ try {
 }
 
 $artifact = [ 'completed' => true, 'run_id' => $run_id, 'runtime' => $runtime + [ 'tax_rate_id' => $tax_rate_id ], 'results' => $results, 'cleanup' => $cleanup ];
-$artifact_path = __DIR__ . '/../docs/compatibility/qfl-main-e2e-results.json';
 $safe_write( $artifact_path, wp_json_encode( $artifact, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) . "\n" );
 echo wp_json_encode( $artifact, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ), "\n";

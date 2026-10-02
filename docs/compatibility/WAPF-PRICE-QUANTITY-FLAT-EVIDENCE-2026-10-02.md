@@ -91,6 +91,14 @@ and cleans up in its exit trap. Reproduction command, from this worktree:
 OPF_QFL_PROOF_ALLOW=1 bin/run-e2e-price-quantity-flat-proof.sh
 ```
 
+At setup, both fixtures reject symlink evidence paths and invalidate prior
+regular result artifacts before making fixture changes, so a failed rerun
+cannot leave an older `completed: true` result in place. A clone-only injected
+failure before main-order marker persistence confirmed that the fresh order
+was deleted through Woo CRUD and that no prior completed artifact remained.
+An injected order-again setup failure after artifact invalidation likewise
+left neither prior result artifact nor fixture state.
+
 After the browser and verifier passed, cleanup removed the temporary products,
 group, customer, completed orders, tax rate, cart, and saved test state, then
 restored all tax options. The runner stopped its isolated server process group

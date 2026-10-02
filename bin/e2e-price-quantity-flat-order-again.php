@@ -72,6 +72,12 @@ if ( 'setup' === $phase ) {
 		if ( is_link( $browser_result_path ) ) { throw new RuntimeException( 'Refusing symlink browser result artifact.' ); }
 		$run_result_path = __DIR__ . '/../docs/compatibility/qfl-order-again-run-results.json';
 		if ( is_link( $run_result_path ) ) { throw new RuntimeException( 'Refusing symlink run result artifact.' ); }
+		foreach ( [ $browser_result_path, $run_result_path ] as $artifact_path ) {
+			if ( file_exists( $artifact_path ) && ! is_file( $artifact_path ) ) { throw new RuntimeException( "Refusing non-regular evidence artifact: $artifact_path" ); }
+			if ( is_file( $artifact_path ) && ! unlink( $artifact_path ) ) { throw new RuntimeException( "Could not invalidate prior evidence artifact: $artifact_path" ); }
+			if ( file_exists( $artifact_path ) ) { throw new RuntimeException( "Prior evidence artifact remains: $artifact_path" ); }
+		}
+		if ( '1' === getenv( 'OPF_QFL_TEST_FAIL_AFTER_EVIDENCE_INVALIDATION' ) ) { throw new RuntimeException( 'Injected setup failure after evidence invalidation.' ); }
 		update_option( 'woocommerce_calc_taxes', 'yes' );
 		update_option( 'woocommerce_prices_include_tax', 'no' );
 		update_option( 'woocommerce_tax_display_shop', 'excl' );
