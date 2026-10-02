@@ -19,6 +19,7 @@ $product_id = 0;
 $group_id = 0;
 $button_product_id = 0;
 $button_group_id = 0;
+$wapf_product_id = 0;
 $admin_only_before = get_option( 'opf_admin_only', 'no' );
 
 $assert = static function ( bool $condition, string $message ): void {
@@ -86,6 +87,42 @@ try {
 	], [ 'title' => 'OPF button section E2E fixture' ] );
 	$assert( $button_group_id > 0, 'Could not create the button-section E2E field group.' );
 
+	// Native WAPF 3.1.5 oracle: class-cart.php marks section children as
+	// clone_type=qty, then class-fields.php do_pricing() applies qt amount*qty.
+	$wapf_product = new WC_Product_Simple();
+	$wapf_product->set_name( 'WAPF quantity section pricing oracle' );
+	$wapf_product->set_regular_price( '10.00' );
+	$wapf_product->set_status( 'publish' );
+	$wapf_product_id = (int) $wapf_product->save();
+	$assert( $wapf_product_id > 0, 'Could not create the native WAPF quantity-section oracle product.' );
+	$wapf_group = \SW_WAPF_PRO\Includes\Classes\Field_Groups::raw_json_to_field_group( [
+		'id' => 'p_' . $wapf_product_id,
+		'type' => 'wapf_product',
+		'fields' => [
+			[
+				'id' => 'attendees', 'type' => 'section', 'label' => 'Attendees', 'description' => '', 'class' => '', 'width' => 100,
+				'required' => false, 'default' => '', 'choices' => [], 'conditionals' => [],
+				'clone' => [ 'enabled' => true, 'type' => 'qty', 'label' => 'Guest {n}' ],
+				'pricing' => [ 'enabled' => false, 'type' => 'fixed', 'amount' => 0 ],
+			],
+			[
+				'id' => 'guest_meal', 'type' => 'select', 'label' => 'Guest meal', 'description' => '', 'class' => '', 'width' => 100,
+				'required' => true, 'default' => '', 'conditionals' => [],
+				'choices' => [ [ 'slug' => 'soup', 'label' => 'Soup', 'pricing_type' => 'qt', 'pricing_amount' => 2 ] ],
+				'pricing' => [ 'enabled' => false, 'type' => 'fixed', 'amount' => 0 ],
+			],
+			[
+				'id' => 'attendees_end', 'type' => 'sectionend', 'label' => '', 'description' => '', 'class' => '', 'width' => 100,
+				'required' => false, 'default' => '', 'choices' => [], 'conditionals' => [],
+				'pricing' => [ 'enabled' => false, 'type' => 'fixed', 'amount' => 0 ],
+			],
+		],
+		'conditions' => [],
+		'layout' => [ 'labels_position' => 'above', 'instructions_position' => 'field', 'mark_required' => true ],
+		'variables' => [],
+	] );
+	update_post_meta( $wapf_product_id, '_wapf_fieldgroup', $wapf_group->to_array() );
+
 	$cart = WC()->cart;
 	$cart->empty_cart();
 	$response = $add_store_item( $product_id, [ (string) $group_id => [
@@ -139,7 +176,31 @@ try {
 	$assert( in_array( $identical_response->get_status(), [ 200, 201 ], true ), 'Store API rejected identical quantity-section rows: ' . wp_json_encode( $identical_response->get_data() ) );
 	$identical_items = array_values( array_filter( $cart->get_cart(), static fn( $item ) => (int) $item['product_id'] === $product_id ) );
 	$assert( 1 === count( $identical_items ) && 2 === (int) $identical_items[0]['quantity'], 'Identical section rows did not merge into a quantity-2 cart line.' );
-	$assert( 12.0 === (float) $identical_items[0]['data']->get_price( 'edit' ), 'Merged section row has incorrect per-unit pricing.' );
+	$cart->calculate_totals();
+	$identical_items = array_values( array_filter( $cart->get_cart(), static fn( $item ) => (int) $item['product_id'] === $product_id ) );
+	$assert( 14.0 === (float) $identical_items[0]['data']->get_price( 'edit' ), 'Merged section row did not match WAPF qty-clone per-unit pricing.' );
+	$assert( 28.0 === (float) $identical_items[0]['line_subtotal'], 'Merged section row did not retain qty 2 subtotal at the WAPF per-unit price.' );
+
+	$cart->empty_cart();
+	$_POST['wapf_field_groups'] = 'p_' . $wapf_product_id;
+	$_REQUEST['wapf_field_groups'] = 'p_' . $wapf_product_id;
+	$_POST['wapf'] = [ 'field_guest_meal' => 'soup', 'field_guest_meal_clone_2' => 'soup' ];
+	$_REQUEST['wapf'] = $_POST['wapf'];
+	$wapf_added = $cart->add_to_cart( $wapf_product_id, 2 );
+	$assert( false !== $wapf_added, 'Could not add the native WAPF quantity-section oracle to the cart.' );
+	// WAPF calculates once per request and skips later totals passes.
+	$GLOBALS['wp_actions']['woocommerce_before_calculate_totals'] = 0;
+	$cart->calculate_totals();
+	$wapf_items = array_values( array_filter( $cart->get_cart(), static fn( $item ) => (int) $item['product_id'] === $wapf_product_id ) );
+	$assert( 1 === count( $wapf_items ) && 2 === (int) $wapf_items[0]['quantity'], 'Native WAPF quantity clones did not stay on the qty-2 cart line.' );
+	$wapf_child = array_values( array_filter( $wapf_items[0]['wapf'] ?? [], static fn( $field ) => 'guest_meal' === ( $field['id'] ?? '' ) ) )[0] ?? [];
+	$wapf_value = $wapf_child['values'][0] ?? [];
+	$assert( 'qty' === ( $wapf_child['clone_type'] ?? null ) && 'qt' === ( $wapf_value['price_type'] ?? null ), 'Native WAPF fixture did not produce a qty-cloned qt child: ' . wp_json_encode( $wapf_child ) );
+	$assert( 4.0 === (float) ( $wapf_value['calc_price'] ?? -1 ), 'Native WAPF qty-cloned qt amount did not resolve to amount × qty: ' . wp_json_encode( $wapf_value ) );
+	$assert( 14.0 === (float) $wapf_items[0]['data']->get_price( 'edit' ) && 28.0 === (float) $wapf_items[0]['line_subtotal'], 'Native WAPF qty-cloned qt cart did not price at $14 per unit / $28 subtotal.' );
+	unset( $_POST['wapf_field_groups'], $_REQUEST['wapf_field_groups'] );
+	$_POST['wapf'] = [];
+	$_REQUEST['wapf'] = [];
 	$order = new WC_Order();
 	$order_item = new WC_Order_Item_Product();
 	$order_item->set_product( $identical_items[0]['data'] );
@@ -231,6 +292,16 @@ try {
 			}
 		}
 		wp_delete_post( $button_product_id, true );
+	}
+	if ( $wapf_product_id > 0 ) {
+		if ( function_exists( 'WC' ) && WC()->cart ) {
+			foreach ( WC()->cart->get_cart() as $key => $item ) {
+				if ( (int) ( $item['product_id'] ?? 0 ) === $wapf_product_id ) {
+					WC()->cart->remove_cart_item( $key );
+				}
+			}
+		}
+		wp_delete_post( $wapf_product_id, true );
 	}
 	FieldGroups::flush_cache();
 	wc_clear_notices();
