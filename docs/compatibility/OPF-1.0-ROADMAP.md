@@ -34,9 +34,9 @@ The 132 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 | Status | Rows | Meaning for the gate |
 | --- | ---: | --- |
 | Baseline supported | 4 | Promising baseline only; not accepted as proof |
-| Supported | 5 | Fresh supported-row audit retained only independently justified evidence |
+| Supported | 6 | Fresh supported-row audit retained only independently justified evidence; email lifecycle now has full native/WAPF/commerce proof |
 | Supported with documented difference | 8 | Needs explicit non-regression review and acceptance |
-| Partial | 114 | Material parity or proof remains; 15 prior supported claims were withdrawn after source/test audit; both upload rows now have a private-storage foundation but still lack builder/import/export parity and additional lifecycle proof |
+| Partial | 113 | Material parity or proof remains; 15 prior supported claims were withdrawn after source/test audit; both upload rows now have a private-storage foundation but still lack builder/import/export parity and additional lifecycle proof |
 | Gap | 1 | Known absent in the current OPF tree |
 | Needs audit | 0 | Available source, marketing claims, and every published release delta are mapped; exact release details remain scoped to partial rows |
 | **Total** | **132** | **G1 complete for available evidence; G2 remains open** |
@@ -58,11 +58,17 @@ conversion is implemented and passed a disposable Woo test against a fake API
 contract, but the commercial plugin, linked-product conversion, and a wired
 pricing-hint path remain unverified. Neither row counts as supported.
 
-A fresh evidence review removed 15 stale `supported` claims. Five rows remain
-supported after that review; the other claims are partial or identified as
-outside WAPF parity. See [the supported-row audit](SUPPORTED-ROW-AUDIT-2026-10-01.md).
-Current strict progress is **5/132 accepted supported rows**; this correction
+A fresh evidence review removed 15 stale `supported` claims. Five rows remained
+after that review; email later advanced separately based on new lifecycle
+evidence. See [the supported-row audit](SUPPORTED-ROW-AUDIT-2026-10-01.md).
+Current strict progress is **6/132 accepted supported rows**; this correction
 changes the evidence-based count, not previously implemented behavior.
+
+`WAPF-FIELD-EMAIL` advanced from `partial` to `supported` on 2026-10-02.
+Chromium and disposable WooCommerce/WAPF Free evidence covers admin
+save/reload, native and forged input validation, WAPF import/export fidelity,
+classic and Store API checkouts, exact order/email persistence, and order-again.
+See [email lifecycle evidence](EMAIL-FIELD-LIFECYCLE-EVIDENCE.md).
 
 The upload field and Ajax UI advanced from `gap` to `partial` on the public
 branch after a reviewed private-storage foundation landed. Disposable
