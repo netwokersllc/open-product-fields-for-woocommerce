@@ -104,7 +104,9 @@ final class WapfWxrExporter {
 				'conditionals' => array_values( (array) ( $field['conditionals'] ?? [] ) ),
 				'pricing' => [
 					'type' => (string) ( $field['pricing']['type'] ?? 'none' ),
-					'amount' => (float) ( $field['pricing']['amount'] ?? 0 ),
+					// Formula pricing stores an expression, not a numeric amount.
+					// The JSON exporter already validates its WAPF representation.
+					'amount' => $field['pricing']['amount'] ?? 0,
 					'enabled' => (bool) ( $field['pricing']['enabled'] ?? false ),
 				],
 			];

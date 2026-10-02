@@ -24,6 +24,7 @@ User-facing changes to Open Product Fields for WooCommerce.
 - WAPF imports and exports preserve the matching single/multiple swatch type
   and its supported settings.
 - WAPF local text-field imports preserve configured default values.
+- WAPF WXR exports retain field-level formula pricing expressions.
 - Paragraphs support plain text or restricted HTML, with optional WordPress
   shortcode processing. WAPF Extended `p` content imports and exports with its
   markup and shortcode payload preserved.
