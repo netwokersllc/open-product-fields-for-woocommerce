@@ -28,7 +28,7 @@ does not change the audited version boundary.
 
 ## Progress now — 2026-10-02
 
-The 132 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
+The 131 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 “All versions” rows. Current recorded status:
 
 | Status | Rows | Meaning for the gate |
@@ -36,10 +36,16 @@ The 132 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 | Baseline supported | 1 | Promising baseline only; not accepted as proof |
 | Supported | 9 | Select, radio, email, and generic cart/order lifecycle have executed behavior and commerce evidence |
 | Supported with documented difference | 9 | Includes the native toggle lifecycle; differences need explicit non-regression review and acceptance |
-| Partial | 112 | Material parity or proof remains; 15 prior supported claims were withdrawn after source/test audit; both upload rows now have a private-storage foundation but still lack builder/import/export parity and additional lifecycle proof |
+| Partial | 111 | Material parity or proof remains; 15 prior supported claims were withdrawn after source/test audit; both upload rows now have a private-storage foundation but still lack builder/import/export parity and additional lifecycle proof |
 | Gap | 1 | Known absent in the current OPF tree |
 | Needs audit | 0 | Available source, marketing claims, and every published release delta are mapped; exact release details remain scoped to partial rows |
-| **Total** | **132** | **G1 complete for available evidence; G2 remains open** |
+| **Total** | **131** | **G1 complete for available evidence; G2 remains open** |
+
+The previously listed `WAPF-MIGRATION-REPORT-REPEATABILITY` item is an OPF-only
+release-safety check, not a WAPF capability. It is excluded from the parity
+denominator and remains required under G4: guarded archive E2E covers dry-run,
+review-draft handling, and idempotent repeat import in
+`bin/e2e-opf-archive-portability.php`.
 
 After the WPML and Aelia implementation commits reached the public branch on
 2026-10-01, each row moved from `gap` to `partial`. WPML native field-group
@@ -61,7 +67,9 @@ pricing-hint path remain unverified. Neither row counts as supported.
 A fresh evidence review removed 15 stale `supported` claims. Five rows remained
 after that review; email later advanced separately based on new lifecycle
 evidence. See [the supported-row audit](SUPPORTED-ROW-AUDIT-2026-10-01.md).
-Current strict progress is **9/132 accepted supported rows (6.8%)**. The select
+Current strict progress is **9/131 accepted supported rows (6.9%)**. This
+denominator correction reclassifies one OPF-only release check; it is not feature
+completion. The select
 and radio rows advanced from baseline-supported after the source-matched
 required-choice lifecycle passed in Chromium, WAPF Free, classic and Store API
 commerce, persisted orders, and order-again. See
@@ -144,7 +152,7 @@ WordPress floor claims also remain unresolved. The audit changes no scope or
 status counts.
 
 Extended-only rows: 28 total; 0 supported, 4 supported with a documented
-difference, 24 partial, and no known gaps, matching the capability ledger. All 132 edition rows have a ledger status. The
+difference, 24 partial, and no known gaps, matching the capability ledger. All 131 edition rows have a ledger status. The
 available-source audit covers installed Extended 3.1.5, public Free 1.7.1,
 current tier/marketing claims, and every published Extended 3.1.6–3.2.1 and
 Pro 3.2.2 changelog change. Exact current-package details not specified in
@@ -170,7 +178,7 @@ defines scope; it does not count as implementation or commerce proof.
 | D | Map official changes from Extended 3.1.6–3.2.1 and Pro 3.2.2 to ledger rows | Done | Every published change is mapped in the dated crosswalk; changelog claims remain separate from runtime proof |
 | E | Look for the licensed current Extended 3.2.1 archive and verify its version/hash | Done for this audit | Server and source searches found installed Extended 3.1.5 only; package absence is recorded and is not a stop condition |
 | F | Audit available core source, Free source, tier/marketing claims, and release deltas | Done | Installed 3.1.5 + public Free 1.7.1 source maps and official 3.1.6–3.2.2 changelog crosswalk; undisclosed current-package details are noted on affected rows |
-| G | Reconcile all 132 edition rows to available source/docs and bound unknowns | Done | Every row has evidence, known behavior or uncertainty, OPF status, and proof gap; no unbounded source-audit item remains |
+| G | Reconcile all 131 edition rows to available source/docs and bound unknowns | Done | Every row has evidence, known behavior or uncertainty, OPF status, and proof gap; no unbounded source-audit item remains |
 | H | Fresh review of audit and ledger, then freeze available-source baseline | Done | Audit and ledger reviewed on 2026-09-30; later source may refine individual rows |
 
 G1 is complete for the available-source baseline. Continue using installed
@@ -216,7 +224,7 @@ marketplace requirements are reviewed against the exact release commit.
 | 3 | Extended field experiences | **Active for documented/source-confirmed behavior** | Close cards and main-image switching, child/linked products (specific and category sources, fixed/none category price type), image choices with quantity limits/zoom, date policies/cutoffs, calculation display and price modes, and formula-driven weight. | Admin save/reload and keyboard-accessible product-page behavior match the audited source contract; each field's stored/imported state and invalid-input behavior are covered. |
 | 4 | WooCommerce lifecycle and integrations | **Active** | Close pricing/tax/coupons/currency, classic and Store API carts, cart editing, stock and parent-child quantity/removal, checkout/order metadata, order-again, refunds/restocks, and each claimed theme/plugin integration. | Every applicable row has end-to-end evidence through the relevant storefront, server validation, cart, checkout/order, and restore/refund paths. No integration is claimed from static markup alone. |
 | 5 | Admin, display, and accessibility parity | **Active against available source/docs; current-package-only details remain gated** | Close global/product settings, builder usability, field-group listing/search/scheduling, visual design, price summaries/hints, translations, screen-reader/keyboard behavior, and responsive layouts against current docs/source. | Every UI row has admin save/reload and browser evidence; accessibility and responsive acceptance criteria are recorded in the ledger. |
-| 6 | Ledger closure and release candidate | **Not started; depends on WP1–5** | Review all 132 edition rows with a fresh reviewer; resolve or explicitly document every difference; security/privacy, supported WordPress/WooCommerce/PHP versions, upgrade/uninstall, packaging, docs, changelog, rollback, and marketplace requirements. Add a release-candidate manifest and reproducible verification record. | **G2:** no baseline-supported/partial/gap/needs-audit rows and no unaccepted difference. **G3:** applicable commerce proofs pass. **G4:** release checklist passes before 1.0 tag/publication. |
+| 6 | Ledger closure and release candidate | **Not started; depends on WP1–5** | Review all 131 edition rows with a fresh reviewer; resolve or explicitly document every difference; security/privacy, supported WordPress/WooCommerce/PHP versions, upgrade/uninstall, packaging, docs, changelog, rollback, and marketplace requirements. Add a release-candidate manifest and reproducible verification record. | **G2:** no baseline-supported/partial/gap/needs-audit rows and no unaccepted difference. **G3:** applicable commerce proofs pass. **G4:** release checklist passes before 1.0 tag/publication. |
 
 Packages 1–5 proceed in the listed order using the best available evidence.
 Features whose semantics are established by available source/docs move
@@ -240,7 +248,7 @@ decomposed into sized implementation and verification tasks.
 ## Non-negotiable release goalposts
 
 1. **G1 source freeze:** available installed source, public Free source, current
-   marketing/tier claims, published changelogs, and all 132 edition rows are
+   marketing/tier claims, published changelogs, and all 131 edition rows are
    mapped. Unpublished current-package details remain bounded to affected rows;
    G1 is complete for the available evidence and does not block implementation.
 2. **G2 capability parity:** every edition row supported or has a reviewed,
