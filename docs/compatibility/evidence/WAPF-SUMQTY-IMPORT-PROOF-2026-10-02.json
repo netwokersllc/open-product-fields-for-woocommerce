@@ -1,0 +1,465 @@
+{
+  "scope": "Native WAPF classic cart and imported OPF classic cart; valid nonnegative integer quantities only; no licensed Tools UI proof.",
+  "import": {
+    "source": "meta:68",
+    "result": "imported",
+    "opf_id": 69,
+    "title": "SumQty import proof product — Prints",
+    "fields": 2,
+    "status": "draft",
+    "needs_review": true,
+    "notes": [
+      "field \"Prints\" is an image swatch; choice media references are imported, but image files are not bundled and attachment IDs may need remapping on the destination site."
+    ]
+  },
+  "raw": {
+    "id": "p_68",
+    "type": "wapf_product",
+    "conditions": [],
+    "variables": [],
+    "fields": [
+      {
+        "id": "PrintID",
+        "type": "image-swatch-qty",
+        "label": "Prints",
+        "conditionals": [],
+        "choices": [
+          {
+            "slug": "oak",
+            "label": "Oak",
+            "pricing_type": "none",
+            "pricing_amount": 0,
+            "min": 0,
+            "max": 12,
+            "default": 0
+          },
+          {
+            "slug": "ash",
+            "label": "Ash",
+            "pricing_type": "none",
+            "pricing_amount": 0,
+            "min": 0,
+            "max": 12,
+            "default": 0
+          }
+        ]
+      },
+      {
+        "id": "FeeID",
+        "type": "select",
+        "label": "Fee",
+        "conditionals": [],
+        "choices": [
+          {
+            "slug": "selected",
+            "label": "Quantity fee",
+            "pricing_type": "fx",
+            "pricing_amount": "sumQty(PrintID)*[qty]"
+          }
+        ]
+      }
+    ]
+  },
+  "pricing": {
+    "type": "formula",
+    "amount": 0,
+    "formula": "sumQty(prints)",
+    "formula_raw": "sumQty(prints)*[qty]",
+    "per_unit": true
+  },
+  "results": [
+    {
+      "oak": 2,
+      "ash": 3,
+      "quantity": 1,
+      "wapf": {
+        "unit": 15,
+        "line": 15,
+        "fields": [
+          {
+            "id": "PrintID",
+            "type": "image-swatch-qty",
+            "raw": {
+              "oak": "2",
+              "ash": "3"
+            },
+            "values": [
+              {
+                "label": "2",
+                "price": 0,
+                "price_type": "none",
+                "slug": "oak",
+                "use_label": true,
+                "formatted_label": "Oak: 2"
+              },
+              {
+                "label": "3",
+                "price": 0,
+                "price_type": "none",
+                "slug": "ash",
+                "use_label": true,
+                "formatted_label": "Ash: 3"
+              }
+            ],
+            "clone_type": "",
+            "clone_idx": 0,
+            "label": "Prints",
+            "hide_cart": false,
+            "hide_checkout": false,
+            "hide_order": false,
+            "calc_weight": false
+          },
+          {
+            "id": "FeeID",
+            "type": "select",
+            "raw": [
+              "selected"
+            ],
+            "values": [
+              {
+                "label": "Quantity fee",
+                "price": "sumQty(PrintID)*[qty]",
+                "price_type": "fx",
+                "slug": "selected",
+                "calc_price": 5,
+                "pricing_hint": "(+&#36;5.00)"
+              }
+            ],
+            "clone_type": "",
+            "clone_idx": 0,
+            "label": "Fee",
+            "hide_cart": false,
+            "hide_checkout": false,
+            "hide_order": false,
+            "calc_weight": false
+          }
+        ]
+      },
+      "opf": {
+        "unit": 15,
+        "line": 15,
+        "fields": {
+          "69": {
+            "prints": {
+              "_opf_type": "image_quantity",
+              "quantities": {
+                "oak": 2,
+                "ash": 3
+              },
+              "invalid": []
+            },
+            "fee": "selected"
+          }
+        }
+      }
+    },
+    {
+      "oak": 2,
+      "ash": 3,
+      "quantity": 3,
+      "wapf": {
+        "unit": 15,
+        "line": 45,
+        "fields": [
+          {
+            "id": "PrintID",
+            "type": "image-swatch-qty",
+            "raw": {
+              "oak": "2",
+              "ash": "3"
+            },
+            "values": [
+              {
+                "label": "2",
+                "price": 0,
+                "price_type": "none",
+                "slug": "oak",
+                "use_label": true,
+                "formatted_label": "Oak: 2"
+              },
+              {
+                "label": "3",
+                "price": 0,
+                "price_type": "none",
+                "slug": "ash",
+                "use_label": true,
+                "formatted_label": "Ash: 3"
+              }
+            ],
+            "clone_type": "",
+            "clone_idx": 0,
+            "label": "Prints",
+            "hide_cart": false,
+            "hide_checkout": false,
+            "hide_order": false,
+            "calc_weight": false
+          },
+          {
+            "id": "FeeID",
+            "type": "select",
+            "raw": [
+              "selected"
+            ],
+            "values": [
+              {
+                "label": "Quantity fee",
+                "price": "sumQty(PrintID)*[qty]",
+                "price_type": "fx",
+                "slug": "selected",
+                "calc_price": 5,
+                "pricing_hint": "(+&#36;5.00)"
+              }
+            ],
+            "clone_type": "",
+            "clone_idx": 0,
+            "label": "Fee",
+            "hide_cart": false,
+            "hide_checkout": false,
+            "hide_order": false,
+            "calc_weight": false
+          }
+        ]
+      },
+      "opf": {
+        "unit": 15,
+        "line": 45,
+        "fields": {
+          "69": {
+            "prints": {
+              "_opf_type": "image_quantity",
+              "quantities": {
+                "oak": 2,
+                "ash": 3
+              },
+              "invalid": []
+            },
+            "fee": "selected"
+          }
+        }
+      }
+    },
+    {
+      "oak": 3,
+      "ash": 0,
+      "quantity": 2,
+      "wapf": {
+        "unit": 13,
+        "line": 26,
+        "fields": [
+          {
+            "id": "PrintID",
+            "type": "image-swatch-qty",
+            "raw": {
+              "oak": "3",
+              "ash": "0"
+            },
+            "values": [
+              {
+                "label": "3",
+                "price": 0,
+                "price_type": "none",
+                "slug": "oak",
+                "use_label": true,
+                "formatted_label": "Oak: 3"
+              }
+            ],
+            "clone_type": "",
+            "clone_idx": 0,
+            "label": "Prints",
+            "hide_cart": false,
+            "hide_checkout": false,
+            "hide_order": false,
+            "calc_weight": false
+          },
+          {
+            "id": "FeeID",
+            "type": "select",
+            "raw": [
+              "selected"
+            ],
+            "values": [
+              {
+                "label": "Quantity fee",
+                "price": "sumQty(PrintID)*[qty]",
+                "price_type": "fx",
+                "slug": "selected",
+                "calc_price": 3,
+                "pricing_hint": "(+&#36;3.00)"
+              }
+            ],
+            "clone_type": "",
+            "clone_idx": 0,
+            "label": "Fee",
+            "hide_cart": false,
+            "hide_checkout": false,
+            "hide_order": false,
+            "calc_weight": false
+          }
+        ]
+      },
+      "opf": {
+        "unit": 13,
+        "line": 26,
+        "fields": {
+          "69": {
+            "prints": {
+              "_opf_type": "image_quantity",
+              "quantities": {
+                "oak": 3,
+                "ash": 0
+              },
+              "invalid": []
+            },
+            "fee": "selected"
+          }
+        }
+      }
+    },
+    {
+      "oak": 0,
+      "ash": 0,
+      "quantity": 1,
+      "wapf": {
+        "unit": 10,
+        "line": 10,
+        "fields": [
+          {
+            "id": "PrintID",
+            "type": "image-swatch-qty",
+            "raw": "",
+            "values": [],
+            "clone_type": "",
+            "clone_idx": 0,
+            "label": "Prints",
+            "hide_cart": false,
+            "hide_checkout": false,
+            "hide_order": false,
+            "calc_weight": false
+          },
+          {
+            "id": "FeeID",
+            "type": "select",
+            "raw": [
+              "selected"
+            ],
+            "values": [
+              {
+                "label": "Quantity fee",
+                "price": "sumQty(PrintID)*[qty]",
+                "price_type": "fx",
+                "slug": "selected",
+                "calc_price": 0,
+                "pricing_hint": "(+&#36;0.00)"
+              }
+            ],
+            "clone_type": "",
+            "clone_idx": 0,
+            "label": "Fee",
+            "hide_cart": false,
+            "hide_checkout": false,
+            "hide_order": false,
+            "calc_weight": false
+          }
+        ]
+      },
+      "opf": {
+        "unit": 10,
+        "line": 10,
+        "fields": {
+          "69": {
+            "prints": {
+              "_opf_type": "image_quantity",
+              "quantities": {
+                "oak": 0,
+                "ash": 0
+              },
+              "invalid": []
+            },
+            "fee": "selected"
+          }
+        }
+      }
+    },
+    {
+      "oak": 0,
+      "ash": 4,
+      "quantity": 2,
+      "wapf": {
+        "unit": 14,
+        "line": 28,
+        "fields": [
+          {
+            "id": "PrintID",
+            "type": "image-swatch-qty",
+            "raw": {
+              "oak": "0",
+              "ash": "4"
+            },
+            "values": [
+              {
+                "label": "4",
+                "price": 0,
+                "price_type": "none",
+                "slug": "ash",
+                "use_label": true,
+                "formatted_label": "Ash: 4"
+              }
+            ],
+            "clone_type": "",
+            "clone_idx": 0,
+            "label": "Prints",
+            "hide_cart": false,
+            "hide_checkout": false,
+            "hide_order": false,
+            "calc_weight": false
+          },
+          {
+            "id": "FeeID",
+            "type": "select",
+            "raw": [
+              "selected"
+            ],
+            "values": [
+              {
+                "label": "Quantity fee",
+                "price": "sumQty(PrintID)*[qty]",
+                "price_type": "fx",
+                "slug": "selected",
+                "calc_price": 4,
+                "pricing_hint": "(+&#36;4.00)"
+              }
+            ],
+            "clone_type": "",
+            "clone_idx": 0,
+            "label": "Fee",
+            "hide_cart": false,
+            "hide_checkout": false,
+            "hide_order": false,
+            "calc_weight": false
+          }
+        ]
+      },
+      "opf": {
+        "unit": 14,
+        "line": 28,
+        "fields": {
+          "69": {
+            "prints": {
+              "_opf_type": "image_quantity",
+              "quantities": {
+                "oak": 0,
+                "ash": 4
+              },
+              "invalid": []
+            },
+            "fee": "selected"
+          }
+        }
+      }
+    }
+  ],
+  "owned_ids": [
+    68,
+    69
+  ]
+}

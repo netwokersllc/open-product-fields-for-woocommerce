@@ -1,0 +1,14 @@
+{
+  "time_utc": "2026-10-02T11:39:49.605354+00:00",
+  "database": "/tmp/opf-sumqty-import-wp/wp-content/database/.ht.sqlite",
+  "read_only": true,
+  "owned_ids": [
+    68,
+    69
+  ],
+  "counts": {
+    "fixture_post_types": 0,
+    "owned_postmeta": 0,
+    "fixture_option": 0
+  }
+}

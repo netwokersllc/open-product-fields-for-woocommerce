@@ -349,11 +349,10 @@ final class WapfExporterTest extends TestCase {
 		}, $payload['fields'] );
 		$round_trip = WapfMapper::map( [ 'fields' => $wapf_fields ] );
 
-		// sumQty(), files(), and forward [price.*] references keep the mapper's
-		// unimplemented-runtime review flag, but the ids resolve and the formula
-		// survives intact.
+		// sumQty() on a non-quantity target, files(), and forward [price.*]
+		// references need runtime review; IDs resolve and the formula survives.
 		$this->assertTrue( $round_trip['needs_review'] );
-		$this->assertStringContainsString( 'runtime behavior is not implemented yet', implode( ' ', $round_trip['notes'] ) );
+		$this->assertContains( 'choice "Bulk" formula contains references that require runtime review ([price.fee], sumqty(plan), files(plan)); pricing needs review.', $round_trip['notes'] );
 		$pricing = $round_trip['group']['fields'][0]['choices'][0]['pricing'];
 		$this->assertSame( 'formula', $pricing['type'] );
 		$this->assertSame( 'sumQty(plan) + files(plan) + [price.fee]', $pricing['formula'] );

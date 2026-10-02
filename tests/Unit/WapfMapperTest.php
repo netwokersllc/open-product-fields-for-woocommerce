@@ -629,7 +629,7 @@ final class WapfMapperTest extends TestCase {
 		$this->assertTrue( $mapped['needs_review'] );
 		$this->assertSame( '[price.weight] + files(weight) * [qty]', $pricing['formula_raw'] );
 		$this->assertSame( '[price.weight] + files(weight)', $pricing['formula'] );
-		$this->assertStringContainsString( 'runtime behavior is not implemented yet', implode( ' ', $mapped['notes'] ) );
+		$this->assertStringContainsString( 'references that require runtime review', implode( ' ', $mapped['notes'] ) );
 	}
 
 	public function test_sumqty_image_quantity_formula_reference_is_remapped_and_raw_source_is_preserved(): void {
@@ -642,8 +642,8 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( 'prints', $mapped['group']['fields'][0]['id'] );
 		$this->assertSame( 'sumQty(prints)*[qty]', $pricing['formula_raw'] );
 		$this->assertSame( 'sumQty(prints)', $pricing['formula'] );
-		$this->assertTrue( $mapped['needs_review'], 'Unresolved WAPF formula pricing semantics must remain visible for migration review.' );
-		$this->assertStringContainsString( 'sumqty(prints)', strtolower( implode( ' ', $mapped['notes'] ) ) );
+		$this->assertTrue( $mapped['needs_review'], 'The separate image-media review must remain visible.' );
+		$this->assertStringNotContainsString( 'sumqty(prints)', strtolower( implode( ' ', $mapped['notes'] ) ) );
 	}
 
 	public function test_imported_fx_without_qty_factor_is_flat_per_line(): void {
