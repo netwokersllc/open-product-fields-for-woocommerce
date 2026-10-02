@@ -18,6 +18,11 @@ namespace OPF\Tests\Unit {
 				[ 'slug' => 'matte', 'label' => 'Matte', 'selected' => $default, 'disabled' => $disabled_default ],
 				[ 'slug' => 'gloss', 'label' => 'Gloss' ],
 			] ] ] ] );
+			if ( $default && $disabled_default ) {
+				// Exercise Renderer defensively with malformed/stale in-memory data,
+				// after schema normalization correctly cleared this disabled default.
+				$group->data['fields'][0]['choices'][0]['selected'] = true;
+			}
 			ob_start();
 			Renderer::render_group( '17', 'Choices', $group, 10 );
 			return (string) ob_get_clean();
@@ -39,8 +44,16 @@ namespace OPF\Tests\Unit {
 
 		public function test_disabled_selected_default_does_not_bypass_required_select_prompt(): void {
 			$html = $this->markup( 'select', true, true, true );
-			// Disabled selected choices must not bypass the required prompt.
 			$this->assertStringContainsString( '<option value="">Choose an option</option>', $html );
+			$this->assertMatchesRegularExpression( '/<option value="matte"[^>]* disabled/', $html );
+			$this->assertDoesNotMatchRegularExpression( '/<option value="matte"[^>]*selected/', $html );
+		}
+
+		public function test_disabled_selected_default_does_not_check_or_satisfy_required_radio(): void {
+			$html = $this->markup( 'radio', true, true, true );
+			$this->assertMatchesRegularExpression( '/value="matte"[^>]* disabled/', $html );
+			$this->assertDoesNotMatchRegularExpression( '/value="matte"[^>]* checked/', $html );
+			$this->assertStringContainsString( 'aria-required="true"', $html );
 		}
 
 		public function test_radio_group_has_a_name_and_native_required_exclusive_controls(): void {

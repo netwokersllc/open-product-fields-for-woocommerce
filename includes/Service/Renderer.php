@@ -464,7 +464,8 @@ final class Renderer {
 				echo '<option value="">' . esc_html( __( 'Choose an option', 'open-product-fields-for-woocommerce' ) ) . '</option>';
 			}
 			foreach ( $field['choices'] as $choice ) {
-				echo '<option value="' . esc_attr( $choice['slug'] ) . '"' . selected( $choice['selected'], true, false ) . ( ! empty( $choice['disabled'] ) ? ' disabled' : '' ) . '>'
+				$choice_selected = $choice['selected'] && ! $choice['disabled'];
+				echo '<option value="' . esc_attr( $choice['slug'] ) . '"' . selected( $choice_selected, true, false ) . ( ! empty( $choice['disabled'] ) ? ' disabled' : '' ) . '>'
 					. esc_html( $choice['label'] )
 					. '</option>';
 			}
@@ -509,6 +510,7 @@ final class Renderer {
 		}
 
 		foreach ( $field['choices'] as $choice ) {
+			$choice_selected = $choice['selected'] && ! $choice['disabled'];
 			$swatch_classes = [ 'opf-swatch', $image_swatch ? 'opf-swatch--image' : ( $color_swatch ? 'opf-swatch--color' : 'opf-swatch--text' ) ];
 			if ( $image_swatch && ( ! empty( $choice['image'] ) || ! empty( $choice['image_id'] ) ) ) {
 				if ( ! in_array( 'opf-swatch--image', $swatch_classes, true ) ) {
@@ -524,7 +526,7 @@ final class Renderer {
 			if ( ! $multi ) {
 				$swatch_classes[] = 'opf-single-select';
 			}
-			if ( $choice['selected'] ) {
+			if ( $choice_selected ) {
 				$swatch_classes[] = 'opf-checked';
 			}
 			if ( 'none' !== $choice['pricing']['type'] ) {
@@ -540,7 +542,7 @@ final class Renderer {
 				esc_attr( $choice['slug'] ),
 				esc_attr( $choice['label'] ),
 				$field['required'] && ( ! $multi || ! isset( $field['_opf_repeat_index'] ) ) ? ' required' : '',
-				$choice['selected'] ? ' checked' : '',
+				$choice_selected ? ' checked' : '',
 				self::pricing_attrs( $choice['pricing'] ) . ( ! empty( $choice['disabled'] ) ? ' disabled' : '' )
 			);
 
