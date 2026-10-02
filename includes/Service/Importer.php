@@ -16,6 +16,7 @@
 namespace OPF\Service;
 
 use OPF\Engine\FieldGroup;
+use OPF\Engine\DateFormat;
 use OPF\Engine\WapfMapper;
 use OPF\Engine\WapfParser;
 
@@ -116,6 +117,7 @@ final class Importer {
 			'needs_review' => [],
 			'groups'      => [],
 		];
+		$report['date_format'] = self::migrate_date_format( $commit );
 
 		$post_status = [ 'publish' ];
 
@@ -206,6 +208,28 @@ final class Importer {
 		}
 
 		return $report;
+	}
+
+	/** Copy WAPF's site option once, without replacing an explicit OPF preference. */
+	private static function migrate_date_format( bool $commit ): array {
+		$source = get_option( 'wapf_date_format', null );
+		$existing = get_option( 'opf_date_format', null );
+		if ( null !== $existing ) {
+			return [ 'result' => 'already-configured', 'value' => DateFormat::normalize( $existing ) ];
+		}
+		if ( null === $source ) {
+			return [ 'result' => 'source-absent' ];
+		}
+		if ( ! DateFormat::is_valid( $source ) ) {
+			return [ 'result' => 'invalid-source', 'source' => $source ];
+		}
+		$value = DateFormat::normalize( $source );
+		if ( ! $commit ) {
+			return [ 'result' => 'would-import', 'value' => $value ];
+		}
+		return update_option( 'opf_date_format', $value )
+			? [ 'result' => 'imported', 'value' => $value ]
+			: [ 'result' => 'write-failed', 'value' => $value ];
 	}
 
 	/**
