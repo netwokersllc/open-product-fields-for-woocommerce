@@ -1,0 +1,59 @@
+{
+  "base": "http://127.0.0.1:8216",
+  "time": "2026-10-02T23:01:19.906Z",
+  "checks": [
+    {
+      "label": "wapf: allowlisted markup preserved (strong/em/a/ul/h3/table/img/span/div/hr/br)",
+      "pass": true
+    },
+    {
+      "label": "wapf: disallowed markup stripped (script/u/iframe/object/onclick/javascript:)",
+      "pass": true
+    },
+    {
+      "label": "wapf: shortcode executed after sanitization (non-allowlisted <mark> survives)",
+      "pass": true
+    },
+    {
+      "label": "wapf: img alt and target attributes preserved",
+      "pass": true
+    },
+    {
+      "label": "wapf: entity escaping preserved",
+      "pass": true
+    },
+    {
+      "label": "opf: allowlisted markup preserved (strong/em/a/ul/h3/table/img/span/div/hr/br)",
+      "pass": true
+    },
+    {
+      "label": "opf: disallowed markup stripped (script/u/iframe/object/onclick/javascript:)",
+      "pass": true
+    },
+    {
+      "label": "opf: shortcode executed after sanitization (non-allowlisted <mark> survives)",
+      "pass": true
+    },
+    {
+      "label": "opf: img alt and target attributes preserved",
+      "pass": true
+    },
+    {
+      "label": "opf: entity escaping preserved",
+      "pass": true
+    },
+    {
+      "label": "OPF opt-out paragraph keeps literal shortcode text",
+      "pass": true
+    },
+    {
+      "label": "WAPF and OPF rendered fragments are equivalent",
+      "pass": true
+    },
+    {
+      "label": "no uncaught browser errors",
+      "pass": true
+    }
+  ],
+  "errors": []
+}
