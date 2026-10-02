@@ -26,6 +26,7 @@ final class WapfMapper {
 	private const TYPE_MAP = [
 		'text'          => 'text',
 		'textarea'      => 'textarea',
+		'email'         => 'email',
 		'url'           => 'url',
 		'number'        => 'number',
 		'date'          => 'date',

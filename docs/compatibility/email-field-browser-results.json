@@ -1,0 +1,159 @@
+{
+  "base": "http://127.0.0.1:8181",
+  "time": "2026-10-02T00:25:40.825Z",
+  "checks": [
+    {
+      "label": "admin exposes email type",
+      "pass": true
+    },
+    {
+      "label": "admin actual REST save succeeds",
+      "pass": true
+    },
+    {
+      "label": "admin reload persists email label/type/required",
+      "pass": true
+    },
+    {
+      "label": "native email has required semantics and accessible label",
+      "pass": true
+    },
+    {
+      "label": "optional native email is optional",
+      "pass": true
+    },
+    {
+      "label": "email input receives keyboard focus",
+      "pass": true
+    },
+    {
+      "label": "native browser accepts a@localhost",
+      "pass": true
+    },
+    {
+      "label": "native browser accepts a..b@example.test",
+      "pass": true
+    },
+    {
+      "label": "native browser accepts .a@example.test",
+      "pass": true
+    },
+    {
+      "label": "native browser accepts a.@example.test",
+      "pass": true
+    },
+    {
+      "label": "native browser accepts a+b@example.test",
+      "pass": true
+    },
+    {
+      "label": "native browser accepts a&b@example.test",
+      "pass": true
+    },
+    {
+      "label": "native browser accepts a@xn--bcher-kva.test",
+      "pass": true
+    },
+    {
+      "label": "native browser canonicalizes internationalized domain to accepted ASCII transport",
+      "pass": true
+    },
+    {
+      "label": "native browser rejects not-email",
+      "pass": true
+    },
+    {
+      "label": "native browser rejects \"a\"@example.test",
+      "pass": true
+    },
+    {
+      "label": "native browser rejects a@-example.test",
+      "pass": true
+    },
+    {
+      "label": "native browser rejects a@example-.test",
+      "pass": true
+    },
+    {
+      "label": "native browser rejects a@ex_ample.test",
+      "pass": true
+    },
+    {
+      "label": "native browser rejects a<b>@example.test",
+      "pass": true
+    },
+    {
+      "label": "invalid email browser submit is blocked",
+      "pass": true
+    },
+    {
+      "label": "forged classic HTTP rejects not-email",
+      "pass": true
+    },
+    {
+      "label": "forged classic HTTP rejects \"a\"@example.test",
+      "pass": true
+    },
+    {
+      "label": "forged classic HTTP rejects a<b>@example.test",
+      "pass": true
+    },
+    {
+      "label": "forged Store API optional email rejects \"not-email\"",
+      "pass": true
+    },
+    {
+      "label": "forged Store API optional email rejects \"\\\"a\\\"@example.test\"",
+      "pass": true
+    },
+    {
+      "label": "forged Store API optional email rejects \"a<b>@example.test\"",
+      "pass": true
+    },
+    {
+      "label": "forged Store API optional email rejects [\"a@example.test\"]",
+      "pass": true
+    },
+    {
+      "label": "forged Store API optional email rejects {\"address\":\"a@example.test\"}",
+      "pass": true
+    },
+    {
+      "label": "all rejected HTTP requests leave cart empty",
+      "pass": true
+    },
+    {
+      "label": "mobile email fits viewport",
+      "pass": true
+    },
+    {
+      "label": "classic cart exact email and unchanged price",
+      "pass": true
+    },
+    {
+      "label": "classic HTTP checkout returns success",
+      "pass": true
+    },
+    {
+      "label": "classic confirmation displays exact email with escaped DOM",
+      "pass": true
+    },
+    {
+      "label": "blocks cart exact email and unchanged price",
+      "pass": true
+    },
+    {
+      "label": "actual block Store API checkout succeeds",
+      "pass": true
+    },
+    {
+      "label": "blocks confirmation displays exact email with escaped DOM",
+      "pass": true
+    },
+    {
+      "label": "no uncaught browser errors",
+      "pass": true
+    }
+  ],
+  "errors": []
+}

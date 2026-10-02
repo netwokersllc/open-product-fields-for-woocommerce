@@ -900,9 +900,9 @@ final class CartIntegration {
 		if ( 'upload' === $field['type'] ) {
 			return Uploads::tokens( $value );
 		}
-		if ( 'url' === $field['type'] ) {
-			// Validate the submitted URL itself, without inventing a scheme or
-			// stripping malformed characters into a different, valid-looking URL.
+		if ( in_array( $field['type'], [ 'url', 'email' ], true ) ) {
+			// Validate the submitted scalar itself without stripping malformed
+			// characters into a different, valid-looking address.
 			return FieldValue::sanitize( $field, $value );
 		}
 		if ( 'image_quantity' === $field['type'] ) {
@@ -956,8 +956,6 @@ final class CartIntegration {
 			case 'textarea':
 				$text = sanitize_textarea_field( (string) $value );
 				return '' === trim( $text ) ? null : $text;
-			case 'email':
-				return FieldValue::sanitize( $field, sanitize_text_field( (string) $value ) );
 			case 'date':
 				return FieldValue::sanitize( $field, sanitize_text_field( (string) $value ) );
 			case 'toggle':

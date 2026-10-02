@@ -10,6 +10,20 @@ use PHPUnit\Framework\TestCase;
 
 final class FieldValueTest extends TestCase {
 
+	public function test_email_matches_native_single_address_grammar_and_rejects_forged_shapes(): void {
+		$field = [ 'type' => 'email', 'label' => 'Contact email', 'required' => false ];
+		foreach ( [ 'a@localhost', 'a..b@example.test', '.a@example.test', 'a.@example.test', 'a+b@example.test', 'a&b@example.test', 'a@xn--bcher-kva.test' ] as $email ) {
+			$this->assertSame( [], FieldValue::validate( $field, $email, true ), $email );
+		}
+		foreach ( [ '"a"@example.test', 'a@-example.test', 'a@example-.test', 'a@ex_ample.test', 'a@' . str_repeat( 'b', 64 ) . '.test', 'a<b>@example.test', "a\0@example.test", 'a@example.test,b@example.test', 'a@bücher.test' ] as $email ) {
+			$this->assertNotEmpty( FieldValue::validate( $field, $email, true ), $email );
+		}
+		foreach ( [ [], [ 'a@example.test' ], (object) [ 'email' => 'a@example.test' ] ] as $payload ) {
+			$this->assertNotEmpty( FieldValue::validate( $field, FieldValue::sanitize( $field, $payload ), true ) );
+		}
+		$this->assertNotEmpty( FieldValue::validate( $field, FieldValue::sanitize( $field, "a@example.test\0" ), true ) );
+	}
+
 	public function test_email_keeps_a_nonempty_value_for_server_side_format_validation(): void {
 		$field = [ 'type' => 'email', 'label' => 'Contact email', 'required' => false ];
 

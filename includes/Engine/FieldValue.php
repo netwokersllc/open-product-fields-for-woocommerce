@@ -24,9 +24,9 @@ final class FieldValue {
 	 * @return string|null
 	 */
 	public static function sanitize( array $field, $value ): ?string {
-		// Keep malformed URL payloads distinguishable from an empty optional URL.
-		// The NUL marker cannot be a valid URL and is rejected before attachment.
-		if ( 'url' === ( $field['type'] ?? '' ) && ! is_scalar( $value ) && null !== $value ) {
+		// Keep malformed scalar-input payloads distinct from optional empty values.
+		// The NUL marker is rejected before cart attachment.
+		if ( in_array( $field['type'] ?? '', [ 'url', 'email' ], true ) && ! is_scalar( $value ) && null !== $value ) {
 			return "\0";
 		}
 		if ( is_array( $value ) || is_object( $value ) ) {
@@ -37,7 +37,10 @@ final class FieldValue {
 			return in_array( $value, [ true, 1, '1', 'true', 'on', 'yes' ], true ) ? '1' : '0';
 		}
 
-		$text = trim( (string) $value );
+		// Email's boundary whitespace must not erase malformed NUL bytes.
+		$text = 'email' === ( $field['type'] ?? '' )
+			? trim( (string) $value, " \t\r\n\f" )
+			: trim( (string) $value );
 		return '' === $text ? null : $text;
 	}
 
@@ -222,7 +225,10 @@ final class FieldValue {
 			return ! empty( $field['required'] ) ? [ sprintf( '"%s" is a required field.', $label ) ] : [];
 		}
 
-		if ( 'email' === $type && false === filter_var( $value, FILTER_VALIDATE_EMAIL ) ) {
+		// Match the HTML single-address email grammar used by WAPF's native input.
+		// FILTER_VALIDATE_EMAIL rejects native-valid addresses such as a@localhost
+		// and consecutive local-part dots while accepting quoted native-invalid ones.
+		if ( 'email' === $type && ! preg_match( '/^[a-zA-Z0-9.!#$%&\x27*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/D', $value ) ) {
 			return [ sprintf( '"%s" must be a valid email address.', $label ) ];
 		}
 

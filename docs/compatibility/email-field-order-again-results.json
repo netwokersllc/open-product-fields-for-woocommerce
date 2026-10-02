@@ -1,0 +1,29 @@
+{
+  "time": "2026-10-02T00:25:44.821Z",
+  "checks": [
+    {
+      "label": "classic actual Woo order-again action exists",
+      "pass": true
+    },
+    {
+      "label": "classic real order-again cart contains restored email",
+      "pass": true
+    },
+    {
+      "label": "classic real order-again cart retains unchanged price",
+      "pass": true
+    },
+    {
+      "label": "blocks actual Woo order-again action exists",
+      "pass": true
+    },
+    {
+      "label": "blocks real order-again cart contains restored email",
+      "pass": true
+    },
+    {
+      "label": "blocks real order-again cart retains unchanged price",
+      "pass": true
+    }
+  ]
+}

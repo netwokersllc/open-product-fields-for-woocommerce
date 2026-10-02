@@ -9,6 +9,14 @@ use OPF\Engine\WapfMapper;
 use PHPUnit\Framework\TestCase;
 
 final class WapfMapperTest extends TestCase {
+	public function test_email_import_preserves_native_type_required_and_placeholder(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [ [ 'id' => 'contact', 'type' => 'email', 'label' => 'Contact email', 'required' => true, 'options' => [ 'placeholder' => 'Email address' ] ] ] ] );
+		$this->assertCount( 1, $mapped['group']['fields'] );
+		$this->assertSame( 'email', $mapped['group']['fields'][0]['type'] );
+		$this->assertTrue( $mapped['group']['fields'][0]['required'] );
+		$this->assertSame( 'Email address', $mapped['group']['fields'][0]['placeholder'] );
+		$this->assertFalse( $mapped['needs_review'] );
+	}
 	public function test_extended_checkboxes_import_preserves_choice_availability_and_flat_fees(): void {
 		$mapped = WapfMapper::map( [ 'fields' => [ [
 			'id' => 'extras', 'label' => 'Extras', 'type' => 'checkboxes',

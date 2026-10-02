@@ -1,0 +1,64 @@
+ok fixture exists
+ok admin save/reload persists required email and edited label
+ok WAPF email mapping retains type required and placeholder
+ok WAPF Tools email export retains type required and placeholder
+ok installed WAPF Free Tools converter accepts OPF email payload
+ok WAPF email roundtrip retains semantic field data
+ok classic browser order reloads
+ok classic persists exact structured email
+ok classic keeps base price
+ok classic public order metadata includes email
+ok classic HTML email escapes ampersand
+ok classic plain email includes Woo formatted email metadata
+ok classic order again restores data
+ok classic order again cart validates and retains email
+ok blocks browser order reloads
+ok blocks persists exact structured email
+ok blocks keeps base price
+ok blocks public order metadata includes email
+ok blocks HTML email escapes ampersand
+ok blocks plain email includes Woo formatted email metadata
+ok blocks order again restores data
+ok blocks order again cart validates and retains email
+ok classic native-valid a@localhost
+ok classic exact email a@localhost
+ok Store API native-valid a@localhost
+ok classic native-valid a..b@example.test
+ok classic exact email a..b@example.test
+ok Store API native-valid a..b@example.test
+ok classic native-valid .a@example.test
+ok classic exact email .a@example.test
+ok Store API native-valid .a@example.test
+ok classic native-valid a.@example.test
+ok classic exact email a.@example.test
+ok Store API native-valid a.@example.test
+ok classic native-valid a+b@example.test
+ok classic exact email a+b@example.test
+ok Store API native-valid a+b@example.test
+ok classic native-valid a&b@example.test
+ok classic exact email a&b@example.test
+ok Store API native-valid a&b@example.test
+ok classic native-valid a@xn--bcher-kva.test
+ok classic exact email a@xn--bcher-kva.test
+ok Store API native-valid a@xn--bcher-kva.test
+ok classic invalid required/optional ""
+ok Store API rejects invalid with empty cart ""
+ok classic invalid required/optional "not-email"
+ok Store API rejects invalid with empty cart "not-email"
+ok classic invalid required/optional "\"a\"@example.test"
+ok Store API rejects invalid with empty cart "\"a\"@example.test"
+ok classic invalid required/optional "a@-example.test"
+ok Store API rejects invalid with empty cart "a@-example.test"
+ok classic invalid required/optional "a@example-.test"
+ok Store API rejects invalid with empty cart "a@example-.test"
+ok classic invalid required/optional "a@ex_ample.test"
+ok Store API rejects invalid with empty cart "a@ex_ample.test"
+ok classic invalid required/optional "a<b>@example.test"
+ok Store API rejects invalid with empty cart "a<b>@example.test"
+ok classic invalid required/optional "a\u0000@example.test"
+ok Store API rejects invalid with empty cart "a\u0000@example.test"
+ok classic invalid required/optional "a@example.test\u0000"
+ok Store API rejects invalid with empty cart "a@example.test\u0000"
+ok classic invalid required/optional ["a@example.test"]
+ok Store API rejects invalid with empty cart ["a@example.test"]
+SUCCESS email lifecycle
