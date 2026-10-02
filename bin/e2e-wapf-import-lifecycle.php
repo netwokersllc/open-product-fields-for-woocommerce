@@ -52,7 +52,7 @@ $make_payload = static function ( string $prefix, string $label ): array {
 				'required' => true,
 				'conditionals' => [ [ 'rules' => [ [ 'field' => $prefix . '_choice', 'condition' => '==', 'value' => 'allow' ] ] ] ],
 				'clone' => [ 'enabled' => false ],
-				'options' => [ 'choices' => [] ],
+				'options' => [ 'choices' => [], 'default' => $label . ' default' ],
 				'pricing' => [ 'enabled' => false, 'type' => 'fixed', 'amount' => 0 ],
 			],
 			[
@@ -229,12 +229,14 @@ try {
 	$assert( 'formula' === ( $global_formula['type'] ?? '' ) && '[field.global-weight]' === ( $global_formula['formula'] ?? '' ) && '[field.global-weight] * [qty]' === ( $global_formula['formula_raw'] ?? '' ), 'Global choice formula and later-field reference did not survive import remapping: ' . wp_json_encode( $global_formula ) );
 	$assert( 4.0 === \OPF\Engine\Calculator::evaluate_formula( (string) $global_formula['formula'], 10.0, 1, 0.0, '', null, [ 'global-weight' => '4' ] ), 'Imported global formula did not resolve its mapped field value.' );
 	$assert( 'text' === ( $global_data['fields'][1]['type'] ?? '' ) && 'Global note' === ( $global_data['fields'][1]['label'] ?? '' ), 'Global conditional field data did not survive persistence.' );
+	$assert( 'Global default' === ( $global_data['fields'][1]['default'] ?? '' ), 'Global text field default did not survive import: ' . wp_json_encode( $global_data['fields'][1] ?? null ) );
 	$assert( $global_data['fields'][0]['id'] === ( $global_data['fields'][1]['conditionals'][0]['rules'][0]['field'] ?? '' ) && 'allow' === ( $global_data['fields'][1]['conditionals'][0]['rules'][0]['value'] ?? '' ), 'Global conditional field reference was not remapped.' );
 	$assert( 'paragraph' === ( $global_data['fields'][2]['type'] ?? '' ) && 'Static setup instructions.' === ( $global_data['fields'][2]['content'] ?? '' ), 'Global WAPF paragraph content did not survive import.' );
 	$assert( 'select' === ( $local_data['fields'][0]['type'] ?? '' ) && 'Allow' === ( $local_data['fields'][0]['choices'][0]['label'] ?? '' ) && 3.0 === (float) ( $local_data['fields'][0]['choices'][0]['pricing']['amount'] ?? 0 ), 'Local choice and pricing data did not survive mapping.' );
 	$local_formula = $local_data['fields'][0]['choices'][1]['pricing'] ?? [];
 	$assert( 'formula' === ( $local_formula['type'] ?? '' ) && '[field.local-weight]' === ( $local_formula['formula'] ?? '' ) && '[field.local-weight] * [qty]' === ( $local_formula['formula_raw'] ?? '' ), 'Local choice formula and later-field reference did not survive import remapping: ' . wp_json_encode( $local_formula ) );
 	$assert( 'Local note' === ( $local_data['fields'][1]['label'] ?? '' ), 'Local conditional field data did not survive persistence.' );
+	$assert( 'Local default' === ( $local_data['fields'][1]['default'] ?? '' ), 'Local text field default did not survive import: ' . wp_json_encode( $local_data['fields'][1] ?? null ) );
 	$assert( $local_data['fields'][0]['id'] === ( $local_data['fields'][1]['conditionals'][0]['rules'][0]['field'] ?? '' ) && 'allow' === ( $local_data['fields'][1]['conditionals'][0]['rules'][0]['value'] ?? '' ), 'Local conditional field reference was not remapped.' );
 	$assert( 'paragraph' === ( $local_data['fields'][2]['type'] ?? '' ) && 'Static setup instructions.' === ( $local_data['fields'][2]['content'] ?? '' ), 'Local WAPF paragraph content did not survive import.' );
 	$local_rule = $local_data['rule_groups'][0]['rules'][0] ?? [];
