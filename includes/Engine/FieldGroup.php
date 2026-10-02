@@ -32,7 +32,7 @@ final class FieldGroup {
 	/**
 	 * @var array<string,mixed>
 	 */
-	public array $data;
+	public $data;
 
 	/**
 	 * Build from an associative array, normalizing missing keys.
