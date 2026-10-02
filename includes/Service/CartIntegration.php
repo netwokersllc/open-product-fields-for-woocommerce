@@ -685,8 +685,7 @@ final class CartIntegration {
 			return implode( ', ', $map );
 		}
 		if ( 'date' === $field['type'] ) {
-			$format = get_option( 'opf_date_format', get_option( 'wapf_date_format', DateFormat::DEFAULT_FORMAT ) );
-			return DateFormat::format( (string) $raw, $format );
+			return DateFormat::format( (string) $raw, DateFormat::configured() );
 		}
 		if ( 'toggle' === $field['type'] ) {
 			return '1' === $raw

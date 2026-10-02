@@ -13,7 +13,9 @@ function get_option( $name, $default = false ) { return $GLOBALS['calculator_opt
 function apply_filters( $name, $value, $product_id ) {
 	return 'opf_formula_base_price' === $name ? $value * ( 7 === $product_id ? 1.25 : 1 ) : $value;
 }
-require $argv[1] ?? dirname( __DIR__ ) . '/includes/Engine/Calculator.php';
+$calculator_path = $argv[1] ?? dirname( __DIR__ ) . '/includes/Engine/Calculator.php';
+require_once dirname( $calculator_path ) . '/DateFormat.php';
+require $calculator_path;
 
 use OPF\Engine\Calculator;
 

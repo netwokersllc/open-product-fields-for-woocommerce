@@ -8,6 +8,19 @@ defined( 'ABSPATH' ) || exit;
 final class DateFormat {
 	public const DEFAULT_FORMAT = 'mm-dd-yyyy';
 
+	/** Resolve the first valid OPF or legacy WAPF setting, then the default. */
+	public static function configured(): string {
+		if ( function_exists( 'get_option' ) ) {
+			foreach ( [ 'opf_date_format', 'wapf_date_format' ] as $option ) {
+				$value = get_option( $option, null );
+				if ( self::is_valid( $value ) ) {
+					return self::normalize( $value );
+				}
+			}
+		}
+		return self::DEFAULT_FORMAT;
+	}
+
 	/** Normalize a supported WAPF-style date format. */
 	public static function normalize( $format ): string {
 		return self::is_valid( $format ) ? strtolower( trim( $format ) ) : self::DEFAULT_FORMAT;

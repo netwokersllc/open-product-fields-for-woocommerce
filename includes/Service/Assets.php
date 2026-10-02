@@ -87,16 +87,7 @@ final class Assets {
 	 * then a valid WAPF value, then the canonical default.
 	 */
 	private static function frontend_date_format(): string {
-		if ( ! function_exists( 'get_option' ) ) {
-			return DateFormat::DEFAULT_FORMAT;
-		}
-		foreach ( [ 'opf_date_format', 'wapf_date_format' ] as $option ) {
-			$value = get_option( $option, null );
-			if ( DateFormat::is_valid( $value ) ) {
-				return DateFormat::normalize( $value );
-			}
-		}
-		return DateFormat::DEFAULT_FORMAT;
+		return DateFormat::configured();
 	}
 
 	/**

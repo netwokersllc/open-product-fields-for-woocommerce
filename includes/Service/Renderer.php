@@ -699,7 +699,7 @@ final class Renderer {
 				echo '<input type="number" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
 				break;
 			case 'date':
-				$date_attrs = ' data-opf-date-format="' . esc_attr( \OPF\Engine\DateFormat::normalize( get_option( 'opf_date_format', get_option( 'wapf_date_format', \OPF\Engine\DateFormat::DEFAULT_FORMAT ) ) ) ) . '"';
+				$date_attrs = ' data-opf-date-format="' . esc_attr( \OPF\Engine\DateFormat::configured() ) . '"';
 				$date_attrs .= ' data-opf-week-start="' . esc_attr( (string) min( 6, max( 0, (int) get_option( 'start_of_week', 0 ) ) ) ) . '"';
 				$date_min = isset( $field['min_date'] ) ? FieldValue::resolve_date_boundary( (string) $field['min_date'] ) : null;
 				$date_max = isset( $field['max_date'] ) ? FieldValue::resolve_date_boundary( (string) $field['max_date'] ) : null;

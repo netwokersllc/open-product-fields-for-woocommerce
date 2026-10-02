@@ -653,9 +653,7 @@ final class Calculator {
 			return \DateTimeImmutable::createFromFormat( '!Y-m-d', $argument, new \DateTimeZone( 'UTC' ) ) ?: null;
 		}
 
-		$date_format = function_exists( 'get_option' )
-			? (string) get_option( 'opf_date_format', get_option( 'wapf_date_format', 'mm-dd-yyyy' ) )
-			: 'mm-dd-yyyy';
+		$date_format = DateFormat::configured();
 		preg_match_all( '/yyyy|yy|mm|m|dd|d|[-\/., ]/i', $date_format, $format_tokens );
 		if ( 5 !== count( $format_tokens[0] ) ) {
 			return null;
