@@ -70,6 +70,8 @@ final class RepeaterFieldTest extends TestCase {
 
 		$this->assertSame( [], RepeaterField::validate( $field, [ 'Ada', 'Grace' ], true, 2 ) );
 		$this->assertSame( [ '"Name" must have exactly 2 rows to match product quantity.' ], RepeaterField::validate( $field, [ 'Ada' ], true, 2 ) );
+		$this->assertSame( [ '"Name" must have exactly 2 rows to match product quantity.' ], RepeaterField::validate( $field, [ 'Ada', 'Grace', 'Linus' ], true, 2 ) );
+		$this->assertSame( [ '"Name" must have exactly 2 rows to match product quantity.' ], RepeaterField::validate( $field, [ 0 => 'Ada', 2 => 'Linus' ], true, 2 ) );
 		$this->assertSame( [ '"Name" is required in repeated row 1.' ], RepeaterField::validate( $field, [ 1 => 'Grace' ], true, 2 ) );
 	}
 }

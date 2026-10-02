@@ -193,9 +193,11 @@ final class Renderer {
 
 		$section_stack = [];
 		$section_repeat_index = null;
+		$section_repeat_mode = null;
 		foreach ( $group->data['fields'] as $field ) {
 			if ( 'section' === $field['type'] ) {
 				$previous_repeat_index = $section_repeat_index;
+				$previous_repeat_mode = $section_repeat_mode;
 				$repeat = $field['repeat'] ?? [];
 				$repeat_mode = (string) ( $repeat['mode'] ?? '' );
 				$repeats_section = ! empty( $repeat['enabled'] ) && in_array( $repeat_mode, [ 'button', 'quantity' ], true );
@@ -211,6 +213,7 @@ final class Renderer {
 					}
 					self::render_section( $field, $values, false );
 					$section_repeat_index = 0;
+					$section_repeat_mode = $repeat_mode;
 				} else {
 					self::render_section( $field, $values );
 				}
@@ -219,6 +222,7 @@ final class Renderer {
 					'mode' => $repeat_mode,
 					'options' => $repeat,
 					'previous_repeat_index' => $previous_repeat_index,
+					'previous_repeat_mode' => $previous_repeat_mode,
 				];
 				continue;
 			}
@@ -235,13 +239,14 @@ final class Renderer {
 						echo '<span class="screen-reader-text opf-field-repeat__status" aria-live="polite"></span></div>';
 					}
 					$section_repeat_index = $section_context['previous_repeat_index'];
+					$section_repeat_mode = $section_context['previous_repeat_mode'];
 				}
 				continue;
 			}
 			if ( ! empty( $field['repeat']['enabled'] ) ) {
 				self::render_repeated_field( $gid, $field, $values, $base_price, $section_repeat_index );
 			} else {
-				self::render_field( $gid, $field, $values, $base_price, false, $section_repeat_index );
+				self::render_field( $gid, $field, $values, $base_price, false, $section_repeat_index, 'quantity' === $section_repeat_mode );
 			}
 		}
 		while ( $section_stack ) {
@@ -251,6 +256,7 @@ final class Renderer {
 				echo '</div></div><span class="screen-reader-text opf-field-repeat__status" aria-live="polite"></span></div>';
 			}
 			$section_repeat_index = $section_context['previous_repeat_index'];
+			$section_repeat_mode = $section_context['previous_repeat_mode'];
 		}
 
 		echo '</div>';
@@ -310,7 +316,7 @@ final class Renderer {
 		$instance['_opf_source_id'] = $fid;
 		$instance['_opf_repeat_index'] = 0;
 		$instance['id'] = $fid . '-repeat-0';
-		self::render_field( $gid, $instance, $values, $base_price, true, $section_repeat_index );
+		self::render_field( $gid, $instance, $values, $base_price, true, $section_repeat_index, 'quantity' === $mode );
 		if ( 'button' === ( $repeat['mode'] ?? 'button' ) ) {
 			$add_label = (string) ( $repeat['add'] ?? __( 'Add another', 'open-product-fields-for-woocommerce' ) );
 			echo '</div><button type="button" class="opf-field-repeat__add">' . esc_html( $add_label ) . '</button>';
@@ -320,7 +326,7 @@ final class Renderer {
 		echo '<span class="screen-reader-text opf-field-repeat__status" aria-live="polite"></span></div>';
 	}
 
-	private static function render_field( string $gid, array $field, array $values, float $base_price, bool $repeat_instance = false, ?int $section_repeat_index = null ): void {
+	private static function render_field( string $gid, array $field, array $values, float $base_price, bool $repeat_instance = false, ?int $section_repeat_index = null, bool $qty_based = false ): void {
 		$fid      = $field['id'];
 		$source_fid = (string) ( $field['_opf_source_id'] ?? $fid );
 		$name     = sprintf( 'opf[%s][%s]', $gid, $source_fid );
@@ -423,9 +429,9 @@ final class Renderer {
 		echo '<div class="opf-field-input">';
 
 		if ( in_array( $field['type'], [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ], true ) ) {
-			self::render_choices( $gid, $name, $field, $base_price );
+			self::render_choices( $gid, $name, $field, $base_price, $qty_based );
 		} else {
-			self::render_input( $name, $gid, $field );
+			self::render_input( $name, $gid, $field, $qty_based );
 		}
 
 		echo '</div>';
@@ -440,7 +446,7 @@ final class Renderer {
 	 * @param array<string,mixed> $field      Field data.
 	 * @param float               $base_price Base unit price.
 	 */
-	private static function render_choices( string $gid, string $name, array $field, float $base_price ): void {
+	private static function render_choices( string $gid, string $name, array $field, float $base_price, bool $qty_based = false ): void {
 		$fid = $field['id'];
 		if ( 'image_quantity' === $field['type'] ) {
 			echo '<div class="opf-image-quantity">';
@@ -468,7 +474,7 @@ final class Renderer {
 			}
 			foreach ( $field['choices'] as $choice ) {
 				$choice_selected = $choice['selected'] && ! $choice['disabled'];
-				echo '<option value="' . esc_attr( $choice['slug'] ) . '"' . selected( $choice_selected, true, false ) . ( ! empty( $choice['disabled'] ) ? ' disabled' : '' ) . '>'
+				echo '<option value="' . esc_attr( $choice['slug'] ) . '"' . selected( $choice_selected, true, false ) . self::pricing_attrs( $choice['pricing'], $qty_based ) . ( ! empty( $choice['disabled'] ) ? ' disabled' : '' ) . '>'
 					. esc_html( $choice['label'] )
 					. '</option>';
 			}
@@ -546,7 +552,7 @@ final class Renderer {
 				esc_attr( $choice['label'] ),
 				$field['required'] && ( ! $multi || ! isset( $field['_opf_repeat_index'] ) ) ? ' required' : '',
 				$choice_selected ? ' checked' : '',
-				self::pricing_attrs( $choice['pricing'] ) . ( ! empty( $choice['disabled'] ) ? ' disabled' : '' )
+				self::pricing_attrs( $choice['pricing'], $qty_based ) . ( ! empty( $choice['disabled'] ) ? ' disabled' : '' )
 			);
 
 			$choice_label_attr = $image_swatch ? ' data-opf-swatch-label="' . esc_attr( $choice['label'] ) . '"' : '';
@@ -617,7 +623,7 @@ final class Renderer {
 	 *
 	 * @param array<string,mixed> $pricing Pricing block.
 	 */
-	private static function pricing_attrs( array $pricing ): string {
+	private static function pricing_attrs( array $pricing, bool $qty_based = false ): string {
 		if ( 'none' === $pricing['type'] ) {
 			return '';
 		}
@@ -625,13 +631,30 @@ final class Renderer {
 		if ( 'formula' === $pricing['type'] ) {
 			$expr  = '' !== trim( (string) $pricing['formula'] ) ? (string) $pricing['formula'] : '0';
 			$type  = 'fx';
-			$price = $per_unit ? '(' . $expr . ')' : '(' . $expr . ') / [qty]';
-		} elseif ( 'percent' === $pricing['type'] && ! $per_unit ) {
+			$price = $qty_based
+				? ( $per_unit ? '(' . $expr . ') * [qty]' : '(' . $expr . ')' )
+				: ( $per_unit ? '(' . $expr . ')' : '(' . $expr . ') / [qty]' );
+		} elseif ( 'percent' === $pricing['type'] && $qty_based && $per_unit ) {
 			$type  = 'fx';
-			$price = '([price] * ' . ( (float) $pricing['amount'] / 100 ) . ') / [qty]';
+			$price = '([price] * ' . ( (float) $pricing['amount'] / 100 ) . ') * [qty]';
+		} elseif ( 'percent' === $pricing['type'] && ! $per_unit ) {
+			if ( $qty_based ) {
+				$type  = 'percent';
+				$price = (string) (float) $pricing['amount'];
+			} else {
+				$type  = 'fx';
+				$price = '([price] * ' . ( (float) $pricing['amount'] / 100 ) . ') / [qty]';
+			}
 		} else {
-			$type  = 'fixed' === $pricing['type'] && $per_unit ? 'qt' : $pricing['type'];
-			$price = (string) (float) $pricing['amount'];
+			if ( $qty_based ) {
+				$type = 'fixed' === $pricing['type'] && $per_unit ? 'fx' : 'qt';
+				$price = 'fixed' === $pricing['type'] && $per_unit
+					? '(' . (string) (float) $pricing['amount'] . ') * [qty]'
+					: (string) (float) $pricing['amount'];
+			} else {
+				$type  = 'fixed' === $pricing['type'] && $per_unit ? 'qt' : $pricing['type'];
+				$price = (string) (float) $pricing['amount'];
+			}
 		}
 		return sprintf( ' data-opf-pricetype="%s" data-opf-price="%s"', esc_attr( $type ), esc_attr( $price ) );
 	}
@@ -643,7 +666,7 @@ final class Renderer {
 	 * @param string              $gid   Group id.
 	 * @param array<string,mixed> $field Field data.
 	 */
-	private static function render_input( string $name, string $gid, array $field ): void {
+	private static function render_input( string $name, string $gid, array $field, bool $qty_based = false ): void {
 		$fid = $field['id'];
 		$shared = sprintf(
 			'data-field-id="%1$s" id="opf-%2$s-%1$s"%3$s name="%5$s" class="opf-input input-%1$s" placeholder="%4$s" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"',
@@ -653,6 +676,7 @@ final class Renderer {
 			esc_attr( $field['placeholder'] ),
 			esc_attr( $name )
 		);
+		$shared .= self::pricing_attrs( $field['pricing'] ?? [], $qty_based );
 
 		switch ( $field['type'] ) {
 			case 'upload':

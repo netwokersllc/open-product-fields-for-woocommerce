@@ -89,7 +89,7 @@ try {
 		[ 'label' => 'Meal choice', 'value' => 'Noodles, Soup' ],
 		[ 'label' => 'Meal choice', 'value' => 'Salad' ],
 		[ 'label' => 'Ticket holder', 'value' => 'Ada' ],
-		[ 'label' => 'Ticket 2', 'value' => 'Grace' ],
+		[ 'label' => 'Ticket holder', 'value' => 'Grace' ],
 	] === $selections, 'Repeated cart/order display did not retain per-row labels: ' . wp_json_encode( $selections ) );
 	$order_item = new WC_Order_Item_Product();
 	$order = new WC_Order();
@@ -113,7 +113,7 @@ try {
 	}
 	$assert(
 		[ 'label' => 'Ticket holder', 'value' => 'Ada' ] === $unit_labels[0][4]
-		&& [ 'label' => 'Ticket 2', 'value' => 'Grace' ] === $unit_labels[1][4],
+		&& [ 'label' => 'Ticket holder', 'value' => 'Grace' ] === $unit_labels[1][4],
 		'Quantity-cloned values or labels were not assigned to the matching cart line.'
 	);
 
@@ -146,7 +146,7 @@ try {
 	$store_ticket_labels = array_map(
 		static fn( $selections ) => array_values( array_filter(
 			$selections,
-			static fn( $selection ) => in_array( $selection['label'] ?? '', [ 'Ticket holder', 'Ticket 2' ], true )
+			static fn( $selection ) => 'Ticket holder' === ( $selection['label'] ?? '' )
 		) ),
 		$store_labels
 	);
@@ -154,7 +154,7 @@ try {
 		1 === (int) $store_items[0]['quantity']
 		&& 1 === (int) $store_items[1]['quantity']
 		&& [ [ 'label' => 'Ticket holder', 'value' => 'Ada' ] ] === $store_ticket_labels[0]
-		&& [ [ 'label' => 'Ticket 2', 'value' => 'Grace' ] ] === $store_ticket_labels[1],
+		&& [ [ 'label' => 'Ticket holder', 'value' => 'Grace' ] ] === $store_ticket_labels[1],
 		'Store API quantity clones lost their per-line values or labels: ' . wp_json_encode( $store_ticket_labels )
 	);
 	WC()->cart->calculate_totals();
@@ -187,20 +187,11 @@ try {
 	$assert(
 		2 === count( $store_order_items )
 		&& 'Ada' === $store_order_items[0]->get_meta( 'Ticket holder', true )
-		&& 'Grace' === $store_order_items[1]->get_meta( 'Ticket 2', true )
+		&& 'Grace' === $store_order_items[1]->get_meta( 'Ticket holder', true )
 		&& [ 'Ada' ] === ( json_decode( $store_order_items[0]->get_meta( '_opf_fields', true ), true )[ (string) $group_id ]['ticket_holder'] ?? null )
-		&& [ 1 => 'Grace' ] === ( json_decode( $store_order_items[1]->get_meta( '_opf_fields', true ), true )[ (string) $group_id ]['ticket_holder'] ?? null ),
+		&& [ 'Grace' ] === ( json_decode( $store_order_items[1]->get_meta( '_opf_fields', true ), true )[ (string) $group_id ]['ticket_holder'] ?? null ),
 		'Store API quantity clone values or labels were not persisted to order items.'
 	);
-
-	$merge_group_data = json_decode( (string) get_post_field( 'post_content', $group_id ), true );
-	foreach ( $merge_group_data['fields'] as &$merge_field ) {
-		if ( 'ticket_holder' === ( $merge_field['id'] ?? '' ) ) {
-			unset( $merge_field['repeat']['label'] );
-		}
-	}
-	unset( $merge_field );
-	$assert( $group_id === FieldGroups::save( $group_id, $merge_group_data, [ 'title' => 'OPF repeated value E2E fixture' ] ), 'Could not switch quantity clone labels to the WAPF default for merge verification.' );
 
 	WC()->cart->empty_cart();
 	$merge_request = new WP_REST_Request( 'POST', '/wc/store/v1/cart/add-item' );
@@ -233,6 +224,10 @@ try {
 		'Identical quantity clones did not merge while preserving the shared value and label: ' . wp_json_encode( [ 'items' => array_column( $merged_items, 'quantity' ), 'labels' => $merged_ticket_labels ] )
 	);
 
+	$_POST['opf'] = [ (string) $group_id => [ 'attendee_name' => [ 'Ada', 'Grace' ], 'ticket_holder' => [ 'Ada', 'Grace', 'Linus' ] ] ];
+	$assert( ! CartIntegration::validate_add_to_cart( true, $product_id, 2 ), 'More quantity-repeat rows than product quantity were accepted.' );
+	wc_clear_notices();
+
 	$_POST['opf'] = [ (string) $group_id => [ 'attendee_name' => [ 'Ada', '' ], 'ticket_holder' => [ 'Ada', 'Grace' ] ] ];
 	$assert( ! CartIntegration::validate_add_to_cart( true, $product_id, 2 ), 'A required empty repeated row was accepted.' );
 	wc_clear_notices();
@@ -241,7 +236,7 @@ try {
 	$assert( ! CartIntegration::validate_add_to_cart( true, $product_id, 2 ), 'More than the configured button maximum was accepted.' );
 	wc_clear_notices();
 
-	echo "ok repeated row sanitation/order, custom numbered labels, classic and Store API quantity-clone cart lines, identical-clone merge, cart/order display, Store API clone order metadata, order-again restore, required-row validation, maximum enforcement, and price summation\n";
+	echo "ok repeated row sanitation/order, button labels, quantity-repeat label identity, classic and Store API quantity-clone cart lines, identical-clone merge, cart/order display, Store API clone order metadata, excess-row rejection, order-again restore, required-row validation, maximum enforcement, and price summation\n";
 } finally {
 	if ( $had_post_before ) {
 		$_POST['opf'] = $post_before;

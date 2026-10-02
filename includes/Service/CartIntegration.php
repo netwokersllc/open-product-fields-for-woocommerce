@@ -273,8 +273,7 @@ final class CartIntegration {
 		for ( $unit_index = 0; $unit_index < (int) $quantity; $unit_index++ ) {
 			$unit_values = $values;
 			$canonical_values = $values;
-			$clone_labels = [];
-			foreach ( $quantity_fields as [ $gid, $fid, $field, $repeat, $section_repeat ] ) {
+			foreach ( $quantity_fields as [ $gid, $fid ] ) {
 				$source_rows = $values[ $gid ][ $fid ] ?? [];
 				if ( ! is_array( $source_rows ) ) {
 					$source_rows = [ $source_rows ];
@@ -285,19 +284,13 @@ final class CartIntegration {
 				}
 
 				$row = $source_rows[ $unit_index ];
-				$repeat_label = $section_repeat ? '' : (string) ( $repeat['label'] ?? '' );
-				$display_label = $unit_index > 0 && '' !== $repeat_label
-					? str_replace( '{n}', (string) ( $unit_index + 1 ), $repeat_label )
-					: (string) $field['label'];
-				if ( ! $section_repeat ) {
-					$clone_labels[ $gid . ':' . $fid ] = $display_label;
-				}
-				$storage_index = ! $section_repeat && $unit_index > 0 && false !== strpos( $repeat_label, '{n}' ) ? $unit_index : ( ! $section_repeat && $unit_index > 0 && '' !== $repeat_label ? 1 : 0 );
-				$unit_values[ $gid ][ $fid ] = [ $storage_index => $row ];
+				// WAPF ignores clone labels for qty clones. Keep row identity
+				// canonical so numbered labels cannot prevent equal rows merging.
+				$unit_values[ $gid ][ $fid ] = [ 0 => $row ];
 				$canonical_values[ $gid ][ $fid ] = [ 0 => $row ];
 			}
 
-			$signature = hash( 'sha256', serialize( [ (int) $product_id, (int) $variation_id, $canonical_values, $clone_labels ] ) );
+			$signature = hash( 'sha256', serialize( [ (int) $product_id, (int) $variation_id, $canonical_values ] ) );
 			if ( ! isset( $clone_groups[ $signature ] ) ) {
 				$clone_groups[ $signature ] = [ 'values' => $unit_values, 'quantity' => 0 ];
 			}
@@ -631,12 +624,7 @@ final class CartIntegration {
 						}
 						$row_display = self::display_value( $field, $row );
 						if ( '' !== $row_display ) {
-							$label = (string) $field['label'];
-							if ( $section_repeat && 'button' === ( $repeat_field['repeat']['mode'] ?? '' ) && $index > 0 && ! empty( $repeat_field['repeat']['label'] ) ) {
-								$label = str_replace( '{n}', (string) ( $index + 1 ), $repeat_field['repeat']['label'] ) . ' - ' . $label;
-							} elseif ( ! $section_repeat && $index > 0 && ! empty( $repeat_field['repeat']['label'] ) ) {
-								$label = str_replace( '{n}', (string) ( $index + 1 ), $repeat_field['repeat']['label'] );
-							}
+							$label = self::repeated_selection_label( $repeat_field, $section_repeat, (int) $index );
 							$out[] = [ 'label' => $label, 'value' => $row_display ];
 						}
 					}
@@ -656,6 +644,23 @@ final class CartIntegration {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * WAPF labels quantity clones only in the frontend; cart/order field labels
+	 * are rewritten only for button clones.
+	 *
+	 * @param array<string,mixed> $field Field with effective repeat settings.
+	 */
+	private static function repeated_selection_label( array $field, bool $section_repeat, int $index ): string {
+		$label = (string) ( $field['label'] ?? '' );
+		$repeat = $field['repeat'] ?? [];
+		if ( $index < 1 || 'button' !== ( $repeat['mode'] ?? '' ) || empty( $repeat['label'] ) ) {
+			return $label;
+		}
+
+		$repeat_label = str_replace( '{n}', (string) ( $index + 1 ), (string) $repeat['label'] );
+		return $section_repeat ? $repeat_label . ' - ' . $label : $repeat_label;
 	}
 
 	/**
