@@ -28,7 +28,7 @@ includes Pro; six separately sold add-ons are outside this Extended-edition
 target and remain separately tracked. The ledger has 137 rows: 131 for the
 Free + Pro + Extended edition scope (including 3 “All versions” rows), and 6
 for separately sold add-ons. Of the 131 edition rows, 1 is baseline-supported,
-9 are supported, 9 are supported with a documented difference, 111 are partial, and 1
+9 are supported, 10 are supported with a documented difference, 110 are partial, and 1
 known gap. OPF-specific repeat-import safety remains in the G4 release checklist
 outside this denominator. Percentage coupon scope advanced from gap to partial in public
 commit `f03979d`; its implementation and current proof are recorded in
@@ -63,7 +63,7 @@ price-type mapping/equivalence remains a parity gap until proved. See the
 | --- | --- | --- |
 | G0 — Edition and version baseline | Installed version, current official target versions, edition boundary, available source inventory, and dated public changelog delta recorded | Done for available evidence: installed Extended 3.1.5, official Extended 3.2.1 / Pro 3.2.2, Free 1.7.1 source, edition boundary, marketing claims, and release deltas are recorded. The licensed current archive is not on the server; its absence is a version-specific limitation, not a stop condition. |
 | G1 — Source and behavior audit | Every discovered capability from available source/docs/changelogs has a ledger row, an evidence citation, an OPF status, and an explicit proof gap; version-specific unknowns are bounded to affected rows | Done for available evidence: the installed 3.1.5 source, Free 1.7.1 source, current marketing/tier claims, and all published 3.1.6–3.2.2 changes are mapped. Exact current-package internals not stated publicly remain identified on their affected rows; they do not block independent implementation. |
-| G2 — Ordered implementation parity | Every edition row is `supported` or has a specifically accepted, non-regressing difference; no baseline-supported, partial, gap, or unresolved difference | Not met: current edition-scope count is 111 partial, 1 gap, 1 baseline-supported without executed proof, and 9 differences awaiting acceptance; see roadmap work packages |
+| G2 — Ordered implementation parity | Every edition row is `supported` or has a specifically accepted, non-regressing difference; no baseline-supported, partial, gap, or unresolved difference | Not met: current edition-scope count is 110 partial, 1 gap, 1 baseline-supported without executed proof, and 10 differences awaiting acceptance; see roadmap work packages |
 | G3 — End-to-end proof | Browser, server validation/pricing, classic + Store API cart, checkout/order persistence, order-again/refund/stock and relevant integrations pass for every applicable row | Partial: evidence and open paths remain per row; no aggregate pass claim |
 | G4 — 1.0 release readiness | Compatibility/integration scope, security, accessibility, translations, upgrade/import/rollback, docs, packaging, and WordPress.org/commercial marketplace checklists pass | Not met |
 
@@ -140,7 +140,7 @@ integration controllers, then adds Extended and linked-product controllers.
 
 This source map closes the former Extended `needs audit` row: all 26
 Extended-tier ledger rows now map to installed 3.1.5 source and an OPF delta.
-It does **not** claim feature parity. The 111 partial edition rows stay open until
+It does **not** claim feature parity. The 110 partial edition rows stay open until
 their own behavior, import, and commerce proof requirements are satisfied.
 The Pro rows, six separately sold add-ons, and WAPF's larger compatibility
 matrix remain in the full-release ledger and are not dropped from OPF 1.0.
@@ -224,7 +224,7 @@ matrix remain in the full-release ledger and are not dropped from OPF 1.0.
 | ID | WAPF capability | Tier | Source | OPF module | Status | Fixture | Required behavior |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `WAPF-PRICE-FLAT` | Fixed fee, independent of product quantity | Free | `FREE`, `PRODUCT`, `PRICING` | Pricing engine | partial | `capability/WAPF-PRICE-FLAT` | Disposable cart E2E proves q=1 and q=3 flat-line totals. Order persistence, tax, and rounding remain to verify. |
-| `WAPF-PRICE-QUANTITY-FLAT` | Fixed fee multiplied by product quantity | Pro | `PRODUCT`, `PRICING` | Pricing engine | partial | `capability/WAPF-PRICE-QUANTITY-FLAT` | Disposable cart E2E proves q=1 and q=3 quantity-scaled totals. Order persistence, tax, and rounding remain to verify. |
+| `WAPF-PRICE-QUANTITY-FLAT` | Fixed fee multiplied by product quantity | Pro | `PRODUCT`, `PRICING` | Pricing engine | supported with documented difference | `capability/WAPF-PRICE-QUANTITY-FLAT` | Native WAPF Pro `qt` is represented by OPF's fixed per-unit choice; WooCommerce line quantity scales that amount. Disposable WooCommerce comparison with WAPF Extended 3.1.5 / WooCommerce 11.1.0 proves q=1/q=3 classic and Store API cart totals, tax and fractional line rounding, q=3 checkout order persistence, and the real authenticated My Account Order again button restoring the choice, quantity, line total, and tax. See [quantity-flat lifecycle evidence](WAPF-PRICE-QUANTITY-FLAT-EVIDENCE-2026-10-02.md) and [browser results](qfl-order-again-browser-results.json). Evidence commits: `ccd63b7` (cart, checkout, tax, rounding) and `6d39b24` (authenticated order-again browser proof). |
 | `WAPF-PRICE-PERCENT` | Percentage of product price, independent of quantity | Pro | `PRODUCT`, `PRICING` | Pricing engine | partial | `capability/WAPF-PRICE-PERCENT` | Official pricing docs and disposable cart E2E prove q=1 and q=3 line-flat totals. Tax, sale-price/rounding edges, and order persistence remain to verify. |
 | `WAPF-PRICE-QUANTITY-PERCENT` | Percentage of product price multiplied by quantity | Pro | `PRODUCT`, `PRICING` | Pricing engine | partial | `capability/WAPF-PRICE-QUANTITY-PERCENT` | Official pricing docs and disposable cart E2E prove q=1 and q=3 quantity-scaled totals. Tax, sale-price/rounding edges, and order persistence remain to verify. |
 | `WAPF-PRICE-QUANTITY` | Quantity fee | Pro | `PRODUCT` | Pricing engine | supported with documented difference | `capability/WAPF-PRICE-QUANTITY` | Per-unit quantity fee, with Woo line quantity providing line scaling. |

@@ -35,8 +35,8 @@ The 131 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 | --- | ---: | --- |
 | Baseline supported | 1 | Promising baseline only; not accepted as proof |
 | Supported | 9 | Select, radio, email, and generic cart/order lifecycle have executed behavior and commerce evidence |
-| Supported with documented difference | 9 | Includes the native toggle lifecycle; differences need explicit non-regression review and acceptance |
-| Partial | 111 | Material parity or proof remains; 15 prior supported claims were withdrawn after source/test audit; both upload rows now have a private-storage foundation but still lack builder/import/export parity and additional lifecycle proof |
+| Supported with documented difference | 10 | Includes the native toggle lifecycle and quantity-flat pricing; differences need explicit non-regression review and acceptance |
+| Partial | 110 | Material parity or proof remains; 15 prior supported claims were withdrawn after source/test audit; both upload rows now have a private-storage foundation but still lack builder/import/export parity and additional lifecycle proof |
 | Gap | 1 | Known absent in the current OPF tree |
 | Needs audit | 0 | Available source, marketing claims, and every published release delta are mapped; exact release details remain scoped to partial rows |
 | **Total** | **131** | **G1 complete for available evidence; G2 remains open** |
@@ -138,6 +138,18 @@ until URL canonicalization matches the native browser/WAPF contract while
 retaining the explicitly tested markup/executable-scheme protections. See
 [URL lifecycle](URL-FIELD-LIFECYCLE-EVIDENCE.md) and
 [compatibility audit](URL-FIELD-COMPATIBILITY-EVIDENCE.md).
+
+`WAPF-PRICE-QUANTITY-FLAT` moved from `partial` to `supported with documented
+difference`: OPF expresses native WAPF Pro `qt` as a fixed per-unit choice and
+lets WooCommerce line quantity provide the scaling. Disposable WooCommerce
+evidence closes the row's stated cart, checkout persistence, tax, and rounding
+gaps for q=1/q=3, and authenticated Chromium proves the actual My Account Order
+again action restores the q=3 choice, line total, and tax for both WAPF and OPF.
+The evidence compares native WAPF Extended 3.1.5 with WooCommerce 11.1.0 and
+does not claim other versions. See [quantity-flat lifecycle evidence](WAPF-PRICE-QUANTITY-FLAT-EVIDENCE-2026-10-02.md),
+[browser results](qfl-order-again-browser-results.json), and proof commits
+`ccd63b7` + `6d39b24`. This moves one row from partial to documented difference;
+strict accepted-supported progress remains **9/131**.
 
 FOX is now `partial` because the existing WOOCS adapter passes an official
 FOX API contract test. WAPF's registry and FOX's own compatibility instructions
