@@ -1,0 +1,595 @@
+{
+    "fields": [
+        {
+            "id": "CountID",
+            "label": "Count",
+            "description": null,
+            "type": "number",
+            "subtype": null,
+            "required": false,
+            "options": [],
+            "conditionals": [],
+            "class": null,
+            "width": null,
+            "pricing": {
+                "enabled": false,
+                "amount": 0,
+                "type": "fixed"
+            },
+            "parent_clone": [],
+            "clone": {
+                "enabled": false
+            },
+            "meta": {
+                "id": "number",
+                "type": "field",
+                "multi_choice": false,
+                "multi_select": false,
+                "label_aria": true
+            }
+        },
+        {
+            "id": "FeeID",
+            "label": "Fee",
+            "description": null,
+            "type": "select",
+            "subtype": null,
+            "required": false,
+            "conditionals": [],
+            "class": null,
+            "width": null,
+            "pricing": {
+                "enabled": false,
+                "amount": 0,
+                "type": "fixed"
+            },
+            "parent_clone": [],
+            "clone": {
+                "enabled": false
+            },
+            "meta": {
+                "id": "select",
+                "type": "field",
+                "multi_choice": true,
+                "multi_select": false,
+                "label_aria": true
+            },
+            "choices": [
+                {
+                    "slug": "fee",
+                    "label": "Fee",
+                    "selected": false,
+                    "disabled": false,
+                    "options": [],
+                    "pricing_type": "fixed",
+                    "pricing_amount": 8
+                }
+            ]
+        },
+        {
+            "id": "FlagsID",
+            "label": "Flags",
+            "description": null,
+            "type": "checkboxes",
+            "subtype": null,
+            "required": false,
+            "conditionals": [],
+            "class": null,
+            "width": null,
+            "pricing": {
+                "enabled": false,
+                "amount": 0,
+                "type": "fixed"
+            },
+            "parent_clone": [],
+            "clone": {
+                "enabled": false
+            },
+            "meta": {
+                "id": "checkboxes",
+                "type": "field",
+                "multi_choice": true,
+                "multi_select": true,
+                "label_aria": false
+            },
+            "choices": [
+                {
+                    "slug": "a",
+                    "label": "A",
+                    "selected": false,
+                    "disabled": false,
+                    "options": []
+                },
+                {
+                    "slug": "b",
+                    "label": "B",
+                    "selected": false,
+                    "disabled": false,
+                    "options": []
+                }
+            ]
+        },
+        {
+            "id": "ChoiceID",
+            "label": "Formula choice",
+            "description": null,
+            "type": "select",
+            "subtype": null,
+            "required": false,
+            "conditionals": [],
+            "class": null,
+            "width": null,
+            "pricing": {
+                "enabled": false,
+                "amount": 0,
+                "type": "fixed"
+            },
+            "parent_clone": [],
+            "clone": {
+                "enabled": false
+            },
+            "meta": {
+                "id": "select",
+                "type": "field",
+                "multi_choice": true,
+                "multi_select": false,
+                "label_aria": true
+            },
+            "choices": [
+                {
+                    "slug": "flat",
+                    "label": "flat",
+                    "selected": false,
+                    "disabled": false,
+                    "options": [],
+                    "pricing_type": "fx",
+                    "pricing_amount": "7"
+                },
+                {
+                    "slug": "qty-middle",
+                    "label": "qty-middle",
+                    "selected": false,
+                    "disabled": false,
+                    "options": [],
+                    "pricing_type": "fx",
+                    "pricing_amount": "2 * [qty] + 5"
+                },
+                {
+                    "slug": "qty-tail",
+                    "label": "qty-tail",
+                    "selected": false,
+                    "disabled": false,
+                    "options": [],
+                    "pricing_type": "fx",
+                    "pricing_amount": "(2 + 5) * [qty]"
+                },
+                {
+                    "slug": "qty-head",
+                    "label": "qty-head",
+                    "selected": false,
+                    "disabled": false,
+                    "options": [],
+                    "pricing_type": "fx",
+                    "pricing_amount": "[qty] * (2 + 5)"
+                },
+                {
+                    "slug": "base-options",
+                    "label": "base-options",
+                    "selected": false,
+                    "disabled": false,
+                    "options": [],
+                    "pricing_type": "fx",
+                    "pricing_amount": "[price] * 0.1 + [options_total]"
+                },
+                {
+                    "slug": "sibling-value-price",
+                    "label": "sibling-value-price",
+                    "selected": false,
+                    "disabled": false,
+                    "options": [],
+                    "pricing_type": "fx",
+                    "pricing_amount": "[field.CountID] + [price.FeeID]"
+                },
+                {
+                    "slug": "checked",
+                    "label": "checked",
+                    "selected": false,
+                    "disabled": false,
+                    "options": [],
+                    "pricing_type": "fx",
+                    "pricing_amount": "checked(FlagsID) + 3"
+                },
+                {
+                    "slug": "min-max",
+                    "label": "min-max",
+                    "selected": false,
+                    "disabled": false,
+                    "options": [],
+                    "pricing_type": "fx",
+                    "pricing_amount": "min(5; 1; 3) + max(5; 8; 3)"
+                },
+                {
+                    "slug": "round-pow",
+                    "label": "round-pow",
+                    "selected": false,
+                    "disabled": false,
+                    "options": [],
+                    "pricing_type": "fx",
+                    "pricing_amount": "round(pow([field.CountID]; 2) / 7; 2)"
+                },
+                {
+                    "slug": "abs-floor-ceil",
+                    "label": "abs-floor-ceil",
+                    "selected": false,
+                    "disabled": false,
+                    "options": [],
+                    "pricing_type": "fx",
+                    "pricing_amount": "abs(-4) + floor(2.9) + ceil(2.1)"
+                },
+                {
+                    "slug": "sqrt-trig",
+                    "label": "sqrt-trig",
+                    "selected": false,
+                    "disabled": false,
+                    "options": [],
+                    "pricing_type": "fx",
+                    "pricing_amount": "sqrt(9) + sin(0) + cos(0) + tan(0)"
+                },
+                {
+                    "slug": "all-eleven",
+                    "label": "all-eleven",
+                    "selected": false,
+                    "disabled": false,
+                    "options": [],
+                    "pricing_type": "fx",
+                    "pricing_amount": "(round(pow([field.CountID]; 2) / 3; 2) + max(abs(-4); floor(2.9); ceil(2.1)) + sqrt(9) + sin(0) + cos(0) + tan(0) + min(5; 1; 3)) * [qty]"
+                }
+            ]
+        },
+        {
+            "id": "Scalar4",
+            "label": "Scalar flat",
+            "description": null,
+            "type": "text",
+            "subtype": null,
+            "required": false,
+            "options": [],
+            "conditionals": [],
+            "class": null,
+            "width": null,
+            "pricing": {
+                "enabled": true,
+                "amount": "7",
+                "type": "fx"
+            },
+            "parent_clone": [],
+            "clone": {
+                "enabled": false
+            },
+            "meta": {
+                "id": "text",
+                "type": "field",
+                "multi_choice": false,
+                "multi_select": false,
+                "label_aria": true
+            }
+        },
+        {
+            "id": "Scalar5",
+            "label": "Scalar qty-middle",
+            "description": null,
+            "type": "text",
+            "subtype": null,
+            "required": false,
+            "options": [],
+            "conditionals": [],
+            "class": null,
+            "width": null,
+            "pricing": {
+                "enabled": true,
+                "amount": "2 * [qty] + 5",
+                "type": "fx"
+            },
+            "parent_clone": [],
+            "clone": {
+                "enabled": false
+            },
+            "meta": {
+                "id": "text",
+                "type": "field",
+                "multi_choice": false,
+                "multi_select": false,
+                "label_aria": true
+            }
+        },
+        {
+            "id": "Scalar6",
+            "label": "Scalar qty-tail",
+            "description": null,
+            "type": "text",
+            "subtype": null,
+            "required": false,
+            "options": [],
+            "conditionals": [],
+            "class": null,
+            "width": null,
+            "pricing": {
+                "enabled": true,
+                "amount": "(2 + 5) * [qty]",
+                "type": "fx"
+            },
+            "parent_clone": [],
+            "clone": {
+                "enabled": false
+            },
+            "meta": {
+                "id": "text",
+                "type": "field",
+                "multi_choice": false,
+                "multi_select": false,
+                "label_aria": true
+            }
+        },
+        {
+            "id": "Scalar7",
+            "label": "Scalar qty-head",
+            "description": null,
+            "type": "text",
+            "subtype": null,
+            "required": false,
+            "options": [],
+            "conditionals": [],
+            "class": null,
+            "width": null,
+            "pricing": {
+                "enabled": true,
+                "amount": "[qty] * (2 + 5)",
+                "type": "fx"
+            },
+            "parent_clone": [],
+            "clone": {
+                "enabled": false
+            },
+            "meta": {
+                "id": "text",
+                "type": "field",
+                "multi_choice": false,
+                "multi_select": false,
+                "label_aria": true
+            }
+        },
+        {
+            "id": "Scalar8",
+            "label": "Scalar base-options",
+            "description": null,
+            "type": "text",
+            "subtype": null,
+            "required": false,
+            "options": [],
+            "conditionals": [],
+            "class": null,
+            "width": null,
+            "pricing": {
+                "enabled": true,
+                "amount": "[price] * 0.1 + [options_total]",
+                "type": "fx"
+            },
+            "parent_clone": [],
+            "clone": {
+                "enabled": false
+            },
+            "meta": {
+                "id": "text",
+                "type": "field",
+                "multi_choice": false,
+                "multi_select": false,
+                "label_aria": true
+            }
+        },
+        {
+            "id": "Scalar9",
+            "label": "Scalar sibling-value-price",
+            "description": null,
+            "type": "text",
+            "subtype": null,
+            "required": false,
+            "options": [],
+            "conditionals": [],
+            "class": null,
+            "width": null,
+            "pricing": {
+                "enabled": true,
+                "amount": "[field.CountID] + [price.FeeID]",
+                "type": "fx"
+            },
+            "parent_clone": [],
+            "clone": {
+                "enabled": false
+            },
+            "meta": {
+                "id": "text",
+                "type": "field",
+                "multi_choice": false,
+                "multi_select": false,
+                "label_aria": true
+            }
+        },
+        {
+            "id": "Scalar10",
+            "label": "Scalar checked",
+            "description": null,
+            "type": "text",
+            "subtype": null,
+            "required": false,
+            "options": [],
+            "conditionals": [],
+            "class": null,
+            "width": null,
+            "pricing": {
+                "enabled": true,
+                "amount": "checked(FlagsID) + 3",
+                "type": "fx"
+            },
+            "parent_clone": [],
+            "clone": {
+                "enabled": false
+            },
+            "meta": {
+                "id": "text",
+                "type": "field",
+                "multi_choice": false,
+                "multi_select": false,
+                "label_aria": true
+            }
+        },
+        {
+            "id": "Scalar11",
+            "label": "Scalar min-max",
+            "description": null,
+            "type": "text",
+            "subtype": null,
+            "required": false,
+            "options": [],
+            "conditionals": [],
+            "class": null,
+            "width": null,
+            "pricing": {
+                "enabled": true,
+                "amount": "min(5; 1; 3) + max(5; 8; 3)",
+                "type": "fx"
+            },
+            "parent_clone": [],
+            "clone": {
+                "enabled": false
+            },
+            "meta": {
+                "id": "text",
+                "type": "field",
+                "multi_choice": false,
+                "multi_select": false,
+                "label_aria": true
+            }
+        },
+        {
+            "id": "Scalar12",
+            "label": "Scalar round-pow",
+            "description": null,
+            "type": "text",
+            "subtype": null,
+            "required": false,
+            "options": [],
+            "conditionals": [],
+            "class": null,
+            "width": null,
+            "pricing": {
+                "enabled": true,
+                "amount": "round(pow([field.CountID]; 2) / 7; 2)",
+                "type": "fx"
+            },
+            "parent_clone": [],
+            "clone": {
+                "enabled": false
+            },
+            "meta": {
+                "id": "text",
+                "type": "field",
+                "multi_choice": false,
+                "multi_select": false,
+                "label_aria": true
+            }
+        },
+        {
+            "id": "Scalar13",
+            "label": "Scalar abs-floor-ceil",
+            "description": null,
+            "type": "text",
+            "subtype": null,
+            "required": false,
+            "options": [],
+            "conditionals": [],
+            "class": null,
+            "width": null,
+            "pricing": {
+                "enabled": true,
+                "amount": "abs(-4) + floor(2.9) + ceil(2.1)",
+                "type": "fx"
+            },
+            "parent_clone": [],
+            "clone": {
+                "enabled": false
+            },
+            "meta": {
+                "id": "text",
+                "type": "field",
+                "multi_choice": false,
+                "multi_select": false,
+                "label_aria": true
+            }
+        },
+        {
+            "id": "Scalar14",
+            "label": "Scalar sqrt-trig",
+            "description": null,
+            "type": "text",
+            "subtype": null,
+            "required": false,
+            "options": [],
+            "conditionals": [],
+            "class": null,
+            "width": null,
+            "pricing": {
+                "enabled": true,
+                "amount": "sqrt(9) + sin(0) + cos(0) + tan(0)",
+                "type": "fx"
+            },
+            "parent_clone": [],
+            "clone": {
+                "enabled": false
+            },
+            "meta": {
+                "id": "text",
+                "type": "field",
+                "multi_choice": false,
+                "multi_select": false,
+                "label_aria": true
+            }
+        },
+        {
+            "id": "Scalar15",
+            "label": "Scalar all-eleven",
+            "description": null,
+            "type": "text",
+            "subtype": null,
+            "required": false,
+            "options": [],
+            "conditionals": [],
+            "class": null,
+            "width": null,
+            "pricing": {
+                "enabled": true,
+                "amount": "(round(pow([field.CountID]; 2) / 3; 2) + max(abs(-4); floor(2.9); ceil(2.1)) + sqrt(9) + sin(0) + cos(0) + tan(0) + min(5; 1; 3)) * [qty]",
+                "type": "fx"
+            },
+            "parent_clone": [],
+            "clone": {
+                "enabled": false
+            },
+            "meta": {
+                "id": "text",
+                "type": "field",
+                "multi_choice": false,
+                "multi_select": false,
+                "label_aria": true
+            }
+        }
+    ],
+    "conditions": [],
+    "layout": {
+        "labels_position": "above",
+        "instructions_position": "field",
+        "mark_required": true,
+        "enable_gallery_images": false,
+        "gallery_images": []
+    },
+    "variables": []
+}

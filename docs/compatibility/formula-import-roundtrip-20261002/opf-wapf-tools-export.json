@@ -1,0 +1,377 @@
+{
+    "fields": [
+        {
+            "id": "count",
+            "label": "Count",
+            "description": "",
+            "type": "number",
+            "required": false,
+            "width": 100,
+            "class": "",
+            "conditionals": [],
+            "pricing": {
+                "enabled": false,
+                "type": "fixed",
+                "amount": 0
+            }
+        },
+        {
+            "id": "fee",
+            "label": "Fee",
+            "description": "",
+            "type": "select",
+            "required": false,
+            "width": 100,
+            "class": "",
+            "conditionals": [],
+            "pricing": {
+                "enabled": false,
+                "type": "fixed",
+                "amount": 0
+            },
+            "choices": [
+                {
+                    "slug": "fee",
+                    "label": "Fee",
+                    "selected": false,
+                    "disabled": false,
+                    "pricing_type": "fixed",
+                    "pricing_amount": 8
+                }
+            ]
+        },
+        {
+            "id": "flags",
+            "label": "Flags",
+            "description": "",
+            "type": "checkboxes",
+            "required": false,
+            "width": 100,
+            "class": "",
+            "conditionals": [],
+            "pricing": {
+                "enabled": false,
+                "type": "fixed",
+                "amount": 0
+            },
+            "choices": [
+                {
+                    "slug": "a",
+                    "label": "A",
+                    "selected": false,
+                    "disabled": false,
+                    "pricing_type": "none",
+                    "pricing_amount": 0
+                },
+                {
+                    "slug": "b",
+                    "label": "B",
+                    "selected": false,
+                    "disabled": false,
+                    "pricing_type": "none",
+                    "pricing_amount": 0
+                }
+            ]
+        },
+        {
+            "id": "formula-choice",
+            "label": "Formula choice",
+            "description": "",
+            "type": "select",
+            "required": false,
+            "width": 100,
+            "class": "",
+            "conditionals": [],
+            "pricing": {
+                "enabled": false,
+                "type": "fixed",
+                "amount": 0
+            },
+            "choices": [
+                {
+                    "slug": "flat",
+                    "label": "flat",
+                    "selected": false,
+                    "disabled": false,
+                    "pricing_type": "fx",
+                    "pricing_amount": "7"
+                },
+                {
+                    "slug": "qty-middle",
+                    "label": "qty-middle",
+                    "selected": false,
+                    "disabled": false,
+                    "pricing_type": "fx",
+                    "pricing_amount": "2 * [qty] + 5"
+                },
+                {
+                    "slug": "qty-tail",
+                    "label": "qty-tail",
+                    "selected": false,
+                    "disabled": false,
+                    "pricing_type": "fx",
+                    "pricing_amount": "(2 + 5) * [qty]"
+                },
+                {
+                    "slug": "qty-head",
+                    "label": "qty-head",
+                    "selected": false,
+                    "disabled": false,
+                    "pricing_type": "fx",
+                    "pricing_amount": "[qty] * (2 + 5)"
+                },
+                {
+                    "slug": "base-options",
+                    "label": "base-options",
+                    "selected": false,
+                    "disabled": false,
+                    "pricing_type": "fx",
+                    "pricing_amount": "[price] * 0.1 + [options_total]"
+                },
+                {
+                    "slug": "sibling-value-price",
+                    "label": "sibling-value-price",
+                    "selected": false,
+                    "disabled": false,
+                    "pricing_type": "fx",
+                    "pricing_amount": "[field.count] + [price.fee]"
+                },
+                {
+                    "slug": "checked",
+                    "label": "checked",
+                    "selected": false,
+                    "disabled": false,
+                    "pricing_type": "fx",
+                    "pricing_amount": "checked(flags) + 3"
+                },
+                {
+                    "slug": "min-max",
+                    "label": "min-max",
+                    "selected": false,
+                    "disabled": false,
+                    "pricing_type": "fx",
+                    "pricing_amount": "min(5; 1; 3) + max(5; 8; 3)"
+                },
+                {
+                    "slug": "round-pow",
+                    "label": "round-pow",
+                    "selected": false,
+                    "disabled": false,
+                    "pricing_type": "fx",
+                    "pricing_amount": "round(pow([field.count]; 2) / 7; 2)"
+                },
+                {
+                    "slug": "abs-floor-ceil",
+                    "label": "abs-floor-ceil",
+                    "selected": false,
+                    "disabled": false,
+                    "pricing_type": "fx",
+                    "pricing_amount": "abs(-4) + floor(2.9) + ceil(2.1)"
+                },
+                {
+                    "slug": "sqrt-trig",
+                    "label": "sqrt-trig",
+                    "selected": false,
+                    "disabled": false,
+                    "pricing_type": "fx",
+                    "pricing_amount": "sqrt(9) + sin(0) + cos(0) + tan(0)"
+                },
+                {
+                    "slug": "all-eleven",
+                    "label": "all-eleven",
+                    "selected": false,
+                    "disabled": false,
+                    "pricing_type": "fx",
+                    "pricing_amount": "(round(pow([field.count]; 2) / 3; 2) + max(abs(-4); floor(2.9); ceil(2.1)) + sqrt(9) + sin(0) + cos(0) + tan(0) + min(5; 1; 3)) * [qty]"
+                }
+            ]
+        },
+        {
+            "id": "scalar-flat",
+            "label": "Scalar flat",
+            "description": "",
+            "type": "text",
+            "required": false,
+            "width": 100,
+            "class": "",
+            "conditionals": [],
+            "pricing": {
+                "enabled": true,
+                "type": "fx",
+                "amount": "7"
+            }
+        },
+        {
+            "id": "scalar-qty-middle",
+            "label": "Scalar qty-middle",
+            "description": "",
+            "type": "text",
+            "required": false,
+            "width": 100,
+            "class": "",
+            "conditionals": [],
+            "pricing": {
+                "enabled": true,
+                "type": "fx",
+                "amount": "2 * [qty] + 5"
+            }
+        },
+        {
+            "id": "scalar-qty-tail",
+            "label": "Scalar qty-tail",
+            "description": "",
+            "type": "text",
+            "required": false,
+            "width": 100,
+            "class": "",
+            "conditionals": [],
+            "pricing": {
+                "enabled": true,
+                "type": "fx",
+                "amount": "(2 + 5) * [qty]"
+            }
+        },
+        {
+            "id": "scalar-qty-head",
+            "label": "Scalar qty-head",
+            "description": "",
+            "type": "text",
+            "required": false,
+            "width": 100,
+            "class": "",
+            "conditionals": [],
+            "pricing": {
+                "enabled": true,
+                "type": "fx",
+                "amount": "[qty] * (2 + 5)"
+            }
+        },
+        {
+            "id": "scalar-base-options",
+            "label": "Scalar base-options",
+            "description": "",
+            "type": "text",
+            "required": false,
+            "width": 100,
+            "class": "",
+            "conditionals": [],
+            "pricing": {
+                "enabled": true,
+                "type": "fx",
+                "amount": "[price] * 0.1 + [options_total]"
+            }
+        },
+        {
+            "id": "scalar-sibling-value-price",
+            "label": "Scalar sibling-value-price",
+            "description": "",
+            "type": "text",
+            "required": false,
+            "width": 100,
+            "class": "",
+            "conditionals": [],
+            "pricing": {
+                "enabled": true,
+                "type": "fx",
+                "amount": "[field.count] + [price.fee]"
+            }
+        },
+        {
+            "id": "scalar-checked",
+            "label": "Scalar checked",
+            "description": "",
+            "type": "text",
+            "required": false,
+            "width": 100,
+            "class": "",
+            "conditionals": [],
+            "pricing": {
+                "enabled": true,
+                "type": "fx",
+                "amount": "checked(flags) + 3"
+            }
+        },
+        {
+            "id": "scalar-min-max",
+            "label": "Scalar min-max",
+            "description": "",
+            "type": "text",
+            "required": false,
+            "width": 100,
+            "class": "",
+            "conditionals": [],
+            "pricing": {
+                "enabled": true,
+                "type": "fx",
+                "amount": "min(5; 1; 3) + max(5; 8; 3)"
+            }
+        },
+        {
+            "id": "scalar-round-pow",
+            "label": "Scalar round-pow",
+            "description": "",
+            "type": "text",
+            "required": false,
+            "width": 100,
+            "class": "",
+            "conditionals": [],
+            "pricing": {
+                "enabled": true,
+                "type": "fx",
+                "amount": "round(pow([field.count]; 2) / 7; 2)"
+            }
+        },
+        {
+            "id": "scalar-abs-floor-ceil",
+            "label": "Scalar abs-floor-ceil",
+            "description": "",
+            "type": "text",
+            "required": false,
+            "width": 100,
+            "class": "",
+            "conditionals": [],
+            "pricing": {
+                "enabled": true,
+                "type": "fx",
+                "amount": "abs(-4) + floor(2.9) + ceil(2.1)"
+            }
+        },
+        {
+            "id": "scalar-sqrt-trig",
+            "label": "Scalar sqrt-trig",
+            "description": "",
+            "type": "text",
+            "required": false,
+            "width": 100,
+            "class": "",
+            "conditionals": [],
+            "pricing": {
+                "enabled": true,
+                "type": "fx",
+                "amount": "sqrt(9) + sin(0) + cos(0) + tan(0)"
+            }
+        },
+        {
+            "id": "scalar-all-eleven",
+            "label": "Scalar all-eleven",
+            "description": "",
+            "type": "text",
+            "required": false,
+            "width": 100,
+            "class": "",
+            "conditionals": [],
+            "pricing": {
+                "enabled": true,
+                "type": "fx",
+                "amount": "(round(pow([field.count]; 2) / 3; 2) + max(abs(-4); floor(2.9); ceil(2.1)) + sqrt(9) + sin(0) + cos(0) + tan(0) + min(5; 1; 3)) * [qty]"
+            }
+        }
+    ],
+    "conditions": [],
+    "layout": {
+        "labels_position": "above",
+        "instructions_position": "field",
+        "mark_required": true
+    },
+    "variables": []
+}

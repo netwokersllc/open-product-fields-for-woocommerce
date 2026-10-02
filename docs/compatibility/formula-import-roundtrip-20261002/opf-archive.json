@@ -1,0 +1,530 @@
+{
+    "format": "opf-field-groups",
+    "format_version": 1,
+    "exported_at": "2026-10-02T11:01:39+00:00",
+    "scope": {
+        "type": "group",
+        "id": 41
+    },
+    "groups": [
+        {
+            "source_id": 41,
+            "title": "Formula archive copy",
+            "status": "draft",
+            "menu_order": 0,
+            "language": "",
+            "data": {
+                "schema": 2,
+                "fields": [
+                    {
+                        "id": "count",
+                        "label": "Count",
+                        "description": "",
+                        "type": "number",
+                        "required": false,
+                        "width": 100,
+                        "css_class": "",
+                        "placeholder": "",
+                        "choices": [],
+                        "pricing": {
+                            "type": "none",
+                            "amount": 0,
+                            "formula": "",
+                            "formula_raw": "",
+                            "per_unit": true
+                        },
+                        "conditionals": []
+                    },
+                    {
+                        "id": "fee",
+                        "label": "Fee",
+                        "description": "",
+                        "type": "select",
+                        "required": false,
+                        "width": 100,
+                        "css_class": "",
+                        "placeholder": "",
+                        "choices": [
+                            {
+                                "slug": "fee",
+                                "label": "Fee",
+                                "selected": false,
+                                "disabled": false,
+                                "pricing": {
+                                    "type": "fixed",
+                                    "amount": 8,
+                                    "formula": "",
+                                    "formula_raw": "",
+                                    "per_unit": false
+                                }
+                            }
+                        ],
+                        "pricing": {
+                            "type": "none",
+                            "amount": 0,
+                            "formula": "",
+                            "formula_raw": "",
+                            "per_unit": true
+                        },
+                        "conditionals": []
+                    },
+                    {
+                        "id": "flags",
+                        "label": "Flags",
+                        "description": "",
+                        "type": "checkbox",
+                        "required": false,
+                        "width": 100,
+                        "css_class": "",
+                        "placeholder": "",
+                        "choices": [
+                            {
+                                "slug": "a",
+                                "label": "A",
+                                "selected": false,
+                                "disabled": false,
+                                "pricing": {
+                                    "type": "none",
+                                    "amount": 0,
+                                    "formula": "",
+                                    "formula_raw": "",
+                                    "per_unit": true
+                                }
+                            },
+                            {
+                                "slug": "b",
+                                "label": "B",
+                                "selected": false,
+                                "disabled": false,
+                                "pricing": {
+                                    "type": "none",
+                                    "amount": 0,
+                                    "formula": "",
+                                    "formula_raw": "",
+                                    "per_unit": true
+                                }
+                            }
+                        ],
+                        "pricing": {
+                            "type": "none",
+                            "amount": 0,
+                            "formula": "",
+                            "formula_raw": "",
+                            "per_unit": true
+                        },
+                        "conditionals": []
+                    },
+                    {
+                        "id": "formula-choice",
+                        "label": "Formula choice",
+                        "description": "",
+                        "type": "select",
+                        "required": false,
+                        "width": 100,
+                        "css_class": "",
+                        "placeholder": "",
+                        "choices": [
+                            {
+                                "slug": "flat",
+                                "label": "flat",
+                                "selected": false,
+                                "disabled": false,
+                                "pricing": {
+                                    "type": "formula",
+                                    "amount": 0,
+                                    "formula": "7",
+                                    "formula_raw": "7",
+                                    "per_unit": false
+                                }
+                            },
+                            {
+                                "slug": "qty-middle",
+                                "label": "qty-middle",
+                                "selected": false,
+                                "disabled": false,
+                                "pricing": {
+                                    "type": "formula",
+                                    "amount": 0,
+                                    "formula": "2 * [qty] + 5",
+                                    "formula_raw": "2 * [qty] + 5",
+                                    "per_unit": false
+                                }
+                            },
+                            {
+                                "slug": "qty-tail",
+                                "label": "qty-tail",
+                                "selected": false,
+                                "disabled": false,
+                                "pricing": {
+                                    "type": "formula",
+                                    "amount": 0,
+                                    "formula": "(2 + 5)",
+                                    "formula_raw": "(2 + 5) * [qty]",
+                                    "per_unit": true
+                                }
+                            },
+                            {
+                                "slug": "qty-head",
+                                "label": "qty-head",
+                                "selected": false,
+                                "disabled": false,
+                                "pricing": {
+                                    "type": "formula",
+                                    "amount": 0,
+                                    "formula": "(2 + 5)",
+                                    "formula_raw": "[qty] * (2 + 5)",
+                                    "per_unit": true
+                                }
+                            },
+                            {
+                                "slug": "base-options",
+                                "label": "base-options",
+                                "selected": false,
+                                "disabled": false,
+                                "pricing": {
+                                    "type": "formula",
+                                    "amount": 0,
+                                    "formula": "[price] * 0.1 + [addons]",
+                                    "formula_raw": "[price] * 0.1 + [options_total]",
+                                    "per_unit": false
+                                }
+                            },
+                            {
+                                "slug": "sibling-value-price",
+                                "label": "sibling-value-price",
+                                "selected": false,
+                                "disabled": false,
+                                "pricing": {
+                                    "type": "formula",
+                                    "amount": 0,
+                                    "formula": "[field.count] + [price.fee]",
+                                    "formula_raw": "[field.count] + [price.fee]",
+                                    "per_unit": false
+                                }
+                            },
+                            {
+                                "slug": "checked",
+                                "label": "checked",
+                                "selected": false,
+                                "disabled": false,
+                                "pricing": {
+                                    "type": "formula",
+                                    "amount": 0,
+                                    "formula": "checked(flags) + 3",
+                                    "formula_raw": "checked(flags) + 3",
+                                    "per_unit": false
+                                }
+                            },
+                            {
+                                "slug": "min-max",
+                                "label": "min-max",
+                                "selected": false,
+                                "disabled": false,
+                                "pricing": {
+                                    "type": "formula",
+                                    "amount": 0,
+                                    "formula": "min(5; 1; 3) + max(5; 8; 3)",
+                                    "formula_raw": "min(5; 1; 3) + max(5; 8; 3)",
+                                    "per_unit": false
+                                }
+                            },
+                            {
+                                "slug": "round-pow",
+                                "label": "round-pow",
+                                "selected": false,
+                                "disabled": false,
+                                "pricing": {
+                                    "type": "formula",
+                                    "amount": 0,
+                                    "formula": "round(pow([field.count]; 2) / 7; 2)",
+                                    "formula_raw": "round(pow([field.count]; 2) / 7; 2)",
+                                    "per_unit": false
+                                }
+                            },
+                            {
+                                "slug": "abs-floor-ceil",
+                                "label": "abs-floor-ceil",
+                                "selected": false,
+                                "disabled": false,
+                                "pricing": {
+                                    "type": "formula",
+                                    "amount": 0,
+                                    "formula": "abs(-4) + floor(2.9) + ceil(2.1)",
+                                    "formula_raw": "abs(-4) + floor(2.9) + ceil(2.1)",
+                                    "per_unit": false
+                                }
+                            },
+                            {
+                                "slug": "sqrt-trig",
+                                "label": "sqrt-trig",
+                                "selected": false,
+                                "disabled": false,
+                                "pricing": {
+                                    "type": "formula",
+                                    "amount": 0,
+                                    "formula": "sqrt(9) + sin(0) + cos(0) + tan(0)",
+                                    "formula_raw": "sqrt(9) + sin(0) + cos(0) + tan(0)",
+                                    "per_unit": false
+                                }
+                            },
+                            {
+                                "slug": "all-eleven",
+                                "label": "all-eleven",
+                                "selected": false,
+                                "disabled": false,
+                                "pricing": {
+                                    "type": "formula",
+                                    "amount": 0,
+                                    "formula": "(round(pow([field.count]; 2) / 3; 2) + max(abs(-4); floor(2.9); ceil(2.1)) + sqrt(9) + sin(0) + cos(0) + tan(0) + min(5; 1; 3))",
+                                    "formula_raw": "(round(pow([field.count]; 2) / 3; 2) + max(abs(-4); floor(2.9); ceil(2.1)) + sqrt(9) + sin(0) + cos(0) + tan(0) + min(5; 1; 3)) * [qty]",
+                                    "per_unit": true
+                                }
+                            }
+                        ],
+                        "pricing": {
+                            "type": "none",
+                            "amount": 0,
+                            "formula": "",
+                            "formula_raw": "",
+                            "per_unit": true
+                        },
+                        "conditionals": []
+                    },
+                    {
+                        "id": "scalar-flat",
+                        "label": "Scalar flat",
+                        "description": "",
+                        "type": "text",
+                        "required": false,
+                        "width": 100,
+                        "css_class": "",
+                        "placeholder": "",
+                        "choices": [],
+                        "pricing": {
+                            "type": "formula",
+                            "amount": 0,
+                            "formula": "7",
+                            "formula_raw": "7",
+                            "per_unit": false
+                        },
+                        "conditionals": []
+                    },
+                    {
+                        "id": "scalar-qty-middle",
+                        "label": "Scalar qty-middle",
+                        "description": "",
+                        "type": "text",
+                        "required": false,
+                        "width": 100,
+                        "css_class": "",
+                        "placeholder": "",
+                        "choices": [],
+                        "pricing": {
+                            "type": "formula",
+                            "amount": 0,
+                            "formula": "2 * [qty] + 5",
+                            "formula_raw": "2 * [qty] + 5",
+                            "per_unit": false
+                        },
+                        "conditionals": []
+                    },
+                    {
+                        "id": "scalar-qty-tail",
+                        "label": "Scalar qty-tail",
+                        "description": "",
+                        "type": "text",
+                        "required": false,
+                        "width": 100,
+                        "css_class": "",
+                        "placeholder": "",
+                        "choices": [],
+                        "pricing": {
+                            "type": "formula",
+                            "amount": 0,
+                            "formula": "(2 + 5)",
+                            "formula_raw": "(2 + 5) * [qty]",
+                            "per_unit": true
+                        },
+                        "conditionals": []
+                    },
+                    {
+                        "id": "scalar-qty-head",
+                        "label": "Scalar qty-head",
+                        "description": "",
+                        "type": "text",
+                        "required": false,
+                        "width": 100,
+                        "css_class": "",
+                        "placeholder": "",
+                        "choices": [],
+                        "pricing": {
+                            "type": "formula",
+                            "amount": 0,
+                            "formula": "(2 + 5)",
+                            "formula_raw": "[qty] * (2 + 5)",
+                            "per_unit": true
+                        },
+                        "conditionals": []
+                    },
+                    {
+                        "id": "scalar-base-options",
+                        "label": "Scalar base-options",
+                        "description": "",
+                        "type": "text",
+                        "required": false,
+                        "width": 100,
+                        "css_class": "",
+                        "placeholder": "",
+                        "choices": [],
+                        "pricing": {
+                            "type": "formula",
+                            "amount": 0,
+                            "formula": "[price] * 0.1 + [addons]",
+                            "formula_raw": "[price] * 0.1 + [options_total]",
+                            "per_unit": false
+                        },
+                        "conditionals": []
+                    },
+                    {
+                        "id": "scalar-sibling-value-price",
+                        "label": "Scalar sibling-value-price",
+                        "description": "",
+                        "type": "text",
+                        "required": false,
+                        "width": 100,
+                        "css_class": "",
+                        "placeholder": "",
+                        "choices": [],
+                        "pricing": {
+                            "type": "formula",
+                            "amount": 0,
+                            "formula": "[field.count] + [price.fee]",
+                            "formula_raw": "[field.count] + [price.fee]",
+                            "per_unit": false
+                        },
+                        "conditionals": []
+                    },
+                    {
+                        "id": "scalar-checked",
+                        "label": "Scalar checked",
+                        "description": "",
+                        "type": "text",
+                        "required": false,
+                        "width": 100,
+                        "css_class": "",
+                        "placeholder": "",
+                        "choices": [],
+                        "pricing": {
+                            "type": "formula",
+                            "amount": 0,
+                            "formula": "checked(flags) + 3",
+                            "formula_raw": "checked(flags) + 3",
+                            "per_unit": false
+                        },
+                        "conditionals": []
+                    },
+                    {
+                        "id": "scalar-min-max",
+                        "label": "Scalar min-max",
+                        "description": "",
+                        "type": "text",
+                        "required": false,
+                        "width": 100,
+                        "css_class": "",
+                        "placeholder": "",
+                        "choices": [],
+                        "pricing": {
+                            "type": "formula",
+                            "amount": 0,
+                            "formula": "min(5; 1; 3) + max(5; 8; 3)",
+                            "formula_raw": "min(5; 1; 3) + max(5; 8; 3)",
+                            "per_unit": false
+                        },
+                        "conditionals": []
+                    },
+                    {
+                        "id": "scalar-round-pow",
+                        "label": "Scalar round-pow",
+                        "description": "",
+                        "type": "text",
+                        "required": false,
+                        "width": 100,
+                        "css_class": "",
+                        "placeholder": "",
+                        "choices": [],
+                        "pricing": {
+                            "type": "formula",
+                            "amount": 0,
+                            "formula": "round(pow([field.count]; 2) / 7; 2)",
+                            "formula_raw": "round(pow([field.count]; 2) / 7; 2)",
+                            "per_unit": false
+                        },
+                        "conditionals": []
+                    },
+                    {
+                        "id": "scalar-abs-floor-ceil",
+                        "label": "Scalar abs-floor-ceil",
+                        "description": "",
+                        "type": "text",
+                        "required": false,
+                        "width": 100,
+                        "css_class": "",
+                        "placeholder": "",
+                        "choices": [],
+                        "pricing": {
+                            "type": "formula",
+                            "amount": 0,
+                            "formula": "abs(-4) + floor(2.9) + ceil(2.1)",
+                            "formula_raw": "abs(-4) + floor(2.9) + ceil(2.1)",
+                            "per_unit": false
+                        },
+                        "conditionals": []
+                    },
+                    {
+                        "id": "scalar-sqrt-trig",
+                        "label": "Scalar sqrt-trig",
+                        "description": "",
+                        "type": "text",
+                        "required": false,
+                        "width": 100,
+                        "css_class": "",
+                        "placeholder": "",
+                        "choices": [],
+                        "pricing": {
+                            "type": "formula",
+                            "amount": 0,
+                            "formula": "sqrt(9) + sin(0) + cos(0) + tan(0)",
+                            "formula_raw": "sqrt(9) + sin(0) + cos(0) + tan(0)",
+                            "per_unit": false
+                        },
+                        "conditionals": []
+                    },
+                    {
+                        "id": "scalar-all-eleven",
+                        "label": "Scalar all-eleven",
+                        "description": "",
+                        "type": "text",
+                        "required": false,
+                        "width": 100,
+                        "css_class": "",
+                        "placeholder": "",
+                        "choices": [],
+                        "pricing": {
+                            "type": "formula",
+                            "amount": 0,
+                            "formula": "(round(pow([field.count]; 2) / 3; 2) + max(abs(-4); floor(2.9); ceil(2.1)) + sqrt(9) + sin(0) + cos(0) + tan(0) + min(5; 1; 3))",
+                            "formula_raw": "(round(pow([field.count]; 2) / 3; 2) + max(abs(-4); floor(2.9); ceil(2.1)) + sqrt(9) + sin(0) + cos(0) + tan(0) + min(5; 1; 3)) * [qty]",
+                            "per_unit": true
+                        },
+                        "conditionals": []
+                    }
+                ],
+                "rule_groups": [],
+                "mark_required": true,
+                "labels_position": "above"
+            },
+            "warnings": []
+        }
+    ],
+    "warnings": []
+}

@@ -1,0 +1,1104 @@
+{
+    "environment": {
+        "php": "8.5.11",
+        "wordpress": "7.1.2",
+        "woocommerce": "11.1.0",
+        "database": "/tmp/opf-formula-roundtrip-wp/wp-content/database/.ht.sqlite",
+        "opf": "/tmp/opf-formula-import-roundtrip",
+        "functions": [
+            "min",
+            "max",
+            "len",
+            "lookuptable",
+            "round",
+            "abs",
+            "floor",
+            "ceil",
+            "sqrt",
+            "cos",
+            "sin",
+            "tan",
+            "pow",
+            "sumQty",
+            "checked",
+            "files",
+            "if",
+            "or",
+            "and",
+            "today",
+            "datediff",
+            "dow",
+            "month"
+        ]
+    },
+    "rows": [
+        {
+            "case": "flat",
+            "qty": 1,
+            "native": 7,
+            "native_roundtrip_choice": 7,
+            "native_roundtrip_field": 7,
+            "php_choice": 7,
+            "php_field": 7,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "7",
+                "formula_raw": "7",
+                "per_unit": false
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "7",
+                "formula_raw": "7",
+                "per_unit": false
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 8
+            },
+            "addons": 8
+        },
+        {
+            "case": "qty-middle",
+            "qty": 1,
+            "native": 7,
+            "native_roundtrip_choice": 7,
+            "native_roundtrip_field": 7,
+            "php_choice": 7,
+            "php_field": 7,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "2 * [qty] + 5",
+                "formula_raw": "2 * [qty] + 5",
+                "per_unit": false
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "2 * [qty] + 5",
+                "formula_raw": "2 * [qty] + 5",
+                "per_unit": false
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 8
+            },
+            "addons": 8
+        },
+        {
+            "case": "qty-tail",
+            "qty": 1,
+            "native": 7,
+            "native_roundtrip_choice": 7,
+            "native_roundtrip_field": 7,
+            "php_choice": 7,
+            "php_field": 7,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "(2 + 5)",
+                "formula_raw": "(2 + 5) * [qty]",
+                "per_unit": true
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "(2 + 5)",
+                "formula_raw": "(2 + 5) * [qty]",
+                "per_unit": true
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 8
+            },
+            "addons": 8
+        },
+        {
+            "case": "qty-head",
+            "qty": 1,
+            "native": 7,
+            "native_roundtrip_choice": 7,
+            "native_roundtrip_field": 7,
+            "php_choice": 7,
+            "php_field": 7,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "(2 + 5)",
+                "formula_raw": "[qty] * (2 + 5)",
+                "per_unit": true
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "(2 + 5)",
+                "formula_raw": "[qty] * (2 + 5)",
+                "per_unit": true
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 8
+            },
+            "addons": 8
+        },
+        {
+            "case": "base-options",
+            "qty": 1,
+            "native": 18,
+            "native_roundtrip_choice": 18,
+            "native_roundtrip_field": 18,
+            "php_choice": 18,
+            "php_field": 18,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "[price] * 0.1 + [addons]",
+                "formula_raw": "[price] * 0.1 + [options_total]",
+                "per_unit": false
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "[price] * 0.1 + [addons]",
+                "formula_raw": "[price] * 0.1 + [options_total]",
+                "per_unit": false
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 8
+            },
+            "addons": 8
+        },
+        {
+            "case": "sibling-value-price",
+            "qty": 1,
+            "native": 11,
+            "native_roundtrip_choice": 11,
+            "native_roundtrip_field": 11,
+            "php_choice": 11,
+            "php_field": 11,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "[field.count] + [price.fee]",
+                "formula_raw": "[field.count] + [price.fee]",
+                "per_unit": false
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "[field.count] + [price.fee]",
+                "formula_raw": "[field.count] + [price.fee]",
+                "per_unit": false
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 8
+            },
+            "addons": 8
+        },
+        {
+            "case": "checked",
+            "qty": 1,
+            "native": 5,
+            "native_roundtrip_choice": 5,
+            "native_roundtrip_field": 5,
+            "php_choice": 5,
+            "php_field": 5,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "checked(flags) + 3",
+                "formula_raw": "checked(flags) + 3",
+                "per_unit": false
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "checked(flags) + 3",
+                "formula_raw": "checked(flags) + 3",
+                "per_unit": false
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 8
+            },
+            "addons": 8
+        },
+        {
+            "case": "min-max",
+            "qty": 1,
+            "native": 9,
+            "native_roundtrip_choice": 9,
+            "native_roundtrip_field": 9,
+            "php_choice": 9,
+            "php_field": 9,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "min(5; 1; 3) + max(5; 8; 3)",
+                "formula_raw": "min(5; 1; 3) + max(5; 8; 3)",
+                "per_unit": false
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "min(5; 1; 3) + max(5; 8; 3)",
+                "formula_raw": "min(5; 1; 3) + max(5; 8; 3)",
+                "per_unit": false
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 8
+            },
+            "addons": 8
+        },
+        {
+            "case": "round-pow",
+            "qty": 1,
+            "native": 1.29,
+            "native_roundtrip_choice": 1.29,
+            "native_roundtrip_field": 1.29,
+            "php_choice": 1.29,
+            "php_field": 1.29,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "round(pow([field.count]; 2) / 7; 2)",
+                "formula_raw": "round(pow([field.count]; 2) / 7; 2)",
+                "per_unit": false
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "round(pow([field.count]; 2) / 7; 2)",
+                "formula_raw": "round(pow([field.count]; 2) / 7; 2)",
+                "per_unit": false
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 8
+            },
+            "addons": 8
+        },
+        {
+            "case": "abs-floor-ceil",
+            "qty": 1,
+            "native": 9,
+            "native_roundtrip_choice": 9,
+            "native_roundtrip_field": 9,
+            "php_choice": 9,
+            "php_field": 9,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "abs(-4) + floor(2.9) + ceil(2.1)",
+                "formula_raw": "abs(-4) + floor(2.9) + ceil(2.1)",
+                "per_unit": false
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "abs(-4) + floor(2.9) + ceil(2.1)",
+                "formula_raw": "abs(-4) + floor(2.9) + ceil(2.1)",
+                "per_unit": false
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 8
+            },
+            "addons": 8
+        },
+        {
+            "case": "sqrt-trig",
+            "qty": 1,
+            "native": 4,
+            "native_roundtrip_choice": 4,
+            "native_roundtrip_field": 4,
+            "php_choice": 4,
+            "php_field": 4,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "sqrt(9) + sin(0) + cos(0) + tan(0)",
+                "formula_raw": "sqrt(9) + sin(0) + cos(0) + tan(0)",
+                "per_unit": false
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "sqrt(9) + sin(0) + cos(0) + tan(0)",
+                "formula_raw": "sqrt(9) + sin(0) + cos(0) + tan(0)",
+                "per_unit": false
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 8
+            },
+            "addons": 8
+        },
+        {
+            "case": "all-eleven",
+            "qty": 1,
+            "native": 12,
+            "native_roundtrip_choice": 12,
+            "native_roundtrip_field": 12,
+            "php_choice": 12,
+            "php_field": 12,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "(round(pow([field.count]; 2) / 3; 2) + max(abs(-4); floor(2.9); ceil(2.1)) + sqrt(9) + sin(0) + cos(0) + tan(0) + min(5; 1; 3))",
+                "formula_raw": "(round(pow([field.count]; 2) / 3; 2) + max(abs(-4); floor(2.9); ceil(2.1)) + sqrt(9) + sin(0) + cos(0) + tan(0) + min(5; 1; 3)) * [qty]",
+                "per_unit": true
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "(round(pow([field.count]; 2) / 3; 2) + max(abs(-4); floor(2.9); ceil(2.1)) + sqrt(9) + sin(0) + cos(0) + tan(0) + min(5; 1; 3))",
+                "formula_raw": "(round(pow([field.count]; 2) / 3; 2) + max(abs(-4); floor(2.9); ceil(2.1)) + sqrt(9) + sin(0) + cos(0) + tan(0) + min(5; 1; 3)) * [qty]",
+                "per_unit": true
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 8
+            },
+            "addons": 8
+        },
+        {
+            "case": "flat",
+            "qty": 4,
+            "native": 1.75,
+            "native_roundtrip_choice": 1.75,
+            "native_roundtrip_field": 1.75,
+            "php_choice": 1.75,
+            "php_field": 1.75,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "7",
+                "formula_raw": "7",
+                "per_unit": false
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "7",
+                "formula_raw": "7",
+                "per_unit": false
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 2
+            },
+            "addons": 2
+        },
+        {
+            "case": "qty-middle",
+            "qty": 4,
+            "native": 3.25,
+            "native_roundtrip_choice": 3.25,
+            "native_roundtrip_field": 3.25,
+            "php_choice": 3.25,
+            "php_field": 3.25,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "2 * [qty] + 5",
+                "formula_raw": "2 * [qty] + 5",
+                "per_unit": false
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "2 * [qty] + 5",
+                "formula_raw": "2 * [qty] + 5",
+                "per_unit": false
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 2
+            },
+            "addons": 2
+        },
+        {
+            "case": "qty-tail",
+            "qty": 4,
+            "native": 7,
+            "native_roundtrip_choice": 7,
+            "native_roundtrip_field": 7,
+            "php_choice": 7,
+            "php_field": 7,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "(2 + 5)",
+                "formula_raw": "(2 + 5) * [qty]",
+                "per_unit": true
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "(2 + 5)",
+                "formula_raw": "(2 + 5) * [qty]",
+                "per_unit": true
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 2
+            },
+            "addons": 2
+        },
+        {
+            "case": "qty-head",
+            "qty": 4,
+            "native": 7,
+            "native_roundtrip_choice": 7,
+            "native_roundtrip_field": 7,
+            "php_choice": 7,
+            "php_field": 7,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "(2 + 5)",
+                "formula_raw": "[qty] * (2 + 5)",
+                "per_unit": true
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "(2 + 5)",
+                "formula_raw": "[qty] * (2 + 5)",
+                "per_unit": true
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 2
+            },
+            "addons": 2
+        },
+        {
+            "case": "base-options",
+            "qty": 4,
+            "native": 3,
+            "native_roundtrip_choice": 3,
+            "native_roundtrip_field": 3,
+            "php_choice": 3,
+            "php_field": 3,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "[price] * 0.1 + [addons]",
+                "formula_raw": "[price] * 0.1 + [options_total]",
+                "per_unit": false
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "[price] * 0.1 + [addons]",
+                "formula_raw": "[price] * 0.1 + [options_total]",
+                "per_unit": false
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 2
+            },
+            "addons": 2
+        },
+        {
+            "case": "sibling-value-price",
+            "qty": 4,
+            "native": 1.25,
+            "native_roundtrip_choice": 1.25,
+            "native_roundtrip_field": 1.25,
+            "php_choice": 1.25,
+            "php_field": 1.25,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "[field.count] + [price.fee]",
+                "formula_raw": "[field.count] + [price.fee]",
+                "per_unit": false
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "[field.count] + [price.fee]",
+                "formula_raw": "[field.count] + [price.fee]",
+                "per_unit": false
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 2
+            },
+            "addons": 2
+        },
+        {
+            "case": "checked",
+            "qty": 4,
+            "native": 1.25,
+            "native_roundtrip_choice": 1.25,
+            "native_roundtrip_field": 1.25,
+            "php_choice": 1.25,
+            "php_field": 1.25,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "checked(flags) + 3",
+                "formula_raw": "checked(flags) + 3",
+                "per_unit": false
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "checked(flags) + 3",
+                "formula_raw": "checked(flags) + 3",
+                "per_unit": false
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 2
+            },
+            "addons": 2
+        },
+        {
+            "case": "min-max",
+            "qty": 4,
+            "native": 2.25,
+            "native_roundtrip_choice": 2.25,
+            "native_roundtrip_field": 2.25,
+            "php_choice": 2.25,
+            "php_field": 2.25,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "min(5; 1; 3) + max(5; 8; 3)",
+                "formula_raw": "min(5; 1; 3) + max(5; 8; 3)",
+                "per_unit": false
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "min(5; 1; 3) + max(5; 8; 3)",
+                "formula_raw": "min(5; 1; 3) + max(5; 8; 3)",
+                "per_unit": false
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 2
+            },
+            "addons": 2
+        },
+        {
+            "case": "round-pow",
+            "qty": 4,
+            "native": 0.3225,
+            "native_roundtrip_choice": 0.3225,
+            "native_roundtrip_field": 0.3225,
+            "php_choice": 0.3225,
+            "php_field": 0.3225,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "round(pow([field.count]; 2) / 7; 2)",
+                "formula_raw": "round(pow([field.count]; 2) / 7; 2)",
+                "per_unit": false
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "round(pow([field.count]; 2) / 7; 2)",
+                "formula_raw": "round(pow([field.count]; 2) / 7; 2)",
+                "per_unit": false
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 2
+            },
+            "addons": 2
+        },
+        {
+            "case": "abs-floor-ceil",
+            "qty": 4,
+            "native": 2.25,
+            "native_roundtrip_choice": 2.25,
+            "native_roundtrip_field": 2.25,
+            "php_choice": 2.25,
+            "php_field": 2.25,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "abs(-4) + floor(2.9) + ceil(2.1)",
+                "formula_raw": "abs(-4) + floor(2.9) + ceil(2.1)",
+                "per_unit": false
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "abs(-4) + floor(2.9) + ceil(2.1)",
+                "formula_raw": "abs(-4) + floor(2.9) + ceil(2.1)",
+                "per_unit": false
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 2
+            },
+            "addons": 2
+        },
+        {
+            "case": "sqrt-trig",
+            "qty": 4,
+            "native": 1,
+            "native_roundtrip_choice": 1,
+            "native_roundtrip_field": 1,
+            "php_choice": 1,
+            "php_field": 1,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "sqrt(9) + sin(0) + cos(0) + tan(0)",
+                "formula_raw": "sqrt(9) + sin(0) + cos(0) + tan(0)",
+                "per_unit": false
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "sqrt(9) + sin(0) + cos(0) + tan(0)",
+                "formula_raw": "sqrt(9) + sin(0) + cos(0) + tan(0)",
+                "per_unit": false
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 2
+            },
+            "addons": 2
+        },
+        {
+            "case": "all-eleven",
+            "qty": 4,
+            "native": 12,
+            "native_roundtrip_choice": 12,
+            "native_roundtrip_field": 12,
+            "php_choice": 12,
+            "php_field": 12,
+            "choice": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "(round(pow([field.count]; 2) / 3; 2) + max(abs(-4); floor(2.9); ceil(2.1)) + sqrt(9) + sin(0) + cos(0) + tan(0) + min(5; 1; 3))",
+                "formula_raw": "(round(pow([field.count]; 2) / 3; 2) + max(abs(-4); floor(2.9); ceil(2.1)) + sqrt(9) + sin(0) + cos(0) + tan(0) + min(5; 1; 3)) * [qty]",
+                "per_unit": true
+            },
+            "field": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "(round(pow([field.count]; 2) / 3; 2) + max(abs(-4); floor(2.9); ceil(2.1)) + sqrt(9) + sin(0) + cos(0) + tan(0) + min(5; 1; 3))",
+                "formula_raw": "(round(pow([field.count]; 2) / 3; 2) + max(abs(-4); floor(2.9); ceil(2.1)) + sqrt(9) + sin(0) + cos(0) + tan(0) + min(5; 1; 3)) * [qty]",
+                "per_unit": true
+            },
+            "values": {
+                "count": "3",
+                "fee": "fee",
+                "flags": [
+                    "a",
+                    "b"
+                ]
+            },
+            "prices": {
+                "fee": 2
+            },
+            "addons": 2
+        }
+    ],
+    "boundaries": [
+        {
+            "formula": "if(2 < 5; 1; 2)",
+            "needs_review": true,
+            "pricing": {
+                "type": "none",
+                "amount": 0,
+                "formula": "",
+                "formula_raw": "",
+                "per_unit": true
+            },
+            "notes": [
+                "choice \"Boundary\" formula could not be translated: if(2 < 5; 1; 2)"
+            ]
+        },
+        {
+            "formula": "len(abc)",
+            "needs_review": true,
+            "pricing": {
+                "type": "none",
+                "amount": 0,
+                "formula": "",
+                "formula_raw": "",
+                "per_unit": true
+            },
+            "notes": [
+                "choice \"Boundary\" formula could not be translated: len(abc)"
+            ]
+        },
+        {
+            "formula": "datediff(01-10-2023; 01-12-2023)",
+            "needs_review": true,
+            "pricing": {
+                "type": "none",
+                "amount": 0,
+                "formula": "",
+                "formula_raw": "",
+                "per_unit": true
+            },
+            "notes": [
+                "choice \"Boundary\" formula could not be translated: datediff(01-10-2023; 01-12-2023)"
+            ]
+        },
+        {
+            "formula": "today()",
+            "needs_review": true,
+            "pricing": {
+                "type": "none",
+                "amount": 0,
+                "formula": "",
+                "formula_raw": "",
+                "per_unit": true
+            },
+            "notes": [
+                "choice \"Boundary\" formula could not be translated: today()"
+            ]
+        },
+        {
+            "formula": "lookuptable(table; 1)",
+            "needs_review": true,
+            "pricing": {
+                "type": "none",
+                "amount": 0,
+                "formula": "",
+                "formula_raw": "",
+                "per_unit": true
+            },
+            "notes": [
+                "choice \"Boundary\" formula could not be translated: lookuptable(table; 1)"
+            ]
+        },
+        {
+            "formula": "sumQty(FlagsID)",
+            "needs_review": true,
+            "pricing": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "sumQty(flags)",
+                "formula_raw": "sumQty(flags)",
+                "per_unit": false
+            },
+            "notes": [
+                "field \"Boundary\" formula contains references whose runtime behavior is not implemented yet (sumqty(flags)); pricing needs review."
+            ]
+        },
+        {
+            "formula": "files(FlagsID)",
+            "needs_review": true,
+            "pricing": {
+                "type": "formula",
+                "amount": 0,
+                "formula": "files(flags)",
+                "formula_raw": "files(flags)",
+                "per_unit": false
+            },
+            "notes": [
+                "field \"Boundary\" formula contains references whose runtime behavior is not implemented yet (files(flags)); pricing needs review."
+            ]
+        },
+        {
+            "formula": "[field.COUNTID] + [price.FEEID]",
+            "needs_review": true,
+            "pricing": {
+                "type": "none",
+                "amount": 0,
+                "formula": "",
+                "formula_raw": "",
+                "per_unit": true
+            },
+            "notes": [
+                "field \"Boundary\" formula references unavailable or ambiguous WAPF field IDs (COUNTID, FEEID); pricing needs review.",
+                "choice \"Boundary\" formula could not be translated: [field.COUNTID] + [price.FEEID]"
+            ]
+        },
+        {
+            "formula": "[field.missing]",
+            "needs_review": true,
+            "pricing": {
+                "type": "none",
+                "amount": 0,
+                "formula": "",
+                "formula_raw": "",
+                "per_unit": true
+            },
+            "notes": [
+                "field \"Boundary\" formula references unavailable or ambiguous WAPF field IDs (missing); pricing needs review.",
+                "choice \"Boundary\" formula could not be translated: [field.missing]"
+            ]
+        }
+    ],
+    "legacy_dry": {
+        "mode": "dry-run",
+        "imported": 3,
+        "skipped": 0,
+        "repaired": 0,
+        "needs_review": [],
+        "groups": [
+            {
+                "source": "39",
+                "result": "imported",
+                "opf_id": 0,
+                "title": "Formula model destination",
+                "fields": 16,
+                "status": "publish",
+                "needs_review": false,
+                "notes": []
+            },
+            {
+                "source": "38",
+                "result": "imported",
+                "opf_id": 0,
+                "title": "Formula native source",
+                "fields": 16,
+                "status": "publish",
+                "needs_review": false,
+                "notes": []
+            },
+            {
+                "source": "meta:40",
+                "result": "imported",
+                "opf_id": 0,
+                "title": "Formula local import fixture \u2014 Count",
+                "fields": 16,
+                "status": "publish",
+                "needs_review": false,
+                "notes": []
+            }
+        ],
+        "date_format": {
+            "result": "source-absent"
+        }
+    },
+    "legacy_committed": {
+        "mode": "commit",
+        "imported": 3,
+        "skipped": 0,
+        "repaired": 0,
+        "needs_review": [],
+        "groups": [
+            {
+                "source": "39",
+                "result": "imported",
+                "opf_id": 41,
+                "title": "Formula model destination",
+                "fields": 16,
+                "status": "publish",
+                "needs_review": false,
+                "notes": []
+            },
+            {
+                "source": "38",
+                "result": "imported",
+                "opf_id": 42,
+                "title": "Formula native source",
+                "fields": 16,
+                "status": "publish",
+                "needs_review": false,
+                "notes": []
+            },
+            {
+                "source": "meta:40",
+                "result": "imported",
+                "opf_id": 43,
+                "title": "Formula local import fixture \u2014 Count",
+                "fields": 16,
+                "status": "publish",
+                "needs_review": false,
+                "notes": []
+            }
+        ],
+        "date_format": {
+            "result": "source-absent"
+        }
+    },
+    "archive": {
+        "mode": "commit",
+        "imported": 1,
+        "skipped": 0,
+        "groups": [
+            {
+                "source_id": 41,
+                "result": "imported",
+                "opf_id": 44,
+                "status": "draft",
+                "needs_review": false
+            }
+        ]
+    }
+}

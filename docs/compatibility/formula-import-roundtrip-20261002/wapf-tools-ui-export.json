@@ -1,0 +1,13 @@
+{
+  "fields": [],
+  "conditions": [],
+  "layout": {
+    "swap_type": "rules",
+    "labels_position": "above",
+    "instructions_position": "field",
+    "mark_required": true,
+    "enable_gallery_images": false,
+    "gallery_images": []
+  },
+  "variables": []
+}
