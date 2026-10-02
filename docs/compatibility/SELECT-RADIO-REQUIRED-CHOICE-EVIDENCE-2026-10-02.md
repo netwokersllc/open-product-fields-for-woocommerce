@@ -4,12 +4,12 @@
 
 This proof covers required select/radio choices: empty initial selection when no default exists, default selection when configured, optional select clearing, accessible names, keyboard operation, server validation, flat-fee pricing, WAPF Free round trips, classic and Store API checkout/order persistence, and order-again.
 
-- Public feature branch base verified during the final run: `d82d21e38a849199b3dae4817d099926e8bc5da8`.
-- Disabled-default fix commit: `de9d4227fb633639e52fa3451ad3a52c0c061998`.
+- Public feature branch base verified during the final run: `61087698b3b7b18f9e6d5f2b54ccb632949ac9c3`.
+- Disabled-default fix commit: `1dbbb2431edaadecaa061cfd5773a147572c960b`.
 - Runtime: isolated copy of the local WordPress test site at `/tmp/opf-select-radio-runtime-20261001`, loopback only (`127.0.0.1:8174`); no production site was used.
 - Runtime versions: WordPress 7.1.2, PHP 8.5.11, WooCommerce 11.1.0, WAPF Free 1.6.21.
 - WAPF package: `/tmp/wapf-free-1.6.21.zip`, SHA-256 `9741270796d61583df9a66ab2b154434b7f2d6237569372489e3efd00e197db6`.
-- The runtime plugin tree matched the lane worktree across all 1,984 files after rebasing. The served `assets/js/opf-builder.js` SHA-256 matched the worktree at `5065579c74f51c13aa1684ed219fea75b79f649a821688d82992859ec64f6fdb`.
+- Both runtime plugin trees matched the lane worktree across all 1,994 files after rebasing. The served `assets/js/opf-builder.js` SHA-256 matched the worktree at `5065579c74f51c13aa1684ed219fea75b79f649a821688d82992859ec64f6fdb`; `includes/Service/Renderer.php` SHA-256 was `0e5914cdc8472f863f37475ca6b18c9153c1a094488371ea7aa8134d3d759b35` in source and runtime.
 
 ## Changes
 
@@ -20,7 +20,7 @@ This proof covers required select/radio choices: empty initial selection when no
 
 ## Results
 
-- `composer test`: **281 tests, 1,087 assertions passed**; one pre-existing PHPUnit deprecation.
+- `composer test`: **283 tests, 1,112 assertions passed**; one pre-existing PHPUnit deprecation.
 - `php -l includes/Service/Renderer.php`: passed. `git diff --check`: passed.
 - Chromium `native` phase: **41/41 checks passed**. Authenticated OPF admin REST save/reload retained required flags, Unicode labels, defaults, and fee values. Browser checks covered empty required select, empty required radio, optional clearing, accessible names, select and radio arrow keys, and 320/768/1280 px field bounds. Screenshots are in `/tmp/opf-select-radio-proof-current/`.
 - Chromium disabled-default probe: **13/13 checks passed**. A local-only MU probe injected stale `selected=true` after schema normalization for disabled select and radio choices. The rendered select value stayed empty, the disabled choice had no selected attribute, the radio was unchecked, and both required controls made the form invalid. Posted disabled choice slugs were rejected through classic product POST and Store API for both fields; each cart remained empty. Results and screenshot are in `/tmp/opf-select-radio-proof-current/disabled-default-browser-results.json` and `disabled-default-browser.png`.
@@ -39,8 +39,11 @@ php -l includes/Service/Renderer.php
 git diff --check
 OPF_CHOICE_BASE_URL=http://127.0.0.1:8174 OPF_CHOICE_ARTIFACT_DIR=/tmp/opf-select-radio-proof-current OPF_CHOICE_BROWSER_PHASE=native node /tmp/opf-select-radio-runtime-20261001/e2e-select-radio-browser-test.mjs
 wp --path=/tmp/opf-select-radio-runtime-20261001 eval-file /tmp/opf-select-radio-runtime-20261001/set-disabled-choice-fixture.php
-node /tmp/opf-select-radio-runtime-20261001/e2e-disabled-choice-browser.mjs
+OPF_CHOICE_BASE_URL=http://127.0.0.1:8174 OPF_CHOICE_ARTIFACT_DIR=/tmp/opf-select-radio-proof-current node /tmp/opf-select-radio-runtime-20261001/e2e-disabled-choice-browser.mjs
+wp --path=/tmp/opf-select-radio-runtime-20261001 eval-file /tmp/opf-select-radio-runtime-20261001/restore-choice-fixture.php
+wp --path=/tmp/opf-select-radio-runtime-20261001 eval-file /tmp/opf-select-radio-runtime-20261001/set-choice-defaults.php
 OPF_CHOICE_E2E_ALLOW=1 OPF_CHOICE_ARTIFACT_DIR=/tmp/opf-select-radio-proof-current OPF_CHOICE_E2E_PHASE=comparator wp --path=/tmp/opf-select-radio-runtime-20261001 eval-file /tmp/opf-select-radio-runtime-20261001/e2e-select-radio-lifecycle.php
+wp --path=/tmp/opf-select-radio-runtime-20261001 eval-file /tmp/opf-select-radio-runtime-20261001/dedupe-comparator-fixtures.php
 OPF_CHOICE_BASE_URL=http://127.0.0.1:8174 OPF_CHOICE_ARTIFACT_DIR=/tmp/opf-select-radio-proof-current OPF_CHOICE_BROWSER_PHASE=wapf node /tmp/opf-select-radio-runtime-20261001/e2e-select-radio-browser-test.mjs
 OPF_CHOICE_E2E_ALLOW=1 OPF_CHOICE_ARTIFACT_DIR=/tmp/opf-select-radio-proof-current OPF_CHOICE_E2E_PHASE=verify-comparator wp --path=/tmp/opf-select-radio-runtime-20261001 eval-file /tmp/opf-select-radio-runtime-20261001/e2e-select-radio-lifecycle.php
 OPF_CHOICE_E2E_ALLOW=1 OPF_CHOICE_ARTIFACT_DIR=/tmp/opf-select-radio-proof-current OPF_CHOICE_E2E_PHASE=prepare-again wp --path=/tmp/opf-select-radio-runtime-20261001 eval-file /tmp/opf-select-radio-runtime-20261001/e2e-select-radio-lifecycle.php
@@ -51,7 +54,7 @@ OPF_CHOICE_E2E_ALLOW=1 OPF_CHOICE_ARTIFACT_DIR=/tmp/opf-select-radio-proof-curre
 
 Result JSON: `native-browser-results.json`, `wapf-browser-results.json`, and `again-browser-results.json`; screenshots and cart/order payload snapshots are in `/tmp/opf-select-radio-proof-current/`. The failed initial order-again harness attempt is retained separately at `/tmp/opf-select-radio-proof-current/harness-initial-failure-provenance.json`.
 
-The initial replay failure was a harness setup issue: its WAPF comparator remained published during an OPF-only order-again test. The corrected run kept the OPF field group published and drafted only the WAPF comparator before replay. Both classic and Store API replay then passed; no failed check was suppressed.
+The browser runner scopes duplicate field names to the WAPF comparator during that phase. The fixture dedupe keeps only the current OPF group and current WAPF comparator published; before order-again it drafts the WAPF comparator and keeps the OPF group published. Both classic and Store API replay passed; no failed check was suppressed. The disabled-choice restore helper clears defaults, so the WAPF/order-again fixture explicitly reseeds enabled defaults before comparator export.
 
 ## Remaining scope
 
