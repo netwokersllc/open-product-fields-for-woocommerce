@@ -288,13 +288,13 @@ integration proof.
    return annotations. Run actual activation, REST save/preview success/error, storefront,
    classic/Store API cart, checkout, order metadata, and order-again on
    PHP 7.4/WordPress 6.5/WooCommerce 9.0. This establishes OPF's own floor first.
-2. Backport incompatible syntax in the two files still rejected by PHP 7.1;
-   preserve closure captures explicitly. The archive JSON dependency now has
-   PHP 7.1 runtime proof above; extend it to populated archives after the
-   syntax backport. Prove valid/malformed archives
-   and formula/repeater/API behavior with floor-compatible executable checks.
-   Current PHPUnit 11 development dependencies require PHP 8.2, so installing
-   the existing development lockfile on PHP 7.1/7.4 is not a floor harness.
+2. PHP 7.1.33 now parses all 36 shipped PHP files. The archive JSON dependency
+   has empty-archive runtime proof; extend it to populated archives. Formula
+   callbacks and repeater/cart sanitization have isolated PHP 7.1 equivalence
+   probes, but prove populated archives, full plugin boot, and a supported
+   WordPress/WooCommerce lifecycle with a floor-compatible harness. PHPUnit 11
+   development dependencies require PHP 8.2, so the existing development
+   lockfile is not a PHP 7.1/7.4 test harness.
 3. Cache invalidation now passes the WordPress 6.0/6.5 source and scoped
    cache-contract probes above. Extend proof to actual persistent cache
    backends and a full floor-stack install, retaining viewer/language isolation.
@@ -356,3 +356,20 @@ A fresh lint of all 36 shipped PHP files now leaves two syntax failures:
 runtime property type enforcement is a small internal type-safety loss; current
 constructor and in-repository assignment paths pass arrays. PHP 7.1 platform
 parity remains open pending these failures and full runtime/commerce-floor proof.
+
+## PHP 7.1 full syntax gate — 2026-10-02
+
+Public commits `ce0dd53` and `b838d86` backport the calculator and repeater
+cart callbacks. Actual PHP 7.1.33 now parses all **36/36 shipped PHP files**.
+The calculator's 720 finite formula/price outputs and nine explicit edge
+oracles match byte-for-byte on PHP 8.5 before/after and PHP 7.1 after. The
+CartIntegration adapter's 12 checks also match byte-for-byte on PHP 8.5
+before/after and PHP 7.1 after. The complete PHP 8.5 PHPUnit suite passes
+(278 tests / 1,095 assertions; one existing metadata deprecation).
+
+This closes the parser gate only. PHP 7.1 has not booted the whole plugin in a
+supported WordPress/WooCommerce stack, populated archive import has not been
+proved there, and WooCommerce 7.0 itself requires PHP 7.2. The platform parity
+ledger row remains a gap until the declared and marketed floor combinations
+have executable activation, REST, browser, cart/checkout, order, and
+order-again evidence.

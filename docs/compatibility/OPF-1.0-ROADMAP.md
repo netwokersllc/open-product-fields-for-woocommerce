@@ -126,11 +126,12 @@ proof remains open. See
 PHP files, because two return signatures require PHP 8.0. OPF's declared
 WordPress 6.5/PHP 7.4/WooCommerce 9.0 floor still needs actual activation,
 REST, browser, cart/checkout, order-storage, and order-again proof after repair.
-WAPF paid-floor parity additionally needs PHP 7.1 syntax backports (archive
-JSON decoding now has standalone PHP 7.1 proof),
-WordPress 6.0 cache invalidation, and WooCommerce 7.0 Store API capture work;
-WooCommerce 7.0 itself requires PHP 7.2, so the advertised PHP 7.1 floor needs
-separate language/API checks. Free's older platform declarations and conflicting
+WAPF paid-floor parity additionally needs the complete PHP 7.1 runtime/API
+matrix (all 36 shipped PHP files now parse on PHP 7.1.33; archive JSON and
+calculator callbacks have standalone probes), WordPress 6.0 cache invalidation,
+and WooCommerce 7.0 Store API capture work. WooCommerce 7.0 itself requires PHP
+7.2, so the advertised PHP 7.1 floor needs separate language/API/runtime checks.
+Free's older platform declarations and conflicting
 WordPress floor claims also remain unresolved. The audit changes no scope or
 status counts.
 
