@@ -244,7 +244,7 @@ final class WapfExporter {
 		return $out;
 	}
 
-	/** @param array<string,mixed> $pricing */
+	/** @param array<string,mixed> $pricing @param string[] $field_ids */
 	private static function map_field_pricing( array $pricing, array $field_ids ): array {
 		if ( 'none' === $pricing['type'] ) {
 			return [ 'enabled' => false, 'type' => 'fixed', 'amount' => 0 ];
@@ -253,7 +253,7 @@ final class WapfExporter {
 		return [ 'enabled' => true, 'type' => $mapped['type'], 'amount' => $mapped['amount'] ];
 	}
 
-	/** @param array<string,mixed> $pricing @return array{type:string,amount:float} */
+	/** @param array<string,mixed> $pricing @param string[] $field_ids @return array{type:string,amount:mixed} */
 	private static function map_choice_pricing( array $pricing, array $field_ids ): array {
 		if ( 'none' === $pricing['type'] ) {
 			return [ 'type' => 'none', 'amount' => 0.0 ];
@@ -269,7 +269,7 @@ final class WapfExporter {
 	 *    "* [qty]" so WAPF's fx/qty normalization returns the same line total.
 	 *
 	 * @param array<string,mixed> $pricing
-	 * @param string[]            $field_ids
+	 * @param string[]            $field_ids Exported field ids.
 	 * @return array{type:string,amount:mixed}
 	 */
 	private static function map_wapf_pricing_type( array $pricing, array $field_ids ): array {
@@ -281,7 +281,19 @@ final class WapfExporter {
 			return [ 'type' => $per_unit ? 'percent' : 'p', 'amount' => $pricing['amount'] ];
 		}
 		if ( 'formula' === $pricing['type'] ) {
-			return self::map_formula_pricing( $pricing, $field_ids );
+			$raw_formula = $pricing['formula_raw'] ?? '';
+			if ( is_string( $raw_formula ) && '' !== trim( $raw_formula ) ) {
+				// Preserve imported source, including sumQty and its quantity factor.
+				return self::map_formula_pricing( $pricing, $field_ids );
+			}
+			$expr = trim( (string) ( $pricing['formula'] ?? '' ) );
+			if ( '' === $expr ) {
+				return [ 'type' => 'none', 'amount' => 0.0 ];
+			}
+			// WAPF formulas read [options_total], not [addons].
+			$expr = str_replace( '[addons]', '[options_total]', $expr );
+			$expr = self::map_formula_references( $expr, $field_ids );
+			return [ 'type' => 'fx', 'amount' => $per_unit ? '(' . $expr . ') * [qty]' : $expr ];
 		}
 		throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve this pricing mode.' );
 	}
@@ -292,14 +304,61 @@ final class WapfExporter {
 		if ( ! is_string( $formula ) || '' === trim( $formula ) || null === \OPF\Engine\WapfMapper::normalize_formula( $formula ) ) {
 			throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve formula pricing without a supported source expression.' );
 		}
-		preg_match_all( '/\[(?:field|price)\.([A-Za-z0-9_-]+)\]|\b(?:checked|files|sumQty)\s*\(\s*([A-Za-z0-9_-]+)\s*\)/i', $formula, $matches, PREG_SET_ORDER );
-		foreach ( $matches as $match ) {
-			$reference = '' !== ( $match[1] ?? '' ) ? $match[1] : ( $match[2] ?? '' );
-			if ( ! in_array( $reference, $field_ids, true ) ) {
-				throw new \InvalidArgumentException( sprintf( 'WAPF Tools export cannot preserve unresolved formula reference "%s".', $reference ) );
-			}
-		}
+		$formula = self::map_formula_references( $formula, $field_ids );
 		return [ 'type' => 'fx', 'amount' => $formula ];
+	}
+
+	/**
+	 * Rebind OPF formula field references to the exported WAPF field ids.
+	 *
+	 * Exported fields keep their OPF ids, so a reference only changes when its
+	 * letter case differs from the stored id (OPF resolves ids case-insensitively;
+	 * WAPF's import remapper matches payload ids literally). A reference to an id
+	 * absent from the export cannot resolve after WAPF remaps field ids, so the
+	 * export fails closed instead of shipping a dangling reference.
+	 *
+	 * @param string   $expr      OPF formula expression.
+	 * @param string[] $field_ids Exported field ids.
+	 */
+	private static function map_formula_references( string $expr, array $field_ids ): string {
+		$ids_by_lower = [];
+		foreach ( $field_ids as $field_id ) {
+			$ids_by_lower[ strtolower( (string) $field_id ) ] = (string) $field_id;
+		}
+		$unresolved = [];
+		$expr = preg_replace_callback(
+			'/\[(field|price)\.([a-zA-Z0-9_-]+)\]/i',
+			static function ( array $match ) use ( $ids_by_lower, &$unresolved ): string {
+				$canonical = $ids_by_lower[ strtolower( $match[2] ) ] ?? null;
+				if ( null === $canonical ) {
+					$unresolved[] = $match[2];
+					return $match[0];
+				}
+				return '[' . strtolower( $match[1] ) . '.' . $canonical . ']';
+			},
+			$expr
+		);
+		if ( is_string( $expr ) ) {
+			$expr = preg_replace_callback(
+				'/\b(checked|files|sumQty)\s*\(\s*([a-zA-Z0-9_-]+)\s*\)/i',
+				static function ( array $match ) use ( $ids_by_lower, &$unresolved ): string {
+					$canonical = $ids_by_lower[ strtolower( $match[2] ) ] ?? null;
+					if ( null === $canonical ) {
+						$unresolved[] = $match[2];
+						return $match[0];
+					}
+					return $match[1] . '(' . $canonical . ')';
+				},
+				$expr
+			);
+		}
+		if ( ! is_string( $expr ) ) {
+			throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve this formula.' );
+		}
+		if ( $unresolved ) {
+			throw new \InvalidArgumentException( sprintf( 'WAPF Tools export cannot preserve formula references to unknown field IDs: %s.', implode( ', ', array_unique( $unresolved ) ) ) );
+		}
+		return $expr;
 	}
 
 	/** @param array<string,mixed> $field @return array<int,array<string,mixed>> */

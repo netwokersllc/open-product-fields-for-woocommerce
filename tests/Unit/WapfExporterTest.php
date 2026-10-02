@@ -286,4 +286,117 @@ final class WapfExporterTest extends TestCase {
 		$this->assertSame( [ 'rounded', 36, 'default' ], [ $field['layout'], $field['size'], $field['label_pos'] ] );
 		$this->assertSame( '#123456', $field['choices'][0]['color'] );
 	}
+
+	public function test_exports_formula_field_references_as_resolvable_wapf_ids(): void {
+		$group = FieldGroup::normalize( [
+			'fields' => [
+				[ 'id' => 'fee', 'label' => 'Fee', 'type' => 'text', 'pricing' => [ 'type' => 'fixed', 'amount' => 5 ] ],
+				[ 'id' => 'weight', 'label' => 'Weight', 'type' => 'number',
+					'pricing' => [ 'type' => 'formula', 'formula' => '[field.plan] + [price.fee]', 'per_unit' => false ] ],
+				[ 'id' => 'plan', 'label' => 'Plan', 'type' => 'select',
+					'choices' => [
+						[ 'slug' => 'custom', 'label' => 'Custom', 'pricing' => [ 'type' => 'formula', 'formula' => '[field.weight] + checked(plan)', 'per_unit' => true ] ],
+						[ 'slug' => 'prior', 'label' => 'Prior', 'pricing' => [ 'type' => 'formula', 'formula' => '[price.fee] * 2', 'per_unit' => false ] ],
+					] ],
+			],
+		] );
+
+		$payload = WapfExporter::build_payload( $group );
+
+		$this->assertSame( 'fx', $payload['fields'][1]['pricing']['type'] );
+		$this->assertSame( '[field.plan] + [price.fee]', $payload['fields'][1]['pricing']['amount'] );
+		$this->assertSame( 'fx', $payload['fields'][2]['choices'][0]['pricing_type'] );
+		$this->assertSame( '([field.weight] + checked(plan)) * [qty]', $payload['fields'][2]['choices'][0]['pricing_amount'] );
+		$this->assertSame( '[price.fee] * 2', $payload['fields'][2]['choices'][1]['pricing_amount'] );
+
+		$wapf_fields = array_map( static function ( array $field ): array {
+			$field['options'] = array_intersect_key( $field, array_flip( [ 'choices', 'placeholder', 'default', 'p_content', 'minimum', 'maximum' ] ) );
+			return $field;
+		}, $payload['fields'] );
+		$round_trip = WapfMapper::map( [ 'fields' => $wapf_fields ] );
+
+		$this->assertFalse( $round_trip['needs_review'] );
+		$weight = $round_trip['group']['fields'][1]['pricing'];
+		$this->assertSame( 'formula', $weight['type'] );
+		$this->assertSame( '[field.plan] + [price.fee]', $weight['formula'] );
+		$this->assertFalse( $weight['per_unit'] );
+		$custom = $round_trip['group']['fields'][2]['choices'][0]['pricing'];
+		$this->assertSame( '([field.weight] + checked(plan)) * [qty]', $custom['formula_raw'] );
+		$this->assertSame( '([field.weight] + checked(plan))', $custom['formula'] );
+		$this->assertTrue( $custom['per_unit'] );
+		$prior = $round_trip['group']['fields'][2]['choices'][1]['pricing'];
+		$this->assertSame( '[price.fee] * 2', $prior['formula'] );
+		$this->assertSame( 6.0, \OPF\Engine\Calculator::evaluate_formula( $weight['formula'], 100.0, 1, 0.0, '', null, [ 'plan' => '1' ], 0, [ 'fee' => 5.0 ] ) );
+	}
+
+	public function test_exported_formula_references_keep_importer_review_flags(): void {
+		$group = FieldGroup::normalize( [
+			'fields' => [
+				[ 'id' => 'plan', 'label' => 'Plan', 'type' => 'select',
+					'choices' => [
+						[ 'slug' => 'bulk', 'label' => 'Bulk', 'pricing' => [ 'type' => 'formula', 'formula' => 'sumQty(plan) + files(plan) + [price.fee]', 'per_unit' => false ] ],
+					] ],
+				[ 'id' => 'fee', 'label' => 'Fee', 'type' => 'text', 'pricing' => [ 'type' => 'fixed', 'amount' => 5 ] ],
+			],
+		] );
+
+		$payload = WapfExporter::build_payload( $group );
+		$this->assertSame( 'sumQty(plan) + files(plan) + [price.fee]', $payload['fields'][0]['choices'][0]['pricing_amount'] );
+
+		$wapf_fields = array_map( static function ( array $field ): array {
+			$field['options'] = array_intersect_key( $field, array_flip( [ 'choices' ] ) );
+			return $field;
+		}, $payload['fields'] );
+		$round_trip = WapfMapper::map( [ 'fields' => $wapf_fields ] );
+
+		// sumQty(), files(), and forward [price.*] references keep the mapper's
+		// unimplemented-runtime review flag, but the ids resolve and the formula
+		// survives intact.
+		$this->assertTrue( $round_trip['needs_review'] );
+		$this->assertStringContainsString( 'runtime behavior is not implemented yet', implode( ' ', $round_trip['notes'] ) );
+		$pricing = $round_trip['group']['fields'][0]['choices'][0]['pricing'];
+		$this->assertSame( 'formula', $pricing['type'] );
+		$this->assertSame( 'sumQty(plan) + files(plan) + [price.fee]', $pricing['formula'] );
+	}
+
+	public function test_normalizes_formula_reference_case_to_exported_field_ids(): void {
+		$group = FieldGroup::normalize( [
+			'fields' => [
+				[ 'id' => 'fee', 'label' => 'Fee', 'type' => 'text', 'pricing' => [ 'type' => 'fixed', 'amount' => 5 ] ],
+				[ 'id' => 'weight', 'label' => 'Weight', 'type' => 'number',
+					'pricing' => [ 'type' => 'formula', 'formula' => '[FIELD.Plan] + [PRICE.Fee] + CHECKED(Plan)', 'per_unit' => false ] ],
+				[ 'id' => 'plan', 'label' => 'Plan', 'type' => 'select',
+					'choices' => [ [ 'slug' => 'a', 'label' => 'A' ] ] ],
+			],
+		] );
+
+		$payload = WapfExporter::build_payload( $group );
+		$this->assertSame( '[field.plan] + [price.fee] + CHECKED(plan)', $payload['fields'][1]['pricing']['amount'] );
+
+		$wapf_fields = array_map( static function ( array $field ): array {
+			$field['options'] = array_intersect_key( $field, array_flip( [ 'choices' ] ) );
+			return $field;
+		}, $payload['fields'] );
+		$round_trip = WapfMapper::map( [ 'fields' => $wapf_fields ] );
+		$this->assertFalse( $round_trip['needs_review'] );
+		$this->assertSame( '[field.plan] + [price.fee] + CHECKED(plan)', $round_trip['group']['fields'][1]['pricing']['formula'] );
+	}
+
+	public function test_rejects_formula_references_absent_from_export(): void {
+		$this->expectException( \InvalidArgumentException::class );
+		$this->expectExceptionMessage( 'unknown field IDs: ghost' );
+		WapfExporter::build_payload( FieldGroup::normalize( [ 'fields' => [
+			[ 'id' => 'weight', 'label' => 'Weight', 'type' => 'number',
+				'pricing' => [ 'type' => 'formula', 'formula' => '[field.weight] + sumQty(ghost)', 'per_unit' => false ] ],
+		] ] ) );
+	}
+
+	public function test_rejects_choice_formula_references_absent_from_export(): void {
+		$this->expectException( \InvalidArgumentException::class );
+		$this->expectExceptionMessage( 'cannot preserve formula references' );
+		WapfExporter::build_payload( FieldGroup::normalize( [ 'fields' => [
+			[ 'id' => 'plan', 'label' => 'Plan', 'type' => 'select',
+				'choices' => [ [ 'slug' => 'a', 'label' => 'A', 'pricing' => [ 'type' => 'formula', 'formula' => '[price.missing] * 2', 'per_unit' => false ] ] ] ],
+		] ] ) );
+	}
 }
