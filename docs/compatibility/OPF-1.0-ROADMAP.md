@@ -33,8 +33,8 @@ The 132 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 
 | Status | Rows | Meaning for the gate |
 | --- | ---: | --- |
-| Baseline supported | 4 | Promising baseline only; not accepted as proof |
-| Supported | 6 | Fresh supported-row audit retained only independently justified evidence; email lifecycle now has full native/WAPF/commerce proof |
+| Baseline supported | 2 | Promising baseline only; not accepted as proof |
+| Supported | 8 | Select and radio now join the independently audited rows after source-matched browser, WAPF Free, and commerce lifecycle proof |
 | Supported with documented difference | 8 | Needs explicit non-regression review and acceptance |
 | Partial | 113 | Material parity or proof remains; 15 prior supported claims were withdrawn after source/test audit; both upload rows now have a private-storage foundation but still lack builder/import/export parity and additional lifecycle proof |
 | Gap | 1 | Known absent in the current OPF tree |
@@ -61,8 +61,11 @@ pricing-hint path remain unverified. Neither row counts as supported.
 A fresh evidence review removed 15 stale `supported` claims. Five rows remained
 after that review; email later advanced separately based on new lifecycle
 evidence. See [the supported-row audit](SUPPORTED-ROW-AUDIT-2026-10-01.md).
-Current strict progress is **6/132 accepted supported rows**; this correction
-changes the evidence-based count, not previously implemented behavior.
+Current strict progress is **8/132 accepted supported rows (6.1%)**. The select
+and radio rows advanced from baseline-supported after the source-matched
+required-choice lifecycle passed in Chromium, WAPF Free, classic and Store API
+commerce, persisted orders, and order-again. See
+[select/radio lifecycle evidence](SELECT-RADIO-REQUIRED-CHOICE-EVIDENCE-2026-10-02.md).
 
 `WAPF-FIELD-EMAIL` advanced from `partial` to `supported` on 2026-10-02.
 Chromium and disposable WooCommerce/WAPF Free evidence covers admin
