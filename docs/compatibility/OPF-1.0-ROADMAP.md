@@ -80,6 +80,16 @@ after fresh browser and durable-order evidence passed all three Classic/Store
 API add and checkout combinations. See
 [cart/order lifecycle evidence](CART-ORDER-LIFECYCLE-EVIDENCE-2026-10-02.md).
 
+On 2026-10-02, the date-format fallback inconsistency was fixed across every
+settings/runtime consumer, including invalid settings submissions. Regression
+and disposable browser/WooCommerce evidence covers the shared valid
+OPF → valid WAPF → default precedence, cart/checkout labels, formula prices,
+and saved order metadata with canonical ISO values. See
+[date-format fallback evidence](WAPF-DATE-FORMAT-FALLBACK-EVIDENCE-2026-10-02.md).
+`WAPF-DATE-FORMAT` stays `partial` for native-input locale display, browser
+checkout/payment, block checkout, customer order-page rendering, and remaining
+migration proof. Status counts and accepted progress remain unchanged.
+
 `WAPF-FIELD-EMAIL` advanced from `partial` to `supported` on 2026-10-02.
 Chromium and disposable WooCommerce/WAPF Free evidence covers admin
 save/reload, native and forged input validation, WAPF import/export fidelity,
