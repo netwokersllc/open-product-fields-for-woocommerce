@@ -187,6 +187,10 @@ final class WapfMapper {
 				}
 				$toggle_settings['default'] = 'checked' === $default ? '1' : '0';
 			}
+			$text_settings = [];
+			if ( 'text' === $wapf_type && is_array( $wapf_field['options'] ?? null ) && array_key_exists( 'default', $wapf_field['options'] ) ) {
+				$text_settings['default'] = $wapf_field['options']['default'];
+			}
 
 			$field = FieldGroup::normalize_field(
 				array_merge( [
@@ -209,7 +213,7 @@ final class WapfMapper {
 					'content_format' => $content_format,
 					'process_shortcodes' => $process_shortcodes,
 					'repeat' => $repeat,
-				], $image_swatch_settings, $color_swatch_settings, $selection_limits, $quantity_limits, $date_settings, $toggle_settings )
+				], $image_swatch_settings, $color_swatch_settings, $selection_limits, $quantity_limits, $date_settings, $toggle_settings, $text_settings )
 			);
 			if ( 'paragraph' === $field['type'] ) {
 				if ( ! empty( $wapf_field['required'] ) ) {

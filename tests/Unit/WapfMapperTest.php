@@ -745,4 +745,25 @@ final class WapfMapperTest extends TestCase {
 		$this->assertStringContainsString( '10-03-2026', $notes );
 		$this->assertStringContainsString( 'mystery', $notes );
 	}
+
+	public function test_text_field_import_preserves_wapf_default_and_absent_state(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'engraving', 'label' => 'Engraving', 'type' => 'text',
+			'options' => [ 'default' => 'Happy Birthday' ],
+		] ] ] );
+		$this->assertSame( 'Happy Birthday', $mapped['group']['fields'][0]['default'] );
+		$this->assertFalse( $mapped['needs_review'] );
+
+		$zero = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'copies', 'label' => 'Copies', 'type' => 'text',
+			'options' => [ 'default' => '0' ],
+		] ] ] );
+		$this->assertSame( '0', $zero['group']['fields'][0]['default'] );
+
+		$absent = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'note', 'label' => 'Note', 'type' => 'text',
+			'options' => [ 'placeholder' => 'Add a note' ],
+		] ] ] );
+		$this->assertArrayNotHasKey( 'default', $absent['group']['fields'][0] );
+	}
 }
