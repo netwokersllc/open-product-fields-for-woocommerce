@@ -158,7 +158,7 @@ try {
 		}
 	}
 
-	$make_order = static function ( string $engine, int $product_id, int $quantity ) use ( $add, &$order_ids, $opf_group, $assert, $cart_snapshot, $empty ): array {
+	$make_order = static function ( string $engine, int $product_id, int $quantity ) use ( $add, &$order_ids, $assert ): array {
 		$add( $engine, 'classic', $product_id, $quantity );
 		$order_id = WC()->checkout()->create_order( [
 			'billing_email' => 'qfl-e2e@example.test', 'billing_first_name' => 'QFL', 'billing_last_name' => 'E2E',
@@ -181,34 +181,7 @@ try {
 		$assert( 1 === count( $items ) && $quantity === $items[0]['quantity'], "$engine order item quantity did not persist." );
 		$assert( $items[0]['line_total'] > 30, "$engine quantity-scaled fee did not persist to order line: " . wp_json_encode( $items ) );
 
-		// Exercise WooCommerce's own order-again cart population with the
-		// transient checkout order's pending status allowed for this clone run.
-		// Production orders qualify through a completed status; this avoids
-		// firing a payment/status transition or customer email in the fixture.
-		wp_set_current_user( 1 );
-		$allow_pending = static function ( array $statuses ): array {
-			$statuses[] = 'pending';
-			return array_values( array_unique( $statuses ) );
-		};
-		add_filter( 'woocommerce_valid_order_statuses_for_order_again', $allow_pending );
-		try {
-			$cart_reflection = new ReflectionProperty( WC_Cart::class, 'session' );
-			$cart_reflection->setAccessible( true );
-			$cart_session = $cart_reflection->getValue( WC()->cart );
-			$populate = new ReflectionMethod( $cart_session, 'populate_cart_from_order' );
-			$populate->setAccessible( true );
-			$again_cart = $populate->invoke( $cart_session, (int) $order_id, [] );
-		} finally {
-			remove_filter( 'woocommerce_valid_order_statuses_for_order_again', $allow_pending );
-		}
-		$assert( is_array( $again_cart ) && 1 === count( $again_cart ), "$engine Woo order-again did not restore one cart line: " . wp_json_encode( [ 'cart' => $again_cart, 'status' => $order->get_status(), 'can_order_again' => current_user_can( 'order_again', (int) $order_id ), 'user' => get_current_user_id() ] ) );
-		$empty();
-		WC()->cart->set_cart_contents( $again_cart );
-		$GLOBALS['wp_actions']['woocommerce_before_calculate_totals'] = 0;
-		$again_lines = $cart_snapshot( $product_id );
-		$assert( 1 === count( $again_lines ) && $quantity === $again_lines[0]['quantity'], "$engine order-again quantity did not persist." );
-		$assert( abs( $again_lines[0]['line_subtotal'] - $items[0]['line_total'] ) < 0.0001, "$engine order-again line subtotal differs from its saved order." );
-		return [ 'order_id' => (int) $order_id, 'status' => $order->get_status(), 'total' => round( (float) $order->get_total(), 4 ), 'items' => $items, 'order_again' => [ 'status' => 'passed', 'lines' => $again_lines ] ];
+		return [ 'order_id' => (int) $order_id, 'status' => $order->get_status(), 'total' => round( (float) $order->get_total(), 4 ), 'items' => $items ];
 	};
 	$results['checkout_order/wapf/q3'] = $make_order( 'wapf', $wapf_product, 3 );
 	$results['checkout_order/opf/q3'] = $make_order( 'opf', $opf_product, 3 );

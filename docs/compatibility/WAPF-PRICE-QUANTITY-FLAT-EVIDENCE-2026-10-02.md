@@ -47,7 +47,7 @@ $0.85; $31.005 × 8.25% = $2.5579125 → $2.56. Thus q=3 line tax is one cent
 higher than tripling the separately rounded q=1 tax ($2.55). WAPF and OPF
 matched at both quantities and on both cart paths.
 
-## Checkout orders and order-again
+## Checkout orders and authenticated order-again
 
 The fixture created q=3 checkout orders for both engines. Both saved order
 lines have quantity 3, line total $31.005, and line tax $2.56. Each Woo order
@@ -56,13 +56,46 @@ currency precision. WAPF persisted its `_wapf_meta` field selection and
 `qt` pricing data; OPF persisted `_opf_fields` with the selected `qtyflat`
 choice.
 
-Order-again was exercised through WooCommerce's `populate_cart_from_order()`
-population method, then recalculated from the restored cart data. Both lines
-returned at q=3, $31.005 subtotal, and $2.56 tax. The disposable pending order
-was temporarily associated with the clone's seeded administrator account
-and the valid order-again statuses filter admitted its transient `pending`
-status. This avoids a status transition and customer email during the test;
-the web account flow/button was not browser-tested.
+The authenticated browser follow-up used a separate phase fixture and actual
+Chromium. It created a disposable customer and q=3 checkout orders for both
+products, attached each completed order to that customer, signed in through a
+loopback-only helper, opened each real My Account order page, and clicked its
+visible **Order again** link with WooCommerce's nonce. The browser landed on
+the cart and verified the restored “Quantity flat fee” selection. A
+loopback-only cart probe read the server cart after WooCommerce had processed
+the link:
+
+| Engine | Restored choice | Qty | Line subtotal | Line subtotal tax | Line total | Line tax |
+|---|---|---:|---:|---:|---:|---:|
+| Native WAPF | `qtyflat` / `qt` | 3 | $31.005 | $2.56 | $31.005 | $2.56 |
+| OPF | `qtyflat` | 3 | $31.005 | $2.56 | $31.005 | $2.56 |
+
+The test uses `pre_wp_mail` in a clone-only MU plugin to intercept all
+outgoing WordPress mail before completing source orders. Four mail calls were
+short-circuited during order setup. Test addresses use the reserved
+`.invalid` domain. Browser output: [`qfl-order-again-browser-results.json`](qfl-order-again-browser-results.json), with **23/23 checks passing** and no
+uncaught page errors.
+Screenshots were saved outside the repository at
+`/tmp/opf-qfl-order-again-wapf-cart.png` and
+`/tmp/opf-qfl-order-again-opf-cart.png`.
+
+Reproduction commands, from this worktree:
+
+```sh
+ln -s /tmp/opf-quantity-fee-lifecycle-20261002/bin/e2e-price-quantity-flat-order-again-mu.php /tmp/opf-quantity-fee-woo-20261002/wp-content/mu-plugins/qfl-order-again.php
+OPF_QFL_ORDER_AGAIN_ALLOW=1 wp --path=/tmp/opf-quantity-fee-woo-20261002 eval-file bin/e2e-price-quantity-flat-order-again.php
+wp --path=/tmp/opf-quantity-fee-woo-20261002 server --host=127.0.0.1 --port=8207
+OPF_QFL_ORDER_AGAIN_ALLOW=1 node bin/e2e-price-quantity-flat-order-again.mjs
+OPF_QFL_ORDER_AGAIN_ALLOW=1 OPF_QFL_ORDER_AGAIN_PHASE=verify wp --path=/tmp/opf-quantity-fee-woo-20261002 eval-file bin/e2e-price-quantity-flat-order-again.php
+OPF_QFL_ORDER_AGAIN_ALLOW=1 OPF_QFL_ORDER_AGAIN_PHASE=cleanup wp --path=/tmp/opf-quantity-fee-woo-20261002 eval-file bin/e2e-price-quantity-flat-order-again.php
+rm /tmp/opf-quantity-fee-woo-20261002/wp-content/mu-plugins/qfl-order-again.php
+```
+
+After the browser and verifier passed, cleanup removed the temporary products,
+group, customer, completed orders, tax rate, cart, and saved test state, then
+restored all tax options. The server was stopped with Ctrl-C and `ss` confirmed
+port 8207 closed; the MU-plugin symlink was removed. Post-cleanup queries found
+no test state, tax rate, QFL products/groups, orders 83/84, or test customer.
 
 ## Cleanup and result
 
@@ -74,6 +107,7 @@ options (`woocommerce_calc_taxes=no`, `woocommerce_prices_include_tax=no`,
 `woocommerce_tax_display_shop=excl`, `woocommerce_tax_based_on=shipping`).
 
 Result: **supported** for native WAPF Pro `qt` fixed fee pricing through
-classic cart, Store API cart, checkout order persistence, Woo order-again cart
-population, line tax, and the exercised quantity rounding case. This proof
-covers WAPF Extended 3.1.5 and WooCommerce 11.1.0 only.
+classic cart, Store API cart, checkout order persistence, the authenticated
+My Account order-again button flow, line tax, and the exercised quantity
+rounding case. This proof covers WAPF Extended 3.1.5 and WooCommerce 11.1.0
+only.

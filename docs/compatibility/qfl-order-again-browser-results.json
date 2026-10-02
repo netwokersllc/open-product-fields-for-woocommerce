@@ -1,0 +1,116 @@
+{
+  "base": "http://127.0.0.1:8207",
+  "checks": [
+    {
+      "label": "wapf loopback login authenticated the isolated customer",
+      "pass": true
+    },
+    {
+      "label": "wapf authenticated My Account displays actual Order again action",
+      "pass": true
+    },
+    {
+      "label": "wapf action targets this completed order with Woo nonce",
+      "pass": true
+    },
+    {
+      "label": "wapf real Order again click redirects to cart",
+      "pass": true
+    },
+    {
+      "label": "wapf cart page confirms WooCommerce restored the prior order",
+      "pass": true
+    },
+    {
+      "label": "wapf authenticated cart probe responds",
+      "pass": true
+    },
+    {
+      "label": "wapf cart probe remains the fixture customer",
+      "pass": true
+    },
+    {
+      "label": "wapf order-again restores exactly one q=3 item",
+      "pass": true
+    },
+    {
+      "label": "wapf restored fixture product has $31.005 line subtotal and total",
+      "pass": true
+    },
+    {
+      "label": "wapf line tax recalculates to $2.56",
+      "pass": true
+    },
+    {
+      "label": "WAPF order-again restores the native qt choice",
+      "pass": true
+    },
+    {
+      "label": "opf loopback login authenticated the isolated customer",
+      "pass": true
+    },
+    {
+      "label": "opf authenticated My Account displays actual Order again action",
+      "pass": true
+    },
+    {
+      "label": "opf action targets this completed order with Woo nonce",
+      "pass": true
+    },
+    {
+      "label": "opf real Order again click redirects to cart",
+      "pass": true
+    },
+    {
+      "label": "opf cart page confirms WooCommerce restored the prior order",
+      "pass": true
+    },
+    {
+      "label": "opf authenticated cart probe responds",
+      "pass": true
+    },
+    {
+      "label": "opf cart probe remains the fixture customer",
+      "pass": true
+    },
+    {
+      "label": "opf order-again restores exactly one q=3 item",
+      "pass": true
+    },
+    {
+      "label": "opf restored fixture product has $31.005 line subtotal and total",
+      "pass": true
+    },
+    {
+      "label": "opf line tax recalculates to $2.56",
+      "pass": true
+    },
+    {
+      "label": "OPF order-again restores its native selected choice",
+      "pass": true
+    },
+    {
+      "label": "no uncaught Chromium page errors",
+      "pass": true
+    }
+  ],
+  "errors": [],
+  "observed": {
+    "wapf": {
+      "quantity": 3,
+      "line_subtotal": 31.005,
+      "line_subtotal_tax": 2.56,
+      "line_total": 31.005,
+      "line_tax": 2.56,
+      "restored_choice": "qtyflat"
+    },
+    "opf": {
+      "quantity": 3,
+      "line_subtotal": 31.005,
+      "line_subtotal_tax": 2.56,
+      "line_total": 31.005,
+      "line_tax": 2.56,
+      "restored_choice": "qtyflat"
+    }
+  }
+}
