@@ -535,6 +535,8 @@ final class CartIntegration {
 								'field_prices' => $clone_prices,
 								'field_labels' => $field_labels,
 								'product_id'   => $product->get_id(),
+								'variables'    => is_array( $group->data['variables'] ?? null ) ? $group->data['variables'] : [],
+								'fields'       => $group->data['fields'],
 								// WAPF clone_type=qty → qty_based do_pricing row.
 								'qty_based'    => 'quantity' === (string) ( $priced_field['repeat']['mode'] ?? '' ),
 							]
@@ -561,6 +563,8 @@ final class CartIntegration {
 						'field_prices' => $field_prices,
 						'field_labels' => $field_labels,
 						'product_id' => $product->get_id(),
+						'variables'  => is_array( $group->data['variables'] ?? null ) ? $group->data['variables'] : [],
+						'fields'     => $group->data['fields'],
 					]
 				);
 				if ( ! array_key_exists( $fid, $field_prices ) ) {
