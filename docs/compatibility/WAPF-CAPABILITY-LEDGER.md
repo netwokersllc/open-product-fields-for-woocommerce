@@ -28,13 +28,14 @@ includes Pro; six separately sold add-ons are outside this Extended-edition
 target and remain separately tracked. The ledger has 137 rows: 131 for the
 Free + Pro + Extended edition scope (including 3 “All versions” rows), and 6
 for separately sold add-ons. Of the 131 edition rows, 1 is baseline-supported,
-12 are supported, 7 are supported with a documented difference, 103 are partial, and 8
-are known gaps. OPF-specific repeat-import safety remains in the G4 release checklist
+68 are supported, 10 are supported with a documented difference, 47 are partial,
+and 5 are known gaps. The six add-on rows remain partial and outside this denominator.
+OPF-specific repeat-import safety remains in the G4 release checklist
 outside this denominator. Percentage coupon scope advanced from gap to partial in public
 commit `f03979d`; its implementation and current proof are recorded in
 [coupon scope evidence](coupon-scope-proof.md). The 28 Extended-only
-rows comprise 0 supported, 2 supported with a
-documented difference, 20 partial, and 6 known gaps. These are row counts, not weighted
+rows comprise 12 supported, 4 supported with a documented difference, 9 partial,
+and 3 known gaps. These are row counts, not weighted
 feature percentages; gate completion is the progress measure. The paragraph
 HTML slice maps WAPF Extended `p` content, applies its restricted HTML
 allowlist, supports optional WordPress shortcode processing, preserves the
@@ -72,7 +73,7 @@ price-type mapping/equivalence remains a parity gap until proved. See the
 | --- | --- | --- |
 | G0 — Edition and version baseline | Installed version, current official target versions, edition boundary, available source inventory, and dated public changelog delta recorded | Done for available evidence: installed Extended 3.1.5, official Extended 3.2.1 / Pro 3.2.2, Free 1.7.1 source, edition boundary, marketing claims, and release deltas are recorded. The licensed current archive is not on the server; its absence is a version-specific limitation, not a stop condition. |
 | G1 — Source and behavior audit | Every discovered capability from available source/docs/changelogs has a ledger row, an evidence citation, an OPF status, and an explicit proof gap; version-specific unknowns are bounded to affected rows | Done for available evidence: the installed 3.1.5 source, Free 1.7.1 source, current marketing/tier claims, and all published 3.1.6–3.2.2 changes are mapped. Exact current-package internals not stated publicly remain identified on their affected rows; they do not block independent implementation. |
-| G2 — Ordered implementation parity | Every edition row is `supported` or has a specifically accepted, non-regressing difference; no baseline-supported, partial, gap, or unresolved difference | Not met: current edition-scope count is 103 partial, 8 gaps, 1 baseline-supported without executed proof, and 7 differences awaiting acceptance; see roadmap work packages |
+| G2 — Ordered implementation parity | Every edition row is `supported` or has a specifically accepted, non-regressing difference; no baseline-supported, partial, gap, or unresolved difference | Not met: current edition-scope count is 47 partial, 5 gaps, 1 baseline-supported row, and 10 differences awaiting acceptance; see roadmap work packages |
 | G3 — End-to-end proof | Browser, server validation/pricing, classic + Store API cart, checkout/order persistence, order-again/refund/stock and relevant integrations pass for every applicable row | Partial: evidence and open paths remain per row; no aggregate pass claim |
 | G4 — 1.0 release readiness | Compatibility/integration scope, security, accessibility, translations, upgrade/import/rollback, docs, packaging, and WordPress.org/commercial marketplace checklists pass | Not met |
 

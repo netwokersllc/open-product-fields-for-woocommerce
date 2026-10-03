@@ -34,12 +34,12 @@ The 131 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 | Status | Rows | Meaning for the gate |
 | --- | ---: | --- |
 | Baseline supported | 1 | Promising baseline only; not accepted as proof |
-| Supported | 24 | Text/textarea/email/select/radio/paragraph shortcode; full rule targeting (conditional/global/category/type/attribute/exclusion/auth/role/language); date weekdays/cutoff/week-start; 12 formula functions incl. len/min-max/text-compare/advanced/date/dow/month/checked/sumqty/trig/price-id/field-state |
-| Supported with documented difference | 10 | Includes quantity-flat pricing; date recurring-year strictness, a11y-exceeding picker, and ISO-canonical storage differences reviewed |
-| Partial | 97 | Material parity or proof remains; child-products field type, upload order-again reissue, and custom formula variables now implemented with lifecycle proof pending deeper gates |
-| Gap | 5 | Cards quantity-conditionals/main-image, swatch/image-quantity zoom, exact variation targeting, minimum platform — all assigned to active implementation lanes |
+| Supported | 68 | Strict supported rows; documented differences are not counted as supported |
+| Supported with documented difference | 10 | Differences remain unaccepted for the strict parity measure |
+| Partial | 47 | Material parity or proof remains; see each ledger row for exact gap and evidence |
+| Gap | 5 | Quantity-card conditionals, card main-image changes, image+quantity zoom, variation targeting, and minimum platform |
 | Needs audit | 0 | — |
-| **Total** | **131** | **G1 complete for available evidence; G2 in progress — 34/131 (26%) accepted-inclusive, 24/131 (18.3%) strict-supported** |
+| **Total** | **131** | **G1 complete for available evidence; G2 in progress — strict supported: 68/131 (51.9%); 78/131 (59.5%) if all 10 documented differences are later accepted** |
 
 Progress notes — 2026-10-03 (parallel lanes): linked-products field shipped
 (`LinkedProducts` service, qty sync, Store API `opf.childItem`, order-again
@@ -77,10 +77,10 @@ conversion is implemented and passed a disposable Woo test against a fake API
 contract, but the commercial plugin, linked-product conversion, and a wired
 pricing-hint path remain unverified. Neither row counts as supported.
 
-A fresh evidence review removed 15 stale `supported` claims. Five rows remained
-after that review; email later advanced separately based on new lifecycle
-evidence. See [the supported-row audit](SUPPORTED-ROW-AUDIT-2026-10-01.md).
-Current strict progress is **12/131 accepted supported rows (9.2%)**. The
+A fresh evidence review removed 15 stale `supported` claims at that point in
+time; later implementation commits advanced rows based on additional evidence.
+See [the supported-row audit](SUPPORTED-ROW-AUDIT-2026-10-01.md).
+Current strict progress is **68/131 supported rows (51.9%)**. The
 shortcode row advanced after real WAPF 3.1.5/OPF render, import/export, and
 browser evidence confirmed imported behavior is preserved; OPF's native opt-out
 is additive. The select
@@ -196,7 +196,7 @@ The evidence compares native WAPF Extended 3.1.5 with WooCommerce 11.1.0 and
 does not claim other versions. See [quantity-flat lifecycle evidence](WAPF-PRICE-QUANTITY-FLAT-EVIDENCE-2026-10-02.md),
 [browser results](qfl-order-again-browser-results.json), and proof commits
 `ccd63b7` + `6d39b24`. This moves one row from partial to documented difference;
-strict accepted-supported progress currently remains **12/131 (9.2%)**.
+documented differences do not increase strict supported progress until accepted.
 
 FOX is now `partial` because the existing WOOCS adapter passes an official
 FOX API contract test. WAPF's registry and FOX's own compatibility instructions
@@ -226,8 +226,8 @@ Free's older platform declarations and conflicting
 WordPress floor claims also remain unresolved. The audit changes no scope or
 status counts.
 
-Extended-only rows: 28 total; 0 supported, 2 supported with a documented
-difference, 20 partial, and 6 known gaps, matching the capability ledger. All 131 edition rows have a ledger status. The
+Extended-only rows: 28 total; 12 supported, 4 supported with a documented
+difference, 9 partial, and 3 known gaps, matching the capability ledger. All 131 edition rows have a ledger status. The
 available-source audit covers installed Extended 3.1.5, public Free 1.7.1,
 current tier/marketing claims, and every published Extended 3.1.6–3.2.1 and
 Pro 3.2.2 changelog change. Exact current-package details not specified in
