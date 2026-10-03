@@ -142,19 +142,36 @@ including admin REST save/reload, browser validity, classic and Store API,
 checkout, persisted orders, and native defaults. The private vendored WHATWG
 parser now accepts tested IDN/path/query, path-space, opaque mailto/tel/urn,
 shortened HTTP, and WordPress-allowed protocols while rejecting unsafe schemes
-and malformed hosts. Direct Store API add followed by page navigation still
-left the cart block visually empty even though Store API cart data, checkout,
-order confirmation and Order again values were correct. Broader protocol and
-supported-version coverage remains open. See [native URL proof](URL-FIELD-NATIVE-PARITY.md)
+and malformed hosts. The earlier caveat — cart block visually empty after a
+direct Store API add — is resolved: the 2026-10-03 visual proof passed 20/20
+checks for direct `add-item` with `opf_fields` across Unicode IDN, query,
+mailto, and scheme-relative values, plus 16/16 each for OPF and WAPF Free
+form submission on classic and block carts. Broader protocol and
+supported-version coverage remains open. See [native URL proof](URL-FIELD-NATIVE-PARITY.md),
+[URL cart visual proof](URL-CART-VISUAL-EVIDENCE-2026-10-03.md),
 and the earlier [compatibility audit](URL-FIELD-COMPATIBILITY-EVIDENCE.md).
 
 `WAPF-FIELD-CONTENT-IMAGE` remains `partial`. The 2026-10-03 real Chromium
 storefront comparison passed 39/39 desktop/mobile checks for direct URLs,
 Media Library attachments, responsive source selection, loaded bytes,
 accessibility names and no submitted controls. OPF uses the field label as an
-attachment alt while WAPF uses the Media Library alt. Admin Media Library
-save/reload, conditional visibility, and broader version coverage are not yet
-proved. See [image storefront proof](CONTENT-IMAGE-STOREFRONT-PROOF.md).
+attachment alt while WAPF uses the Media Library alt. A same-day admin proof
+passed 43/43 checks covering authenticated wp-admin login, real Media Library
+modal selection, OPF REST save/reload persistence, show-when conditional
+visibility at 1280/390px, and byte-identical images; WAPF's license-gated
+admin exception was attributed and recorded. Broader version coverage is not
+yet proved. See [image storefront proof](CONTENT-IMAGE-STOREFRONT-PROOF.md)
+and [image admin proof](CONTENT-IMAGE-ADMIN-EVIDENCE-2026-10-03.md).
+
+`WAPF-PRICE-FORMULA-LEN` remains `partial` with much stronger evidence. The
+2026-10-03 lifecycle run fixed five real `len()`/`[field.X]` divergences and
+proved bit-identical behavior against installed Extended 3.1.5: 30/30 PHP
+probes match `Helper::parse_math_string`, and 24/24 real Chromium cases match
+preview totals, Store API carts, classic checkout, and durable order line
+totals (ASCII whitespace-only stripping, case-sensitive `;true`, `empty()`
+zero handling, `mb_strlen` vs UTF-16 preview counting, and choice-label
+resolution). Order-again, refund, admin save/reload, and tax/currency
+boundaries remain open. See [len lifecycle evidence](FORMULA-LEN-LIFECYCLE-EVIDENCE-2026-10-03.md).
 
 `WAPF-PRICE-QUANTITY-FLAT` moved from `partial` to `supported with documented
 difference`: OPF expresses native WAPF Pro `qt` as a fixed per-unit choice and
