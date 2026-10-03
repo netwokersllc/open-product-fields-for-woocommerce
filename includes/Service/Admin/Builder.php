@@ -81,12 +81,28 @@ final class Builder {
 		$tag_terms  = get_terms( [ 'taxonomy' => 'product_tag', 'hide_empty' => false, 'number' => 500 ] );
 		$roles      = function_exists( 'get_editable_roles' ) ? get_editable_roles() : [];
 		$languages  = self::language_options();
+		$types      = function_exists( 'wc_get_product_types' ) ? wc_get_product_types() : [];
+		$attribute_options = [];
+		if ( function_exists( 'wc_get_attribute_taxonomies' ) ) {
+			foreach ( wc_get_attribute_taxonomies() as $attribute_taxonomy ) {
+				$taxonomy = 'pa_' . $attribute_taxonomy->attribute_name;
+				foreach ( (array) get_terms( [ 'taxonomy' => $taxonomy, 'hide_empty' => false, 'number' => 200 ] ) as $term ) {
+					$attribute_options[] = [ 'value' => $taxonomy . ':' . $term->term_id, 'label' => (string) $attribute_taxonomy->attribute_label . ': ' . $term->name ];
+				}
+			}
+		}
 
 		$selected = [
 			'product'         => [],
 			'product_not'     => [],
 			'product_cat'     => [],
+			'product_cat_not' => [],
 			'product_tag'     => [],
+			'product_tag_not' => [],
+			'product_type'    => [],
+			'product_type_not' => [],
+			'attributes'      => [],
+			'attributes_not'  => [],
 			'user_auth'       => '',
 			'user_role'       => [],
 			'user_role_not'   => [],
@@ -99,8 +115,17 @@ final class Builder {
 					if ( 'product' === $rule['subject'] && in_array( $rule['operator'], [ 'in', 'not_in' ], true ) ) {
 						$key = 'not_in' === $rule['operator'] ? 'product_not' : 'product';
 						$selected[ $key ] = array_merge( $selected[ $key ], $rule['terms'] );
-					} elseif ( 'in' === $rule['operator'] && in_array( $rule['subject'], [ 'product_cat', 'product_tag' ], true ) ) {
-						$selected[ $rule['subject'] ] = array_merge( $selected[ $rule['subject'] ], $rule['terms'] );
+					} elseif ( in_array( $rule['subject'], [ 'product_cat', 'product_tag' ], true ) && in_array( $rule['operator'], [ 'in', 'not_in' ], true ) ) {
+						$key = 'not_in' === $rule['operator'] ? $rule['subject'] . '_not' : $rule['subject'];
+						$selected[ $key ] = array_merge( $selected[ $key ], $rule['terms'] );
+					} elseif ( 'product_type' === $rule['subject'] && in_array( $rule['operator'], [ 'in', 'not_in' ], true ) ) {
+						$key = 'not_in' === $rule['operator'] ? 'product_type_not' : 'product_type';
+						$selected[ $key ] = array_merge( $selected[ $key ], $rule['terms'] );
+					} elseif ( 0 === strpos( $rule['subject'], 'pa_' ) && in_array( $rule['operator'], [ 'in', 'not_in' ], true ) ) {
+						$key = 'not_in' === $rule['operator'] ? 'attributes_not' : 'attributes';
+						foreach ( $rule['terms'] as $term_id ) {
+							$selected[ $key ][] = $rule['subject'] . ':' . $term_id;
+						}
 					} elseif ( 'user_auth' === $rule['subject'] && in_array( $rule['operator'], [ 'in', 'not_in', 'logged_in', 'logged_out' ], true ) ) {
 						$logged_out = in_array( $rule['operator'], [ 'not_in', 'logged_out' ], true );
 						$selected['user_auth'] = $logged_out ? 'logged_out' : 'logged_in';
@@ -143,6 +168,54 @@ final class Builder {
 			<?php foreach ( (array) $tag_terms as $term ) : ?>
 				<option value="<?php echo esc_attr( (string) $term->term_id ); ?>" <?php selected( in_array( (string) $term->term_id, $selected['product_tag'], true ) ); ?>>
 					<?php echo esc_html( $term->name ); ?>
+				</option>
+			<?php endforeach; ?>
+		</select>
+		<p><strong><?php esc_html_e( 'Exclude categories', 'open-product-fields-for-woocommerce' ); ?></strong></p>
+		<select multiple size="5" id="opf-placement-excluded-cats" style="width:100%">
+			<?php foreach ( (array) $cat_terms as $term ) : ?>
+				<option value="<?php echo esc_attr( (string) $term->term_id ); ?>" <?php selected( in_array( (string) $term->term_id, $selected['product_cat_not'], true ) ); ?>>
+					<?php echo esc_html( $term->name ); ?>
+				</option>
+			<?php endforeach; ?>
+		</select>
+		<p><strong><?php esc_html_e( 'Exclude tags', 'open-product-fields-for-woocommerce' ); ?></strong></p>
+		<select multiple size="5" id="opf-placement-excluded-tags" style="width:100%">
+			<?php foreach ( (array) $tag_terms as $term ) : ?>
+				<option value="<?php echo esc_attr( (string) $term->term_id ); ?>" <?php selected( in_array( (string) $term->term_id, $selected['product_tag_not'], true ) ); ?>>
+					<?php echo esc_html( $term->name ); ?>
+				</option>
+			<?php endforeach; ?>
+		</select>
+		<p><strong><?php esc_html_e( 'Product types', 'open-product-fields-for-woocommerce' ); ?></strong></p>
+		<select multiple size="4" id="opf-placement-types" style="width:100%">
+			<?php foreach ( $types as $slug => $label ) : ?>
+				<option value="<?php echo esc_attr( (string) $slug ); ?>" <?php selected( in_array( (string) $slug, $selected['product_type'], true ) ); ?>>
+					<?php echo esc_html( (string) $label ); ?>
+				</option>
+			<?php endforeach; ?>
+		</select>
+		<p><strong><?php esc_html_e( 'Exclude product types', 'open-product-fields-for-woocommerce' ); ?></strong></p>
+		<select multiple size="4" id="opf-placement-excluded-types" style="width:100%">
+			<?php foreach ( $types as $slug => $label ) : ?>
+				<option value="<?php echo esc_attr( (string) $slug ); ?>" <?php selected( in_array( (string) $slug, $selected['product_type_not'], true ) ); ?>>
+					<?php echo esc_html( (string) $label ); ?>
+				</option>
+			<?php endforeach; ?>
+		</select>
+		<p><strong><?php esc_html_e( 'Attribute values', 'open-product-fields-for-woocommerce' ); ?></strong></p>
+		<select multiple size="5" id="opf-placement-attributes" style="width:100%">
+			<?php foreach ( $attribute_options as $option ) : ?>
+				<option value="<?php echo esc_attr( $option['value'] ); ?>" <?php selected( in_array( $option['value'], $selected['attributes'], true ) ); ?>>
+					<?php echo esc_html( $option['label'] ); ?>
+				</option>
+			<?php endforeach; ?>
+		</select>
+		<p><strong><?php esc_html_e( 'Exclude attribute values', 'open-product-fields-for-woocommerce' ); ?></strong></p>
+		<select multiple size="5" id="opf-placement-excluded-attributes" style="width:100%">
+			<?php foreach ( $attribute_options as $option ) : ?>
+				<option value="<?php echo esc_attr( $option['value'] ); ?>" <?php selected( in_array( $option['value'], $selected['attributes_not'], true ) ); ?>>
+					<?php echo esc_html( $option['label'] ); ?>
 				</option>
 			<?php endforeach; ?>
 		</select>

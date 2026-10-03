@@ -103,6 +103,22 @@ final class EvaluatorTest extends TestCase {
 		$this->assertFalse( Evaluator::group_matches( $group, [ 'product_cat' => [ 9 ], 'product_tag' => [ 3 ] ], 42 ) );
 	}
 
+	public function test_placement_product_type_and_attribute_subjects(): void {
+		$group = [ 'rule_groups' => [ [ 'rules' => [
+			[ 'subject' => 'product_type', 'operator' => 'in', 'terms' => [ 'simple' ] ],
+			[ 'subject' => 'pa_color', 'operator' => 'in', 'terms' => [ '7' ] ],
+		] ] ] ];
+		$this->assertTrue( Evaluator::group_matches( $group, [ 'product_type' => [ 'simple' ], 'pa_color' => [ 7, 9 ] ], 42 ) );
+		$this->assertFalse( Evaluator::group_matches( $group, [ 'product_type' => [ 'variable' ], 'pa_color' => [ 7, 9 ] ], 42 ) );
+		$this->assertFalse( Evaluator::group_matches( $group, [ 'product_type' => [ 'simple' ], 'pa_color' => [ 8 ] ], 42 ) );
+		$excluded = [ 'rule_groups' => [ [ 'rules' => [
+			[ 'subject' => 'pa_size', 'operator' => 'not_in', 'terms' => [ '3' ] ],
+			[ 'subject' => 'product_type', 'operator' => 'not_in', 'terms' => [ 'external' ] ],
+		] ] ] ];
+		$this->assertTrue( Evaluator::group_matches( $excluded, [ 'product_type' => [ 'simple' ], 'pa_size' => [ 1, 2 ] ], 42 ) );
+		$this->assertFalse( Evaluator::group_matches( $excluded, [ 'product_type' => [ 'simple' ], 'pa_size' => [ 3 ] ], 42 ) );
+	}
+
 	public function test_user_auth_role_and_language_placement_rules(): void {
 		$group = [ 'rule_groups' => [ [ 'rules' => [
 			[ 'subject' => 'user_auth', 'operator' => 'in', 'terms' => [ 'logged_in' ] ],

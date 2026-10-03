@@ -230,10 +230,20 @@ final class FieldGroups {
 			return $cached;
 		}
 
+		$type_product = $product->get_parent_id() && function_exists( 'wc_get_product' ) ? wc_get_product( $product->get_parent_id() ) : $product;
+		$get_type     = function ( $p ) {
+			return is_object( $p ) && method_exists( $p, 'get_type' ) ? $p->get_type() : 'simple';
+		};
 		$has_terms = [
-			'product_cat' => wc_get_product_term_ids( $product_id, 'product_cat' ),
-			'product_tag' => wc_get_product_term_ids( $product_id, 'product_tag' ),
+			'product_cat'  => wc_get_product_term_ids( $product_id, 'product_cat' ),
+			'product_tag'  => wc_get_product_term_ids( $product_id, 'product_tag' ),
+			'product_type' => [ $get_type( $type_product ) ],
 		];
+		if ( function_exists( 'wc_get_attribute_taxonomies' ) ) {
+			foreach ( wc_get_attribute_taxonomies() as $attribute_taxonomy ) {
+				$has_terms[ 'pa_' . $attribute_taxonomy->attribute_name ] = wc_get_product_term_ids( $product_id, 'pa_' . $attribute_taxonomy->attribute_name );
+			}
+		}
 
 		$matching = [];
 		// Runtime-only localization keeps editors, exports and stored JSON intact.

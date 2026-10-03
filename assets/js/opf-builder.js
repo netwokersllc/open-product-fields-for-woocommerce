@@ -1045,22 +1045,43 @@
 		}
 		var changedSubjects = {
 			product: changed( 'products' ) || changed( 'excludedProducts' ),
-			product_cat: changed( 'cats' ),
-			product_tag: changed( 'tags' ),
+			product_cat: changed( 'cats' ) || changed( 'excludedCats' ),
+			product_tag: changed( 'tags' ) || changed( 'excludedTags' ),
+			product_type: changed( 'types' ) || changed( 'excludedTypes' ),
 			user_auth: changed( 'auth' ),
 			user_role: changed( 'roles' ) || changed( 'excludedRoles' ),
 			user_language: changed( 'language' ) || changed( 'languageOperator' ),
+			pa_: changed( 'attributes' ) || changed( 'excludedAttributes' ),
 		};
 		var rules = [];
 		if ( changedSubjects.product ) {
 			if ( placementAtSave.products.length ) rules.push( { subject: 'product', operator: 'in', terms: placementAtSave.products } );
 			if ( placementAtSave.excludedProducts.length ) rules.push( { subject: 'product', operator: 'not_in', terms: placementAtSave.excludedProducts } );
 		}
-		if ( changedSubjects.product_cat && placementAtSave.cats.length ) {
-			rules.push( { subject: 'product_cat', operator: 'in', terms: placementAtSave.cats } );
+		if ( changedSubjects.product_cat ) {
+			if ( placementAtSave.cats.length ) rules.push( { subject: 'product_cat', operator: 'in', terms: placementAtSave.cats } );
+			if ( placementAtSave.excludedCats.length ) rules.push( { subject: 'product_cat', operator: 'not_in', terms: placementAtSave.excludedCats } );
 		}
-		if ( changedSubjects.product_tag && placementAtSave.tags.length ) {
-			rules.push( { subject: 'product_tag', operator: 'in', terms: placementAtSave.tags } );
+		if ( changedSubjects.product_tag ) {
+			if ( placementAtSave.tags.length ) rules.push( { subject: 'product_tag', operator: 'in', terms: placementAtSave.tags } );
+			if ( placementAtSave.excludedTags.length ) rules.push( { subject: 'product_tag', operator: 'not_in', terms: placementAtSave.excludedTags } );
+		}
+		if ( changedSubjects.product_type ) {
+			if ( placementAtSave.types.length ) rules.push( { subject: 'product_type', operator: 'in', terms: placementAtSave.types } );
+			if ( placementAtSave.excludedTypes.length ) rules.push( { subject: 'product_type', operator: 'not_in', terms: placementAtSave.excludedTypes } );
+		}
+		if ( changedSubjects.pa_ ) {
+			var attributesIn = {}, attributesNot = {};
+			placementAtSave.attributes.forEach( function ( value ) {
+				var parts = value.split( ':' );
+				( attributesIn[ parts[0] ] = attributesIn[ parts[0] ] || [] ).push( parts[1] );
+			} );
+			placementAtSave.excludedAttributes.forEach( function ( value ) {
+				var parts = value.split( ':' );
+				( attributesNot[ parts[0] ] = attributesNot[ parts[0] ] || [] ).push( parts[1] );
+			} );
+			Object.keys( attributesIn ).forEach( function ( taxonomy ) { rules.push( { subject: taxonomy, operator: 'in', terms: attributesIn[ taxonomy ] } ); } );
+			Object.keys( attributesNot ).forEach( function ( taxonomy ) { rules.push( { subject: taxonomy, operator: 'not_in', terms: attributesNot[ taxonomy ] } ); } );
 		}
 		if ( changedSubjects.user_auth && placementAtSave.auth ) {
 			rules.push( { subject: 'user_auth', operator: 'logged_out' === placementAtSave.auth ? 'not_in' : 'in', terms: [ 'logged_in' ] } );
@@ -1076,8 +1097,9 @@
 		if ( Object.keys( changedSubjects ).some( function ( subject ) { return changedSubjects[ subject ]; } ) ) {
 			var groups = ( model.rule_groups || [] ).map( function ( group ) {
 				return { rules: ( group.rules || [] ).filter( function ( rule ) {
-					if ( changedSubjects[ rule.subject ] && [ 'product', 'user_auth', 'user_role', 'user_language' ].indexOf( rule.subject ) !== -1 ) return false;
-					return ! ( changedSubjects[ rule.subject ] && 'in' === rule.operator && [ 'product_cat', 'product_tag' ].indexOf( rule.subject ) !== -1 );
+					if ( changedSubjects[ rule.subject ] ) return false;
+					if ( changedSubjects.pa_ && 0 === rule.subject.indexOf( 'pa_' ) ) return false;
+					return true;
 				} ) };
 			} );
 			if ( groups.length ) {
@@ -1152,7 +1174,13 @@
 			products: productIds( '#opf-placement-products' ),
 			excludedProducts: productIds( '#opf-placement-excluded-products' ),
 			cats: values( '#opf-placement-cats option:checked' ),
+			excludedCats: values( '#opf-placement-excluded-cats option:checked' ),
 			tags: values( '#opf-placement-tags option:checked' ),
+			excludedTags: values( '#opf-placement-excluded-tags option:checked' ),
+			types: values( '#opf-placement-types option:checked' ),
+			excludedTypes: values( '#opf-placement-excluded-types option:checked' ),
+			attributes: values( '#opf-placement-attributes option:checked' ),
+			excludedAttributes: values( '#opf-placement-excluded-attributes option:checked' ),
 			auth: value( '#opf-placement-auth' ),
 			roles: values( '#opf-placement-roles option:checked' ),
 			excludedRoles: values( '#opf-placement-excluded-roles option:checked' ),
