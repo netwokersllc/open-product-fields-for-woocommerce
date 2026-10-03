@@ -28,3 +28,5 @@ if ( ! function_exists( 'get_option' ) ) {
 		return $GLOBALS['opf_test_options'][ $option ] ?? $default;
 	}
 }
+
+require_once __DIR__ . '/fixtures/engine-gettext.php';

@@ -39,6 +39,67 @@ msgstr ""
 msgid "https://github.com/ssthormess"
 msgstr ""
 
+#. translators: 1: field label, 2: unavailable choice label.
+#: includes/Engine/FieldValue.php:55
+msgid "\"%1$s\" includes unavailable choice \"%2$s\"."
+msgstr ""
+
+#. translators: %s: field label.
+#: includes/Engine/FieldValue.php:219
+#: includes/Engine/FieldValue.php:226
+msgid "\"%s\" is a required field."
+msgstr ""
+
+#. translators: %s: field label.
+#: includes/Engine/FieldValue.php:234
+msgid "\"%s\" must be a valid email address."
+msgstr ""
+
+#. translators: %s: field label.
+#: includes/Engine/FieldValue.php:239
+msgid "\"%s\" must be a valid URL."
+msgstr ""
+
+#. translators: %s: field label.
+#: includes/Engine/FieldValue.php:247
+msgid "\"%s\" must be a valid date."
+msgstr ""
+
+#. translators: %s: field label.
+#: includes/Engine/FieldValue.php:253
+msgid "\"%s\" cannot be in the past."
+msgstr ""
+
+#. translators: %s: field label.
+#: includes/Engine/FieldValue.php:257
+msgid "\"%s\" cannot be in the future."
+msgstr ""
+
+#. translators: 1: field label, 2: earliest allowed ISO date.
+#: includes/Engine/FieldValue.php:267
+msgid "\"%1$s\" must be on or after %2$s."
+msgstr ""
+
+#. translators: 1: field label, 2: latest allowed ISO date.
+#: includes/Engine/FieldValue.php:270
+msgid "\"%1$s\" must be on or before %2$s."
+msgstr ""
+
+#. translators: %s: field label.
+#: includes/Engine/FieldValue.php:275
+msgid "\"%s\" is unavailable on this weekday."
+msgstr ""
+
+#. translators: %s: field label.
+#: includes/Engine/FieldValue.php:279
+msgid "\"%s\" contains a disallowed date."
+msgstr ""
+
+#. translators: %s: field label.
+#: includes/Engine/FieldValue.php:283
+msgid "\"%s\" is no longer available for today."
+msgstr ""
+
 #: includes/Service/Admin/Builder.php:40
 #: includes/Service/Importer.php:194
 msgid "Fields"

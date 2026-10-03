@@ -51,7 +51,8 @@ final class FieldValue {
 		$errors = [];
 		foreach ( (array) ( $field['choices'] ?? [] ) as $choice ) {
 			if ( ! empty( $choice['disabled'] ) && in_array( (string) ( $choice['slug'] ?? '' ), $selected, true ) ) {
-				$errors[] = sprintf( '"%s" includes unavailable choice "%s".', (string) ( $field['label'] ?? '' ), (string) ( $choice['label'] ?? '' ) );
+				/* translators: 1: field label, 2: unavailable choice label. */
+				$errors[] = sprintf( __( '"%1$s" includes unavailable choice "%2$s".', 'open-product-fields-for-woocommerce' ), (string) ( $field['label'] ?? '' ), (string) ( $choice['label'] ?? '' ) );
 			}
 		}
 		return $errors;
@@ -214,57 +215,72 @@ final class FieldValue {
 
 		if ( 'toggle' === $type ) {
 			if ( ! empty( $field['required'] ) && ( ! $provided || '1' !== $value ) ) {
-				return [ sprintf( '"%s" is a required field.', $label ) ];
+				/* translators: %s: field label. */
+				return [ sprintf( __( '"%s" is a required field.', 'open-product-fields-for-woocommerce' ), $label ) ];
 			}
 			return [];
 		}
 
 		if ( ! $provided || null === $value ) {
-			return ! empty( $field['required'] ) ? [ sprintf( '"%s" is a required field.', $label ) ] : [];
+			/* translators: %s: field label. */
+			return ! empty( $field['required'] ) ? [ sprintf( __( '"%s" is a required field.', 'open-product-fields-for-woocommerce' ), $label ) ] : [];
 		}
 
 		// Match the HTML single-address email grammar used by WAPF's native input.
 		// FILTER_VALIDATE_EMAIL rejects native-valid addresses such as a@localhost
 		// and consecutive local-part dots while accepting quoted native-invalid ones.
 		if ( 'email' === $type && ! preg_match( '/^[a-zA-Z0-9.!#$%&\x27*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/D', $value ) ) {
-			return [ sprintf( '"%s" must be a valid email address.', $label ) ];
+			/* translators: %s: field label. */
+			return [ sprintf( __( '"%s" must be a valid email address.', 'open-product-fields-for-woocommerce' ), $label ) ];
 		}
 
 		if ( 'url' === $type && ! UrlValue::is_valid( $value ) ) {
-			return [ sprintf( '"%s" must be a valid URL.', $label ) ];
+			/* translators: %s: field label. */
+			return [ sprintf( __( '"%s" must be a valid URL.', 'open-product-fields-for-woocommerce' ), $label ) ];
 		}
 
 		if ( 'date' === $type ) {
 			$date   = \DateTimeImmutable::createFromFormat( '!Y-m-d', $value, new \DateTimeZone( 'UTC' ) );
 			$errors = \DateTimeImmutable::getLastErrors();
 			if ( ! $date instanceof \DateTimeImmutable || ( is_array( $errors ) && ( 0 !== $errors['warning_count'] || 0 !== $errors['error_count'] ) ) || $date->format( 'Y-m-d' ) !== $value ) {
-				return [ sprintf( '"%s" must be a valid date.', $label ) ];
+				/* translators: %s: field label. */
+				return [ sprintf( __( '"%s" must be a valid date.', 'open-product-fields-for-woocommerce' ), $label ) ];
 			}
 			$current = $today ?? ( function_exists( 'current_datetime' ) ? current_datetime() : new \DateTimeImmutable( 'now', new \DateTimeZone( 'UTC' ) ) );
 			$site_today = $current->format( 'Y-m-d' );
 			if ( false === ( $field['allow_past'] ?? true ) && $value < $site_today ) {
-				return [ sprintf( '"%s" cannot be in the past.', $label ) ];
+				/* translators: %s: field label. */
+				return [ sprintf( __( '"%s" cannot be in the past.', 'open-product-fields-for-woocommerce' ), $label ) ];
 			}
 			if ( false === ( $field['allow_future'] ?? true ) && $value > $site_today ) {
-				return [ sprintf( '"%s" cannot be in the future.', $label ) ];
+				/* translators: %s: field label. */
+				return [ sprintf( __( '"%s" cannot be in the future.', 'open-product-fields-for-woocommerce' ), $label ) ];
 			}
-			foreach ( [ 'min_date' => 'on or after', 'max_date' => 'on or before' ] as $key => $comparison ) {
+			foreach ( [ 'min_date', 'max_date' ] as $key ) {
 				if ( ! isset( $field[ $key ] ) ) {
 					continue;
 				}
 				$boundary = self::resolve_date_boundary( (string) $field[ $key ], $today );
 				if ( null !== $boundary && ( 'min_date' === $key ? $value < $boundary : $value > $boundary ) ) {
-					return [ sprintf( '"%s" must be %s %s.', $label, $comparison, $boundary ) ];
+					if ( 'min_date' === $key ) {
+						/* translators: 1: field label, 2: earliest allowed ISO date. */
+						return [ sprintf( __( '"%1$s" must be on or after %2$s.', 'open-product-fields-for-woocommerce' ), $label, $boundary ) ];
+					}
+					/* translators: 1: field label, 2: latest allowed ISO date. */
+					return [ sprintf( __( '"%1$s" must be on or before %2$s.', 'open-product-fields-for-woocommerce' ), $label, $boundary ) ];
 				}
 			}
 			if ( in_array( (int) $date->format( 'w' ), $field['disabled_weekdays'] ?? [], true ) ) {
-				return [ sprintf( '"%s" is unavailable on this weekday.', $label ) ];
+				/* translators: %s: field label. */
+				return [ sprintf( __( '"%s" is unavailable on this weekday.', 'open-product-fields-for-woocommerce' ), $label ) ];
 			}
 			if ( self::matches_disabled_date( $value, $field['disabled_dates'] ?? [] ) ) {
-				return [ sprintf( '"%s" contains a disallowed date.', $label ) ];
+				/* translators: %s: field label. */
+				return [ sprintf( __( '"%s" contains a disallowed date.', 'open-product-fields-for-woocommerce' ), $label ) ];
 			}
 			if ( isset( $field['cutoff_time'] ) && $value === $current->format( 'Y-m-d' ) && $current->format( 'H:i:s' ) > $field['cutoff_time'] . ':00' ) {
-				return [ sprintf( '"%s" is no longer available for today.', $label ) ];
+				/* translators: %s: field label. */
+				return [ sprintf( __( '"%s" is no longer available for today.', 'open-product-fields-for-woocommerce' ), $label ) ];
 			}
 		}
 
