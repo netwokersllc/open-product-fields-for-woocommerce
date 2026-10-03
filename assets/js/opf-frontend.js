@@ -976,7 +976,7 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
       const char = input[index];
       if (char === '(') depth++;
       else if (char === ')') depth--;
-      else if (depth === 0 && (char === ';' || char === ',')) {
+      else if (depth === 0 && char === ';') {
         parts.push(input.slice(start, index).trim());
         start = index + 1;
       }
@@ -1350,17 +1350,18 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
   };
   const parseFactor = () => {
     skipWs();
-    if (s[i] === '(') { i++; const v = parseExpr(); skipWs(); if (s[i] === ')') i++; return v; }
+    if (s[i] === '(') { i++; const v = parseExpr(); skipWs(); if (s[i] !== ')') return NaN; i++; return v; }
     if (s[i] === '-') { i++; return -parseFactor(); }
     if (Object.prototype.hasOwnProperty.call(vars, s[i])) return vars[s[i++]];
-    const m = /^\d+(?:\.\d+)?/.exec(s.slice(i));
+    const m = /^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+\-]?\d+)?/.exec(s.slice(i));
     if (m) { i += m[0].length; return parseFloat(m[0]); }
     i++; // force failure on unknown token
     return NaN;
   };
   skipWs();
   const out = parseExpr();
-  return isFinite(out) ? out : 0;
+  skipWs();
+  return i === s.length && Number.isFinite(out) ? out : 0;
 };
 
 // Per-unit contribution of one pricing block (WAPF do_pricing parity):
@@ -1674,7 +1675,7 @@ const writeTotals = () => {
   });
 
   const productTotal = base * qty;
-  const grand = productTotal + optionsTotal;
+  const grand = Math.max(0, productTotal + optionsTotal);
   const fmtEl = (el, amount) => {
     if (!el) return;
     el.innerHTML = fmtMoney(amount * rate);

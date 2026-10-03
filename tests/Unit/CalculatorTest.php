@@ -299,13 +299,13 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( 3.0, Calculator::field_addon( $field, [ [ 'a' ], [ 'b' ] ], [ 'price' => 20.0, 'qty' => 1 ] ) );
 	}
 
-	public function test_addons_never_negative(): void {
+	public function test_formula_addons_preserve_negative_contributions(): void {
 		$field = [
 			'type'    => 'text',
 			'choices' => [],
 			'pricing' => [ 'type' => 'formula', 'amount' => 0.0, 'formula' => '0 - 100' ],
 		];
-		$this->assertSame( 0.0, Calculator::field_addon( $field, 'x', [ 'price' => 10.0, 'qty' => 1 ] ) );
+		$this->assertSame( -100.0, Calculator::field_addon( $field, 'x', [ 'price' => 10.0, 'qty' => 1 ] ) );
 	}
 
 	/**

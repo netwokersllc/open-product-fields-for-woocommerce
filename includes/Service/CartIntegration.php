@@ -410,7 +410,7 @@ final class CartIntegration {
 			$base     = (float) apply_filters( 'opf_cart_item_base_price', (float) $cart_item['opf_base_price'], $product, $cart_item );
 			$quantity = max( 1, (int) $cart_item['quantity'] );
 			$per_unit = self::addons_per_unit( $product, $cart_item[ self::ITEM_KEY ], $base, $quantity );
-			$target   = $base + $per_unit;
+			$target   = max( 0.0, $base + $per_unit );
 
 			if ( abs( (float) $product->get_price( 'edit' ) - $target ) > 0.000001 ) {
 				$recursing = true;

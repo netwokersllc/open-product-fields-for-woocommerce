@@ -130,4 +130,14 @@ test('writeTotals computes line totals from per-unit addons at qty > 1', () => {
 	// per-unit: 20% of 10 per unit → 40 + 8 = 48.
 	assert.equal(totals.options.innerHTML, '$8.00');
 	assert.equal(totals.grand.innerHTML, '$48.00');
+
+	context.window.OPF_FIELDS.g1.plan.choices[0].pricing = { type: 'formula', formula: 'min(-5;0)', per_unit: true };
+	context.__writeTotals();
+	assert.equal(totals.options.innerHTML, '-$20.00');
+	assert.equal(totals.grand.innerHTML, '$20.00');
+
+	context.window.OPF_FIELDS.g1.plan.choices[0].pricing = { type: 'formula', formula: 'min(-100;0)' };
+	context.__writeTotals();
+	assert.equal(totals.options.innerHTML, '-$100.00');
+	assert.equal(totals.grand.innerHTML, '$0.00', 'Only the final product price is clamped.');
 });

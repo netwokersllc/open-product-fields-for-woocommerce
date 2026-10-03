@@ -43,7 +43,7 @@ final class Calculator {
 	 * @param array<string,mixed>      $field   Normalized field array.
 	 * @param string|array<int,string> $value   Submitted value(s) (choice slugs or raw text).
 	 * @param array{price?:float,qty?:int,addons?:float,field_values?:array<string,mixed>,field_prices?:array<string,float|array<int,float>>,product_id?:int,variables?:array,fields?:array,lookup_tables?:array} $context Pricing context.
-	 * @return float Per-unit addon (never negative).
+	 * @return float Signed per-unit addon; the cart clamps the final product price.
 	 */
 	public static function field_addon( array $field, $value, array $context ): float {
 		$price  = (float) ( $context['price'] ?? 0.0 );
@@ -66,7 +66,7 @@ final class Calculator {
 			foreach ( $instances as $instance_value ) {
 				$total += self::field_addon( $instance_field, $instance_value, $instance_context );
 			}
-			return max( 0.0, $total );
+			return (float) $total;
 		}
 
 		$qty_based = ! empty( $context['qty_based'] );
@@ -84,7 +84,7 @@ final class Calculator {
 					$total += self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices, $qty_based, $field_labels, $options, (string) $quantity );
 				}
 			}
-			return max( 0.0, (float) $total );
+			return (float) $total;
 		}
 
 		$total = 0.0;
@@ -119,7 +119,7 @@ final class Calculator {
 				break;
 		}
 
-		return max( 0.0, (float) $total );
+		return (float) $total;
 	}
 
 	/**
@@ -369,8 +369,8 @@ final class Calculator {
 		if ( null === $value || $pos < count( $tokens ) ) {
 			return 0.0;
 		}
-		// Negatives allowed here (formulas may offset other addons); the
-		// final addon total is clamped at the field_addon boundary.
+		// Signed contributions may offset the base price or other addons.
+		// Clamp only the final product price in CartIntegration::apply_prices().
 		return is_finite( $value ) ? (float) $value : 0.0;
 	}
 
@@ -1228,7 +1228,7 @@ final class Calculator {
 				$i++;
 				continue;
 			}
-			if ( preg_match( '/\d+(?:\.\d+)?/', substr( $formula, $i ), $m ) && ( '.' === $ch || ctype_digit( $ch ) ) ) {
+			if ( preg_match( '/^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+\-]?\d+)?/', substr( $formula, $i ), $m ) ) {
 				$tokens[] = [ 't' => 'num', 'v' => (float) $m[0] ];
 				$i       += strlen( $m[0] );
 				continue;
