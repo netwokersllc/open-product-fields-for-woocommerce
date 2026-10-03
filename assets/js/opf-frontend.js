@@ -1705,3 +1705,67 @@ if (document.readyState === 'loading') {
 } else {
   initTotals();
 }
+
+// Tooltip-triggered descriptions (description_presentation=tooltip).
+// A mouse click fires focusin BEFORE click — without the focusOpenedAt guard
+// the click would toggle the just-opened tooltip straight back closed. Escape
+// refocuses the trigger, so suppressFocusUntil keeps focusin from reopening it.
+(function () {
+  let focusOpenedAt = 0;
+  let suppressFocusUntil = 0;
+  const closeAll = (except) => {
+    document.querySelectorAll('.opf-tooltip-trigger[aria-expanded="true"]').forEach((t) => {
+      if (except && t === except) return;
+      t.setAttribute('aria-expanded', 'false');
+    });
+  };
+  document.addEventListener('click', (event) => {
+    const trigger = event.target.closest('.opf-tooltip-trigger');
+    if (trigger) {
+      closeAll(trigger);
+      if (Date.now() - focusOpenedAt < 600) {
+        trigger.setAttribute('aria-expanded', 'true'); // click was the focusing gesture
+      } else {
+        const open = trigger.getAttribute('aria-expanded') === 'true';
+        trigger.setAttribute('aria-expanded', open ? 'false' : 'true');
+      }
+      event.stopPropagation();
+      return;
+    }
+    closeAll();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      const open = document.querySelector('.opf-tooltip-trigger[aria-expanded="true"]');
+      if (open) {
+        open.setAttribute('aria-expanded', 'false');
+        suppressFocusUntil = Date.now() + 600;
+        open.focus();
+      }
+    }
+    if (event.key === 'Enter' || event.key === ' ') {
+      const trigger = event.target.closest && event.target.closest('.opf-tooltip-trigger');
+      if (trigger) {
+        const open = trigger.getAttribute('aria-expanded') === 'true';
+        closeAll();
+        trigger.setAttribute('aria-expanded', open ? 'false' : 'true');
+        focusOpenedAt = 0;
+        event.preventDefault();
+      }
+    }
+  });
+  document.addEventListener('focusin', (event) => {
+    const trigger = event.target.closest && event.target.closest('.opf-tooltip-trigger');
+    if (trigger && Date.now() >= suppressFocusUntil) {
+      closeAll(trigger);
+      trigger.setAttribute('aria-expanded', 'true');
+      focusOpenedAt = Date.now();
+    }
+  });
+  document.addEventListener('focusout', (event) => {
+    const trigger = event.target.closest && event.target.closest('.opf-tooltip-trigger');
+    if (trigger && !trigger.contains(event.relatedTarget)) {
+      setTimeout(() => trigger.setAttribute('aria-expanded', 'false'), 0);
+    }
+  });
+})();

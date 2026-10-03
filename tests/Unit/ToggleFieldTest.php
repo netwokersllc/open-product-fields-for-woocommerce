@@ -35,9 +35,11 @@ final class ToggleFieldTest extends TestCase {
 	}
 
 	public function test_toggle_settings_do_not_extend_other_types(): void {
+		// `message` stays toggle-only; `default` is a WAPF parity setting
+		// shared by every scalar input type, so email now retains it.
 		$field = FieldGroup::normalize_field( [ 'type' => 'email', 'message' => 'Ignored', 'default' => '1' ] );
 		$this->assertArrayNotHasKey( 'message', $field );
-		$this->assertArrayNotHasKey( 'default', $field );
+		$this->assertSame( '1', $field['default'] );
 		$this->assertSame( 'Safe & sound', FieldGroup::normalize_field( [ 'type' => 'toggle', 'message' => '<b>Safe & sound</b>', 'default' => false ] )['message'] );
 	}
 

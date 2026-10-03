@@ -15,6 +15,7 @@
 
 namespace OPF\Service;
 
+use OPF\Engine\Calculator;
 use OPF\Engine\Evaluator;
 use OPF\Engine\FieldGroup;
 use OPF\Engine\FieldValue;
@@ -65,6 +66,59 @@ final class Renderer {
 	 */
 	public static function show_totals(): bool {
 		return (bool) apply_filters( 'opf_show_totals', get_option( 'opf_show_totals', 'no' ) === 'yes' );
+	}
+
+	/**
+	 * Summary mode: 'three' (3-line), 'grand' (grand total only), 'hidden'.
+	 * New installs default to the documented 3-line mode; when the new option
+	 * has never been saved, a previously saved legacy `opf_show_totals`
+	 * ('yes'/'no') choice is mapped onto it.
+	 */
+	public static function summary_mode(): string {
+		$mode = get_option( 'opf_price_summary_mode', null );
+		if ( null === $mode || '' === $mode || false === $mode ) {
+			$legacy = get_option( 'opf_show_totals', false );
+			if ( false !== $legacy && '' !== $legacy ) {
+				return 'yes' === $legacy ? 'three' : 'hidden';
+			}
+			return 'three';
+		}
+		return in_array( $mode, [ 'three', 'grand', 'hidden' ], true ) ? $mode : 'three';
+	}
+
+	/** Per-option price hints toggle. */
+	public static function show_price_hints(): bool {
+		return (bool) apply_filters( 'opf_show_price_hints', get_option( 'opf_show_price_hints', 'yes' ) === 'yes' );
+	}
+
+	/**
+	 * Signed price hint HTML for a pricing block, e.g. "+ $5.00".
+	 *
+	 * @param array<string,mixed> $pricing Normalized pricing.
+	 */
+	public static function pricing_hint_html( array $pricing, float $base_price ): string {
+		if ( ! self::show_price_hints() ) {
+			return '';
+		}
+		if ( empty( $pricing ) || 'none' === ( $pricing['type'] ?? 'none' ) ) {
+			return '';
+		}
+		$amount = 0.0;
+		switch ( $pricing['type'] ) {
+			case 'fixed':
+				$amount = (float) $pricing['amount'];
+				break;
+			case 'percent':
+				$amount = $base_price * ( (float) $pricing['amount'] / 100 );
+				break;
+			case 'formula':
+				$amount = Calculator::evaluate_formula( (string) ( $pricing['formula'] ?? '0' ), $base_price, 1, 0.0 );
+				break;
+			default:
+				return '';
+		}
+		$sign = $amount < 0 ? '-' : '+';
+		return ' <span class="opf-pricing-hint">' . $sign . ' ' . wc_price( abs( $amount ) ) . '</span>';
 	}
 
 	/**
@@ -197,7 +251,11 @@ final class Renderer {
 		$section_stack = [];
 		$section_repeat_index = null;
 		$section_repeat_mode = null;
+		$mark_required = ! isset( $group->data['mark_required'] ) || ! empty( $group->data['mark_required'] );
 		foreach ( $group->data['fields'] as $field ) {
+			// Group layout flag (WAPF mark_required): when off, required
+			// fields render without the asterisk but stay validated.
+			$field['_opf_mark_required'] = $mark_required;
 			if ( 'section' === $field['type'] ) {
 				$previous_repeat_index = $section_repeat_index;
 				$previous_repeat_mode = $section_repeat_mode;
@@ -419,13 +477,22 @@ final class Renderer {
 		if ( ! in_array( $field['type'], [ 'swatch', 'image_quantity', 'radio', 'checkbox', 'products' ], true ) ) {
 			echo ' for="opf-' . esc_attr( $gid . '-' . $fid ) . '"';
 		}
-		echo '><span>' . esc_html( $field['label'] ) . '</span> ';
-		if ( $field['required'] ) {
+		echo '><span>' . esc_html( $field['label'] ) . '</span>' . self::pricing_hint_html( $field['pricing'] ?? [], $base_price ) . ' ';
+		if ( $field['required'] && ( $field['_opf_mark_required'] ?? true ) ) {
 			echo '<abbr class="required" title="' . esc_attr( self::required_title() ) . '">*</abbr>';
 		}
-		echo '</label></div>';
+		echo '</label>';
+		// Tooltip instructions sit inside the label container, next to the
+		// label, mirroring WAPF instructions_position=tooltip (the icon is
+		// emitted inside .wapf-field-label).
+		if ( '' !== $field['description'] && 'tooltip' === ( $field['description_presentation'] ?? 'inline' ) ) {
+			$tid = 'opf-tt-' . esc_attr( $gid . '-' . $fid );
+			echo '<button type="button" class="opf-tooltip-trigger" aria-describedby="' . $tid . '" aria-expanded="false"><span aria-hidden="true">?</span><span class="screen-reader-text">' . esc_html( $field['label'] ) . ' help</span></button>';
+			echo '<span role="tooltip" id="' . $tid . '" class="opf-tooltip">' . esc_html( $field['description'] ) . '</span>';
+		}
+		echo '</div>';
 
-		if ( '' !== $field['description'] ) {
+		if ( '' !== $field['description'] && 'tooltip' !== ( $field['description_presentation'] ?? 'inline' ) ) {
 			echo '<div class="opf-field-description">' . esc_html( $field['description'] ) . '</div>';
 		}
 
@@ -462,7 +529,7 @@ final class Renderer {
 				if ( ! empty( $choice['image'] ) ) {
 					echo '<img src="' . esc_url( $choice['image'] ) . '" alt="' . $label . '" loading="lazy" />';
 				}
-				echo '<span>' . $label . '</span><input type="number" class="opf-input opf-image-quantity__input" name="' . esc_attr( $name . '[' . $choice['slug'] . ']' ) . '" value="' . esc_attr( (string) $q['default'] ) . '" min="' . esc_attr( (string) $q['min'] ) . '" max="' . esc_attr( (string) $q['max'] ) . '" step="1" data-field-id="' . esc_attr( $fid ) . '" data-choice-slug="' . esc_attr( $choice['slug'] ) . '"' . ( ! empty( $choice['disabled'] ) ? ' disabled' : '' ) . ' /></label>';
+				echo '<span>' . $label . self::pricing_hint_html( $choice['pricing'] ?? [], $base_price ) . '</span><input type="number" class="opf-input opf-image-quantity__input" name="' . esc_attr( $name . '[' . $choice['slug'] . ']' ) . '" value="' . esc_attr( (string) $q['default'] ) . '" min="' . esc_attr( (string) $q['min'] ) . '" max="' . esc_attr( (string) $q['max'] ) . '" step="1" data-field-id="' . esc_attr( $fid ) . '" data-choice-slug="' . esc_attr( $choice['slug'] ) . '"' . ( ! empty( $choice['disabled'] ) ? ' disabled' : '' ) . ' /></label>';
 			}
 			echo '</div>';
 			return;
@@ -481,6 +548,7 @@ final class Renderer {
 				$choice_selected = $choice['selected'] && ! $choice['disabled'];
 				echo '<option value="' . esc_attr( $choice['slug'] ) . '"' . selected( $choice_selected, true, false ) . self::pricing_attrs( $choice['pricing'], $qty_based ) . ( ! empty( $choice['disabled'] ) ? ' disabled' : '' ) . '>'
 					. esc_html( $choice['label'] )
+					. strip_tags( self::pricing_hint_html( $choice['pricing'], $base_price ) )
 					. '</option>';
 			}
 			echo '</select>';
@@ -604,7 +672,7 @@ final class Renderer {
 				echo '</span>';
 			}
 			$label_class = $image_swatch ? ' class="opf-image-swatch-label"' : '';
-			echo '<span' . $label_class . '>' . esc_html( $choice['label'] ) . ' </span>';
+			echo '<span' . $label_class . '>' . esc_html( $choice['label'] ) . self::pricing_hint_html( $choice['pricing'], $base_price ) . ' </span>';
 			echo '<input type="' . ( $multi ? 'checkbox' : 'radio' ) . '" ' . $attrs . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput -- pre-escaped.
 			echo '</label>';
 			echo '</div>';
@@ -943,16 +1011,16 @@ final class Renderer {
 				echo '<div class="opf-upload__files"></div><div class="opf-upload__status" role="status" aria-live="polite"></div></div>';
 				break;
 			case 'textarea':
-				echo '<textarea ' . $shared . '></textarea>'; // phpcs:ignore WordPress.Security.EscapeOutput -- pre-escaped.
+				echo '<textarea ' . $shared . '>' . esc_html( (string) ( $field['default'] ?? '' ) ) . '</textarea>'; // phpcs:ignore WordPress.Security.EscapeOutput -- pre-escaped.
 				break;
 			case 'url':
 				echo '<input type="url" value="' . esc_attr( (string) ( $field['default'] ?? '' ) ) . '" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
 				break;
 			case 'email':
-				echo '<input type="email" value="" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
+				echo '<input type="email" value="' . esc_attr( (string) ( $field['default'] ?? '' ) ) . '" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
 				break;
 			case 'number':
-				echo '<input type="number" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
+				echo '<input type="number" value="' . esc_attr( (string) ( $field['default'] ?? '' ) ) . '" ' . $shared . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
 				break;
 			case 'date':
 				$date_attrs = ' data-opf-date-format="' . esc_attr( \OPF\Engine\DateFormat::configured() ) . '"';
@@ -1037,7 +1105,8 @@ final class Renderer {
 		if ( ! self::compat() ) {
 			return;
 		}
-		$hidden = self::show_totals() ? '' : ' opf-totals-hidden';
+		$mode = self::summary_mode();
+		$hidden = 'hidden' === $mode ? ' opf-totals-hidden' : '';
 		$i18n = self::i18n();
 		$data_tax = 1;
 		if (
@@ -1047,10 +1116,18 @@ final class Renderer {
 		) {
 			$data_tax = 1;
 		}
-		echo '<div class="opf-product-totals' . esc_attr( $hidden ) . '" style="' . ( self::show_totals() ? '' : 'display:none;' ) . '" data-product-id="' . esc_attr( (string) $product->get_id() ) . '" data-product-type="' . esc_attr( $product->get_type() ) . '" data-product-price="' . esc_attr( (string) $product->get_price() ) . '" data-tax="' . esc_attr( (string) $data_tax ) . '"><div class="opf--inner">';
-		echo '<div><span>' . esc_html( $i18n['product_total'] ) . '</span> <span class="opf-total opf-product-total price amount"></span></div>';
-		echo '<div><span>' . esc_html( $i18n['options_total'] ) . '</span> <span class="opf-total opf-options-total price amount"></span></div>';
-		echo '<div><span>' . esc_html( $i18n['grand_total'] ) . '</span> <span class="opf-total opf-grand-total price amount"></span></div>';
+		echo '<div class="opf-product-totals' . esc_attr( $hidden ) . '" style="' . ( 'hidden' === $mode ? 'display:none;' : '' ) . '" data-product-id="' . esc_attr( (string) $product->get_id() ) . '" data-product-type="' . esc_attr( $product->get_type() ) . '" data-product-price="' . esc_attr( (string) $product->get_price() ) . '" data-tax="' . esc_attr( (string) $data_tax ) . '"><div class="opf--inner">';
+		if ( 'three' === $mode ) {
+			echo '<div><span>' . esc_html( $i18n['product_total'] ) . '</span> <span class="opf-total opf-product-total price amount"></span></div>';
+			echo '<div><span>' . esc_html( $i18n['options_total'] ) . '</span> <span class="opf-total opf-options-total price amount"></span></div>';
+			echo '<div><span>' . esc_html( $i18n['grand_total'] ) . '</span> <span class="opf-total opf-grand-total price amount"></span></div>';
+		} elseif ( 'grand' === $mode ) {
+			echo '<div><span>' . esc_html( $i18n['grand_total'] ) . '</span> <span class="opf-total opf-grand-total price amount"></span></div>';
+		} else {
+			echo '<div><span>' . esc_html( $i18n['product_total'] ) . '</span> <span class="opf-total opf-product-total price amount"></span></div>';
+			echo '<div><span>' . esc_html( $i18n['options_total'] ) . '</span> <span class="opf-total opf-options-total price amount"></span></div>';
+			echo '<div><span>' . esc_html( $i18n['grand_total'] ) . '</span> <span class="opf-total opf-grand-total price amount"></span></div>';
+		}
 		echo '</div></div>';
 	}
 

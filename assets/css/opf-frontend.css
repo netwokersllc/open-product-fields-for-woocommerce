@@ -479,3 +479,18 @@
 .opf-upload__files > div { display: flex; gap: 1rem; align-items: center; justify-content: space-between; margin-top: .5rem; }
 .opf-upload progress { width: 100%; margin-top: .5rem; }
 .opf-upload__status { margin-top: .5rem; }
+
+.opf-tooltip-trigger { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 1.1em; height: 1.1em; margin-left: .35em; padding: 0; border: 1px solid currentColor; border-radius: 50%; background: transparent; font: inherit; font-size: .75em; line-height: 1; cursor: pointer; vertical-align: middle; }
+.opf-tooltip { display: none; position: absolute; z-index: 20; max-width: 16em; padding: .4em .6em; background: #1d2327; color: #fff; border-radius: 4px; font-size: .85em; white-space: normal; }
+.opf-tooltip-trigger[aria-expanded="true"] + .opf-tooltip { display: inline-block; }
+.opf-tooltip-trigger:focus-visible { outline: 2px solid #2271b1; outline-offset: 1px; }
+.opf-pricing-hint { opacity: .75; font-size: .9em; white-space: nowrap; }
+
+/* labels_position=below: visually order input -> description -> label,
+   matching WAPF's DOM-order rendering (label printed after the input).
+   The DOM keeps label-first so `for` association and screen-reader order
+   stay intact; only containers that hold the input pair are reflowed. */
+.opf-field-group.label-below .opf-field-container:has(> .opf-field-input) { display: flex; flex-direction: column; }
+.opf-field-group.label-below .opf-field-container:has(> .opf-field-input) > .opf-field-input { order: 1; }
+.opf-field-group.label-below .opf-field-container:has(> .opf-field-input) > .opf-field-description { order: 2; }
+.opf-field-group.label-below .opf-field-container:has(> .opf-field-input) > .opf-field-label { order: 3; margin-bottom: 0; margin-top: .35em; }

@@ -40,6 +40,27 @@ final class Settings {
 				'default' => DateFormat::DEFAULT_FORMAT,
 				'autoload' => false,
 			],
+			[
+				'title' => __( 'Price summary mode', 'open-product-fields-for-woocommerce' ),
+				'desc' => __( 'Pre-add-to-cart summary: full three-row block, grand total only, or hidden.', 'open-product-fields-for-woocommerce' ),
+				'id' => 'opf_price_summary_mode',
+				'type' => 'select',
+				'options' => [
+					'three' => __( 'Three-line summary', 'open-product-fields-for-woocommerce' ),
+					'grand' => __( 'Grand total only', 'open-product-fields-for-woocommerce' ),
+					'hidden' => __( 'Hidden', 'open-product-fields-for-woocommerce' ),
+				],
+				'default' => 'three',
+				'autoload' => false,
+			],
+			[
+				'title' => __( 'Price hints', 'open-product-fields-for-woocommerce' ),
+				'desc' => __( 'Show per-option price hints (+/- amounts) beside priced fields and choices.', 'open-product-fields-for-woocommerce' ),
+				'id' => 'opf_show_price_hints',
+				'type' => 'checkbox',
+				'default' => 'yes',
+				'autoload' => false,
+			],
 			[ 'type' => 'sectionend', 'id' => 'opf_product_fields' ],
 		];
 	}

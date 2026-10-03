@@ -594,7 +594,7 @@ final class CartIntegration {
 			return $other_data;
 		}
 
-		foreach ( self::visible_selections( $product, $cart_item[ self::ITEM_KEY ] ) as $selection ) {
+		foreach ( self::visible_selections( $product, $cart_item[ self::ITEM_KEY ], self::item_data_context() ) as $selection ) {
 			$other_data[] = [
 				'name'    => $selection['label'],
 				'value'   => $selection['value'],
@@ -606,13 +606,81 @@ final class CartIntegration {
 	}
 
 	/**
+	 * Which customer-facing surface is asking for cart item data. Mirrors
+	 * WAPF Extended's context detection: classic template tags first, then
+	 * the mini-cart Ajax heuristic, then the Store API route (Cart block /
+	 * Checkout block), with the REST referer as the last signal.
+	 *
+	 * @return 'cart'|'checkout'|'mini_cart'|null
+	 */
+	private static function item_data_context(): ?string {
+		if ( function_exists( 'is_cart' ) && is_cart() ) {
+			return 'cart';
+		}
+		if ( function_exists( 'is_checkout' ) && is_checkout() ) {
+			return 'checkout';
+		}
+		// Classic checkout's order-review Ajax reports is_checkout() itself
+		// (WOOCOMMERCE_CHECKOUT); every other Ajax item-data request is the
+		// mini cart — WAPF hides hide_cart values there too.
+		if ( wp_doing_ajax() && ( ! isset( $_GET['wc-ajax'] ) || 'update_order_review' !== $_GET['wc-ajax'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+			return 'mini_cart';
+		}
+		if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
+			$route = isset( $GLOBALS['wp']->query_vars['rest_route'] ) ? (string) $GLOBALS['wp']->query_vars['rest_route'] : '';
+			if ( false !== strpos( $route, '/cart' ) ) {
+				return 'cart';
+			}
+			if ( false !== strpos( $route, '/checkout' ) ) {
+				return 'checkout';
+			}
+			$ref = function_exists( 'wp_get_referer' ) ? wp_get_referer() : false;
+			if ( is_string( $ref ) && '' !== $ref && function_exists( 'wc_get_page_id' ) ) {
+				$ref_id = url_to_postid( $ref );
+				if ( 0 < $ref_id ) {
+					if ( $ref_id === (int) wc_get_page_id( 'cart' ) ) {
+						return 'cart';
+					}
+					if ( $ref_id === (int) wc_get_page_id( 'checkout' ) ) {
+						return 'checkout';
+					}
+				}
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Whether a field's hide_* flag suppresses it on the current surface.
+	 * Unknown surfaces keep legacy behaviour (always shown).
+	 *
+	 * @param array<string,mixed> $field   Normalized field.
+	 * @param string|null         $context cart|checkout|mini_cart|order|null.
+	 */
+	private static function hidden_in_context( array $field, ?string $context ): bool {
+		if ( 'cart' === $context || 'mini_cart' === $context ) {
+			return ! empty( $field['hide_cart'] );
+		}
+		if ( 'checkout' === $context ) {
+			return ! empty( $field['hide_checkout'] );
+		}
+		if ( 'order' === $context ) {
+			return ! empty( $field['hide_order'] );
+		}
+		return false;
+	}
+
+	/**
 	 * Visible label/value pairs for a cart item's selections.
 	 *
 	 * @param \WC_Product         $product Product.
 	 * @param array<int|string, array<string, mixed>> $values Stored values.
+	 * @param string|null         $context Surface context; null detects the
+	 *                                     cart/checkout surface, 'order'
+	 *                                     applies hide_order for order meta.
 	 * @return array<int,array{label:string,value:string}>
 	 */
-	public static function visible_selections( \WC_Product $product, array $values ): array {
+	public static function visible_selections( \WC_Product $product, array $values, ?string $context = null ): array {
 		$out = [];
 
 		foreach ( FieldGroups::for_product( $product ) as $entry ) {
@@ -635,7 +703,7 @@ final class CartIntegration {
 					continue;
 				}
 				$fid = $field['id'];
-				if ( ! array_key_exists( $fid, $group_values ) || ! Evaluator::is_visible( $field, $group_values ) ) {
+				if ( ! array_key_exists( $fid, $group_values ) || ! Evaluator::is_visible( $field, $group_values ) || self::hidden_in_context( $field, $context ) ) {
 					continue;
 				}
 				$raw = $group_values[ $fid ];
@@ -756,7 +824,10 @@ final class CartIntegration {
 
 		$values = $cart_item[ self::ITEM_KEY ];
 		Uploads::persist( $values, $item, $order );
-		foreach ( self::visible_selections( $product, $values ) as $selection ) {
+		// WAPF parity: hide_order fields stay out of the visible order-item
+		// meta on every surface but remain in _opf_fields (order-again,
+		// exports) — hidden data is suppressed from display, never lost.
+		foreach ( self::visible_selections( $product, $values, 'order' ) as $selection ) {
 			$item->add_meta_data( $selection['label'], $selection['value'] );
 		}
 		$item->add_meta_data( '_opf_fields', wp_json_encode( $values, JSON_UNESCAPED_UNICODE ), true );

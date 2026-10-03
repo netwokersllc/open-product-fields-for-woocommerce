@@ -325,6 +325,7 @@ final class FieldGroup {
 			'id'           => $field_id,
 			'label'        => (string) ( $field['label'] ?? '' ),
 			'description'  => (string) ( $field['description'] ?? '' ),
+			'description_presentation' => in_array( $field['description_presentation'] ?? 'inline', [ 'inline', 'tooltip' ], true ) ? ( $field['description_presentation'] ?? 'inline' ) : 'inline',
 			'type'         => $type,
 			'required'     => (bool) ( $field['required'] ?? false ),
 			'width'        => max( 25, min( 100, (int) ( $field['width'] ?? 100 ) ) ),
@@ -333,6 +334,12 @@ final class FieldGroup {
 			'choices'      => $choices,
 			'pricing'      => $pricing,
 			'conditionals' => $conditionals,
+			// WAPF per-field visibility flags (options.hide_* in the WAPF
+			// schema): the value stays stored and priced; only the
+			// customer-facing display on that surface is suppressed.
+			'hide_cart'     => ! empty( $field['hide_cart'] ) || ! empty( $field['options']['hide_cart'] ),
+			'hide_checkout' => ! empty( $field['hide_checkout'] ) || ! empty( $field['options']['hide_checkout'] ),
+			'hide_order'    => ! empty( $field['hide_order'] ) || ! empty( $field['options']['hide_order'] ),
 		];
 		if ( 'toggle' === $type ) {
 			if ( array_key_exists( 'message', $field ) ) {
@@ -363,6 +370,21 @@ final class FieldGroup {
 				throw new \InvalidArgumentException( 'Text default must be a scalar value.' );
 			}
 			$normalized['default'] = trim( preg_replace( '/[\r\n\t ]+/', ' ', strip_tags( (string) $field['default'] ) ) );
+		}
+		// WAPF exposes "Default value" for every scalar input type; keep
+		// parity for email/number/textarea (text/url/toggle handled above).
+		if ( in_array( $type, [ 'email', 'number' ], true ) && array_key_exists( 'default', $field ) ) {
+			if ( ! is_scalar( $field['default'] ) ) {
+				throw new \InvalidArgumentException( ucfirst( $type ) . ' default must be a scalar value.' );
+			}
+			$normalized['default'] = trim( preg_replace( '/[\r\n\t ]+/', ' ', strip_tags( (string) $field['default'] ) ) );
+		}
+		if ( 'textarea' === $type && array_key_exists( 'default', $field ) ) {
+			if ( ! is_scalar( $field['default'] ) ) {
+				throw new \InvalidArgumentException( 'Textarea default must be a scalar value.' );
+			}
+			// Textareas may legitimately hold multi-line defaults.
+			$normalized['default'] = trim( strip_tags( (string) $field['default'] ) );
 		}
 		if ( 'paragraph' === $type ) {
 			$normalized['content'] = is_scalar( $field['content'] ?? null ) ? (string) $field['content'] : '';

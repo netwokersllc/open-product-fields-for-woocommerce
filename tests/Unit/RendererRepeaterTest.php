@@ -30,6 +30,11 @@ namespace {
 			return $result;
 		}
 	}
+	if ( ! function_exists( 'wc_price' ) ) {
+		function wc_price( $amount ): string {
+			return '<span class="woocommerce-Price-amount amount"><bdi>$' . number_format( (float) $amount, 2 ) . '</bdi></span>';
+		}
+	}
 }
 
 namespace OPF\Tests\Unit {
