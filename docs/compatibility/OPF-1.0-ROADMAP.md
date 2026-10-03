@@ -35,9 +35,9 @@ The 131 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 | --- | ---: | --- |
 | Baseline supported | 1 | Promising baseline only; not accepted as proof |
 | Supported | 12 | Includes verified text, textarea, email, select, radio, paragraph shortcode, and cart/order lifecycle behavior |
-| Supported with documented difference | 10 | Includes quantity-flat pricing; remaining differences need explicit non-regression review and acceptance |
-| Partial | 107 | Material parity or proof remains; both upload rows have a private-storage foundation but still lack builder/import/export parity and additional lifecycle proof |
-| Gap | 1 | Known absent in the current OPF tree |
+| Supported with documented difference | 7 | Includes quantity-flat pricing; remaining differences need explicit non-regression review and acceptance |
+| Partial | 103 | Material parity or proof remains; both upload rows have a private-storage foundation but still lack builder/import/export parity and additional lifecycle proof |
+| Gap | 8 | Known absent in the current OPF tree, including linked products/cards, image zoom, card image changes, and exact variation targeting |
 | Needs audit | 0 | Available source, marketing claims, and every published release delta are mapped; exact release details remain scoped to partial rows |
 | **Total** | **131** | **G1 complete for available evidence; G2 remains open** |
 
@@ -180,8 +180,8 @@ Free's older platform declarations and conflicting
 WordPress floor claims also remain unresolved. The audit changes no scope or
 status counts.
 
-Extended-only rows: 28 total; 0 supported, 4 supported with a documented
-difference, 24 partial, and no known gaps, matching the capability ledger. All 131 edition rows have a ledger status. The
+Extended-only rows: 28 total; 0 supported, 2 supported with a documented
+difference, 20 partial, and 6 known gaps, matching the capability ledger. All 131 edition rows have a ledger status. The
 available-source audit covers installed Extended 3.1.5, public Free 1.7.1,
 current tier/marketing claims, and every published Extended 3.1.6–3.2.1 and
 Pro 3.2.2 changelog change. Exact current-package details not specified in
