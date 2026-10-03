@@ -92,6 +92,9 @@ final class WapfWxrExporter {
 			'large_image', 'label_pos', 'layout', 'size', 'grid_layout',
 			'item_width', 'items_per_row', 'items_per_row_tablet',
 			'items_per_row_mobile', 'minlength', 'maxlength', 'disabled_days',
+			// Date-field options serialized by WapfExporter::map_date_settings().
+			'disable_past', 'disable_future', 'min_date', 'max_date',
+			'disabled_dates', 'disable_today_after',
 			'hide_cart', 'hide_checkout', 'hide_order',
 			// Linked products (`products` type) and file upload options.
 			'product_selection', 'product_query', 'qty_method', 'display',

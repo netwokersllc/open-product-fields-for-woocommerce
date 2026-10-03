@@ -79,6 +79,7 @@ use OPF\Service\MetaPrettifier;
 use OPF\Service\ProductPriceDisplay;
 use OPF\Service\Renderer;
 use OPF\Service\Rest;
+use OPF\Service\SubscriptionIntegration;
 use OPF\Service\Uploads;
 use OPF\Service\WoocsIntegration;
 use OPF\Service\WpmlIntegration;
@@ -144,6 +145,7 @@ function opf_boot(): void {
 	WoocsIntegration::init();
 	WpmlIntegration::init();
 	AeliaIntegration::init();
+	SubscriptionIntegration::init();
 	Rest::init();
 	Uploads::init();
 	Importer::init();

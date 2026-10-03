@@ -60,14 +60,39 @@ final class WapfWxrExporterTest extends TestCase {
 		$this->assertSame( [ [ 'id' => '44', 'text' => '44' ] ], $group['rule_groups'][0]['rules'][0]['value'] );
 	}
 
-	public function test_rejects_field_types_the_wapf_json_exporter_cannot_preserve(): void {
-		$this->expectException( \InvalidArgumentException::class );
-		$this->expectExceptionMessage( 'field type "date"' );
-		WapfWxrExporter::build_document( [ [
+	public function test_wxr_serializes_date_options_into_the_wapf_options_bucket(): void {
+		$xml = WapfWxrExporter::build_document( [ [
 			'id' => 5,
-			'title' => 'Unsupported group',
-			'data' => [ 'schema' => 1, 'fields' => [ [ 'id' => 'date', 'type' => 'date' ] ] ],
+			'title' => 'Date group',
+			'data' => [
+				'schema' => 1,
+				'fields' => [ [
+					'id' => 'when', 'label' => 'When', 'type' => 'date',
+					'allow_past' => false,
+					'allow_future' => true,
+					'min_date' => '2027-02-10',
+					'max_date' => '1y',
+					'disabled_weekdays' => [ 0, 6 ],
+					'disabled_dates' => [ '2027-02-10 2027-02-12', '12-25' ],
+					'cutoff_time' => '12:00',
+				] ],
+				'rule_groups' => [],
+			],
 		] ], [ 'site_url' => 'https://example.test', 'site_title' => 'Example Store' ] );
+
+		$document = new \DOMDocument();
+		$this->assertTrue( $document->loadXML( $xml ) );
+		$xpath = new \DOMXPath( $document );
+		$xpath->registerNamespace( 'content', 'http://purl.org/rss/1.0/modules/content/' );
+		$group = unserialize( $xpath->query( '/rss/channel/item[1]/content:encoded' )->item( 0 )->textContent, [ 'allowed_classes' => false ] );
+		$options = $group['fields'][0]['options'];
+		$this->assertTrue( $options['disable_past'] );
+		$this->assertFalse( $options['disable_future'] );
+		$this->assertSame( '02-10-2027', $options['min_date'] );
+		$this->assertSame( '1y', $options['max_date'] );
+		$this->assertSame( '0,6', $options['disabled_days'] );
+		$this->assertSame( '02-10-2027 02-12-2027,12-25', $options['disabled_dates'] );
+		$this->assertSame( '12:00', $options['disable_today_after'] );
 	}
 
 	public function test_wxr_preserves_image_swatch_type_and_choice_media_references(): void {

@@ -204,7 +204,7 @@ final class WapfExporter {
 			self::assert_keys( $field, self::allowed_field_keys( $field ), 'field' );
 		$type_map = [
 			'text' => 'text', 'textarea' => 'textarea', 'email' => 'email', 'url' => 'url',
-			'number' => 'number', 'toggle' => 'true-false', 'select' => 'select', 'image_quantity' => 'image-swatch-qty',
+			'number' => 'number', 'date' => 'date', 'toggle' => 'true-false', 'select' => 'select', 'image_quantity' => 'image-swatch-qty',
 			'radio' => 'radio', 'checkbox' => 'checkboxes', 'swatch' => 'text-swatch', 'paragraph' => 'content', 'content_image' => 'img', 'section' => 'section', 'section_end' => 'sectionend',
 			'products' => 'products', 'upload' => 'file',
 		];
@@ -250,7 +250,7 @@ final class WapfExporter {
 			$out['placeholder'] = $field['placeholder'];
 		}
 		if ( 'date' === $type ) {
-			throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve OPF date-field settings.' );
+			$out = array_merge( $out, self::map_date_settings( $field ) );
 		}
 		if ( in_array( $type, [ 'text', 'textarea', 'email', 'url', 'number' ], true ) && isset( $field['default'] ) ) {
 			$out['default'] = $field['default'];
@@ -427,6 +427,67 @@ final class WapfExporter {
 			}
 		}
 		return $out;
+	}
+
+	/**
+	 * Serialize OPF date-field settings back into WAPF's stored option keys
+	 * (the inverse of WapfMapper::map_date_settings):
+	 *
+	 *  - `allow_past`/`allow_future` invert to `disable_past`/`disable_future`;
+	 *  - ISO `YYYY-MM-DD` bounds/blackouts convert to WAPF `mm-dd-yyyy`, while
+	 *    relative periods such as `7d`/`1y 9m 3d` pass through unchanged;
+	 *  - `disabled_weekdays` becomes the CSV scalar WAPF stores (a lone Sunday
+	 *    keeps WAPF's bare `'0'` special case);
+	 *  - inclusive date rules keep WAPF's space-separated range and CSV list;
+	 *  - `cutoff_time` maps to `disable_today_after`.
+	 *
+	 * OPF has no `disable_today` equivalent, so nothing is emitted for it.
+	 *
+	 * @param array<string,mixed> $field Normalized OPF date field.
+	 * @return array<string,mixed>
+	 */
+	private static function map_date_settings( array $field ): array {
+		$out = [];
+		foreach ( [ 'allow_past' => 'disable_past', 'allow_future' => 'disable_future' ] as $opf_key => $wapf_key ) {
+			$out[ $wapf_key ] = empty( $field[ $opf_key ] );
+		}
+		foreach ( [ 'min_date', 'max_date' ] as $key ) {
+			if ( isset( $field[ $key ] ) && '' !== (string) $field[ $key ] ) {
+				$out[ $key ] = self::date_to_wapf( (string) $field[ $key ] );
+			}
+		}
+		if ( ! empty( $field['disabled_weekdays'] ) ) {
+			$out['disabled_days'] = implode( ',', array_map( 'strval', array_values( (array) $field['disabled_weekdays'] ) ) );
+		}
+		if ( ! empty( $field['disabled_dates'] ) ) {
+			$rules = [];
+			foreach ( (array) $field['disabled_dates'] as $rule ) {
+				$parts = [];
+				foreach ( preg_split( '/\s+/', trim( (string) $rule ) ) as $part ) {
+					if ( '' !== $part ) {
+						$parts[] = self::date_to_wapf( $part );
+					}
+				}
+				if ( $parts ) {
+					$rules[] = implode( ' ', $parts );
+				}
+			}
+			if ( $rules ) {
+				$out['disabled_dates'] = implode( ',', $rules );
+			}
+		}
+		if ( ! empty( $field['cutoff_time'] ) ) {
+			$out['disable_today_after'] = (string) $field['cutoff_time'];
+		}
+		return $out;
+	}
+
+	/** Convert an OPF ISO date token to WAPF `mm-dd-yyyy`; periods pass through. */
+	private static function date_to_wapf( string $value ): string {
+		if ( preg_match( '/^(\d{4})-(\d{2})-(\d{2})$/', $value, $match ) ) {
+			return $match[2] . '-' . $match[3] . '-' . $match[1];
+		}
+		return $value;
 	}
 
 	/**

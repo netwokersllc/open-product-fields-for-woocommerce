@@ -120,6 +120,55 @@ final class WapfExporterTest extends TestCase {
 		$this->assertTrue( $round_trip['group']['fields'][0]['choices'][0]['disabled'] );
 	}
 
+	public function test_date_settings_round_trip_through_wapf_tools_payload(): void {
+		$opf = FieldGroup::normalize( [ 'fields' => [ [
+			'id' => 'when', 'label' => 'When', 'type' => 'date',
+			'allow_past' => false,
+			'allow_future' => true,
+			'min_date' => '2027-02-10',
+			'max_date' => '1y',
+			'disabled_weekdays' => [ 0, 6 ],
+			'disabled_dates' => [ '2027-02-10 2027-02-12', '12-25' ],
+			'cutoff_time' => '12:00',
+		] ] ] );
+
+		$payload = WapfExporter::build_payload( $opf );
+		$field   = $payload['fields'][0];
+		$this->assertSame( 'date', $field['type'] );
+		$this->assertTrue( $field['disable_past'] );
+		$this->assertFalse( $field['disable_future'] );
+		$this->assertSame( '02-10-2027', $field['min_date'] );
+		$this->assertSame( '1y', $field['max_date'] );
+		$this->assertSame( '0,6', $field['disabled_days'] );
+		$this->assertSame( '02-10-2027 02-12-2027,12-25', $field['disabled_dates'] );
+		$this->assertSame( '12:00', $field['disable_today_after'] );
+
+		$date_keys = [ 'disable_past', 'disable_future', 'min_date', 'max_date', 'disabled_days', 'disabled_dates', 'disable_today_after' ];
+		$field['options'] = array_intersect_key( $field, array_flip( $date_keys ) );
+		$round_trip = WapfMapper::map( [ 'fields' => [ $field ] ] );
+
+		$this->assertFalse( $round_trip['needs_review'] );
+		$mapped = $round_trip['group']['fields'][0];
+		$this->assertFalse( $mapped['allow_past'] );
+		$this->assertTrue( $mapped['allow_future'] );
+		$this->assertSame( '2027-02-10', $mapped['min_date'] );
+		$this->assertSame( '1y', $mapped['max_date'] );
+		$this->assertSame( [ 0, 6 ], $mapped['disabled_weekdays'] );
+		$this->assertSame( [ '2027-02-10 2027-02-12', '12-25' ], $mapped['disabled_dates'] );
+		$this->assertSame( '12:00', $mapped['cutoff_time'] );
+	}
+
+	public function test_date_export_keeps_wapf_bare_zero_weekday_and_relative_bounds(): void {
+		$payload = WapfExporter::build_payload( FieldGroup::normalize( [ 'fields' => [ [
+			'id' => 'when', 'label' => 'When', 'type' => 'date',
+			'min_date' => '-1m -7d',
+			'disabled_weekdays' => [ 0 ],
+		] ] ] ) );
+
+		$this->assertSame( '-1m -7d', $payload['fields'][0]['min_date'] );
+		$this->assertSame( '0', $payload['fields'][0]['disabled_days'] );
+	}
+
 	public function test_sumqty_image_quantity_formula_round_trips_with_remapped_field_id_and_raw_expression(): void {
 		$source = [ 'fields' => [
 			[ 'id' => 'wapf-image-id-91', 'label' => 'Prints', 'type' => 'image-swatch-qty', 'options' => [ 'choices' => [ [ 'slug' => 'oak', 'label' => 'Oak', 'options' => [ 'min' => 0, 'max' => 8, 'default' => 0 ] ] ] ] ],
