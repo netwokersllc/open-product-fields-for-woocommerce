@@ -1,0 +1,169 @@
+{
+  "base": "ad95c3cecf1f02776fd66cab987654de33f2385c",
+  "runtime": "/tmp/opf-upload-order-again-wp",
+  "productId": 15081,
+  "groupId": "15082",
+  "orderId": 15095,
+  "checks": [
+    {
+      "name": "modern multi input and progress rendered",
+      "passed": true
+    },
+    {
+      "name": "progress and browser submission guard active while uploading",
+      "passed": true
+    },
+    {
+      "name": "multiple upload yields opaque tokens",
+      "passed": true
+    },
+    {
+      "name": "spoofed content rejected in real UI",
+      "passed": true
+    },
+    {
+      "name": "drag and drop uploads a file",
+      "passed": true
+    },
+    {
+      "name": "remove deletes metadata and private bytes",
+      "passed": true
+    },
+    {
+      "name": "hard site file cap denies new upload",
+      "passed": true
+    },
+    {
+      "name": "hard site byte cap denies new upload",
+      "passed": true
+    },
+    {
+      "name": "quota denials create no private bytes",
+      "passed": true
+    },
+    {
+      "name": "cross-origin bootstrap denied",
+      "passed": true
+    },
+    {
+      "name": "upload without session csrf denied",
+      "passed": true
+    },
+    {
+      "name": "owner download matches uploaded bytes",
+      "passed": true
+    },
+    {
+      "name": "other session download denied",
+      "passed": true
+    },
+    {
+      "name": "other session removal denied",
+      "passed": true
+    },
+    {
+      "name": "malformed optional upload token rejects Store API add",
+      "passed": true,
+      "status": 400
+    },
+    {
+      "name": "Store API cart displays filenames",
+      "passed": true,
+      "status": 201
+    },
+    {
+      "name": "cart-bound file cannot be removed",
+      "passed": true
+    },
+    {
+      "name": "Store API checkout creates order",
+      "passed": true,
+      "status": 200,
+      "order_id": 15095
+    },
+    {
+      "name": "order references and order ownership persisted",
+      "passed": true
+    },
+    {
+      "name": "order bytes and root have private filesystem permissions",
+      "passed": true
+    },
+    {
+      "name": "guest without original session cannot download order bytes",
+      "passed": true
+    },
+    {
+      "name": "private bytes are not served at the public uploads URL",
+      "passed": true
+    },
+    {
+      "name": "authenticated order customer can download private bytes",
+      "passed": true
+    },
+    {
+      "name": "authenticated customer sees completed order in Woo account",
+      "passed": true
+    },
+    {
+      "name": "completed order page exposes real Woo order-again action",
+      "passed": true
+    },
+    {
+      "name": "Woo order-again rejects completed-order upload line before cart restore",
+      "passed": true
+    },
+    {
+      "name": "order-again rejection is private-token owner and completed-order validation",
+      "passed": true,
+      "validation_passed": false,
+      "upload_tokens_present": true,
+      "first_token_record_exists": true,
+      "current_session_owns_first_token": false,
+      "first_token_bound_to_completed_order": true,
+      "unavailable_error_notice": true
+    },
+    {
+      "name": "original opaque uploads remain private and bound to original order",
+      "passed": true
+    },
+    {
+      "name": "customer download with invalid REST nonce denied",
+      "passed": true
+    },
+    {
+      "name": "customer download without REST nonce cannot use account ownership",
+      "passed": true
+    },
+    {
+      "name": "shop manager can download order bytes",
+      "passed": true
+    },
+    {
+      "name": "customer cannot delete order files",
+      "passed": true
+    },
+    {
+      "name": "manager delete without valid nonce denied",
+      "passed": true
+    },
+    {
+      "name": "order admin download link uses valid REST nonce and exact bytes",
+      "passed": true
+    },
+    {
+      "name": "order admin exposes nonce-protected delete action",
+      "passed": true
+    },
+    {
+      "name": "authorized order delete removes references and bytes",
+      "passed": true
+    },
+    {
+      "name": "no browser runtime errors",
+      "passed": true,
+      "errors": []
+    }
+  ],
+  "error": null
+}
