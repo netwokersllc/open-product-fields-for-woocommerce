@@ -580,7 +580,7 @@ or bundled Pro contents.
 
 | Release change | Existing ledger row(s) or release gate | Audit disposition |
 | --- | --- | --- |
-| Extended 3.1.6: card quantity fields gain conditional options | `WAPF-FIELD-CARDS-QUANTITY-CONDITIONALS`, `WAPF-FIELD-CHILD-PRODUCTS`, `WAPF-RULE-CONDITIONAL` | Interpreted as quantity-enabled child-product cards (`products-card-qty`, `products-vcard-qty`), distinct from `card`/`vcard` and `image-swatch-qty` in 3.1.5. Dedicated ledger row remains `needs audit`; 3.2.1 source must establish exact controls, stored keys, and evaluation behavior. |
+| Extended 3.1.6: card quantity fields gain conditional options | `WAPF-FIELD-CARDS-QUANTITY-CONDITIONALS`, `WAPF-FIELD-CHILD-PRODUCTS`, `WAPF-RULE-CONDITIONAL` | Interpreted as quantity-enabled child-product cards (`products-card-qty`, `products-vcard-qty`), distinct from `card`/`vcard` and `image-swatch-qty` in 3.1.5. The dedicated ledger row is `gap`: public OPF has no linked-product/card field implementation. The published note does not establish the additional 3.1.6 control keys or evaluation behavior; current-package internals remain version-specific. |
 | Extended 3.1.6: select tax calculation fix | `WAPF-COMMERCE-TAX` | Covered as a tax behavior; exact current-package path and regression remain unverified. |
 | Extended 3.1.7: upload/order-admin deletion and output hardening | `WAPF-FIELD-UPLOAD`; G4 security | Audit authorization, file ownership, path handling, and escaped output in current source; verify independently before release. |
 | Extended 3.1.7: text-swatch corner-radius persistence | `WAPF-FIELD-SWATCH-TEXT` | Covered; compare setting round-trip against the current package. |
