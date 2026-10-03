@@ -32,34 +32,40 @@ final class AeliaIntegrationTest extends TestCase {
 	public function test_original_formula_base_differs_from_fixed_foreign_percentage_base(): void {
 		$product = new \WC_Product( 42, 10, 50 );
 		$GLOBALS['aelia_products'][42] = $product;
-		$this->assertSame( 25.0, AeliaIntegration::cart_base_price( 99, $product ) );
+		// WAPF parity (real-plugin verified): the cart base is the CONVERTED
+		// view price, so percent addons compute on it like WAPF's.
+		$this->assertSame( 50.0, AeliaIntegration::cart_base_price( 99, $product ) );
 		$this->assertSame( 10.0, AeliaIntegration::formula_base_price( 25, 42 ) );
 		$GLOBALS['opf_test_options']['woocommerce_tax_display_shop'] = 'incl';
 		$this->assertSame( 12.0, AeliaIntegration::original_product_price( $product ) );
 		$data = AeliaIntegration::variation_data( [ 'display_price' => 60 ], $product, $product );
-		$this->assertSame( 30.0, $data['opf_base_price'] );
+		$this->assertSame( 60.0, $data['opf_base_price'] );
 		$this->assertSame( 12.0, $data['opf_formula_base_price'] );
 	}
 
 	public function test_cart_conversion_ignores_plain_lines_and_uses_documented_filter(): void {
-		$product = new \WC_Product( 42, 24, 24 );
+		// Real-plugin-verified WAPF shape: USD-10 product, EUR rate 2, cart
+		// pipeline produced converted base 20 + shop-priced options 15 (=35 in
+		// 'edit'); conversion yields WAPF's 20 + 15×2 = 50.
+		$product = new \WC_Product( 42, 10, 20 );
+		$product->set_price( '35' );
 		$plain = new \WC_Product( 43, 7, 7 );
 		$cart = new \WC_Cart();
 		$cart->items = [ [ 'data' => $product, 'opf_base_price' => 10, 'opf_fields' => [ 'g' => [ 'f' => 'yes' ] ] ], [ 'data' => $plain ] ];
 		AeliaIntegration::convert_cart_prices( $cart );
-		$this->assertSame( 48.0, $product->get_price() );
+		$this->assertSame( 50.0, $product->get_price( 'edit' ) );
 		$this->assertSame( 7.0, $plain->get_price() );
-		$this->assertSame( [ [ 24.0, 'USD', 'EUR' ] ], $GLOBALS['aelia_conversions'] );
+		$this->assertSame( [ [ 15.0, 'USD', 'EUR' ] ], $GLOBALS['aelia_conversions'] );
 		// The OPF priority-20 callback resets the shop target on the next pass.
-		$product->set_price( '24' );
+		$product->set_price( '35' );
 		AeliaIntegration::convert_cart_prices( $cart );
-		$this->assertSame( 48.0, $product->get_price() );
+		$this->assertSame( 50.0, $product->get_price( 'edit' ) );
 	}
 
 	public function test_config_keeps_existing_values_and_exposes_current_formatting(): void {
 		$GLOBALS['product'] = $GLOBALS['aelia_products'][42];
 		$config = AeliaIntegration::merge_frontend_config( [ 'ajax' => 'endpoint', 'display_options' => [ 'price_format' => 'symbolprice' ] ] );
-		$this->assertSame( 10.0, $config['product_base_price'] );
+		$this->assertSame( 20.0, $config['product_base_price'] );
 		$this->assertSame( 10.0, $config['formula_base_price'] );
 		$this->assertSame( 2.0, $config['currency_rate'] );
 		$this->assertSame( 'EUR', $config['currency'] );

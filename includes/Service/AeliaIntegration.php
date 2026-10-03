@@ -59,14 +59,21 @@ final class AeliaIntegration {
 		return is_numeric( $result ) && is_finite( (float) $result ) ? (float) $result : $amount;
 	}
 
-	/** A fresh current price preserves Aelia's manually entered currency prices. */
+	/**
+	 * A fresh current price preserves Aelia's manually entered currency prices.
+	 *
+	 * WAPF parity: Aelia converts `get_price()` itself, so WAPF's cart base is
+	 * the CONVERTED view price (verified live: `wapf_item_pricing.base` = 20 at
+	 * rate 2 for a 10-USD product). Returning the converted price here makes
+	 * percent-type addons compute on it exactly like WAPF (`10% × 20 = 2`).
+	 */
 	public static function cart_base_price( float $price, \WC_Product $product, array $cart_item = [] ): float {
 		$info = self::currency_info();
 		if ( null === $info ) {
 			return $price;
 		}
 		$fresh = wc_get_product( $product->get_id() );
-		return $fresh instanceof \WC_Product ? (float) $fresh->get_price() / $info['rate'] : $price;
+		return $fresh instanceof \WC_Product ? (float) $fresh->get_price() : $price;
 	}
 
 	/** WAPF formulas and linked choices use original shop prices with shop tax display. */
@@ -92,7 +99,16 @@ final class AeliaIntegration {
 		return $product instanceof \WC_Product ? self::original_product_price( $product ) : $price;
 	}
 
-	/** Only OPF lines are converted; OPF resets their shop target on each totals pass. */
+	/**
+	 * Only OPF lines are converted; OPF resets their shop target on each totals pass.
+	 *
+	 * WAPF 3.1.5 shape (verified against the real licensed plugin): the cart base
+	 * is the Aelia-converted product price; the options total is converted on top
+	 * of it. Percent addons therefore convert twice — once inside the converted
+	 * base, once inside the options total — which real WAPF emits as
+	 * `base 20 + options 30 = 50` for a USD-10 product at rate 2 with a 10%
+	 * addon. Mirrored here as `conv_base + convert(price − conv_base)`.
+	 */
 	public static function convert_cart_prices( \WC_Cart $cart ): void {
 		if ( null === self::currency_info() ) {
 			return;
@@ -101,7 +117,11 @@ final class AeliaIntegration {
 			if ( empty( $item[ CartIntegration::ITEM_KEY ] ) || ! isset( $item['opf_base_price'] ) || ! ( $item['data'] ?? null ) instanceof \WC_Product ) {
 				continue;
 			}
-			$item['data']->set_price( (string) self::convert_amount( (float) $item['data']->get_price( 'edit' ) ) );
+			$product   = $item['data'];
+			$conv_base = self::cart_base_price( (float) $item['opf_base_price'], $product, $item );
+			$target    = (float) $product->get_price( 'edit' );
+			$options   = max( 0.0, $target - $conv_base );
+			$product->set_price( (string) ( $conv_base + self::convert_amount( $options ) ) );
 		}
 	}
 
