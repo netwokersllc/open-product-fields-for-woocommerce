@@ -273,4 +273,107 @@ final class CalculatorTest extends TestCase {
 		];
 		$this->assertSame( 0.0, Calculator::field_addon( $field, 'x', [ 'price' => 10.0, 'qty' => 1 ] ) );
 	}
+
+	/**
+	 * WAPF Extended 3.1.5 files(id): count( explode(',', values[0].label) ) —
+	 * the comma-joined upload list of the submitted field, on any field
+	 * type. OPF upload submissions carry token arrays → non-empty entries.
+	 */
+	public function test_files_counts_submitted_upload_list(): void {
+		$values = [ 'upfiles' => [ 'tok_a', 'tok_b', 'tok_c' ], 'textf' => 'a,b', 'emptyf' => [] ];
+		$this->assertSame( 3.0, Calculator::evaluate_formula( 'files(upfiles)', 0.0, 1, 0.0, '', null, $values ) );
+		$this->assertSame( 2.0, Calculator::evaluate_formula( 'files(textf)', 0.0, 1, 0.0, '', null, $values ) );
+		$this->assertSame( 1.0, Calculator::evaluate_formula( 'files(upfiles)', 0.0, 1, 0.0, '', null, [ 'upfiles' => [ 'tok_a' ] ] ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'files(emptyf)', 0.0, 1, 0.0, '', null, $values ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'files(nope)', 0.0, 1, 0.0, '', null, $values ) );
+		$this->assertSame( 6.0, Calculator::evaluate_formula( 'files(upfiles)*[qty]', 0.0, 2, 0.0, '', null, $values ) );
+	}
+
+	/**
+	 * WAPF lookuptable(table;dim;…): dimension args under six chars are
+	 * literals, longer args resolve a field's first submitted label, axes
+	 * round up to the next defined key, below-first clamps, missing
+	 * tables/fields/labels and beyond-last keys resolve to 0.
+	 */
+	public function test_lookuptable_traverses_wapf_nested_tables(): void {
+		$tables = [ 'cutting' => [ 10 => [ 5 => 100, 20 => 150 ], 30 => [ 5 => 200, 20 => 300 ] ] ];
+		$options = [ 'lookup_tables' => $tables ];
+		$values = [ 'widthf' => '15', 'heightf' => '5' ];
+		$this->assertSame( 200.0, Calculator::evaluate_formula( 'lookuptable(cutting;widthf;heightf)', 0.0, 1, 0.0, '', null, $values, 0, [], [], $options ) );
+		$this->assertSame( 300.0, Calculator::evaluate_formula( 'lookuptable(cutting;widthf;heightf)', 0.0, 1, 0.0, '', null, [ 'widthf' => '15', 'heightf' => '12' ], 0, [], [], $options ) );
+		$this->assertSame( 100.0, Calculator::evaluate_formula( 'lookuptable(cutting;widthf;heightf)', 0.0, 1, 0.0, '', null, [ 'widthf' => '2', 'heightf' => '1' ], 0, [], [], $options ) );
+		$this->assertSame( 200.0, Calculator::evaluate_formula( 'lookuptable(cutting;15;5)', 0.0, 1, 0.0, '', null, $values, 0, [], [], $options ) );
+		$this->assertSame( 100.0, Calculator::evaluate_formula( 'lookuptable(cutting;abcde;5)', 0.0, 1, 0.0, '', null, $values, 0, [], [], $options ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'lookuptable(cutting;zzzzzzz;5)', 0.0, 1, 0.0, '', null, $values, 0, [], [], $options ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'lookuptable(nothere;widthf;heightf)', 0.0, 1, 0.0, '', null, $values, 0, [], [], $options ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( "lookuptable('cutting';widthf;heightf)", 0.0, 1, 0.0, '', null, $values, 0, [], [], $options ) );
+		// WAPF fatals on a mid-chain beyond-last axis — OPF fails closed.
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'lookuptable(cutting;widthf;heightf)', 0.0, 1, 0.0, '', null, [ 'widthf' => '99', 'heightf' => '99' ], 0, [], [], $options ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'lookuptable(cutting;widthf;heightf)', 0.0, 1, 0.0, '', null, [ 'widthf' => '10', 'heightf' => '99' ], 0, [], [], $options ) );
+		$this->assertSame( 600.0, Calculator::evaluate_formula( 'lookuptable(cutting;widthf;heightf)*[qty]', 0.0, 3, 0.0, '', null, $values, 0, [], [], $options ) );
+	}
+
+	/**
+	 * WAPF Helper::evaluate_variables parity: [var_name] resolves the first
+	 * matching variable's first passing rule else its default, recursively;
+	 * names are case-sensitive; unknown variables resolve to 0.
+	 */
+	public function test_custom_variables_resolve_wapf_style(): void {
+		$options = [
+			'variables' => [
+				[ 'name' => 'fee', 'default' => '1.5', 'rules' => [] ],
+				[ 'name' => 'dyn', 'default' => '1', 'rules' => [ [ 'type' => 'field', 'field' => 'sizes', 'condition' => '==', 'value' => 'lg', 'variable' => '2.5' ] ] ],
+				[ 'name' => 'qtyvar', 'default' => '10', 'rules' => [ [ 'type' => 'qty', 'field' => 'qty', 'condition' => 'gt', 'value' => '2', 'variable' => '99' ] ] ],
+				[ 'name' => 'nested', 'default' => '[var_fee]*2', 'rules' => [] ],
+				[ 'name' => 'tworule', 'default' => '0', 'rules' => [ [ 'type' => 'field', 'field' => 'sizes', 'condition' => '==', 'value' => 'lg', 'variable' => '7' ], [ 'type' => 'field', 'field' => 'sizes', 'condition' => '==', 'value' => 'lg', 'variable' => '8' ] ] ],
+			],
+			'fields' => [ [ 'id' => 'sizes', 'type' => 'select' ] ],
+		];
+		$values = [ 'sizes' => 'lg' ];
+		$this->assertSame( 3.0, Calculator::evaluate_formula( '[var_fee]*2', 0.0, 1, 0.0, '', null, $values, 0, [], [], $options ) );
+		$this->assertSame( 2.5, Calculator::evaluate_formula( '[var_dyn]', 0.0, 1, 0.0, '', null, $values, 0, [], [], $options ) );
+		$this->assertSame( 1.0, Calculator::evaluate_formula( '[var_dyn]', 0.0, 1, 0.0, '', null, [ 'sizes' => 'sm' ], 0, [], [], $options ) );
+		$this->assertSame( 99.0, Calculator::evaluate_formula( '[var_qtyvar]', 0.0, 5, 0.0, '', null, $values, 0, [], [], $options ) );
+		$this->assertSame( 10.0, Calculator::evaluate_formula( '[var_qtyvar]', 0.0, 1, 0.0, '', null, $values, 0, [], [], $options ) );
+		$this->assertSame( 3.0, Calculator::evaluate_formula( '[var_nested]', 0.0, 1, 0.0, '', null, $values, 0, [], [], $options ) );
+		$this->assertSame( 7.0, Calculator::evaluate_formula( '[var_tworule]', 0.0, 1, 0.0, '', null, $values, 0, [], [], $options ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( '[var_nothere]', 0.0, 1, 0.0, '', null, $values, 0, [], [], $options ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( '[VAR_FEE]', 0.0, 1, 0.0, '', null, $values, 0, [], [], $options ) );
+		$this->assertSame( 10.0, Calculator::evaluate_formula( '([var_fee]+1)*[qty]', 0.0, 4, 0.0, '', null, $values, 0, [], [], $options ) );
+		// A variable body may itself hold field refs and formula functions.
+		$options['variables'][] = [ 'name' => 'fxvar', 'default' => '[field.widthf]*files(upfiles)', 'rules' => [] ];
+		$this->assertSame( 45.0, Calculator::evaluate_formula( '[var_fxvar]', 0.0, 1, 0.0, '', null, [ 'widthf' => '15', 'upfiles' => [ 'a', 'b', 'c' ], 'sizes' => 'lg' ], 0, [], [], $options ) );
+		// Variables also reach pricing formulas through field_addon context.
+		$field = [
+			'type'    => 'text',
+			'choices' => [],
+			'pricing' => [ 'type' => 'formula', 'amount' => 0.0, 'formula' => '[var_fee]*10' ],
+		];
+		$this->assertSame( 15.0, Calculator::field_addon( $field, 'x', [ 'price' => 10.0, 'qty' => 1, 'field_values' => $values, 'variables' => $options['variables'], 'fields' => $options['fields'] ] ) );
+	}
+
+	/**
+	 * WAPF Extended 3.1.5 never registered map()/reduce() formula functions:
+	 * unregistered calls fall through to evaluate_math_string's char-clean
+	 * residual (keeping e/E), which yields map(1;2) === 12 and
+	 * reduce(1;2) === 0 — an emergent quirk, mirrored here verbatim.
+	 */
+	public function test_unregistered_function_calls_hit_wapf_residual_eval(): void {
+		$this->assertSame( 12.0, Calculator::evaluate_formula( 'map(1;2)', 0.0, 1, 0.0 ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'reduce(1;2)', 0.0, 1, 0.0 ) );
+		$this->assertSame( 2.0, Calculator::evaluate_formula( 'map(widthF;x*2)', 0.0, 1, 0.0 ) );
+	}
+
+	/** WAPF [x] aliases [val] (the current field input). */
+	public function test_x_token_aliases_val(): void {
+		$this->assertSame( 8.0, Calculator::evaluate_formula( '[x]*2', 10.0, 1, 0.0, '4' ) );
+	}
+
+	/**
+	 * WAPF split_formula_variables is quote-blind: ';' inside quoted text
+	 * still separates arguments, so len('a;b') measures the truncated "'a".
+	 */
+	public function test_semicolon_inside_quotes_still_separates_arguments(): void {
+		$this->assertSame( 2.0, Calculator::evaluate_formula( "len('a;b')", 0.0, 1, 0.0 ) );
+	}
 }

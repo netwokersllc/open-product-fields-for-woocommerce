@@ -766,4 +766,46 @@ final class WapfMapperTest extends TestCase {
 		] ] ] );
 		$this->assertArrayNotHasKey( 'default', $absent['group']['fields'][0] );
 	}
+
+	public function test_wapf_variables_import_with_remapped_field_references(): void {
+		$mapped = WapfMapper::map( [
+			'fields'    => [
+				[ 'id' => 'size-src', 'label' => 'Size', 'type' => 'select', 'options' => [ 'choices' => [ [ 'slug' => 'lg', 'label' => 'Large' ] ] ] ],
+				[ 'id' => 'upload-src', 'label' => 'Artwork', 'type' => 'text' ],
+				[ 'id' => 'fee-src', 'label' => 'Fee', 'type' => 'text', 'pricing' => [ 'enabled' => true, 'type' => 'fx', 'amount' => '[var_rate] * [qty]' ] ],
+			],
+			'variables' => [
+				[ 'name' => 'rate', 'default' => '[field.size-src] * files(upload-src)', 'rules' => [
+					[ 'type' => 'field', 'field' => 'size-src', 'condition' => '==', 'value' => 'lg', 'variable' => '2.5' ],
+					[ 'type' => 'qty', 'field' => 'qty', 'condition' => 'gt', 'value' => '5', 'variable' => '1.5' ],
+				] ],
+			],
+		] );
+
+		$this->assertSame( 'size', $mapped['group']['fields'][0]['id'] );
+		$this->assertSame( 'artwork', $mapped['group']['fields'][1]['id'] );
+		$this->assertArrayHasKey( 'variables', $mapped['group'] );
+		$this->assertSame( 'rate', $mapped['group']['variables'][0]['name'] );
+		$this->assertSame( '[field.size] * files(artwork)', $mapped['group']['variables'][0]['default'] );
+		$this->assertSame( 'size', $mapped['group']['variables'][0]['rules'][0]['field'] );
+		$this->assertSame( '2.5', $mapped['group']['variables'][0]['rules'][0]['variable'] );
+		$this->assertSame( 'qty', $mapped['group']['variables'][0]['rules'][1]['field'] );
+		// Variable bodies are not pricing formulas: no *[qty] stripping.
+		$this->assertSame( '[var_rate]', $mapped['group']['fields'][2]['pricing']['formula'] );
+	}
+
+	public function test_lookuptable_formula_dimension_ids_are_remapped(): void {
+		$mapped = WapfMapper::map( [
+			'fields' => [
+				[ 'id' => 'width-src', 'label' => 'Width', 'type' => 'number' ],
+				[ 'id' => 'height-src', 'label' => 'Height', 'type' => 'number' ],
+				[ 'id' => 'fee-src', 'label' => 'Fee', 'type' => 'text', 'pricing' => [ 'enabled' => true, 'type' => 'fx', 'amount' => 'lookuptable(cutting;width-src;height-src) * [qty]' ] ],
+			],
+		] );
+		$pricing = $mapped['group']['fields'][2]['pricing'];
+
+		$this->assertSame( 'lookuptable(cutting;width;height)', $pricing['formula'] );
+		$this->assertTrue( $mapped['needs_review'], 'lookuptable depends on runtime tables and stays review-flagged' );
+		$this->assertStringContainsString( 'lookuptable(', implode( ' ', $mapped['notes'] ) );
+	}
 }

@@ -294,11 +294,70 @@ final class WapfMapper {
 			]
 		);
 
+		// WAPF formula variables ride along verbatim in WAPF's own shape
+		// ({name,default,rules[]}); normalize() does not model them, so they
+		// are attached after normalization — consumers read the key directly.
+		$variables = self::map_variables( $wapf['variables'] ?? [], $opf_ids_by_wapf_id, $source_order_by_wapf_id, $sumqty_safe_wapf_ids, $notes, $needs_review );
+		if ( $variables ) {
+			$group['variables'] = $variables;
+		}
+
 		return [
 			'group'        => $group,
 			'notes'        => $notes,
 			'needs_review' => $needs_review,
 		];
+	}
+
+	/**
+	 * Map a WAPF `variables` list. Names stay verbatim (evaluation is
+	 * case-sensitive); rule `field` ids and `[field.*]`/`[price.*]`/function
+	 * references inside `default`/`variable` bodies remap to OPF ids.
+	 * Variable bodies are evaluated verbatim at runtime — they are not
+	 * pricing formulas, so no qty-factor normalization applies.
+	 *
+	 * @param array<int,mixed> $wapf_variables Raw WAPF variable definitions.
+	 * @return array<int,array{name:string,default:string,rules:array}>
+	 */
+	private static function map_variables( $wapf_variables, array $opf_ids_by_wapf_id, array $source_order_by_wapf_id, array $sumqty_safe_wapf_ids, array &$notes, bool &$needs_review ): array {
+		$out = [];
+		foreach ( is_array( $wapf_variables ) ? $wapf_variables : [] as $index => $variable ) {
+			if ( ! is_array( $variable ) || '' === (string) ( $variable['name'] ?? '' ) ) {
+				continue;
+			}
+			$name    = (string) $variable['name'];
+			$default = self::map_formula_references( (string) ( $variable['default'] ?? '' ), $opf_ids_by_wapf_id, $notes, $needs_review, $name, $source_order_by_wapf_id, PHP_INT_MAX, $sumqty_safe_wapf_ids, 'variable' );
+			$rules   = [];
+			foreach ( (array) ( $variable['rules'] ?? [] ) as $rule ) {
+				if ( ! is_array( $rule ) ) {
+					continue;
+				}
+				$subject     = (string) ( $rule['field'] ?? '' );
+				$rule_field  = $subject;
+				if ( 'qty' !== $subject && '' !== $subject ) {
+					if ( isset( $opf_ids_by_wapf_id[ $subject ] ) && is_string( $opf_ids_by_wapf_id[ $subject ] ) ) {
+						$rule_field = $opf_ids_by_wapf_id[ $subject ];
+					} elseif ( ! isset( $opf_ids_by_wapf_id[ $subject ] ) ) {
+						$notes[]       = sprintf( 'variable "%s" rule references unavailable WAPF field ID "%s"; the rule needs review.', $name, $subject );
+						$needs_review  = true;
+					}
+				}
+				$mapped_variable = self::map_formula_references( (string) ( $rule['variable'] ?? '' ), $opf_ids_by_wapf_id, $notes, $needs_review, $name, $source_order_by_wapf_id, PHP_INT_MAX, $sumqty_safe_wapf_ids, 'variable' );
+				$rules[]         = [
+					'type'      => (string) ( $rule['type'] ?? 'field' ),
+					'field'     => $rule_field,
+					'condition' => (string) ( $rule['condition'] ?? '' ),
+					'value'     => (string) ( $rule['value'] ?? '' ),
+					'variable'  => null === $mapped_variable ? (string) ( $rule['variable'] ?? '' ) : $mapped_variable,
+				];
+			}
+			$out[] = [
+				'name'    => $name,
+				'default' => null === $default ? (string) ( $variable['default'] ?? '' ) : $default,
+				'rules'   => $rules,
+			];
+		}
+		return $out;
 	}
 
 	/** Map WAPF Extended date constraints supported by the OPF date schema. */
@@ -777,9 +836,13 @@ final class WapfMapper {
 		}
 		// Validate supported arithmetic after replacing known dynamic inputs with
 		// numeric probes; the runtime still evaluates the saved expression safely.
-		$probe = str_replace( [ '[price]', '[qty]', '[addons]', '[val]' ], '1', $formula );
+		$probe = str_replace( [ '[price]', '[qty]', '[addons]', '[val]', '[x]' ], '1', $formula );
 		$probe = preg_replace( '/\[(?:field|price)\.[a-zA-Z0-9_-]+\]/i', '1', $probe );
+		$probe = preg_replace( '/\[var_[a-zA-Z0-9_-]+\]/', '1', $probe );
 		$probe = preg_replace( '/\b(?:checked|files|sumQty)\s*\(\s*[a-zA-Z0-9_-]+\s*\)/i', '1', $probe );
+		// lookuptable requires a named table argument; a numeric-first call
+		// (lookuptable(1;2)) is not valid lookup usage and stays rejected.
+		$probe = preg_replace( '/\blookuptable\s*\(\s*[a-zA-Z_][^()]*\)/i', '1', $probe );
 		if ( ! self::is_math_formula_probe( $probe ) ) {
 			return null;
 		}
@@ -929,6 +992,28 @@ final class WapfMapper {
 					$review_references[] = strtolower( $match[1] ) . '(' . $opf_ids_by_wapf_id[ $source_id ] . ')';
 				}
 				return $match[1] . '(' . $opf_ids_by_wapf_id[ $source_id ] . ')';
+			},
+			$formula
+		);
+		// lookuptable(table;dim;…): dimension args resolve field ids at runtime
+		// (args <6 chars are literals); remap any arg matching a known source
+		// id and leave the table name and literals untouched.
+		$formula = preg_replace_callback(
+			'/\b(lookuptable)\s*\(([^()]*)\)/i',
+			static function ( array $match ) use ( $opf_ids_by_wapf_id, &$unmapped, &$review_references ): string {
+				$parts = array_map( 'trim', explode( ';', $match[2] ) );
+				foreach ( $parts as $index => $arg ) {
+					if ( 0 === $index ) {
+						continue; // args[0] is the table name.
+					}
+					if ( isset( $opf_ids_by_wapf_id[ $arg ] ) && is_string( $opf_ids_by_wapf_id[ $arg ] ) ) {
+						$parts[ $index ] = $opf_ids_by_wapf_id[ $arg ];
+					} elseif ( strlen( $arg ) >= 6 && preg_match( '/^[a-zA-Z0-9_-]+$/', $arg ) ) {
+						$unmapped[] = $arg;
+					}
+				}
+				$review_references[] = 'lookuptable(' . $match[2] . ')';
+				return $match[1] . '(' . implode( ';', $parts ) . ')';
 			},
 			$formula
 		);

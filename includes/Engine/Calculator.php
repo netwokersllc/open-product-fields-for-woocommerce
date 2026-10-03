@@ -34,7 +34,7 @@ final class Calculator {
 	 *
 	 * @param array<string,mixed>      $field   Normalized field array.
 	 * @param string|array<int,string> $value   Submitted value(s) (choice slugs or raw text).
-	 * @param array{price?:float,qty?:int,addons?:float,field_values?:array<string,mixed>,field_prices?:array<string,float|array<int,float>>,product_id?:int} $context Pricing context.
+	 * @param array{price?:float,qty?:int,addons?:float,field_values?:array<string,mixed>,field_prices?:array<string,float|array<int,float>>,product_id?:int,variables?:array,fields?:array,lookup_tables?:array} $context Pricing context.
 	 * @return float Per-unit addon (never negative).
 	 */
 	public static function field_addon( array $field, $value, array $context ): float {
@@ -44,6 +44,8 @@ final class Calculator {
 		$field_values = is_array( $context['field_values'] ?? null ) ? $context['field_values'] : [];
 		$field_prices = is_array( $context['field_prices'] ?? null ) ? $context['field_prices'] : [];
 		$field_labels = is_array( $context['field_labels'] ?? null ) ? $context['field_labels'] : [];
+		// Optional WAPF formula context (variables, field defs, lookup tables).
+		$options = array_intersect_key( $context, array_flip( [ 'variables', 'fields', 'lookup_tables' ] ) );
 
 		if ( ! empty( $field['repeat']['enabled'] ) ) {
 			$instance_field = $field;
@@ -67,7 +69,7 @@ final class Calculator {
 			foreach ( $field['choices'] as $choice ) {
 				$quantity = max( 0, (int) ( $quantities[ $choice['slug'] ] ?? 0 ) );
 				if ( $quantity && empty( $choice['disabled'] ) ) {
-					$total += $quantity * self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices, $qty_based, $field_labels );
+					$total += $quantity * self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices, $qty_based, $field_labels, $options );
 				}
 			}
 			return max( 0.0, (float) $total );
@@ -87,7 +89,7 @@ final class Calculator {
 				foreach ( $slugs as $slug ) {
 					foreach ( $field['choices'] as $choice ) {
 						if ( $choice['slug'] === (string) $slug && ! $choice['disabled'] ) {
-							$total += self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices, $qty_based, $field_labels );
+							$total += self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices, $qty_based, $field_labels, $options );
 							if ( ! in_array( $field['type'], [ 'checkbox' ], true ) && !( 'swatch' === $field['type'] && ! empty( $field['multiple'] ) ) ) {
 								break;
 							}
@@ -99,7 +101,7 @@ final class Calculator {
 			default:
 				// Text-like fields use field-level pricing only.
 				$amount = is_scalar( $value ) ? (string) $value : '';
-				$total += self::field_pricing_addon( $field['pricing'], $amount, $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices, $qty_based, $field_labels );
+				$total += self::field_pricing_addon( $field['pricing'], $amount, $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices, $qty_based, $field_labels, $options );
 				break;
 		}
 
@@ -128,7 +130,7 @@ final class Calculator {
 	 *
 	 * @param array<string,mixed> $pricing Normalized choice pricing.
 	 */
-	public static function choice_addon( array $pricing, float $price, int $qty, float $addons, array $field_values = [], int $product_id = 0, array $field_prices = [], bool $qty_based = false, array $field_labels = [] ): float {
+	public static function choice_addon( array $pricing, float $price, int $qty, float $addons, array $field_values = [], int $product_id = 0, array $field_prices = [], bool $qty_based = false, array $field_labels = [], array $options = [] ): float {
 		$qty = max( 1, $qty );
 		$result = null;
 		switch ( $pricing['type'] ) {
@@ -139,7 +141,7 @@ final class Calculator {
 				$result = $price * ( (float) $pricing['amount'] / 100 );
 				break;
 			case 'formula':
-				$result = self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, '', null, $field_values, $product_id, $field_prices, $field_labels );
+				$result = self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, '', null, $field_values, $product_id, $field_prices, $field_labels, $options );
 				break;
 			default:
 				return 0.0;
@@ -156,7 +158,7 @@ final class Calculator {
 	 *
 	 * @param array<string,mixed> $pricing Normalized field pricing.
 	 */
-	public static function field_pricing_addon( array $pricing, string $value, float $price, int $qty, float $addons, array $field_values = [], int $product_id = 0, array $field_prices = [], bool $qty_based = false, array $field_labels = [] ): float {
+	public static function field_pricing_addon( array $pricing, string $value, float $price, int $qty, float $addons, array $field_values = [], int $product_id = 0, array $field_prices = [], bool $qty_based = false, array $field_labels = [], array $options = [] ): float {
 		if ( '' === trim( $value ) ) {
 			return 0.0;
 		}
@@ -170,7 +172,7 @@ final class Calculator {
 				$result = $price * ( (float) $pricing['amount'] / 100 );
 				break;
 			case 'formula':
-				$result = self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, $value, null, $field_values, $product_id, $field_prices, $field_labels );
+				$result = self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, $value, null, $field_values, $product_id, $field_prices, $field_labels, $options );
 				break;
 			default:
 				return 0.0;
@@ -187,8 +189,24 @@ final class Calculator {
 	 * Supports arithmetic tokens plus WAPF `dow()`, `month()`, `today()`, and
 	 * validated [field.{id}] date references. No eval() — recursive descent
 	 * parser. Syntax errors and invalid dates fail closed to zero.
+	 *
+	 * WAPF Extended 3.1.5 additions (WAPF-PRICE-FORMULA-CUSTOM-VARIABLE row):
+	 *  - `[x]` aliases `[val]` (WAPF replace_in_formula token).
+	 *  - `[var_name]` custom variables resolve via $options['variables']
+	 *    ({name, default, rules[]}) — first matching rule wins, values are
+	 *    recursively evaluated, unknown variables become '0'
+	 *    (Helper::evaluate_variables parity).
+	 *  - `files(id)`, `lookuptable(table;dim;…)` built-ins and the unregistered
+	 *    `name(…)` residual evaluation (WAPF strips the call text down to
+	 *    [0-9.+-*\/()eE] inside evaluate_math_string; this is what WAPF emits
+	 *    for the map()/reduce() spellings it never registered).
+	 *  - $options['lookup_tables'] provides WAPF-shaped nested arrays; absent
+	 *    context falls back to the opf_lookup_tables filter and WAPF's own
+	 *    wapf/lookup_tables filter so migrated integrations keep working.
+	 *
+	 * @param array{variables?:array,fields?:array,lookup_tables?:array} $options Formula context extras.
 	 */
-	public static function evaluate_formula( string $formula, float $price, int $qty, float $addons, string $val = '', ?string $today = null, array $field_values = [], int $product_id = 0, array $field_prices = [], array $field_labels = [] ): float {
+	public static function evaluate_formula( string $formula, float $price, int $qty, float $addons, string $val = '', ?string $today = null, array $field_values = [], int $product_id = 0, array $field_prices = [], array $field_labels = [], array $options = [] ): float {
 		if ( $product_id > 0 && function_exists( 'apply_filters' ) ) {
 			$price = (float) apply_filters( 'opf_formula_base_price', $price, $product_id );
 		}
@@ -243,21 +261,40 @@ final class Calculator {
 			$formula
 		);
 		$formula = str_ireplace(
-			[ '[price]', '[qty]', '[addons]', '[options_total]', '[val]' ],
-			[ ' P ', ' Q ', ' A ', ' A ', ' V ' ],
+			[ '[price]', '[qty]', '[addons]', '[options_total]', '[val]', '[x]' ],
+			[ ' P ', ' Q ', ' A ', ' A ', ' V ', ' V ' ],
 			$formula
 		);
+		// WAPF evaluate_variables runs after token replacement: resolve
+		// [var_name] to its evaluated numeric string before function expansion.
+		$formula = self::expand_formula_variables(
+			$formula,
+			$options,
+			$price,
+			$qty,
+			$addons,
+			$val,
+			$product_id,
+			$field_values,
+			$field_prices,
+			$field_labels
+		);
+		if ( null === $formula ) {
+			return 0.0;
+		}
 		$formula = self::expand_formula_functions(
 			$formula,
 			[
-				'price'        => $price,
-				'qty'          => $qty,
-				'addons'       => $addons,
-				'value'        => $val,
-				'field_values' => $field_values,
-				'field_prices' => $field_prices,
-				'field_labels' => $field_labels,
-				'product_id'   => $product_id > 0 ? $product_id : null,
+				'price'         => $price,
+				'qty'           => $qty,
+				'addons'        => $addons,
+				'value'         => $val,
+				'field_values'  => $field_values,
+				'field_prices'  => $field_prices,
+				'field_labels'  => $field_labels,
+				'product_id'    => $product_id > 0 ? $product_id : null,
+				'lookup_tables' => is_array( $options['lookup_tables'] ?? null ) ? $options['lookup_tables'] : [],
+				'options'       => $options,
 			]
 		);
 		if ( null === $formula ) {
@@ -281,8 +318,12 @@ final class Calculator {
 
 	/**
 	 * Expand registered functions into numeric literals before tokenization.
-	 * No PHP evaluation is used. Nested calls, quoted strings, and WAPF's
-	 * semicolon argument separator are parsed explicitly.
+	 * No PHP evaluation is used. Nested calls and WAPF's semicolon argument
+	 * separator are parsed explicitly. WAPF parity details: the scan is
+	 * quote-blind (WAPF strpos-searches function names inside quoted text)
+	 * and an unregistered `name(…)` call — e.g. the map()/reduce() spellings
+	 * WAPF Extended 3.1.5 never registered — resolves through the same
+	 * char-clean residual path as WAPF's evaluate_math_string.
 	 *
 	 * @param array<string,mixed> $context Formula callback context.
 	 */
@@ -295,23 +336,6 @@ final class Calculator {
 		$length = strlen( $formula );
 		for ( $i = 0; $i < $length; ) {
 			$char = $formula[ $i ];
-			if ( '\'' === $char || '"' === $char ) {
-				$quote = $char;
-				$out  .= $char;
-				$i++;
-				while ( $i < $length ) {
-					$out .= $formula[ $i ];
-					if ( '\\' === $formula[ $i ] && $i + 1 < $length ) {
-						$out .= $formula[ $i + 1 ];
-						$i   += 2;
-						continue;
-					}
-					if ( $quote === $formula[ $i++ ] ) {
-						break;
-					}
-				}
-				continue;
-			}
 
 			if ( ctype_alpha( $char ) || '_' === $char ) {
 				$name_end = $i + 1;
@@ -325,7 +349,7 @@ final class Calculator {
 				}
 				$builtin_functions = self::builtin_formula_functions();
 				$callback = $builtin_functions[ $name ] ?? ( self::$formula_functions[ $name ] ?? null );
-				if ( null !== $callback && $open < $length && '(' === $formula[ $open ] ) {
+				if ( $open < $length && '(' === $formula[ $open ] ) {
 					$close = self::formula_call_end( $formula, $open );
 					if ( null === $close ) {
 						return null;
@@ -334,6 +358,14 @@ final class Calculator {
 					$inner = self::expand_formula_functions( $inner, $context, $depth + 1 );
 					if ( null === $inner ) {
 						return null;
+					}
+					if ( null === $callback ) {
+						// WAPF evaluate_math_string keeps [0-9.+-*\/()eE] of
+						// the unregistered call text (so 'reduce' leaves 'ee')
+						// and evaluates the residue as arithmetic.
+						$out .= sprintf( '%.14g', self::wapf_residual_eval( substr( $formula, $i, $name_end - $i ) . '(' . $inner . ')' ) );
+						$i = $close + 1;
+						continue;
 					}
 					$args = self::split_formula_arguments( $inner );
 					try {
@@ -409,6 +441,84 @@ final class Calculator {
 					$is_quantity = is_int( $quantity ) || is_float( $quantity ) || is_string( $quantity );
 					return $is_quantity && preg_match( '/^\\d+$/', (string) $quantity ) ? (int) $quantity : 0;
 				}, $value['quantities'] ) );
+			},
+			// WAPF files(id): count( explode(',', values[0].label ) ) on the
+			// submitted field — the comma-joined upload list of the first
+			// value, on any field type. OPF upload submissions arrive as an
+			// array of validated private tokens, so arrays count their
+			// non-empty entries; scalar submissions split on commas.
+			'files' => static function ( array $args, array $context ): int {
+				$field_id = strtolower( trim( (string) ( $args[0] ?? '' ), " '\"" ) );
+				$field_values = is_array( $context['field_values'] ?? null ) ? $context['field_values'] : [];
+				if ( ! array_key_exists( $field_id, $field_values ) ) {
+					return 0;
+				}
+				$value = $field_values[ $field_id ];
+				if ( is_array( $value ) ) {
+					return count( array_filter( array_map( static function ( $item ): string {
+						return is_scalar( $item ) ? trim( (string) $item ) : '';
+					}, $value ) ) );
+				}
+				$scalar = is_scalar( $value ) ? trim( (string) $value ) : '';
+				return '' === $scalar ? 0 : count( explode( ',', $scalar ) );
+			},
+			// WAPF lookuptable(table;dim;…): dimension args under six chars are
+			// literals, longer args resolve to the first submitted label of a
+			// field id. Each dimension picks the nearest axis key (round up to
+			// the next defined key; below-first clamps to the first key) and
+			// the nested result is returned. Missing tables, fields, empty
+			// labels, traversal failures, and beyond-last keys resolve to 0 —
+			// where WAPF's PHP reference fatals on a mid-chain null axis, OPF
+			// fails closed.
+			'lookuptable' => static function ( array $args, array $context ) {
+				$tables = is_array( $context['lookup_tables'] ?? null ) ? $context['lookup_tables'] : [];
+				if ( ! $tables && function_exists( 'apply_filters' ) ) {
+					$tables = (array) apply_filters( 'opf_lookup_tables', [], $context );
+					if ( ! $tables ) {
+						// Migrate-friendly: WAPF's own extension point.
+						$tables = (array) apply_filters( 'wapf/lookup_tables', [] );
+					}
+				}
+				$table_name = trim( (string) ( $args[0] ?? '' ) );
+				if ( ! isset( $tables[ $table_name ] ) || ! is_array( $tables[ $table_name ] ) ) {
+					return 0;
+				}
+				$field_values = is_array( $context['field_values'] ?? null ) ? $context['field_values'] : [];
+				$field_labels = is_array( $context['field_labels'] ?? null ) ? $context['field_labels'] : [];
+				$prev         = $tables[ $table_name ];
+				$traversal    = [];
+				for ( $k = 1; $k < count( $args ); $k++ ) {
+					$arg = trim( (string) $args[ $k ] );
+					if ( strlen( $arg ) < 6 ) {
+						$value = $arg;
+					} else {
+						$field_id = strtolower( $arg );
+						if ( ! array_key_exists( $field_id, $field_values ) ) {
+							return 0;
+						}
+						$value = self::formula_field_label( $field_id, $field_values, $field_labels );
+						if ( '' === $value ) {
+							return 0;
+						}
+					}
+					if ( ! is_array( $prev ) ) {
+						return 0;
+					}
+					$next = self::lookup_nearest_axis_key( $value, $prev );
+					if ( null === $next ) {
+						return 0;
+					}
+					$traversal[] = $next;
+					$prev        = $prev[ $next ];
+				}
+				$result = $tables[ $table_name ];
+				foreach ( $traversal as $key ) {
+					if ( ! is_array( $result ) || ! array_key_exists( $key, $result ) ) {
+						return 0;
+					}
+					$result = $result[ $key ];
+				}
+				return is_numeric( $result ) ? (float) $result : 0.0;
 			},
 			'round' => static function ( array $args, array $context ) use ( $numeric ) {
 				$value = $numeric( (string) ( $args[0] ?? '' ), $context );
@@ -504,6 +614,309 @@ final class Calculator {
 		return isset( $field_labels[ $fid ][ $scalar ] ) ? (string) $field_labels[ $fid ][ $scalar ] : $scalar;
 	}
 
+	/**
+	 * Expand `[var_name]` tokens — Helper::evaluate_variables parity.
+	 *
+	 * The first variable whose `name` matches exactly (case-sensitive) wins;
+	 * its `default` text is used unless one of its `rules` matches (checked in
+	 * order — the first valid rule wins). The chosen text is recursively
+	 * expanded for nested `[var_*]` references and then fully evaluated to a
+	 * numeric string, which is spliced back into the outer formula. Unknown
+	 * variables resolve to '0'. WAPF has no recursion guard — a self-
+	 * referencing variable loops forever — so OPF caps nesting and resolves
+	 * the token to '0' (documented divergence on malformed definitions).
+	 *
+	 * @param array<string,mixed> $options      evaluate_formula $options.
+	 * @param array<string,mixed> $field_values Submitted values by field id.
+	 * @param array<string,float> $field_prices Field price totals.
+	 * @param array<string,array> $field_labels Slug→label maps.
+	 */
+	private static function expand_formula_variables( string $formula, array $options, float $price, int $qty, float $addons, string $val, int $product_id, array $field_values, array $field_prices, array $field_labels, int $depth = 0 ): ?string {
+		if ( false === strpos( $formula, '[var_' ) ) {
+			return $formula;
+		}
+		if ( $depth > 16 ) {
+			return null;
+		}
+		$variables = is_array( $options['variables'] ?? null ) ? $options['variables'] : [];
+		// WAPF requires a field definition for rule subjects other than qty.
+		// When the caller does not pass group field defs, submitted values are
+		// a sufficient presence stand-in (documented OPF fallback).
+		$fields = is_array( $options['fields'] ?? null ) ? $options['fields'] : [];
+		if ( ! $fields ) {
+			foreach ( $field_values as $field_id => $unused ) {
+				$fields[] = [ 'id' => (string) $field_id, 'type' => '' ];
+			}
+		}
+		$result = preg_replace_callback(
+			'/\[var_.+?]/',
+			static function ( array $match ) use ( $options, $variables, $fields, $price, $qty, $addons, $val, $product_id, $field_values, $field_prices, $field_labels, $depth ): string {
+				$var_name = substr( $match[0], 5, -1 );
+				$variable = null;
+				foreach ( $variables as $candidate ) {
+					if ( is_array( $candidate ) && (string) ( $candidate['name'] ?? '' ) === $var_name ) {
+						$variable = $candidate;
+						break;
+					}
+				}
+				if ( null === $variable ) {
+					return '0';
+				}
+				$text = (string) ( $variable['default'] ?? '' );
+				foreach ( (array) ( $variable['rules'] ?? [] ) as $rule ) {
+					if ( ! is_array( $rule ) ) {
+						continue;
+					}
+					if ( self::variable_rule_passes( (string) ( $rule['field'] ?? '' ), (string) ( $rule['condition'] ?? '' ), (string) ( $rule['value'] ?? '' ), $fields, $field_values, $product_id, $qty ) ) {
+						$text = (string) ( $rule['variable'] ?? '' );
+						break;
+					}
+				}
+				$nested = self::expand_formula_variables( $text, $options, $price, $qty, $addons, $val, $product_id, $field_values, $field_prices, $field_labels, $depth + 1 );
+				if ( null === $nested ) {
+					return '0';
+				}
+				$evaluated = self::evaluate_formula( $nested, $price, $qty, $addons, $val, null, $field_values, $product_id, $field_prices, $field_labels, $options );
+				return sprintf( '%.14g', $evaluated );
+			},
+			$formula
+		);
+		return is_string( $result ) ? $result : null;
+	}
+
+	/**
+	 * One WAPF variable rule — Fields::is_valid_rule parity. `$fields` carries
+	 * normalized defs ({id, type}); `$field_values` supplies the submitted raw
+	 * value WAPF reads as $cf['raw'] (select submissions hold the slug).
+	 *
+	 * @param array<int,array>        $fields       Field defs ({id,type}).
+	 * @param array<string,mixed>     $field_values Submitted values by field id.
+	 */
+	private static function variable_rule_passes( string $subject, string $condition, string $rule_value, array $fields, array $field_values, int $product_id, int $qty ): bool {
+		if ( 'qty' === $subject ) {
+			$value = $qty;
+		} else {
+			$field = null;
+			foreach ( $fields as $candidate ) {
+				if ( is_array( $candidate ) && strtolower( (string) ( $candidate['id'] ?? '' ) ) === strtolower( $subject ) ) {
+					$field = $candidate;
+					break;
+				}
+			}
+			if ( null === $field ) {
+				return false;
+			}
+			if ( false !== strpos( $condition, 'product_var' ) ) {
+				$ids = array_map( 'trim', explode( ',', $rule_value ) );
+				$in  = in_array( $product_id, array_map( 'intval', $ids ), false ) || in_array( (string) $product_id, $ids, true );
+				return 'product_var' === $condition ? $in : ! $in;
+			}
+			if ( false !== strpos( $condition, 'patts' ) ) {
+				$has = self::product_has_attribute_values( $product_id, explode( ',', $rule_value ) );
+				return 'patts' === $condition ? $has : ! $has;
+			}
+			$subject_key = strtolower( $subject );
+			if ( ! array_key_exists( $subject_key, $field_values ) ) {
+				return false;
+			}
+			$value = $field_values[ $subject_key ];
+			if ( null === $value ) {
+				return false;
+			}
+			if ( 'date' === (string) ( $field['type'] ?? '' ) && '' !== $rule_value ) {
+				$rule_ts  = \DateTime::createFromFormat( 'm-d-Y', $rule_value );
+				$rule_ts  = $rule_ts ? $rule_ts->setTime( 0, 0 ) : false;
+				$value    = '' === trim( (string) $value ) ? $value : self::parse_formula_date( (string) $value, '', [], '', [] );
+				$rule_value = $rule_ts;
+			}
+		}
+
+		switch ( $condition ) {
+			case 'check':
+				return '1' === $value;
+			case '!check':
+				return '0' === $value;
+			case '==':
+				return $rule_value instanceof \DateTimeInterface
+					? ( $value && $value instanceof \DateTimeInterface && $value->format( 'U' ) === $rule_value->format( 'U' ) )
+					: in_array( $rule_value, (array) $value );
+			case '!=':
+				return $rule_value instanceof \DateTimeInterface
+					? ( $value && $value instanceof \DateTimeInterface && $value->format( 'U' ) !== $rule_value->format( 'U' ) )
+					: ! in_array( $rule_value, (array) $value );
+			case 'empty':
+				return empty( $value );
+			case '!empty':
+				return ! empty( $value );
+			case '==contains':
+				return is_array( $value ) ? in_array( $rule_value, $value ) : false !== strpos( (string) $value, $rule_value );
+			case '!=contains':
+				return is_array( $value ) ? ! in_array( $rule_value, $value ) : false === strpos( (string) $value, $rule_value );
+			case 'lt':
+				return (float) $value < (float) $rule_value;
+			case 'gt':
+				return (float) $value > (float) $rule_value;
+			case 'gtd':
+				return $value && $value > $rule_value;
+			case 'ltd':
+				return $value && $value < $rule_value;
+		}
+		return false;
+	}
+
+	/**
+	 * WAPF 'patts' rule: the product must expose one of the attr|value pairs.
+	 * Attribute slugs resolve through WooCommerce; a missing Woo runtime
+	 * resolves false, matching WAPF's "no attributes → false" branch.
+	 *
+	 * @param array<int,string> $pairs attr|value pairs ('*' matches any value).
+	 */
+	private static function product_has_attribute_values( int $product_id, array $pairs ): bool {
+		if ( $product_id <= 0 || ! function_exists( 'wc_get_product' ) ) {
+			return false;
+		}
+		$product = wc_get_product( $product_id );
+		if ( ! is_object( $product ) || ! is_callable( [ $product, 'get_attributes' ] ) ) {
+			return false;
+		}
+		$attributes = [];
+		foreach ( (array) $product->get_attributes() as $key => $attribute ) {
+			if ( is_string( $attribute ) ) {
+				$attributes[ $key ] = [ $attribute ];
+				continue;
+			}
+			if ( ! is_object( $attribute ) || ! is_callable( [ $attribute, 'is_taxonomy' ] ) || ! $attribute->is_taxonomy() || ! is_callable( [ $attribute, 'get_terms' ] ) ) {
+				continue;
+			}
+			$slugs = [];
+			foreach ( (array) $attribute->get_terms() as $term ) {
+				if ( is_object( $term ) && isset( $term->slug ) ) {
+					$slugs[] = (string) $term->slug;
+				}
+			}
+			if ( $slugs ) {
+				$attributes[ (string) $attribute->get_name() ] = $slugs;
+			}
+		}
+		foreach ( $pairs as $pair ) {
+			$split = explode( '|', (string) $pair );
+			if ( 2 !== count( $split ) ) {
+				continue;
+			}
+			$attr_name = 'pa_' . $split[0];
+			if ( isset( $attributes[ $attr_name ] ) && ( '*' === $split[1] || in_array( $split[1], $attributes[ $attr_name ], true ) ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * WAPF Helper::find_nearest parity: exact key hit, below-first clamps to
+	 * the first key, between-keys rounds up to the next defined key, and
+	 * beyond-last returns null (WAPF's `$keys[$i]` reads an undefined index —
+	 * downstream this becomes 0 or a PHP TypeError; OPF fails closed).
+	 *
+	 * @param array<array-key,mixed> $axis Axis keys → next dimension/leaf.
+	 * @return array-key|null Axis key or null.
+	 */
+	private static function lookup_nearest_axis_key( string $value, array $axis ) {
+		if ( isset( $axis[ $value ] ) ) {
+			return $value;
+		}
+		$keys    = array_keys( $axis );
+		$numeric = (float) $value;
+		if ( ! $keys ) {
+			return null;
+		}
+		if ( $numeric <= (float) $keys[0] ) {
+			return $keys[0];
+		}
+		$last = count( $keys ) - 1;
+		for ( $i = 0; $i <= $last; $i++ ) {
+			if ( ! array_key_exists( $i + 1, $keys ) ) {
+				break;
+			}
+			if ( $numeric > (float) $keys[ $i ] && $numeric <= (float) $keys[ $i + 1 ] ) {
+				return $keys[ $i + 1 ];
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Literal port of WAPF evaluate_math_string's $__eval — the residual
+	 * evaluation unregistered `name(…)` calls fall through to after every
+	 * non-numeric character is stripped (the 'e'/'E' survive for scientific
+	 * notation, which is why reduce() leaves 'ee' and evaluates to 0 while
+	 * map() drops to '(…)' and evaluates its concatenated arguments).
+	 */
+	private static function wapf_residual_eval( string $str ): float {
+		$evaluate = static function ( string $s ) use ( &$evaluate ): float {
+			$error   = false;
+			$div_mul = false;
+			$add_sub = false;
+			$result  = 0.0;
+			$s       = (string) preg_replace( '/[^\d.+\-*\/()E]/i', '', $s );
+			$s       = rtrim( trim( $s, '/*+' ), '-' );
+			if ( false !== strpos( $s, '(' ) && false !== strpos( $s, ')' ) ) {
+				if ( preg_match( '/\(([\d.+\-*\/]+)\)/', $s, $paren ) ) {
+					return $evaluate( (string) preg_replace( '/\(([\d.+\-*\/]+)\)/', (string) $evaluate( $paren[1] ), $s, 1 ) );
+				}
+			}
+			$s = str_replace( [ '(', ')' ], '', $s );
+			if ( false !== strpos( $s, '/' ) || false !== strpos( $s, '*' ) ) {
+				$div_mul   = true;
+				$operators = [ '/', '*' ];
+				while ( ! $error && $operators ) {
+					$operator = array_pop( $operators );
+					while ( null !== $operator && false !== strpos( $s, $operator ) ) {
+						if ( $error ) {
+							break;
+						}
+						if ( preg_match( '/([\d.]+(?:E[+\-]?\d+)?)\\' . $operator . '(\-?[\d.]+(?:E[+\-]?\d+)?)/', $s, $m ) ) {
+							if ( '*' === $operator ) {
+								$result = (float) $m[1] * (float) $m[2];
+							}
+							if ( '/' === $operator ) {
+								if ( (float) $m[2] ) {
+									$result = (float) $m[1] / (float) $m[2];
+								} else {
+									$error = true;
+								}
+							}
+							$s = (string) preg_replace( '/([\d.]+(?:E[+\-]?\d+)?)\\' . $operator . '(\-?[\d.]+(?:E[+\-]?\d+)?)/', (string) $result, $s, 1 );
+							$s = str_replace( [ '++', '--', '-+', '+-' ], [ '+', '+', '-', '-' ], $s );
+						} else {
+							$error = true;
+						}
+					}
+				}
+			}
+			if ( ! $error && ( false !== strpos( $s, '+' ) || false !== strpos( $s, '-' ) ) ) {
+				$s       = str_replace( '--', '+', $s );
+				$add_sub = true;
+				preg_match_all( '/([\d\.]+(?:E[+\-]?\d+)?|[\+\-])/', $s, $tokens );
+				if ( isset( $tokens[0] ) ) {
+					$result   = 0.0;
+					$operator = '+';
+					foreach ( $tokens[0] as $token ) {
+						if ( '+' === $token || '-' === $token ) {
+							$operator = $token;
+						} else {
+							$result = '+' === $operator ? $result + (float) $token : $result - (float) $token;
+						}
+					}
+				}
+			}
+			if ( ! $error && ! $div_mul && ! $add_sub ) {
+				$result = (float) $s;
+			}
+			return $error ? 0.0 : $result;
+		};
+		return $evaluate( $str );
+	}
+
 	/** Evaluate an arithmetic expression using the current pricing context. */
 	private static function formula_numeric_value( string $expression, array $context ): float {
 		// Argument case is significant (e.g. len(x;TRUE) must not strip). Only
@@ -522,11 +935,12 @@ final class Calculator {
 			(int) ( $context['qty'] ?? 1 ),
 			(float) ( $context['addons'] ?? 0 ),
 			(string) ( $context['value'] ?? '' ),
-		null,
+			null,
 			(array) ( $context['field_values'] ?? [] ),
 			(int) ( $context['product_id'] ?? 0 ),
 			(array) ( $context['field_prices'] ?? [] ),
-			(array) ( $context['field_labels'] ?? [] )
+			(array) ( $context['field_labels'] ?? [] ),
+			(array) ( $context['options'] ?? [] )
 		);
 	}
 
@@ -611,24 +1025,17 @@ final class Calculator {
 		return $value;
 	}
 
-	/** Find the matching `)` while respecting nested calls and quoted text. */
+	/**
+	 * Find the matching `)` for a call. WAPF closing_bracket_index parity:
+	 * bracket depth only — quoted text is not special (a ')' inside quotes
+	 * still closes the call, exactly like the reference).
+	 */
 	private static function formula_call_end( string $formula, int $open ): ?int {
 		$depth = 0;
-		$quote = '';
 		$length = strlen( $formula );
 		for ( $i = $open; $i < $length; $i++ ) {
 			$char = $formula[ $i ];
-			if ( '' !== $quote ) {
-				if ( '\\' === $char ) {
-					$i++;
-				} elseif ( $quote === $char ) {
-					$quote = '';
-				}
-				continue;
-			}
-			if ( '\'' === $char || '"' === $char ) {
-				$quote = $char;
-			} elseif ( '(' === $char ) {
+			if ( '(' === $char ) {
 				$depth++;
 			} elseif ( ')' === $char && 0 === --$depth ) {
 				return $i;
@@ -637,26 +1044,22 @@ final class Calculator {
 		return null;
 	}
 
-	/** @return array<int,string> */
+	/**
+	 * Split call arguments on top-level `;` — WAPF split_formula_variables
+	 * parity: depth-aware but quote-blind (a ';' inside quoted text still
+	 * separates arguments) and a trailing separator does not yield an empty
+	 * final argument.
+	 *
+	 * @return array<int,string>
+	 */
 	private static function split_formula_arguments( string $arguments ): array {
 		$parts = [];
 		$start = 0;
 		$depth = 0;
-		$quote = '';
 		$length = strlen( $arguments );
 		for ( $i = 0; $i < $length; $i++ ) {
 			$char = $arguments[ $i ];
-			if ( '' !== $quote ) {
-				if ( '\\' === $char ) {
-					$i++;
-				} elseif ( $quote === $char ) {
-					$quote = '';
-				}
-				continue;
-			}
-			if ( '\'' === $char || '"' === $char ) {
-				$quote = $char;
-			} elseif ( '(' === $char ) {
+			if ( '(' === $char ) {
 				$depth++;
 			} elseif ( ')' === $char ) {
 				$depth--;
@@ -665,7 +1068,10 @@ final class Calculator {
 				$start = $i + 1;
 			}
 		}
-		$parts[] = trim( substr( $arguments, $start ) );
+		$last = trim( substr( $arguments, $start ) );
+		if ( '' !== $last || ! $parts ) {
+			$parts[] = $last;
+		}
 		return $parts;
 	}
 

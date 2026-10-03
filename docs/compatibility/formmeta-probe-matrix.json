@@ -1,0 +1,324 @@
+{
+    "utc": "2026-10-03T10:49:33+00:00",
+    "plugin": {
+        "wapf_extended": "3.1.5"
+    },
+    "rows": [
+        {
+            "name": "files-basic-3",
+            "formula": "files(upFiles)",
+            "wapf_result": "3",
+            "opf_result": 3,
+            "wapf_numeric": 3,
+            "match": true
+        },
+        {
+            "name": "files-single",
+            "formula": "files(upFiles)",
+            "wapf_result": "1",
+            "opf_result": 1,
+            "wapf_numeric": 1,
+            "match": true
+        },
+        {
+            "name": "files-empty-values",
+            "formula": "files(upFiles)",
+            "wapf_result": "0",
+            "opf_result": 0,
+            "wapf_numeric": 0,
+            "match": true
+        },
+        {
+            "name": "files-empty-label",
+            "formula": "files(upFiles)",
+            "wapf_result": "0",
+            "opf_result": 0,
+            "wapf_numeric": 0,
+            "match": true
+        },
+        {
+            "name": "files-missing-field",
+            "formula": "files(nope)",
+            "wapf_result": "0",
+            "opf_result": 0,
+            "wapf_numeric": 0,
+            "match": true
+        },
+        {
+            "name": "files-comma-label",
+            "formula": "files(textF)",
+            "wapf_result": "2",
+            "opf_result": 2,
+            "wapf_numeric": 2,
+            "match": true
+        },
+        {
+            "name": "files-in-expr",
+            "formula": "files(upFiles)*[qty]",
+            "wapf_result": "6",
+            "opf_result": 6,
+            "wapf_numeric": 6,
+            "match": true
+        },
+        {
+            "name": "lookup-exact",
+            "formula": "lookuptable(cutting;widthF;heightF)",
+            "wapf_result": "200",
+            "opf_result": 200,
+            "wapf_numeric": 200,
+            "match": true
+        },
+        {
+            "name": "lookup-roundup",
+            "formula": "lookuptable(cutting;widthF;heightF)",
+            "wapf_result": "300",
+            "opf_result": 300,
+            "wapf_numeric": 300,
+            "match": true
+        },
+        {
+            "name": "lookup-below-first",
+            "formula": "lookuptable(cutting;widthF;heightF)",
+            "wapf_result": "100",
+            "opf_result": 100,
+            "wapf_numeric": 100,
+            "match": true
+        },
+        {
+            "name": "lookup-beyond-last",
+            "formula": "lookuptable(cutting;widthF;heightF)",
+            "wapf_result": "FATAL:TypeError:array_keys(): Argument #1 ($array) must be of type array, null given",
+            "opf_result": 0,
+            "wapf_numeric": null,
+            "match": false
+        },
+        {
+            "name": "lookup-beyond-last-final-dim",
+            "formula": "lookuptable(cutting;widthF;heightF)",
+            "wapf_result": "0",
+            "opf_result": 0,
+            "wapf_numeric": 0,
+            "match": true
+        },
+        {
+            "name": "lookup-1dim-beyond-last",
+            "formula": "lookuptable(flat;widthF)",
+            "wapf_result": "0",
+            "opf_result": 0,
+            "wapf_numeric": 0,
+            "match": true
+        },
+        {
+            "name": "lookup-literal-args",
+            "formula": "lookuptable(cutting;15;5)",
+            "wapf_result": "200",
+            "opf_result": 200,
+            "wapf_numeric": 200,
+            "match": true
+        },
+        {
+            "name": "lookup-short-fieldid-literal",
+            "formula": "lookuptable(cutting;abcde;5)",
+            "wapf_result": "100",
+            "opf_result": 100,
+            "wapf_numeric": 100,
+            "match": true
+        },
+        {
+            "name": "lookup-missing-field",
+            "formula": "lookuptable(cutting;zzzzzzz;5)",
+            "wapf_result": "0",
+            "opf_result": 0,
+            "wapf_numeric": 0,
+            "match": true
+        },
+        {
+            "name": "lookup-empty-label-field",
+            "formula": "lookuptable(cutting;widthF;emptyFld)",
+            "wapf_result": "0",
+            "opf_result": 0,
+            "wapf_numeric": 0,
+            "match": true
+        },
+        {
+            "name": "lookup-missing-table",
+            "formula": "lookuptable(nothere;widthF;heightF)",
+            "wapf_result": "0",
+            "opf_result": 0,
+            "wapf_numeric": 0,
+            "match": true
+        },
+        {
+            "name": "lookup-3dim",
+            "formula": "lookuptable(deep;widthF;heightF;2)",
+            "wapf_result": "FATAL:TypeError:array_keys(): Argument #1 ($array) must be of type array, null given",
+            "opf_result": 0,
+            "wapf_numeric": null,
+            "match": false
+        },
+        {
+            "name": "lookup-nonnumeric-leaf",
+            "formula": "lookuptable(textleaf;widthF;heightF)",
+            "wapf_result": "0",
+            "opf_result": 0,
+            "wapf_numeric": 0,
+            "match": true
+        },
+        {
+            "name": "lookup-inside-expr",
+            "formula": "lookuptable(cutting;widthF;heightF)*[qty]",
+            "wapf_result": "600",
+            "opf_result": 600,
+            "wapf_numeric": 600,
+            "match": true
+        },
+        {
+            "name": "lookup-quoted-table",
+            "formula": "lookuptable('cutting';widthF;heightF)",
+            "wapf_result": "0",
+            "opf_result": 0,
+            "wapf_numeric": 0,
+            "match": true
+        },
+        {
+            "name": "x-token-value",
+            "formula": "[x]*2",
+            "wapf_result": "8",
+            "opf_result": 8,
+            "wapf_numeric": 8,
+            "match": true
+        },
+        {
+            "name": "var-default",
+            "formula": "[var_fee]*2",
+            "wapf_result": "3",
+            "opf_result": 3,
+            "wapf_numeric": 3,
+            "match": true
+        },
+        {
+            "name": "var-rule-match",
+            "formula": "[var_dyn]",
+            "wapf_result": "2.5",
+            "opf_result": 2.5,
+            "wapf_numeric": 2.5,
+            "match": true
+        },
+        {
+            "name": "var-rule-nomatch",
+            "formula": "[var_dyn]",
+            "wapf_result": "1",
+            "opf_result": 1,
+            "wapf_numeric": 1,
+            "match": true
+        },
+        {
+            "name": "var-qty-rule-match",
+            "formula": "[var_qtyvar]",
+            "wapf_result": "99",
+            "opf_result": 99,
+            "wapf_numeric": 99,
+            "match": true
+        },
+        {
+            "name": "var-qty-rule-nomatch",
+            "formula": "[var_qtyvar]",
+            "wapf_result": "10",
+            "opf_result": 10,
+            "wapf_numeric": 10,
+            "match": true
+        },
+        {
+            "name": "var-nested",
+            "formula": "[var_nested]",
+            "wapf_result": "3",
+            "opf_result": 3,
+            "wapf_numeric": 3,
+            "match": true
+        },
+        {
+            "name": "var-with-functions",
+            "formula": "[var_fxvar]",
+            "wapf_result": "45",
+            "opf_result": 45,
+            "wapf_numeric": 45,
+            "match": true
+        },
+        {
+            "name": "var-unknown",
+            "formula": "[var_nothere]",
+            "wapf_result": "0",
+            "opf_result": 0,
+            "wapf_numeric": 0,
+            "match": true
+        },
+        {
+            "name": "var-first-rule-wins",
+            "formula": "[var_tworule]",
+            "wapf_result": "7",
+            "opf_result": 7,
+            "wapf_numeric": 7,
+            "match": true
+        },
+        {
+            "name": "var-in-expr",
+            "formula": "([var_fee]+1)*[qty]",
+            "wapf_result": "10",
+            "opf_result": 10,
+            "wapf_numeric": 10,
+            "match": true
+        },
+        {
+            "name": "var-case-sensitive",
+            "formula": "[VAR_FEE]",
+            "wapf_result": "0",
+            "opf_result": 0,
+            "wapf_numeric": 0,
+            "match": true
+        },
+        {
+            "name": "map-unregistered",
+            "formula": "map(1;2)",
+            "wapf_result": "12",
+            "opf_result": 12,
+            "wapf_numeric": 12,
+            "match": true
+        },
+        {
+            "name": "reduce-unregistered",
+            "formula": "reduce(1;2)",
+            "wapf_result": "0",
+            "opf_result": 0,
+            "wapf_numeric": 0,
+            "match": true
+        },
+        {
+            "name": "map-text-args",
+            "formula": "map(widthF;x*2)",
+            "wapf_result": "2",
+            "opf_result": 2,
+            "wapf_numeric": 2,
+            "match": true
+        },
+        {
+            "name": "files-plus-lookup",
+            "formula": "files(upFiles)+lookuptable(cutting;widthF;heightF)",
+            "wapf_result": "203",
+            "opf_result": 203,
+            "wapf_numeric": 203,
+            "match": true
+        },
+        {
+            "name": "semicolon-in-quotes",
+            "formula": "len('a;b')",
+            "wapf_result": "2",
+            "opf_result": 2,
+            "wapf_numeric": 2,
+            "match": true
+        }
+    ],
+    "summary": {
+        "total": 39,
+        "matches": 37
+    }
+}

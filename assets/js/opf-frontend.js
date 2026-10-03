@@ -725,9 +725,21 @@ const formulaFieldLabel = (token, fieldValues) => {
   return resolved !== undefined ? String(resolved) : scalar;
 };
 
-const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOverride = null, fieldPrices = {}) => {
+const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOverride = null, fieldPrices = {}, formulaOptions = {}) => {
   // Safe mirror of the server-side evaluator (per-unit formulas; the qty
   // factor was stripped at import and is re-applied by the caller).
+  // WAPF Extended 3.1.5 parity: [x] aliases [val]; [var_name] variables
+  // resolve via formulaOptions.variables (or window.OPF_FORMULA_VARIABLES)
+  // with first-rule-wins + recursive evaluation; files() counts the
+  // submitted field's comma-joined value list; lookuptable() traverses
+  // window.wapf_lookup_tables/OPF_LOOKUP_TABLES/options.lookupTables; and an
+  // unregistered name(...) call (e.g. WAPF's map()/reduce() spellings) is
+  // evaluated through the same char-clean residual path as WAPF's
+  // evaluate_math_string.
+  const opts = formulaOptions && typeof formulaOptions === 'object' ? formulaOptions : {};
+  const variables = Array.isArray(opts.variables) ? opts.variables : (Array.isArray(window.OPF_FORMULA_VARIABLES) ? window.OPF_FORMULA_VARIABLES : []);
+  const ruleFields = Array.isArray(opts.fields) ? opts.fields : (Array.isArray(window.OPF_FORMULA_FIELDS) ? window.OPF_FORMULA_FIELDS : []);
+  const lookupTables = Object.assign({}, window.wapf_lookup_tables || {}, window.OPF_LOOKUP_TABLES || {}, opts.lookupTables || {});
   if (String(formula).trim().toLowerCase() === 'true') return 1;
   if (String(formula).trim().toLowerCase() === 'false') return 0;
   const today = String(todayOverride || window.OPF_TODAY || new Date().toISOString().slice(0, 10));
@@ -800,20 +812,17 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
       const date = resolveFormulaDate(rawDate);
       return date ? String(fn.toLowerCase() === 'dow' ? date.weekday : date.month) : '0';
     })
-    .replace(/\[val\]/gi, ' V ');
-  const functionNames = new Set(['min', 'max', 'len', 'checked', 'sumqty', 'round', 'abs', 'floor', 'ceil', 'sqrt', 'pow', 'sin', 'cos', 'tan', 'if', 'or', 'and']);
+    .replace(/\[val\]|\[x\]/gi, ' V ');
+  const functionNames = new Set(['min', 'max', 'len', 'checked', 'sumqty', 'round', 'abs', 'floor', 'ceil', 'sqrt', 'pow', 'sin', 'cos', 'tan', 'if', 'or', 'and', 'files', 'lookuptable']);
+  // WAPF split_formula_variables parity: top-level ';' separates arguments
+  // with bracket-depth awareness only (quote-blind — ';' inside quotes
+  // still splits) and a trailing separator yields no empty final argument.
   const splitArguments = (input) => {
     const parts = [];
     let start = 0;
     let depth = 0;
-    let quote = '';
     for (let index = 0; index < input.length; index++) {
       const char = input[index];
-      if (quote) {
-        if (char === quote && input[index - 1] !== '\\') quote = '';
-        continue;
-      }
-      if (char === "'" || char === '"') { quote = char; continue; }
       if (char === '(') depth++;
       else if (char === ')') depth--;
       else if (depth === 0 && (char === ';' || char === ',')) {
@@ -821,9 +830,99 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
         start = index + 1;
       }
     }
-    parts.push(input.slice(start).trim());
+    const last = input.slice(start).trim();
+    if (last !== '' || !parts.length) parts.push(last);
     return parts;
   };
+  // One WAPF variable rule (Fields::is_valid_rule parity). Subject 'qty'
+  // reads the line quantity; other subjects need a known field definition
+  // (or, when no defs were provided, a submitted value as stand-in — the
+  // documented OPF fallback matching the PHP port).
+  const variableRulePasses = (rule) => {
+    const subject = String(rule && rule.field != null ? rule.field : '');
+    const condition = String(rule && rule.condition != null ? rule.condition : '');
+    const ruleValue = rule && rule.value != null ? String(rule.value) : '';
+    let value = null;
+    if (subject === 'qty') {
+      value = qty;
+    } else {
+      const defs = ruleFields.length ? ruleFields : Object.keys(fieldValues || {}).map((key) => ({ id: key, type: '' }));
+      const def = defs.find((f) => String(f && f.id != null ? f.id : '').toLowerCase() === subject.toLowerCase());
+      if (!def) return false;
+      if (condition.indexOf('product_var') >= 0) {
+        const ids = ruleValue.split(',').map((v) => v.trim());
+        const inList = ids.includes(String(opts.productId != null ? opts.productId : (window.OPF_PRODUCT_ID || 0)));
+        return condition === 'product_var' ? inList : !inList;
+      }
+      if (condition.indexOf('patts') >= 0) {
+        const attributes = (opts.productAttributes || window.OPF_PRODUCT_ATTRIBUTES || {});
+        const has = ruleValue.split(',').some((pair) => {
+          const parts = pair.split('|');
+          const list = attributes['pa_' + parts[0]];
+          return Array.isArray(list) && (parts[1] === '*' || list.includes(parts[1]));
+        });
+        return condition === 'patts' ? has : !has;
+      }
+      const key = subject.toLowerCase();
+      if (!Object.prototype.hasOwnProperty.call(fieldValues || {}, key)) return false;
+      value = fieldValues[key];
+      if (value == null) return false;
+      if (String(def.type || '') === 'date' && ruleValue !== '') {
+        const ruleDate = resolveFormulaDate(ruleValue);
+        value = value !== '' && resolveFormulaDate(value) ? resolveFormulaDate(value).timestamp : value;
+        return variableDateCondition(condition, value, ruleDate ? ruleDate.timestamp : null);
+      }
+    }
+    switch (condition) {
+      case 'check': return String(value) === '1';
+      case '!check': return String(value) === '0';
+      case '==': return Array.isArray(value) ? value.includes(ruleValue) : String(value) === ruleValue;
+      case '!=': return Array.isArray(value) ? !value.includes(ruleValue) : String(value) !== ruleValue;
+      case 'empty': return (Array.isArray(value) && value.length === 0) || value === '' || value == null;
+      case '!empty': return !((Array.isArray(value) && value.length === 0) || value === '' || value == null);
+      case '==contains': return Array.isArray(value) ? value.includes(ruleValue) : String(value).indexOf(ruleValue) !== -1;
+      case '!=contains': return Array.isArray(value) ? !value.includes(ruleValue) : String(value).indexOf(ruleValue) === -1;
+      case 'lt': return parseFloat(value) < parseFloat(ruleValue);
+      case 'gt': return parseFloat(value) > parseFloat(ruleValue);
+      case 'gtd': return !!value && value > ruleValue;
+      case 'ltd': return !!value && value < ruleValue;
+      default: return false;
+    }
+  };
+  const variableDateCondition = (condition, value, ruleTimestamp) => {
+    if (ruleTimestamp == null) {
+      if (condition === '==') return [ruleTimestamp].includes ? [value].includes(ruleTimestamp) : false;
+      if (condition === '!=') return !(Array.isArray(value) ? value.includes(ruleTimestamp) : value === ruleTimestamp);
+      return false;
+    }
+    if (condition === '==') return !!value && value === ruleTimestamp;
+    if (condition === '!=') return !(!!value && value === ruleTimestamp);
+    if (condition === 'gtd') return !!value && value > ruleTimestamp;
+    if (condition === 'ltd') return !!value && value < ruleTimestamp;
+    return false;
+  };
+  // [var_name] tokens → evaluated numeric string; first matching rule wins;
+  // nested vars expand recursively (depth-capped where WAPF loops forever).
+  const expandVariables = (input, depth) => {
+    if (input.indexOf('[var_') === -1) return input;
+    if (depth > 16) return null;
+    const expanded = String(input).replace(/\[var_.+?]/g, (match) => {
+      const name = match.replace(/\[var_|]/g, '');
+      const variable = variables.find((candidate) => candidate && String(candidate.name) === name);
+      if (!variable) return '0';
+      let text = variable.default != null ? String(variable.default) : '';
+      for (const rule of Array.isArray(variable.rules) ? variable.rules : []) {
+        if (variableRulePasses(rule || {})) { text = rule.variable != null ? String(rule.variable) : ''; break; }
+      }
+      const nested = expandVariables(text, depth + 1);
+      if (nested == null) return '0';
+      const result = evalFormula(nested, price, qty, addons, val, fieldValues, todayOverride, fieldPrices, opts);
+      return String(Number.isFinite(result) ? result : 0);
+    });
+    return expanded;
+  };
+  const exprVars = expandVariables(expr, 0);
+  if (exprVars == null) return 0;
   const comparisonParts = (input) => {
     let depth = 0;
     let quote = '';
@@ -871,52 +970,100 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
       default: return false;
     }
   };
+  // Literal port of WAPF's browser evalFx residual evaluation: the
+  // reference strips every non-math character (letters too — unlike the PHP
+  // side which keeps e/E) and evaluates what remains; this is what WAPF's
+  // frontend emits for unregistered spellings like map()/reduce().
+  const wapfResidualEval = (text) => {
+    const parse = (num) => parseFloat(String(num).replace(',', '.'));
+    const inner = (raw) => {
+      let hadMulDiv = false;
+      let hadAddSub = false;
+      let n = 0;
+      let e = String(raw).replace(/[^\d.+\-*\/()]/gi, '');
+      if (e.indexOf('(') !== -1 && e.indexOf(')') !== -1) {
+        const paren = /\(([\d.+\-*\/]+)\)/;
+        const match = e.match(paren) || [];
+        if (match.length > 1) return inner(e.replace(paren, inner(match[1])));
+      }
+      e = e.replace('(', '').replace(')', '');
+      if (e.indexOf('/') !== -1 || e.indexOf('*') !== -1) {
+        hadMulDiv = true;
+        const ops = ['/', '*'];
+        while (ops.length) {
+          const op = ops.pop();
+          while (op && e.indexOf(op) !== -1) {
+            const re = new RegExp('([\\d.]+)\\' + op + '(\\-?[\\d.]+)');
+            const m = e.match(re) || [];
+            if (!(m.length > 2)) return 0;
+            n = op === '*' ? parse(m[1]) * parse(m[2]) : parse(m[1]) / parse(m[2]);
+            e = e.replace(re, n).replace('++', '+').replace('--', '+').replace('-+', '-').replace('+-', '-');
+          }
+        }
+      }
+      if (e.indexOf('+') !== -1 || e.indexOf('-') !== -1) {
+        hadAddSub = true;
+        const tokens = (e = e.replace('--', '+')).match(/([\d.]+|[+\-])/g) || [];
+        if (tokens.length > 0) {
+          n = 0;
+          let op = '+';
+          for (const token of tokens) {
+            if (token === '+' || token === '-') op = token;
+            else n = op === '+' ? n + parse(token) : n - parse(token);
+          }
+        }
+      }
+      return n = !hadMulDiv && !hadAddSub ? parse(e) : n;
+    };
+    return inner(text);
+  };
+  // WAPF lookuptable nearest-axis: JS reference uses a truthy exact-key hit,
+  // numeric-sorted keys, strictly-below-first clamping, round-up between
+  // keys, and undefined beyond the last (traversal then fails to 0).
+  const lookupNearestKey = (value, axis) => {
+    if (axis && axis['' + value]) return value;
+    const keys = Object.keys(axis || {}).map((key) => parseFloat(key)).sort((a, b) => a - b);
+    const numeric = parseFloat(value);
+    if (numeric < keys[0]) return keys[0];
+    for (let i = 0; i < keys.length; i++) {
+      if (numeric > keys[i] && numeric <= keys[i + 1]) return keys[i + 1];
+    }
+    return keys[keys.length];
+  };
   const expandFunctions = (input, depth = 0) => {
     if (depth > 16) return null;
     let output = '';
     let index = 0;
     while (index < input.length) {
       const char = input[index];
-      if (char === "'" || char === '"') {
-        const quote = char;
-        output += char;
-        index++;
-        while (index < input.length) {
-          output += input[index];
-          if (input[index] === quote && input[index - 1] !== '\\') { index++; break; }
-          index++;
-        }
-        continue;
-      }
       if (!/[a-z_]/i.test(char)) { output += char; index++; continue; }
       let end = index + 1;
       while (end < input.length && /[a-z0-9_]/i.test(input[end])) end++;
       const name = input.slice(index, end).toLowerCase();
       let open = end;
       while (open < input.length && /\s/.test(input[open])) open++;
-      if (!functionNames.has(name) || input[open] !== '(') {
+      if (input[open] !== '(') {
         output += input.slice(index, end);
         index = end;
         continue;
       }
       let close = open + 1;
       let nesting = 1;
-      let nestedQuote = '';
       for (; close < input.length; close++) {
         const innerChar = input[close];
-        if (nestedQuote) {
-          if (innerChar === nestedQuote && input[close - 1] !== '\\') nestedQuote = '';
-          continue;
-        }
-        if (innerChar === "'" || innerChar === '"') { nestedQuote = innerChar; continue; }
         if (innerChar === '(') nesting++;
         else if (innerChar === ')' && --nesting === 0) break;
       }
       if (nesting !== 0) return null;
       const expandedInner = expandFunctions(input.slice(open + 1, close), depth + 1);
       if (expandedInner === null) return null;
+      if (!functionNames.has(name)) {
+        output += String(wapfResidualEval(input.slice(index, end) + '(' + expandedInner + ')'));
+        index = close + 1;
+        continue;
+      }
       const args = splitArguments(expandedInner);
-      const number = (arg) => evalFormula(arg, price, qty, addons, val, fieldValues, todayOverride, fieldPrices);
+      const number = (arg) => evalFormula(arg, price, qty, addons, val, fieldValues, todayOverride, fieldPrices, opts);
       let result;
       switch (name) {
         case 'min': result = args.length ? Math.min(...args.map(number)) : 0; break;
@@ -963,13 +1110,65 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
         case 'if': result = args.length === 3 ? number(conditionPasses(args[0]) ? args[1] : args[2]) : NaN; break;
         case 'or': result = args.some(conditionPasses) ? 1 : 0; break;
         case 'and': result = args.every(conditionPasses) ? 1 : 0; break;
+        // WAPF files(id): the comma-joined upload list of the submitted
+        // field value; OPF upload arrays count their non-empty tokens.
+        case 'files': {
+          const fieldId = (args[0] || '').replace(/^['"]|['"]$/g, '').trim().toLowerCase();
+          const submitted = fieldValues ? fieldValues[fieldId] : undefined;
+          if (Array.isArray(submitted)) result = submitted.filter((item) => String(item == null ? '' : item).trim() !== '').length;
+          else result = String(submitted == null ? '' : submitted).trim() === '' ? 0 : String(submitted).split(',').length;
+          break;
+        }
+        // WAPF lookuptable(table;dim;…): <6-char args are literals, longer
+        // args resolve a field id's first submitted label; nearest-axis
+        // traversal mirrors views/frontend/lookup-tables.php (fail closed).
+        case 'lookuptable': {
+          result = 0;
+          try {
+            const tableName = String(args[0] == null ? '' : args[0]).trim();
+            const table = lookupTables[tableName];
+            if (!table || typeof table !== 'object') break;
+            const tableValues = [];
+            let prev = table;
+            let failed = false;
+            for (let k = 1; k < args.length; k++) {
+              const arg = String(args[k]).trim();
+              let v;
+              if (arg.length < 6) {
+                v = arg;
+              } else {
+                const fid = arg.toLowerCase();
+                if (!fieldValues || !Object.prototype.hasOwnProperty.call(fieldValues, fid)) { failed = true; break; }
+                v = formulaFieldLabel(fid, fieldValues);
+                if (v === '') { failed = true; break; }
+              }
+              if (prev == null || typeof prev !== 'object') { failed = true; break; }
+              const n = lookupNearestKey(v, prev);
+              if (n === undefined || n === null) { failed = true; break; }
+              tableValues.push(n);
+              prev = prev[n];
+            }
+            if (failed) break;
+            let leaf = table;
+            for (const key of tableValues) {
+              if (leaf == null || typeof leaf !== 'object' || !Object.prototype.hasOwnProperty.call(leaf, key)) { failed = true; break; }
+              leaf = leaf[key];
+            }
+            if (failed) break;
+            const numeric = Number(leaf);
+            result = Number.isFinite(numeric) ? numeric : 0;
+          } catch (lookupError) {
+            result = 0;
+          }
+          break;
+        }
       }
       output += Number.isFinite(result) ? String(result) : 'NaN';
       index = close + 1;
     }
     return output;
   };
-  const expandedExpr = expandFunctions(expr);
+  const expandedExpr = expandFunctions(exprVars);
   if (expandedExpr === null) return 0;
   const vars = { P: price, Q: qty, A: addons, V: parseFloat(val) || 0 };
   let i = 0;
