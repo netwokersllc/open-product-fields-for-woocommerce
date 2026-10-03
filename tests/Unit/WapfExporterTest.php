@@ -58,6 +58,27 @@ final class WapfExporterTest extends TestCase {
 		$this->assertSame( '!p_tags', $payload['conditions'][0]['rules'][1]['condition'] );
 	}
 
+	public function test_exports_canonical_imported_product_category_and_tag_placement_rules(): void {
+		$group = FieldGroup::normalize( [ 'rule_groups' => [ [ 'rules' => [
+			[ 'subject' => 'product_cat', 'operator' => 'in', 'terms' => [ '12' ] ],
+			[ 'subject' => 'product_tag', 'operator' => 'not_in', 'terms' => [ '34' ] ],
+		] ] ] ] );
+
+		$payload = WapfExporter::build_payload( $group );
+
+		$this->assertSame( 'product_cats', $payload['conditions'][0]['rules'][0]['condition'] );
+		$this->assertSame( '!p_tags', $payload['conditions'][0]['rules'][1]['condition'] );
+		$this->assertSame( [ '12' ], array_column( $payload['conditions'][0]['rules'][0]['value'], 'id' ) );
+		$this->assertSame( [ '34' ], array_column( $payload['conditions'][0]['rules'][1]['value'], 'id' ) );
+
+		$round_trip = WapfMapper::map( [ 'fields' => [], 'rule_groups' => $payload['conditions'] ] );
+		$this->assertFalse( $round_trip['needs_review'] );
+		$this->assertSame( 'product_cat', $round_trip['group']['rule_groups'][0]['rules'][0]['subject'] );
+		$this->assertSame( [ '12' ], $round_trip['group']['rule_groups'][0]['rules'][0]['terms'] );
+		$this->assertSame( 'product_tag', $round_trip['group']['rule_groups'][0]['rules'][1]['subject'] );
+		$this->assertSame( 'not_in', $round_trip['group']['rule_groups'][0]['rules'][1]['operator'] );
+	}
+
 	public function test_disabled_choices_round_trip_through_wapf_tools_payload(): void {
 		$payload = WapfExporter::build_payload( FieldGroup::normalize( [ 'fields' => [ [
 			'id' => 'finish', 'label' => 'Finish', 'type' => 'select',

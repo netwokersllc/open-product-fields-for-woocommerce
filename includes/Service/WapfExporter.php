@@ -432,7 +432,13 @@ final class WapfExporter {
 				'value' => [ [ 'id' => (string) $rule['terms'][0], 'text' => (string) $rule['terms'][0] ] ],
 			];
 		}
-		$subject_map = [ 'product' => 'products', 'category' => 'product_cats', 'tag' => 'p_tags' ];
+		$subject_map = [
+			'product'     => 'products',
+			'category'    => 'product_cats',
+			'product_cat' => 'product_cats',
+			'tag'         => 'p_tags',
+			'product_tag' => 'p_tags',
+		];
 		if ( ! isset( $subject_map[ $rule['subject'] ] ) || ! in_array( $rule['operator'], [ 'in', 'not_in' ], true ) || ! $rule['terms'] ) {
 			throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve a group placement rule.' );
 		}
