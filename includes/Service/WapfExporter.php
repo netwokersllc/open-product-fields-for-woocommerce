@@ -30,6 +30,8 @@ final class WapfExporter {
 		'subtype', 'product_selection', 'qty_method', 'product_query', 'display',
 		'slot_1', 'slot_2', 'slot_3', 'incl_img', 'incl_desc', 'img_fit',
 		'max_size', 'accepted_types',
+		// WAPF Extended `calc` options.
+		'calc_type', 'formula', 'result_format', 'result_text',
 	];
 
 	/**
@@ -206,7 +208,7 @@ final class WapfExporter {
 			'text' => 'text', 'textarea' => 'textarea', 'email' => 'email', 'url' => 'url',
 			'number' => 'number', 'date' => 'date', 'toggle' => 'true-false', 'select' => 'select', 'image_quantity' => 'image-swatch-qty',
 			'radio' => 'radio', 'checkbox' => 'checkboxes', 'swatch' => 'text-swatch', 'paragraph' => 'content', 'content_image' => 'img', 'section' => 'section', 'section_end' => 'sectionend',
-			'products' => 'products', 'upload' => 'file',
+			'products' => 'products', 'upload' => 'file', 'calc' => 'calc',
 		];
 		$type = $field['type'];
 		if ( 'paragraph' === $type && 'html' === ( $field['content_format'] ?? 'plain' ) ) {
@@ -282,6 +284,15 @@ final class WapfExporter {
 			if ( ! empty( $field['image_id'] ) ) {
 				$out['attachment'] = (int) $field['image_id'];
 			}
+		}
+		if ( 'calc' === $type ) {
+			// WAPF calc carries its formula in options, not in the pricing block.
+			$out['pricing'] = [ 'enabled' => false, 'type' => 'fixed', 'amount' => 0 ];
+			$formula = str_replace( '[addons]', '[options_total]', (string) ( $field['formula'] ?? '' ) );
+			$out['calc_type']     = in_array( $field['calc_type'] ?? 'default', [ 'default', 'cost' ], true ) ? $field['calc_type'] : 'default';
+			$out['formula']       = self::map_formula_references( $formula, $field_ids );
+			$out['result_format'] = 'none' === ( $field['result_format'] ?? 'number' ) ? 'none' : '';
+			$out['result_text']   = (string) ( $field['result_text'] ?? '{result}' );
 		}
 		if ( 'swatch' === $type && in_array( $out['type'], [ 'image-swatch', 'multi-image-swatch' ], true ) ) {
 			$out['large_image'] = ! empty( $field['image_zoom'] );

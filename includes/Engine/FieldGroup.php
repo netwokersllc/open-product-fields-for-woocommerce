@@ -27,7 +27,7 @@ final class FieldGroup {
 	/**
 	 * Supported field types.
 	 */
-	public const FIELD_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'image_quantity', 'upload', 'paragraph', 'content_image', 'section', 'section_end', 'products' ];
+	public const FIELD_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'image_quantity', 'upload', 'paragraph', 'content_image', 'section', 'section_end', 'products', 'calc' ];
 
 	/**
 	 * Linked-products subtypes (WAPF `products-*` field types).
@@ -458,6 +458,40 @@ final class FieldGroup {
 			}
 		}
 		$pricing = self::normalize_pricing( is_array( $field['pricing'] ?? null ) ? $field['pricing'] : [] );
+		$calc_type = 'default';
+		$calc_formula = '';
+		$calc_result_format = 'number';
+		$calc_result_text = '{result}';
+		if ( 'calc' === $type ) {
+			// WAPF Extended `calc`: an informational computed value (display
+			// only) or a `cost` calculation that enters the pricing pipeline as
+			// a signed formula addon. The formula may reference other fields via
+			// `[field.ID]`/`[price.ID]` and runs in the shared Evaluator space.
+			$raw_calc_type = (string) ( $field['calc_type'] ?? 'default' );
+			$calc_type = in_array( $raw_calc_type, [ 'default', 'cost' ], true ) ? $raw_calc_type : 'default';
+			$formula = is_scalar( $field['formula'] ?? null ) ? trim( (string) $field['formula'] ) : '';
+			// WAPF writes the line-space options total token; OPF's evaluator
+			// uses `[addons]` (identical expansion).
+			$formula = str_replace( '[options_total]', '[addons]', $formula );
+			$calc_formula = strlen( $formula ) <= 4096 ? $formula : '';
+			$raw_format = (string) ( $field['result_format'] ?? 'number' );
+			// WAPF's empty string means "format as number"; `none` is the
+			// explicit opt-out exposed by the editor.
+			$calc_result_format = 'none' === $raw_format ? 'none' : 'number';
+			$text = is_scalar( $field['result_text'] ?? null ) ? trim( (string) $field['result_text'] ) : '';
+			$calc_result_text = '' === $text ? '{result}' : $text;
+			// Cost calcs price through the existing signed-formula pipeline;
+			// default calcs never price. The formula is stored verbatim
+			// (formula === formula_raw) so the per-line WAPF fx semantics hold.
+			$pricing = 'cost' === $calc_type
+				? self::normalize_pricing( [
+					'type'        => 'formula',
+					'formula'     => $calc_formula,
+					'formula_raw' => $calc_formula,
+					'per_unit'    => false,
+				] )
+				: self::normalize_pricing( [] );
+		}
 
 		// Field ids become input name fragments and DOM hooks: restrict to a
 		// conservative slug charset regardless of the source.
@@ -554,6 +588,14 @@ final class FieldGroup {
 			$normalized['required'] = false;
 			$normalized['choices'] = [];
 			$normalized['pricing'] = self::normalize_pricing( [] );
+		}
+		if ( 'calc' === $type ) {
+			$normalized['required'] = false;
+			$normalized['choices'] = [];
+			$normalized['calc_type'] = $calc_type;
+			$normalized['formula'] = $calc_formula;
+			$normalized['result_format'] = $calc_result_format;
+			$normalized['result_text'] = $calc_result_text;
 		}
 		if ( 'upload' === $type ) {
 			$multiple = $field['multiple'] ?? false;
@@ -705,6 +747,12 @@ final class FieldGroup {
 		}
 		if ( 'section_end' === $type && $repeat ) {
 			throw new \InvalidArgumentException( 'A section-end marker cannot repeat.' );
+		}
+		if ( 'calc' === $type && $repeat ) {
+			// OPF's calc is computed per group; WAPF clone/repeat execution is
+			// not ported, so the repeat marker is dropped (the field still
+			// renders and computes once). WapfMapper flags this for review.
+			$repeat = [];
 		}
 		if ( $repeat ) {
 			$normalized['repeat'] = $repeat;

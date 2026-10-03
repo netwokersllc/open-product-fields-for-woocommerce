@@ -49,6 +49,10 @@ final class WapfMapper {
 		'section'        => 'section',
 		'sectionend'     => 'section_end',
 		'file'           => 'upload',
+		// WAPF Extended `calc`: informational or cost calculation. The mapper
+		// ports calc_type/formula/result_format/result_text (see
+		// map_calc_settings); a cost calc also becomes a signed formula price.
+		'calc'           => 'calc',
 		// Stored WAPF groups write type `products` with a separate `subtype`
 		// key; the `products-*` spellings cover payloads that flattened the
 		// subtype into the type name.
@@ -167,10 +171,11 @@ final class WapfMapper {
 			// not established by ordinary image-quantity sumQty parity.
 			$sumqty_references = $unrepeated_by_index[ $index ] ? $sumqty_safe_wapf_ids : [];
 
-			if ( in_array( $mapped_type, [ 'upload', 'products' ], true ) && ! empty( $inside_repeated_section_by_index[ $index ] ) ) {
-				// FieldGroup rejects these types inside repeated sections; WAPF
-				// itself cannot render them there either, so the field is dropped
-				// like an unsupported type instead of failing the whole group.
+			if ( in_array( $mapped_type, [ 'upload', 'products', 'calc' ], true ) && ! empty( $inside_repeated_section_by_index[ $index ] ) ) {
+				// FieldGroup rejects these types inside repeated sections (calc
+				// is computed once per group), and WAPF clone propagation is not
+				// ported, so the field is dropped like an unsupported type
+				// instead of failing the whole group at cart time.
 				$notes[] = sprintf( 'field "%s" is a %s field inside a repeated section; OPF does not support that placement and the field was dropped.', $label, $mapped_type );
 				$needs_review = true;
 				continue;
@@ -214,6 +219,12 @@ final class WapfMapper {
 				$repeat = [];
 			}
 			$date_settings = 'date' === $wapf_type ? self::map_date_settings( $wapf_field, $notes, $needs_review ) : [];
+			$calc_settings = 'calc' === $wapf_type ? self::map_calc_settings( $wapf_field, $notes, $needs_review, $opf_ids_by_wapf_id, $source_order_by_wapf_id, (int) $index, $sumqty_references ) : [];
+			$clone_disabled = in_array( $wapf_field['clone']['enabled'] ?? false, [ false, 0, '0', 'false', null ], true );
+			if ( 'calc' === $wapf_type && ! $clone_disabled ) {
+				$notes[] = sprintf( 'calc field "%s" uses WAPF clone/repeat behavior; OPF computes it once per group and the repeat marker was dropped.', $label );
+				$needs_review = true;
+			}
 			$upload_settings = 'upload' === $mapped_type ? self::map_upload_settings( $wapf_field, $notes, $needs_review ) : [];
 			$products_settings = 'products' === $mapped_type ? self::map_products_settings( $wapf_field, $notes, $needs_review ) : [];
 			$toggle_settings = [];
@@ -267,7 +278,7 @@ final class WapfMapper {
 					// the import verbatim; Calculator::field_weight substitutes
 					// [qty]/[x] and floatvals exactly like WAPF 3.1.5.
 					'weight' => self::map_weight( $wapf_field ),
-				], $image_swatch_settings, $color_swatch_settings, $selection_limits, $checkbox_limits, $text_validation, $quantity_limits, $date_settings, $upload_settings, $products_settings, $toggle_settings, $text_settings )
+				], $image_swatch_settings, $color_swatch_settings, $selection_limits, $checkbox_limits, $text_validation, $quantity_limits, $date_settings, $calc_settings, $upload_settings, $products_settings, $toggle_settings, $text_settings )
 			);
 			if ( 'paragraph' === $field['type'] ) {
 				if ( ! empty( $wapf_field['required'] ) ) {
@@ -415,6 +426,53 @@ final class WapfMapper {
 	}
 
 	/** Map WAPF Extended date constraints supported by the OPF date schema. */
+	/**
+	 * Map a WAPF Extended `calc` field.
+	 *
+	 * `calc_type` selects informational vs cost pricing; `formula` is remapped
+	 * to OPF field ids through the shared formula-reference remapper so
+	 * dependencies resolve in either field order. Only genuinely unportable
+	 * formula references flag the import for review.
+	 *
+	 * @param array<string,mixed> $wapf_field              WAPF field.
+	 * @param string[]            $sumqty_safe_wapf_ids    Source ids whose sumQty() maps 1:1.
+	 * @return array<string,mixed> Calc settings merged into the normalized field.
+	 */
+	private static function map_calc_settings( array $wapf_field, array &$notes, bool &$needs_review, array $opf_ids_by_wapf_id, array $source_order_by_wapf_id, int $current_order, array $sumqty_safe_wapf_ids ): array {
+		$options = is_array( $wapf_field['options'] ?? null ) ? $wapf_field['options'] : [];
+		$label   = (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' );
+
+		$raw_type = (string) ( $options['calc_type'] ?? $wapf_field['calc_type'] ?? 'default' );
+		$type     = in_array( $raw_type, [ 'default', 'cost' ], true ) ? $raw_type : 'default';
+		if ( '' !== $raw_type && ! in_array( $raw_type, [ 'default', 'cost' ], true ) ) {
+			$notes[]      = sprintf( 'calc field "%s" has unknown calc_type "%s"; imported as an informational calculation.', $label, $raw_type );
+			$needs_review = true;
+		}
+
+		$formula = (string) ( $options['formula'] ?? $wapf_field['formula'] ?? '' );
+		$formula = str_replace( '[options_total]', '[addons]', trim( $formula ) );
+		if ( '' !== $formula ) {
+			$mapped = self::map_formula_references( $formula, $opf_ids_by_wapf_id, $notes, $needs_review, $label, $source_order_by_wapf_id, $current_order, $sumqty_safe_wapf_ids, 'calc' );
+			// A formula with dangling references fails closed to a literal zero
+			// rather than dropping the whole field; the note above flags review.
+			$formula = null === $mapped ? '0' : $mapped;
+		}
+
+		$raw_format = (string) ( $options['result_format'] ?? $wapf_field['result_format'] ?? 'number' );
+		if ( ! in_array( $raw_format, [ '', 'none', 'number' ], true ) ) {
+			$notes[]      = sprintf( 'calc field "%s" has unknown result_format "%s"; imported as a formatted number.', $label, $raw_format );
+			$needs_review = true;
+		}
+		$text = (string) ( $options['result_text'] ?? $wapf_field['result_text'] ?? '' );
+
+		return [
+			'calc_type'     => $type,
+			'formula'       => $formula,
+			'result_format' => 'none' === $raw_format ? 'none' : 'number',
+			'result_text'   => '' === trim( $text ) ? '{result}' : $text,
+		];
+	}
+
 	private static function map_date_settings( array $wapf_field, array &$notes, bool &$needs_review ): array {
 		$options = is_array( $wapf_field['options'] ?? null ) ? $wapf_field['options'] : [];
 		$label = (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' );

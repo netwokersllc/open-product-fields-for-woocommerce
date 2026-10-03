@@ -176,6 +176,25 @@ namespace OPF\Tests\Unit {
 			$this->assertSame( [ false, true, true ], [ $wapf['hide_cart'], $wapf['hide_checkout'], $wapf['hide_order'] ] );
 		}
 
+		public function test_calc_field_renders_raw_input_and_display_hooks(): void {
+			$group = $this->group( [ [
+				'id'            => 'total',
+				'type'          => 'calc',
+				'label'         => 'Total',
+				'calc_type'     => 'cost',
+				'formula'       => '[field.rate] * 2',
+				'result_text'   => 'Total: {result}',
+			] ] );
+
+			$html = $this->html( $group );
+			$this->assertStringContainsString( 'data-opf-calc="1"', $html );
+			$this->assertStringContainsString( 'data-opf-calc-type="cost"', $html );
+			$this->assertStringContainsString( 'data-opf-calc-text="Total: {result}"', $html );
+			$this->assertStringContainsString( 'class="opf-calc-text"', $html );
+			$this->assertStringContainsString( 'class="opf-input opf-calc-raw input-total"', $html );
+			$this->assertStringContainsString( 'name="opf[17][total]"', $html );
+		}
+
 		// Note: render_totals() DOM-per-mode coverage lives in the disposable
 		// browser proof (bin/e2e-display-storefront.mjs) — the shared unit
 		// suite cannot guarantee a WC_Product stub exposing get_type().

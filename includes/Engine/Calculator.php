@@ -123,6 +123,45 @@ final class Calculator {
 	}
 
 	/**
+	 * Evaluate a WAPF Extended `calc` field's formula in pricing context.
+	 *
+	 * The informational and cost variants share the expression; only `cost`
+	 * additionally feeds the result into `field_addon`. Reuses the single
+	 * sandboxed Evaluator (no second engine).
+	 *
+	 * @param array<string,mixed> $field   Normalized calc field.
+	 * @param array<string,mixed> $context Pricing context (price/qty/addons/field_values/...).
+	 * @return float Signed computed value (0.0 when the formula is empty/invalid).
+	 */
+	public static function calc_value( array $field, array $context = [] ): float {
+		if ( 'calc' !== ( $field['type'] ?? '' ) ) {
+			return 0.0;
+		}
+		$formula = (string) ( $field['formula'] ?? '' );
+		if ( '' === trim( $formula ) ) {
+			return 0.0;
+		}
+		$options = array_intersect_key( $context, array_flip( [ 'variables', 'fields', 'lookup_tables' ] ) );
+		$field_values = is_array( $context['field_values'] ?? null ) ? $context['field_values'] : [];
+		$field_prices = is_array( $context['field_prices'] ?? null ) ? $context['field_prices'] : [];
+		$field_labels = is_array( $context['field_labels'] ?? null ) ? $context['field_labels'] : [];
+		$value = is_scalar( $context['value'] ?? null ) ? (string) $context['value'] : '';
+		return self::evaluate_formula(
+			$formula,
+			(float) ( $context['price'] ?? 0.0 ),
+			max( 1, (int) ( $context['qty'] ?? 1 ) ),
+			(float) ( $context['addons'] ?? 0.0 ),
+			$value,
+			null,
+			$field_values,
+			(int) ( $context['product_id'] ?? 0 ),
+			$field_prices,
+			$field_labels,
+			$options
+		);
+	}
+
+	/**
 	 * Does this pricing block scale with line quantity? Explicit flags win;
 	 * otherwise WAPF-type defaults: percent scales, fixed/formula are flat.
 	 *

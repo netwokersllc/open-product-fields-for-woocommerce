@@ -520,6 +520,10 @@ const init = () => {
 		const gid = groupEl.getAttribute( 'data-opf-group' );
 		const registry = REGISTRY[ gid ] || {};
 		const readInstanceValue = ( instance, def ) => {
+			if ( 'calc' === def.type ) {
+				const raw = instance.querySelector( '.opf-calc-raw' );
+				return raw ? raw.value : '';
+			}
 			if ( 'upload' === def.type ) return Array.from( instance.querySelectorAll( '[data-opf-upload-token]' ), ( input ) => input.value );
 			if ( 'image_quantity' === def.type ) {
 				const quantities = {};
@@ -748,6 +752,7 @@ const init = () => {
 
 			values[ fid ] = readFieldValue( fieldEl, fieldDefs[ fid ] );
 		} );
+		syncCalcFields();
 		updateRequiredRepeaters();
 		fields.forEach( ( fieldEl ) => {
 			if ( fieldEl.matches( '[data-opf-repeat="button"], [data-opf-repeat="quantity"]' ) ) {
@@ -1023,6 +1028,15 @@ const init = () => {
 			if ( input.type === 'radio' || input.type === 'checkbox' ) {
 				syncChecked();
 			}
+			// Recompute calc fields against the just-changed value before the
+			// conditional pass so calc subjects resolve in the same tick.
+			syncCalcFields();
+			groupEl.querySelectorAll( '[data-opf-field]' ).forEach( ( calcEl ) => {
+				const calcId = calcEl.getAttribute( 'data-opf-field' );
+				if ( fieldDefs[ calcId ] && 'calc' === fieldDefs[ calcId ].type ) {
+					values[ calcId ] = readFieldValue( calcEl, fieldDefs[ calcId ] );
+				}
+			} );
 			updateRequiredRepeaters();
 			refresh();
 			// WAPF evaluates gallery rules on every field change (and again on
@@ -1330,7 +1344,10 @@ const fieldSwapUrl = ( groupEl ) => {
 if ( document.readyState === 'loading' ) {
 	document.addEventListener( 'DOMContentLoaded', init );
 } else {
-	init();
+	// ES modules evaluate while readyState is already interactive; defer so
+	// every later top-level const (evaluator/pricing helpers consumed by the
+	// calc sync pass) is initialized before init() runs.
+	setTimeout( init, 0 );
 }
 
 // ---------------------------------------------------------------------------
@@ -1937,6 +1954,184 @@ const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}
   return choiceUnitAddon(def.pricing || {}, base, qty, addons, val, fieldValues, fieldPrices, formulaBase, qtyBased, formulaOptions);
 };
 
+// ---------------------------------------------------------------------------
+// WAPF Extended `calc` fields. Informational (`default`) calcs render a live
+// formula result; `cost` calcs also enter the pricing pipeline as signed
+// formula add-ons (the same normalized `def.pricing` formula the server
+// evaluates). Dependencies may point at calc fields in either order; a cycle
+// fails closed (empty raw value, no display, no price, cannot satisfy a
+// downstream condition). Reuses the single browser Evaluator (evalFormula).
+
+const calcDependencies = (formula) => {
+  const deps = new Set();
+  const text = String(formula || '');
+  text.replace(/\[(field|price)\.([a-z0-9_-]+)\]/gi, (_, _kind, id) => {
+    deps.add(String(id).toLowerCase());
+    return '';
+  });
+  text.replace(/\b(?:checked|files|sumqty)\s*\(\s*([a-z0-9_-]+)\s*\)/gi, (_, id) => {
+    deps.add(String(id).toLowerCase());
+    return '';
+  });
+  return deps;
+};
+
+const formatCalcNumber = (value, format) => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '0';
+  if (format === 'none') return String(n);
+  const o = (window.opf_config || {}).display_options || {};
+  const decimals = typeof o.decimals === 'number' ? o.decimals : 2;
+  const thousand = typeof o.thousand === 'string' ? o.thousand : ',';
+  const decimal = typeof o.decimal === 'string' ? o.decimal : '.';
+  const fixed = n.toFixed(decimals);
+  const negative = fixed.charAt(0) === '-';
+  const [intPart, fracPart] = (negative ? fixed.slice(1) : fixed).split('.');
+  const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, thousand);
+  return (negative ? '-' : '') + (decimals > 0 ? grouped + decimal + fracPart : grouped);
+};
+
+const formatCalcDisplay = (def, result) => {
+  const formatted = String(def && def.calc_type) === 'cost'
+    ? fmtMoney(Number(result) || 0)
+    : formatCalcNumber(result, def && def.result_format);
+  const template = def && def.result_text && String(def.result_text).trim() ? String(def.result_text) : '{result}';
+  return template.replace(/\{result\}/g, formatted).trim();
+};
+
+// Pure dependency resolver shared by the DOM sync pass and the JS tests.
+const resolveCalcValues = (defs, values, ctx = {}) => {
+  const ids = Object.keys(defs).filter((id) => defs[id] && defs[id].type === 'calc');
+  const calcSet = new Set(ids);
+  const deps = {};
+  ids.forEach((id) => {
+    deps[id] = new Set();
+    calcDependencies(defs[id].formula).forEach((dep) => {
+      // Self-references are cycles too: a calc may not consume its own result.
+      if (calcSet.has(dep)) deps[id].add(dep);
+    });
+  });
+  const state = {};
+  const invalid = new Set();
+  const topo = [];
+  const visit = (id) => {
+    if (state[id] === 1) { invalid.add(id); return false; }
+    if (state[id] === 2) return !invalid.has(id);
+    state[id] = 1;
+    let ok = true;
+    deps[id].forEach((dep) => { if (!visit(dep)) ok = false; });
+    state[id] = 2;
+    if (!ok) invalid.add(id);
+    topo.push(id);
+    return ok;
+  };
+  ids.forEach(visit);
+
+  const fieldValues = Object.assign({}, values);
+  const fieldPrices = Object.assign({}, ctx.fieldPrices || {});
+  const results = {};
+  topo.forEach((id) => {
+    if (invalid.has(id)) {
+      results[id] = { raw: '', display: '', invalid: true };
+      fieldValues[id] = '';
+      return;
+    }
+    const def = defs[id];
+    const result = evalFormula(
+      def.formula || '0',
+      Number.isFinite(Number(ctx.base)) ? Number(ctx.base) : 0,
+      Math.max(1, parseInt(ctx.qty, 10) || 1),
+      Number(ctx.addons) || 0,
+      '',
+      fieldValues,
+      null,
+      fieldPrices,
+      ctx.options || {}
+    );
+    const raw = Number.isFinite(Number(result)) ? String(Number(result)) : '0';
+    results[id] = { raw, display: formatCalcDisplay(def, result), invalid: false };
+    fieldValues[id] = raw;
+    if (def.calc_type === 'cost') fieldPrices[id] = raw;
+  });
+  return { results, order: topo, invalid };
+};
+
+const readCalcControl = (fieldEl, def) => {
+  if (def && def.type === 'calc') {
+    const raw = fieldEl.querySelector('.opf-calc-raw');
+    return raw ? raw.value : '';
+  }
+  const checked = fieldEl.querySelector('input:checked');
+  const input = checked || fieldEl.querySelector('input:not([type="hidden"]), textarea, select');
+  return input ? input.value : '';
+};
+
+// Recompute every calc field on the page in dependency order, writing the raw
+// result (submitted value + condition subject) and the templated display.
+const syncCalcFields = () => {
+  document.querySelectorAll('[data-opf-group]').forEach((groupEl) => {
+    const gid = groupEl.getAttribute('data-opf-group');
+    const registry = REGISTRY[gid] || {};
+    const fieldEls = Array.from(groupEl.querySelectorAll('[data-opf-field]'));
+    const defs = {};
+    const values = {};
+    const labels = {};
+    fieldEls.forEach((fieldEl) => {
+      const id = fieldEl.getAttribute('data-opf-field');
+      const def = registry[id] || {};
+      defs[id] = def;
+      values[id] = fieldEl.hasAttribute('hidden') ? '' : readCalcControl(fieldEl, def);
+      if (Array.isArray(def.choices)) {
+        const map = {};
+        def.choices.forEach((c) => { if (c && c.slug != null && c.label != null) map[String(c.slug)] = String(c.label); });
+        if (Object.keys(map).length) labels[String(id).toLowerCase()] = map;
+      }
+    });
+    if (!Object.keys(defs).some((id) => defs[id] && defs[id].type === 'calc')) return;
+    values.__opf_labels = labels;
+
+    const qtyInput = document.querySelector('form.cart input[name="quantity"], form.cart .qty');
+    const qty = Math.max(1, parseInt(qtyInput && qtyInput.value, 10) || 1);
+    const config = window.opf_config || {};
+    const base = Number.isFinite(Number(config.product_base_price))
+      ? Number(config.product_base_price)
+      : (parseFloat(groupEl.getAttribute('data-opf-product-price')) || 0);
+    const formulaBase = Number.isFinite(Number(config.formula_base_price)) ? Number(config.formula_base_price) : base;
+
+    // Approximate [addons]/[options_total] context: sum visible non-calc
+    // priced fields (per-unit), independent of declaration order.
+    let addons = 0;
+    const fieldPrices = {};
+    fieldEls.forEach((fieldEl) => {
+      const id = fieldEl.getAttribute('data-opf-field');
+      const def = defs[id];
+      if (!def || def.type === 'calc' || fieldEl.hasAttribute('hidden')) return;
+      const v = readCalcControl(fieldEl, def);
+      const pu = choiceOrFieldAddon(def, v, base, qty, addons, typeof v === 'string' ? v : '', values, fieldPrices, formulaBase, false);
+      fieldPrices[id] = pu;
+      addons += pu;
+    });
+
+    const resolved = resolveCalcValues(defs, values, {
+      base, qty, addons, formulaBase, fieldPrices,
+      options: { fields: Object.keys(defs).map((id) => Object.assign({ id }, defs[id])) },
+    });
+
+    fieldEls.forEach((fieldEl) => {
+      const id = fieldEl.getAttribute('data-opf-field');
+      const def = defs[id];
+      if (!def || def.type !== 'calc') return;
+      const entry = resolved.results[id] || { raw: '', display: '', invalid: true };
+      const hidden = fieldEl.hasAttribute('hidden');
+      const raw = hidden || entry.invalid ? '' : entry.raw;
+      const rawInput = fieldEl.querySelector('.opf-calc-raw');
+      const textEl = fieldEl.querySelector('.opf-calc-text');
+      if (rawInput) rawInput.value = raw;
+      if (textEl) textEl.textContent = hidden ? '' : entry.display;
+      values[id] = raw;
+    });
+  });
+};
 
 // WAPF custom variables for one rendered group. The client registry carries
 // them (`__opf_variables`) and the field defs rules resolve against
@@ -1955,6 +2150,7 @@ const groupFormulaOptions = (groupEl, gid) => {
 };
 
 const writeTotals = () => {
+  syncCalcFields();
   const totalsEl = document.querySelector('.opf-product-totals, .wapf-product-totals');
   if (!totalsEl) return;
   const config = window.opf_config || {};
@@ -2041,6 +2237,10 @@ const writeTotals = () => {
     // (and integrations that only copy the attribute) still resolve [var_*].
     const formulaOptions = groupFormulaOptions(groupEl, gid);
     const readControlValue = (element, def) => {
+      if (def.type === 'calc') {
+        const raw = element.querySelector('.opf-calc-raw');
+        return raw ? raw.value : '';
+      }
       if (def.type === 'image_quantity') {
         const quantities = {};
         element.querySelectorAll('.opf-image-quantity__input').forEach((input) => { quantities[input.dataset.choiceSlug] = Math.max(0, parseInt(input.value, 10) || 0); });
@@ -2097,6 +2297,10 @@ const writeTotals = () => {
           const rowInput = rowChecked || row.querySelector('input:not([type=hidden]), textarea, select');
           return rowInput ? rowInput.value : '';
         });
+      } else if (fieldDef.type === 'calc') {
+        // syncCalcFields() has already written the current computed raw value.
+        const raw = fieldEl.querySelector('.opf-calc-raw');
+        values[fid] = fieldEl.hasAttribute('hidden') ? '' : (raw ? raw.value : '');
       } else if (fieldDef.type === 'image_quantity') {
         const quantities = {};
         fieldEl.querySelectorAll('.opf-image-quantity__input').forEach((input) => { quantities[input.dataset.choiceSlug] = Math.max(0, parseInt(input.value, 10) || 0); });
@@ -2303,7 +2507,7 @@ const initTotals = () => {
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initTotals);
 } else {
-  initTotals();
+  setTimeout(initTotals, 0);
 }
 
 // Tooltip-triggered descriptions (description_presentation=tooltip).

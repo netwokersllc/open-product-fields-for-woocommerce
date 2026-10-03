@@ -43,6 +43,7 @@ final class Renderer {
 		'upload' => 'file',
 		'paragraph' => 'content',
 		'content_image' => 'content-image',
+		'calc' => 'calc',
 	];
 
 	/**
@@ -312,6 +313,12 @@ final class Renderer {
 						'per_unit' => ! empty( $field['pricing']['per_unit'] ),
 					],
 				];
+				if ( 'calc' === $field['type'] ) {
+					$registry[ $gid ][ $field['id'] ]['calc_type']     = $field['calc_type'] ?? 'default';
+					$registry[ $gid ][ $field['id'] ]['formula']       = (string) ( $field['formula'] ?? '' );
+					$registry[ $gid ][ $field['id'] ]['result_format'] = $field['result_format'] ?? 'number';
+					$registry[ $gid ][ $field['id'] ]['result_text']   = (string) ( $field['result_text'] ?? '{result}' );
+				}
 			}
 		}
 		return $registry;
@@ -1294,6 +1301,17 @@ final class Renderer {
 		$shared .= self::text_validation_attrs( $field );
 
 		switch ( $field['type'] ) {
+			case 'calc':
+				$calc_type     = (string) ( $field['calc_type'] ?? 'default' );
+				$calc_formula  = (string) ( $field['formula'] ?? '' );
+				$calc_format   = (string) ( $field['result_format'] ?? 'number' );
+				$calc_text     = (string) ( $field['result_text'] ?? '{result}' );
+				$seed          = isset( $field['_opf_prefill'] ) && is_scalar( $field['_opf_prefill'] ) ? (string) $field['_opf_prefill'] : '';
+				echo '<div class="opf-calc" data-opf-calc="1" data-opf-calc-type="' . esc_attr( $calc_type ) . '" data-opf-calc-format="' . esc_attr( $calc_format ) . '" data-opf-calc-text="' . esc_attr( $calc_text ) . '" data-opf-calc-formula="' . esc_attr( $calc_formula ) . '">';
+				echo '<span class="opf-calc-text" aria-live="polite"></span>';
+				echo '<input type="hidden" value="' . esc_attr( $seed ) . '" data-field-id="' . esc_attr( $fid ) . '" id="opf-' . esc_attr( $gid . '-' . $fid ) . '" name="' . esc_attr( $name ) . '" class="opf-input opf-calc-raw input-' . esc_attr( $fid ) . '" data-opf-calc-raw="1" />';
+				echo '</div>';
+				break;
 			case 'upload':
 				$modern = Uploads::modern();
 				// Cart-edit: the line's session-owned tokens come back as
@@ -1642,6 +1660,11 @@ final class Renderer {
 			case 'number':
 			case 'textarea':
 				$field['default'] = is_scalar( $value ) ? (string) $value : '';
+				break;
+			case 'calc':
+				// Cart-edit prefill: the previously computed raw value seeds the
+				// hidden input; the client recomputes it on load.
+				$field['_opf_prefill'] = is_scalar( $value ) ? (string) $value : '';
 				break;
 			case 'date':
 				// render_input emits `_opf_prefill` for date (the authored

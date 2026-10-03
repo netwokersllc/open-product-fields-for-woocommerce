@@ -885,6 +885,9 @@ final class CartIntegration {
 			}
 			return implode( ', ', $map );
 		}
+		if ( 'calc' === $field['type'] ) {
+			return self::display_calc( $field, $raw );
+		}
 		if ( 'date' === $field['type'] ) {
 			return DateFormat::format( (string) $raw, DateFormat::configured() );
 		}
@@ -908,6 +911,49 @@ final class CartIntegration {
 			return implode( ', ', $labels );
 		}
 		return (string) $raw;
+	}
+
+	/**
+	 * Render a stored calc result through its WAPF `result_text`/`result_format`
+	 * template. `cost` calcs display as currency; informational calcs honor the
+	 * number-formatted or unformatted result.
+	 *
+	 * @param array<string,mixed> $field Normalized calc field.
+	 * @param mixed               $raw   Stored raw numeric result.
+	 */
+	private static function display_calc( array $field, $raw ): string {
+		$result = is_numeric( $raw ) ? (float) $raw : 0.0;
+		$formatted = self::format_calc_result( $field, $result );
+		$text = (string) ( $field['result_text'] ?? '{result}' );
+		if ( '' === trim( $text ) ) {
+			$text = '{result}';
+		}
+		return trim( str_replace( '{result}', $formatted, $text ) );
+	}
+
+	/**
+	 * Format one calc result. Cost calcs use the store currency (wc_price when
+	 * available); informational calcs use the configured price decimals or the
+	 * verbatim value for `result_format=none` (WAPF formatNumber parity).
+	 *
+	 * @param array<string,mixed> $field  Normalized calc field.
+	 * @param float               $result Computed result.
+	 */
+	private static function format_calc_result( array $field, float $result ): string {
+		if ( 'cost' === (string) ( $field['calc_type'] ?? 'default' ) ) {
+			if ( function_exists( 'wc_price' ) ) {
+				$html = \wc_price( $result );
+				return function_exists( 'html_entity_decode' ) ? html_entity_decode( wp_strip_all_tags( (string) $html ), ENT_QUOTES, 'UTF-8' ) : wp_strip_all_tags( (string) $html );
+			}
+			$decimals = function_exists( 'wc_get_price_decimals' ) ? \wc_get_price_decimals() : 2;
+			return number_format( $result, $decimals, '.', ',' );
+		}
+		if ( 'none' === ( $field['result_format'] ?? 'number' ) ) {
+			$plain = rtrim( rtrim( number_format( $result, 10, '.', '' ), '0' ), '.' );
+			return '' === $plain || '-' === $plain ? '0' : $plain;
+		}
+		$decimals = function_exists( 'wc_get_price_decimals' ) ? \wc_get_price_decimals() : 2;
+		return number_format( $result, $decimals, '.', ',' );
 	}
 
 	/**
@@ -1168,6 +1214,19 @@ final class CartIntegration {
 		}
 		if ( 'upload' === $field['type'] ) {
 			return Uploads::tokens( $value );
+		}
+		if ( 'calc' === $field['type'] ) {
+			// The submitted value is the client-computed raw result. Keep a
+			// bounded canonical numeric string; forged non-numeric payloads
+			// drop the field entirely (fail closed).
+			if ( is_array( $value ) ) {
+				return null;
+			}
+			$raw = trim( (string) $value );
+			if ( '' === $raw || ! is_numeric( $raw ) ) {
+				return null;
+			}
+			return (string) ( 0 + $raw );
 		}
 		if ( in_array( $field['type'], [ 'url', 'email' ], true ) ) {
 			// Validate the submitted scalar itself without stripping malformed

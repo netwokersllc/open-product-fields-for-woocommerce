@@ -42,7 +42,7 @@
 	model.fields = model.fields || [];
 	model.rule_groups = model.rule_groups || [];
 
-	var TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'upload', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'image_quantity', 'products', 'paragraph', 'content_image', 'section', 'section_end' ];
+	var TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'upload', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'image_quantity', 'products', 'paragraph', 'content_image', 'section', 'section_end', 'calc' ];
 	var PRICING = [ 'none', 'fixed', 'percent', 'formula' ];
 	var REPEATABLE_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch' ];
 	// Accepted-type choices mirror WAPF Extended's `accept` option, which lists
@@ -931,7 +931,7 @@
 	}
 
 	function fieldCard( field, index ) {
-		if ( [ 'paragraph', 'content_image', 'section', 'section_end' ].includes( field.type ) ) {
+		if ( [ 'paragraph', 'content_image', 'section', 'section_end', 'calc' ].includes( field.type ) ) {
 			field.required = false;
 			field.choices = [];
 			field.pricing = { type: 'none', amount: 0, formula: '' };
@@ -960,7 +960,7 @@
 				field.qty_method = field.qty_method || 'one';
 				delete field.repeat;
 			}
-			if ( [ 'paragraph', 'content_image', 'section', 'section_end' ].includes( field.type ) ) {
+			if ( [ 'paragraph', 'content_image', 'section', 'section_end', 'calc' ].includes( field.type ) ) {
 				field.required = false;
 				field.choices = [];
 				field.pricing = { type: 'none', amount: 0, formula: '' };
@@ -972,6 +972,15 @@
 				if ( null === field.max_size || undefined === field.max_size ) field.max_size = 1;
 				if ( ! Array.isArray( field.accepted_types ) ) field.accepted_types = field.accepted_types ? [ field.accepted_types ] : [];
 			}
+			if ( 'calc' === field.type ) {
+				field.required = false;
+				field.choices = [];
+				field.pricing = { type: 'none', amount: 0, formula: '' };
+				field.calc_type = field.calc_type || 'default';
+				field.formula = field.formula || '';
+				field.result_format = field.result_format || 'number';
+				field.result_text = field.result_text || '{result}';
+			}
 			if ( in_array( field.type, [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ] ) && ! field.choices.length ) {
 				field.choices = [ { slug: 'option-1', label: sprintf( /* translators: %d: choice number. */ __( 'Option %d', 'open-product-fields-for-woocommerce' ), 1 ), selected: false, disabled: false, quantity: { default: 0, min: 0, max: 999999 }, pricing: { type: 'none', amount: 0, formula: '' } } ];
 			}
@@ -979,8 +988,8 @@
 		} );
 
 		var req = el( 'input', { type: 'checkbox', title: __( 'Required', 'open-product-fields-for-woocommerce' ) } );
-		req.checked = ! [ 'image_quantity', 'paragraph', 'content_image', 'section', 'section_end' ].includes( field.type ) && !! field.required;
-		req.disabled = [ 'image_quantity', 'paragraph', 'content_image', 'section', 'section_end' ].includes( field.type );
+		req.checked = ! [ 'image_quantity', 'calc', 'paragraph', 'content_image', 'section', 'section_end' ].includes( field.type ) && !! field.required;
+		req.disabled = [ 'image_quantity', 'calc', 'paragraph', 'content_image', 'section', 'section_end' ].includes( field.type );
 		req.addEventListener( 'change', function () {
 			field.required = req.checked;
 		} );
@@ -1167,6 +1176,38 @@
 			card.appendChild( chooseContentImage );
 		}
 
+		if ( 'calc' === field.type ) {
+			field.calc_type = field.calc_type || 'default';
+			field.formula = field.formula || '';
+			field.result_format = field.result_format || 'number';
+			field.result_text = field.result_text || '{result}';
+			var calcSettings = el( 'div', { class: 'opf-b-calc-settings' } );
+			var calcType = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Calculation type', 'open-product-fields-for-woocommerce' ) }, [
+				el( 'option', { value: 'default', text: __( 'Informational calculation', 'open-product-fields-for-woocommerce' ) } ),
+				el( 'option', { value: 'cost', text: __( 'Cost calculation (adjusts price)', 'open-product-fields-for-woocommerce' ) } ),
+			] );
+			calcType.value = field.calc_type;
+			calcType.addEventListener( 'change', function () { field.calc_type = calcType.value; rerender(); } );
+			var calcFormula = el( 'input', { class: 'opf-b-input', type: 'text', value: field.formula || '', placeholder: '([field.price] + [field.qty]) * 0.2', 'aria-label': __( 'Formula', 'open-product-fields-for-woocommerce' ) } );
+			calcFormula.addEventListener( 'input', function () { field.formula = calcFormula.value; } );
+			calcSettings.appendChild( labeledControl( __( 'Calculation type', 'open-product-fields-for-woocommerce' ), calcType ) );
+			calcSettings.appendChild( labeledControl( __( 'Formula', 'open-product-fields-for-woocommerce' ), calcFormula ) );
+			if ( 'default' === field.calc_type ) {
+				var resultFormat = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Result format', 'open-product-fields-for-woocommerce' ) }, [
+					el( 'option', { value: 'number', text: __( 'Format as number', 'open-product-fields-for-woocommerce' ) } ),
+					el( 'option', { value: 'none', text: __( "Don't apply formatting", 'open-product-fields-for-woocommerce' ) } ),
+				] );
+				resultFormat.value = field.result_format;
+				resultFormat.addEventListener( 'change', function () { field.result_format = resultFormat.value; } );
+				calcSettings.appendChild( labeledControl( __( 'Result format', 'open-product-fields-for-woocommerce' ), resultFormat ) );
+			}
+			var resultText = el( 'input', { class: 'opf-b-input', type: 'text', value: field.result_text || '', placeholder: '{result}', 'aria-label': __( 'Result text', 'open-product-fields-for-woocommerce' ) } );
+			resultText.addEventListener( 'input', function () {
+				field.result_text = resultText.value.trim() ? resultText.value : '{result}';
+			} );
+			calcSettings.appendChild( labeledControl( __( 'Result text (use {result})', 'open-product-fields-for-woocommerce' ), resultText ) );
+			card.appendChild( calcSettings );
+		}
 		if ( 'products' !== field.type && ( field.choices.length || in_array( field.type, [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ], true ) ) ) {
 			var addChoice = el( 'button', { type: 'button', class: 'button', text: __( '+ Add choice', 'open-product-fields-for-woocommerce' ), onclick: function () {
 				var n = field.choices.length + 1;
