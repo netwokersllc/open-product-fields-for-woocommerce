@@ -504,13 +504,228 @@ final class WapfMapperTest extends TestCase {
 	public function test_unsupported_types_are_dropped_and_flagged(): void {
 		$wapf = [
 			'fields' => [
-				[ 'id' => 'f1', 'label' => 'Upload', 'type' => 'file', 'required' => false, 'conditionals' => [], 'clone' => [ 'enabled' => false ], 'options' => [ 'choices' => [] ], 'pricing' => [ 'enabled' => false ] ],
+				[ 'id' => 'f1', 'label' => 'Choice card', 'type' => 'card', 'required' => false, 'conditionals' => [], 'clone' => [ 'enabled' => false ], 'options' => [ 'choices' => [] ], 'pricing' => [ 'enabled' => false ] ],
 			],
 			'rule_groups' => [],
 		];
 		$mapped = WapfMapper::map( $wapf );
 		$this->assertTrue( $mapped['needs_review'] );
 		$this->assertEmpty( $mapped['group']['fields'] );
+	}
+
+	public function test_wapf_file_field_maps_to_upload(): void {
+		$wapf = [
+			'fields' => [
+				[
+					'id' => 'up1', 'label' => 'Artwork', 'type' => 'file', 'required' => true,
+					'conditionals' => [], 'clone' => [ 'enabled' => false ],
+					'options' => [ 'multiple' => true, 'accept' => 'jpg|jpeg|jpe,pdf', 'maxsize' => 4, 'choices' => [] ],
+					'pricing' => [ 'enabled' => false ],
+				],
+			],
+			'rule_groups' => [],
+		];
+		$mapped = WapfMapper::map( $wapf );
+
+		$this->assertFalse( $mapped['needs_review'], 'clean file field should not flag review: ' . implode( ' | ', $mapped['notes'] ) );
+		$field = $mapped['group']['fields'][0];
+		$this->assertSame( 'upload', $field['type'] );
+		$this->assertTrue( $field['required'] );
+		$this->assertTrue( $field['multiple'] );
+		$this->assertSame( 4.0, $field['max_size'] );
+		$this->assertSame( [ 'jpg', 'jpeg', 'jpe', 'pdf' ], $field['accepted_types'] );
+		$this->assertSame( 'none', $field['pricing']['type'] );
+	}
+
+	public function test_wapf_file_field_pricing_is_dropped_with_review(): void {
+		$wapf = [
+			'fields' => [
+				[
+					'id' => 'up1', 'label' => 'Paid upload', 'type' => 'file',
+					'options' => [ 'multiple' => false ],
+					'pricing' => [ 'enabled' => true, 'type' => 'fixed', 'amount' => 5 ],
+				],
+			],
+		];
+		$mapped = WapfMapper::map( $wapf );
+
+		$this->assertTrue( $mapped['needs_review'] );
+		$this->assertStringContainsString( 'pricing', implode( ' ', $mapped['notes'] ) );
+		$this->assertSame( 'none', $mapped['group']['fields'][0]['pricing']['type'] );
+	}
+
+	public function test_wapf_file_field_repeat_is_dropped_with_review(): void {
+		$wapf = [
+			'fields' => [
+				[
+					'id' => 'up1', 'label' => 'Repeat upload', 'type' => 'file',
+					'clone' => [ 'enabled' => true, 'type' => 'button', 'max' => 3 ],
+					'options' => [],
+					'pricing' => [ 'enabled' => false ],
+				],
+			],
+		];
+		$mapped = WapfMapper::map( $wapf );
+
+		$this->assertTrue( $mapped['needs_review'] );
+		$this->assertStringContainsString( 'repeat', implode( ' ', $mapped['notes'] ) );
+		$this->assertArrayNotHasKey( 'repeat', $mapped['group']['fields'][0] );
+	}
+
+	public function test_wapf_products_manual_field_maps_choices_and_settings(): void {
+		$wapf = [
+			'fields' => [
+				[
+					'id' => 'linked', 'label' => 'Linked products', 'type' => 'products', 'subtype' => 'card',
+					'required' => false,
+					'options' => [
+						'product_selection' => 'manual',
+						'qty_method' => 'parent',
+						'choices' => [
+							[ 'id' => 12, 'slug' => 'gift', 'label' => 'Gift wrap', 'selected' => true, 'disabled' => false, 'options' => [], 'pricing_type' => 'fixed' ],
+							[ 'id' => '34', 'slug' => 'extra', 'label' => '', 'selected' => false, 'disabled' => true, 'options' => [], 'pricing_type' => 'none' ],
+							[ 'slug' => 'broken', 'label' => 'No product', 'options' => [], 'pricing_type' => 'fixed' ],
+						],
+						'items_per_row' => 3,
+						'items_per_row_tablet' => 2,
+						'items_per_row_mobile' => 1,
+						'incl_img' => true,
+						'incl_desc' => false,
+						'slot_1' => 'price',
+						'slot_2' => 'stock',
+						'slot_3' => 'link',
+						'hide_cart' => true,
+					],
+					'conditionals' => [], 'clone' => [ 'enabled' => false ],
+					'pricing' => [ 'type' => 'none', 'amount' => 0, 'enabled' => false ],
+				],
+			],
+			'rule_groups' => [],
+		];
+		$mapped = WapfMapper::map( $wapf );
+
+		$field = $mapped['group']['fields'][0];
+		$this->assertSame( 'products', $field['type'] );
+		$this->assertSame( 'card', $field['subtype'] );
+		$this->assertSame( 'manual', $field['product_selection'] );
+		$this->assertSame( 'parent', $field['qty_method'] );
+		$this->assertTrue( $field['hide_cart'] );
+		$this->assertSame( 3, $field['items_per_row'] );
+		$this->assertSame( 2, $field['items_per_row_tablet'] );
+		$this->assertSame( 1, $field['items_per_row_mobile'] );
+		$this->assertTrue( $field['incl_img'] );
+		$this->assertFalse( $field['incl_desc'] );
+		$this->assertSame( [ 'price', 'stock', 'link' ], [ $field['slot_1'], $field['slot_2'], $field['slot_3'] ] );
+		$this->assertCount( 2, $field['choices'] );
+		$this->assertSame( 12, $field['choices'][0]['product_id'] );
+		$this->assertSame( 'gift', $field['choices'][0]['slug'] );
+		$this->assertSame( 'fixed', $field['choices'][0]['pricing_type'] );
+		$this->assertTrue( $field['choices'][0]['selected'] );
+		$this->assertSame( 34, $field['choices'][1]['product_id'] );
+		$this->assertSame( 'none', $field['choices'][1]['pricing_type'] );
+		$this->assertTrue( $field['choices'][1]['disabled'] );
+		$this->assertTrue( $mapped['needs_review'], 'a choice without a product reference must flag review' );
+		$this->assertStringContainsString( 'without a product reference', implode( ' ', $mapped['notes'] ) );
+	}
+
+	public function test_wapf_products_flattened_subtype_and_qty_choices(): void {
+		$wapf = [
+			'fields' => [
+				[
+					'id' => 'qty-addons', 'label' => 'Addons', 'type' => 'products-card-qty',
+					'options' => [
+						'display' => 'plus_min',
+						'min_choices' => 1,
+						'max_choices' => 9,
+						'choices' => [
+							[ 'id' => 51, 'slug' => 'a', 'label' => '', 'options' => [ 'default' => 2, 'min' => 1, 'max' => 8 ], 'pricing_type' => 'fixed' ],
+						],
+						'slot_1' => 'stock',
+						'items_per_row' => 2,
+					],
+				],
+			],
+		];
+		$mapped = WapfMapper::map( $wapf );
+
+		$field = $mapped['group']['fields'][0];
+		$this->assertSame( 'products', $field['type'] );
+		$this->assertSame( 'card-qty', $field['subtype'] );
+		$this->assertSame( 'plus_min', $field['display'] );
+		$this->assertSame( 1, $field['min_choices'] );
+		$this->assertSame( 9, $field['max_choices'] );
+		$this->assertSame( [ 'default' => 2, 'min' => 1, 'max' => 8 ], $field['choices'][0]['quantity'] );
+		$this->assertSame( 'stock', $field['slot_1'] );
+		$this->assertFalse( $mapped['needs_review'], 'clean qty products field should not flag review: ' . implode( ' | ', $mapped['notes'] ) );
+	}
+
+	public function test_wapf_products_category_selection_maps_product_query(): void {
+		$wapf = [
+			'fields' => [
+				[
+					'id' => 'related', 'label' => 'Related', 'type' => 'products', 'subtype' => 'vcard',
+					'options' => [
+						'product_selection' => 'category',
+						'product_query' => [ 'query_id' => 44, 'query_label' => 'Extras', 'limit' => 7, 'sort' => 'name_asc', 'pricing_type' => 'none' ],
+						'choices' => [ [ 'id' => 9, 'slug' => 'x', 'label' => 'Ignored' ] ],
+						'img_fit' => 'contain',
+						'items_per_row' => 4,
+					],
+				],
+			],
+		];
+		$mapped = WapfMapper::map( $wapf );
+
+		$field = $mapped['group']['fields'][0];
+		$this->assertSame( 'category', $field['product_selection'] );
+		$this->assertSame( [], $field['choices'] );
+		$this->assertSame( [ 'query_id' => 44, 'query_label' => 'Extras', 'limit' => 7, 'sort' => 'name_asc', 'pricing_type' => 'none' ], $field['product_query'] );
+		$this->assertSame( 'contain', $field['img_fit'] );
+		$this->assertFalse( $mapped['needs_review'], 'clean category products field should not flag review: ' . implode( ' | ', $mapped['notes'] ) );
+	}
+
+	public function test_wapf_products_selection_limit_flags_review(): void {
+		$wapf = [
+			'fields' => [
+				[
+					'id' => 'pick', 'label' => 'Pick', 'type' => 'products', 'subtype' => 'checkbox',
+					'options' => [ 'product_selection' => 'manual', 'min_choices' => 2, 'choices' => [ [ 'id' => 7, 'slug' => 'a' ] ] ],
+				],
+			],
+		];
+		$mapped = WapfMapper::map( $wapf );
+
+		$this->assertTrue( $mapped['needs_review'] );
+		$this->assertStringContainsString( 'min_choices', implode( ' ', $mapped['notes'] ) );
+	}
+
+	public function test_wapf_products_inside_repeated_section_is_dropped(): void {
+		$wapf = [
+			'fields' => [
+				[ 'id' => 'grp', 'label' => 'Group', 'type' => 'section', 'clone' => [ 'enabled' => true, 'type' => 'button' ], 'options' => [] ],
+				[ 'id' => 'linked', 'label' => 'Linked', 'type' => 'products', 'subtype' => 'checkbox', 'options' => [ 'choices' => [ [ 'id' => 7, 'slug' => 'a' ] ] ] ],
+				[ 'id' => 'grp-end', 'type' => 'sectionend' ],
+			],
+		];
+		$mapped = WapfMapper::map( $wapf );
+
+		$this->assertTrue( $mapped['needs_review'] );
+		$this->assertStringContainsString( 'repeated section', implode( ' ', $mapped['notes'] ) );
+		$types = array_column( $mapped['group']['fields'], 'type' );
+		$this->assertNotContains( 'products', $types );
+	}
+
+	public function test_wapf_hide_options_map_to_normalized_visibility_flags(): void {
+		$wapf = [
+			'fields' => [
+				[ 'id' => 'f1', 'label' => 'Note', 'type' => 'text', 'options' => [ 'hide_cart' => true, 'hide_order' => 'true' ] ],
+			],
+		];
+		$mapped = WapfMapper::map( $wapf );
+
+		$this->assertTrue( $mapped['group']['fields'][0]['hide_cart'] );
+		$this->assertFalse( $mapped['group']['fields'][0]['hide_checkout'] );
+		$this->assertTrue( $mapped['group']['fields'][0]['hide_order'] );
 	}
 
 	public function test_formula_normalizer_stacks_qty_strip(): void {
@@ -792,6 +1007,73 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( 'qty', $mapped['group']['variables'][0]['rules'][1]['field'] );
 		// Variable bodies are not pricing formulas: no *[qty] stripping.
 		$this->assertSame( '[var_rate]', $mapped['group']['fields'][2]['pricing']['formula'] );
+	}
+
+	public function test_wapf_products_image_subtype_maps_label_pos_and_default_item_width(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'imgprod', 'label' => 'Image products', 'type' => 'products', 'subtype' => 'image',
+			'options' => [ 'product_selection' => 'manual', 'label_pos' => 'out', 'choices' => [ [ 'id' => 7, 'slug' => 'a' ] ] ],
+		] ] ] );
+
+		$field = $mapped['group']['fields'][0];
+		$this->assertSame( 'image', $field['subtype'] );
+		$this->assertSame( 'out', $field['label_pos'] );
+		$this->assertSame( 68, $field['item_width'], 'WAPF default swatch width is made explicit' );
+		$this->assertFalse( $mapped['needs_review'], implode( ' | ', $mapped['notes'] ) );
+	}
+
+	public function test_wapf_products_category_without_query_id_flags_review(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'cat', 'label' => 'Category products', 'type' => 'products', 'subtype' => 'dropdown',
+			'options' => [ 'product_selection' => 'category', 'product_query' => [] ],
+		] ] ] );
+
+		$field = $mapped['group']['fields'][0];
+		$this->assertTrue( $mapped['needs_review'] );
+		$this->assertStringContainsString( 'without a category', implode( ' ', $mapped['notes'] ) );
+		$this->assertSame( 0, $field['product_query']['query_id'] );
+		$this->assertSame( [], $field['choices'] );
+	}
+
+	public function test_wapf_products_unsupported_subtype_falls_back_to_checkbox(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'p', 'label' => 'Products', 'type' => 'products', 'subtype' => 'grid',
+			'options' => [ 'choices' => [ [ 'id' => 7, 'slug' => 'a' ] ] ],
+		] ] ] );
+
+		$field = $mapped['group']['fields'][0];
+		$this->assertSame( 'checkbox', $field['subtype'] );
+		$this->assertTrue( $mapped['needs_review'] );
+		$this->assertStringContainsString( 'unsupported subtype', implode( ' ', $mapped['notes'] ) );
+	}
+
+	public function test_wapf_file_field_invalid_maxsize_and_token_flag_review(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'up', 'label' => 'Upload', 'type' => 'file',
+			'options' => [ 'maxsize' => 'huge', 'accept' => 'application/pdf' ],
+			'pricing' => [ 'enabled' => false ],
+		] ] ] );
+
+		$field = $mapped['group']['fields'][0];
+		$this->assertTrue( $mapped['needs_review'] );
+		$notes = implode( ' ', $mapped['notes'] );
+		$this->assertStringContainsString( 'invalid maximum size', $notes );
+		$this->assertStringContainsString( 'unrecognized accepted-type token', $notes );
+		// Invalid values are not carried; the OPF normalizer defaults apply.
+		$this->assertSame( 1.0, $field['max_size'] );
+		$this->assertSame( [], $field['accepted_types'] );
+	}
+
+	public function test_wapf_hide_checkout_and_order_options_map(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'f1', 'label' => 'Note', 'type' => 'text',
+			'options' => [ 'hide_checkout' => 'true', 'hide_order' => true ],
+		] ] ] );
+
+		$field = $mapped['group']['fields'][0];
+		$this->assertTrue( $field['hide_checkout'] );
+		$this->assertTrue( $field['hide_order'] );
+		$this->assertFalse( $field['hide_cart'] );
 	}
 
 	public function test_lookuptable_formula_dimension_ids_are_remapped(): void {

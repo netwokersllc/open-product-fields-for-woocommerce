@@ -159,6 +159,24 @@ final class ArchiveImporter {
 				}
 			}
 		}
+		// Linked-products fields reference product IDs (manual choices) or a
+		// product-category ID (product_query); both are site-local.
+		foreach ( (array) ( $data['fields'] ?? [] ) as $field ) {
+			if ( ! is_array( $field ) || 'products' !== ( $field['type'] ?? '' ) ) {
+				continue;
+			}
+			if ( 'category' === ( $field['product_selection'] ?? '' ) ) {
+				if ( (int) ( $field['product_query']['query_id'] ?? 0 ) > 0 ) {
+					return true;
+				}
+				continue;
+			}
+			foreach ( (array) ( $field['choices'] ?? [] ) as $choice ) {
+				if ( is_array( $choice ) && (int) ( $choice['product_id'] ?? 0 ) > 0 ) {
+					return true;
+				}
+			}
+		}
 		return false;
 	}
 

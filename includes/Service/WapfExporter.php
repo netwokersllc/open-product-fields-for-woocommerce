@@ -14,6 +14,41 @@ defined( 'ABSPATH' ) || exit;
 final class WapfExporter {
 
 	/**
+	 * Field keys an export can preserve; type-specific additions sit below.
+	 */
+	private const FIELD_KEYS = [
+		'id', 'label', 'description', 'type', 'required', 'width', 'css_class',
+		'placeholder', 'choices', 'pricing', 'conditionals',
+		'description_presentation', 'hide_cart', 'hide_checkout', 'hide_order',
+		'content', 'content_format', 'process_shortcodes', 'image_url', 'image_id',
+		'swatch_style', 'multiple', 'min_choices', 'max_choices', 'color_layout',
+		'color_size', 'color_label_pos', 'image_zoom', 'label_pos', 'grid_layout',
+		'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile',
+		'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays',
+		'disabled_dates', 'cutoff_time',
+		// Linked products (WAPF `products` type) and file upload fields.
+		'subtype', 'product_selection', 'qty_method', 'product_query', 'display',
+		'slot_1', 'slot_2', 'slot_3', 'incl_img', 'incl_desc', 'img_fit',
+		'max_size', 'accepted_types',
+	];
+
+	/**
+	 * @param array<string,mixed> $field Normalized field.
+	 * @return string[] Allowed keys for this field's type.
+	 */
+	private static function allowed_field_keys( array $field ): array {
+		$type = $field['type'] ?? '';
+		$extra = [];
+		if ( 'toggle' === $type ) {
+			$extra[] = 'message';
+		}
+		if ( in_array( $type, [ 'toggle', 'text', 'textarea', 'email', 'url', 'number' ], true ) ) {
+			$extra[] = 'default';
+		}
+		return array_merge( self::FIELD_KEYS, $extra );
+	}
+
+	/**
 	 * Convert a normalized OPF group to WAPF's four-section Tools payload.
 	 * Unsupported or lossy data fails closed.
 	 *
@@ -21,10 +56,10 @@ final class WapfExporter {
 	 * @return array<string,mixed>
 	 */
 	public static function build_payload( array $group ): array {
-		self::assert_keys( $group, [ 'schema', 'fields', 'rule_groups', 'mark_required', 'labels_position', 'layout' ], 'group' );
+		self::assert_keys( $group, [ 'schema', 'fields', 'rule_groups', 'mark_required', 'labels_position', 'layout', 'variables' ], 'group' );
 		foreach ( ( $group['fields'] ?? [] ) as $field ) {
 			if ( is_array( $field ) ) {
-			self::assert_keys( $field, array_merge( [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'description_presentation', 'hide_cart', 'hide_checkout', 'hide_order', 'content', 'content_format', 'process_shortcodes', 'image_url', 'image_id', 'swatch_style', 'multiple', 'min_choices', 'max_choices', 'color_layout', 'color_size', 'color_label_pos', 'image_zoom', 'label_pos', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], in_array( $field['type'] ?? '', [ 'toggle', 'text', 'textarea', 'email', 'url', 'number' ], true ) ? array_merge( 'toggle' === ( $field['type'] ?? '' ) ? [ 'message' ] : [], [ 'default' ] ) : [] ), 'field' );
+			self::assert_keys( $field, self::allowed_field_keys( $field ), 'field' );
 			}
 		}
 		foreach ( ( $group['rule_groups'] ?? [] ) as $rule_group ) {
@@ -104,21 +139,74 @@ final class WapfExporter {
 				];
 			}
 		}
+		$variables = [];
+		foreach ( (array) ( $group['variables'] ?? [] ) as $variable ) {
+			$variables[] = self::map_variable( $variable, $field_ids );
+		}
 		return [
 			'fields'    => $fields,
 			'conditions' => $conditions,
 			'layout'    => $layout,
-			'variables' => [],
+			'variables' => $variables,
+		];
+	}
+
+	/**
+	 * Export one OPF variable in WAPF's {name,default,rules[]} shape.
+	 * Variable bodies carry formula-like expressions, so field references are
+	 * rebound the same way pricing formulas are; unresolvable data fails.
+	 *
+	 * @param mixed    $variable  Source variable.
+	 * @param string[] $field_ids Exported field ids.
+	 */
+	private static function map_variable( $variable, array $field_ids ): array {
+		if ( ! is_array( $variable ) ) {
+			throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve a malformed variable.' );
+		}
+		self::assert_keys( $variable, [ 'name', 'default', 'rules' ], 'variable' );
+		$name = is_string( $variable['name'] ?? null ) ? $variable['name'] : '';
+		if ( '' === $name || ! preg_match( '/^[a-zA-Z0-9_]+$/', $name ) ) {
+			throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve a variable without a plain name.' );
+		}
+		$default = is_string( $variable['default'] ?? null ) ? $variable['default'] : '';
+		$rules = [];
+		foreach ( (array) ( $variable['rules'] ?? [] ) as $rule ) {
+			if ( ! is_array( $rule ) ) {
+				throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve a malformed variable rule.' );
+			}
+			self::assert_keys( $rule, [ 'type', 'field', 'condition', 'value', 'variable' ], 'variable rule' );
+			$rule_type = (string) ( $rule['type'] ?? 'field' );
+			if ( ! in_array( $rule_type, [ 'field', 'qty' ], true ) ) {
+				throw new \InvalidArgumentException( sprintf( 'WAPF Tools export cannot preserve variable "%s" rule type "%s".', $name, $rule_type ) );
+			}
+			$subject = (string) ( $rule['field'] ?? '' );
+			if ( 'qty' !== $rule_type && ! in_array( $subject, $field_ids, true ) ) {
+				throw new \InvalidArgumentException( sprintf( 'WAPF Tools export cannot preserve variable "%s" rule reference "%s".', $name, $subject ) );
+			}
+			$body = is_string( $rule['variable'] ?? null ) ? $rule['variable'] : '';
+			$rules[] = [
+				'type'      => $rule_type,
+				'field'     => $subject,
+				'condition' => (string) ( $rule['condition'] ?? '' ),
+				'value'     => is_scalar( $rule['value'] ?? null ) ? (string) $rule['value'] : '',
+				'variable'  => '' === trim( $body ) ? '' : self::map_formula_references( $body, $field_ids ),
+			];
+		}
+		return [
+			'name'    => $name,
+			'default' => '' === trim( $default ) ? '' : self::map_formula_references( $default, $field_ids ),
+			'rules'   => $rules,
 		];
 	}
 
 	/** @param array<string,mixed> $field */
 	private static function map_field( array $field, array $field_ids, array $field_types ): array {
-			self::assert_keys( $field, array_merge( [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'description_presentation', 'hide_cart', 'hide_checkout', 'hide_order', 'content', 'content_format', 'process_shortcodes', 'image_url', 'image_id', 'swatch_style', 'multiple', 'min_choices', 'max_choices', 'color_layout', 'color_size', 'color_label_pos', 'image_zoom', 'label_pos', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], in_array( $field['type'] ?? '', [ 'toggle', 'text', 'textarea', 'email', 'url', 'number' ], true ) ? array_merge( 'toggle' === ( $field['type'] ?? '' ) ? [ 'message' ] : [], [ 'default' ] ) : [] ), 'field' );
+			self::assert_keys( $field, self::allowed_field_keys( $field ), 'field' );
 		$type_map = [
 			'text' => 'text', 'textarea' => 'textarea', 'email' => 'email', 'url' => 'url',
 			'number' => 'number', 'toggle' => 'true-false', 'select' => 'select', 'image_quantity' => 'image-swatch-qty',
 			'radio' => 'radio', 'checkbox' => 'checkboxes', 'swatch' => 'text-swatch', 'paragraph' => 'content', 'content_image' => 'img', 'section' => 'section', 'section_end' => 'sectionend',
+			'products' => 'products', 'upload' => 'file',
 		];
 		$type = $field['type'];
 		if ( 'paragraph' === $type && 'html' === ( $field['content_format'] ?? 'plain' ) ) {
@@ -226,6 +314,72 @@ final class WapfExporter {
 				}
 			}
 		}
+		foreach ( [ 'hide_cart', 'hide_checkout', 'hide_order' ] as $hide_key ) {
+			if ( ! empty( $field[ $hide_key ] ) ) {
+				$out[ $hide_key ] = 'true';
+			}
+		}
+		if ( 'upload' === $type ) {
+			// WAPF file options are truthy-checked (`isset && $val`), so a
+			// literal 'false' would mean "allow multiple" — emit bool-or-omit.
+			if ( ! empty( $field['multiple'] ) ) {
+				$out['multiple'] = true;
+			}
+			if ( isset( $field['max_size'] ) ) {
+				$out['maxsize'] = $field['max_size'];
+			}
+			if ( ! empty( $field['accepted_types'] ) ) {
+				$out['accept'] = implode( ',', array_map( 'strval', (array) $field['accepted_types'] ) );
+			}
+		}
+		if ( 'products' === $type ) {
+			$out['subtype'] = (string) ( $field['subtype'] ?? 'checkbox' );
+			$out['product_selection'] = (string) ( $field['product_selection'] ?? 'manual' );
+			if ( 'category' === $out['product_selection'] ) {
+				$query = is_array( $field['product_query'] ?? null ) ? $field['product_query'] : [];
+				$out['product_query'] = [
+					'query_id'     => (int) ( $query['query_id'] ?? 0 ),
+					'query_label'  => (string) ( $query['query_label'] ?? '' ),
+					'limit'        => (int) ( $query['limit'] ?? 5 ),
+					'sort'         => (string) ( $query['sort'] ?? 'date_desc' ),
+					'pricing_type' => (string) ( $query['pricing_type'] ?? 'fixed' ),
+				];
+			} else {
+				$out['choices'] = self::map_product_choices( (array) ( $field['choices'] ?? [] ), $field );
+			}
+			if ( ! in_array( $out['subtype'], [ 'card-qty', 'vcard-qty' ], true ) ) {
+				$out['qty_method'] = (string) ( $field['qty_method'] ?? 'one' );
+			} else {
+				$out['display'] = (string) ( $field['display'] ?? 'default' );
+				foreach ( [ 'min_choices', 'max_choices' ] as $key ) {
+					if ( isset( $field[ $key ] ) ) {
+						$out[ $key ] = (int) $field[ $key ];
+					}
+				}
+			}
+			if ( 'image' === $out['subtype'] ) {
+				$out['label_pos'] = (string) ( $field['label_pos'] ?? 'default' );
+				$out['item_width'] = (int) ( $field['item_width'] ?? 68 );
+			}
+			if ( in_array( $out['subtype'], [ 'card', 'vcard', 'card-qty', 'vcard-qty' ], true ) ) {
+				foreach ( [ 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile' ] as $key ) {
+					if ( isset( $field[ $key ] ) ) {
+						$out[ $key ] = (int) $field[ $key ];
+					}
+				}
+				$out['incl_img'] = ! empty( $field['incl_img'] );
+				$out['incl_desc'] = ! empty( $field['incl_desc'] );
+				foreach ( [ 'slot_1', 'slot_2', 'slot_3' ] as $key ) {
+					$out[ $key ] = (string) ( $field[ $key ] ?? 'none' );
+				}
+				if ( in_array( $out['subtype'], [ 'vcard', 'vcard-qty' ], true ) ) {
+					$out['img_fit'] = (string) ( $field['img_fit'] ?? 'cover' );
+				}
+			}
+			if ( ! empty( $field['image_zoom'] ) ) {
+				$out['large_image'] = 'true';
+			}
+		}
 		if ( in_array( $type, [ 'select', 'radio', 'checkbox', 'swatch', 'image_quantity' ], true ) ) {
 			$out['choices'] = [];
 			foreach ( $field['choices'] as $choice ) {
@@ -271,6 +425,61 @@ final class WapfExporter {
 				}
 				$out['choices'][] = $wapf_choice;
 			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Serialize OPF product choices into WAPF `products` choices. WAPF
+	 * references the linked product in `id`; quantity subtypes carry
+	 * per-choice default/min/max under `options` — the same nested shape the
+	 * importer (`raw_json_to_field_group`) preserves verbatim.
+	 *
+	 * @param array<int,array<string,mixed>> $choices OPF product choices.
+	 * @param array<string,mixed>            $field   OPF products field.
+	 */
+	private static function map_product_choices( array $choices, array $field ): array {
+		$qty_subtype = in_array( (string) ( $field['subtype'] ?? '' ), [ 'card-qty', 'vcard-qty' ], true );
+		$out = [];
+		foreach ( $choices as $choice ) {
+			if ( ! is_array( $choice ) ) {
+				throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve a malformed product choice.' );
+			}
+			self::assert_keys( $choice, [ 'slug', 'label', 'selected', 'disabled', 'product_id', 'pricing_type', 'quantity', 'image', 'image_id', 'color', 'pricing' ], 'product choice' );
+			$product_id = $choice['product_id'] ?? 0;
+			if ( ! ( is_int( $product_id ) || ( is_string( $product_id ) && ctype_digit( $product_id ) ) ) || (int) $product_id <= 0 ) {
+				throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve a product choice without a product reference.' );
+			}
+			// Image/color keys and OPF generic choice pricing have no meaning on
+			// WAPF linked products; non-empty values would be dropped silently.
+			if ( ! empty( $choice['image'] ) || ! empty( $choice['image_id'] ) || ! empty( $choice['color'] ) ) {
+				throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve image or color data on a product choice.' );
+			}
+			$generic_pricing = is_array( $choice['pricing'] ?? null ) ? $choice['pricing'] : [];
+			if ( 'none' !== ( $generic_pricing['type'] ?? 'none' ) ) {
+				throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve addon pricing on a product choice.' );
+			}
+			if ( false !== strpos( (string) ( $choice['label'] ?? '' ), '<' ) ) {
+				throw new \InvalidArgumentException( 'WAPF Tools import sanitizes choice labels; HTML is not exported.' );
+			}
+			$wapf_choice = [
+				'id'           => (int) $product_id,
+				'slug'         => (string) ( $choice['slug'] ?? '' ),
+				'label'        => (string) ( $choice['label'] ?? '' ),
+				'selected'     => ! empty( $choice['selected'] ),
+				'disabled'     => ! empty( $choice['disabled'] ),
+				'pricing_type' => 'none' === ( $choice['pricing_type'] ?? 'fixed' ) ? 'none' : 'fixed',
+				'options'      => [],
+			];
+			if ( $qty_subtype ) {
+				$quantity = is_array( $choice['quantity'] ?? null ) ? $choice['quantity'] : [];
+				$wapf_choice['options'] = [
+					'min'     => (int) ( $quantity['min'] ?? 0 ),
+					'max'     => (int) ( $quantity['max'] ?? 999999 ),
+					'default' => (int) ( $quantity['default'] ?? 0 ),
+				];
+			}
+			$out[] = $wapf_choice;
 		}
 		return $out;
 	}
@@ -379,6 +588,29 @@ final class WapfExporter {
 						return $match[0];
 					}
 					return $match[1] . '(' . $canonical . ')';
+				},
+				$expr
+			);
+		}
+		if ( is_string( $expr ) ) {
+			// lookuptable(table;dim;…): dimension args ≥6 chars resolve as field
+			// ids at runtime; a table name (arg 0) and short literals pass.
+			$expr = preg_replace_callback(
+				'/\b(lookuptable)\s*\(([^()]*)\)/i',
+				static function ( array $match ) use ( $ids_by_lower, &$unresolved ): string {
+					$parts = array_map( 'trim', explode( ';', $match[2] ) );
+					foreach ( $parts as $index => $arg ) {
+						if ( 0 === $index ) {
+							continue;
+						}
+						$canonical = $ids_by_lower[ strtolower( $arg ) ] ?? null;
+						if ( null !== $canonical ) {
+							$parts[ $index ] = $canonical;
+						} elseif ( strlen( $arg ) >= 6 && preg_match( '/^[a-zA-Z0-9_-]+$/', $arg ) ) {
+							$unresolved[] = $arg;
+						}
+					}
+					return $match[1] . '(' . implode( ';', $parts ) . ')';
 				},
 				$expr
 			);

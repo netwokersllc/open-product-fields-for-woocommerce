@@ -84,7 +84,20 @@ final class WapfWxrExporter {
 	/** Convert WAPF's raw JSON-import shape into its serialized FieldGroup model. */
 	private static function serialized_field_group( array $payload, int $source_id ): array {
 		$fields = [];
-		$option_keys = [ 'choices', 'placeholder', 'default', 'p_content', 'image', 'attachment', 'minimum', 'maximum', 'min_choices', 'max_choices', 'large_image', 'label_pos', 'layout', 'size', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile' ];
+		// Flattened Tools keys that belong inside the stored field's `options`
+		// bucket (mirrors Field_Groups::raw_json_to_field_group handling).
+		$option_keys = [
+			'choices', 'placeholder', 'default', 'message', 'p_content', 'image',
+			'attachment', 'minimum', 'maximum', 'min_choices', 'max_choices',
+			'large_image', 'label_pos', 'layout', 'size', 'grid_layout',
+			'item_width', 'items_per_row', 'items_per_row_tablet',
+			'items_per_row_mobile', 'minlength', 'maxlength', 'disabled_days',
+			'hide_cart', 'hide_checkout', 'hide_order',
+			// Linked products (`products` type) and file upload options.
+			'product_selection', 'product_query', 'qty_method', 'display',
+			'slot_1', 'slot_2', 'slot_3', 'incl_img', 'incl_desc', 'img_fit',
+			'multiple', 'accept', 'maxsize',
+		];
 		foreach ( (array) ( $payload['fields'] ?? [] ) as $field ) {
 			$options = [];
 			foreach ( $option_keys as $key ) {
@@ -92,7 +105,7 @@ final class WapfWxrExporter {
 					$options[ $key ] = $field[ $key ];
 				}
 			}
-			$fields[] = [
+			$serialized = [
 				'id' => (string) $field['id'],
 				'label' => (string) ( $field['label'] ?? '' ),
 				'description' => (string) ( $field['description'] ?? '' ),
@@ -102,6 +115,7 @@ final class WapfWxrExporter {
 				'width' => (int) ( $field['width'] ?? 100 ),
 				'options' => $options,
 				'conditionals' => array_values( (array) ( $field['conditionals'] ?? [] ) ),
+				'clone' => [ 'enabled' => false ],
 				'pricing' => [
 					'type' => (string) ( $field['pricing']['type'] ?? 'none' ),
 					// Formula pricing stores an expression, not a numeric amount.
@@ -110,6 +124,10 @@ final class WapfWxrExporter {
 					'enabled' => (bool) ( $field['pricing']['enabled'] ?? false ),
 				],
 			];
+			if ( isset( $field['subtype'] ) ) {
+				$serialized['subtype'] = (string) $field['subtype'];
+			}
+			$fields[] = $serialized;
 		}
 
 		$rule_groups = [];
@@ -131,6 +149,7 @@ final class WapfWxrExporter {
 			'layout' => (array) ( $payload['layout'] ?? [] ),
 			'fields' => $fields,
 			'rule_groups' => $rule_groups,
+			'variables' => array_values( (array) ( $payload['variables'] ?? [] ) ),
 		];
 	}
 

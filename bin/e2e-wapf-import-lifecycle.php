@@ -108,14 +108,24 @@ try {
 	}
 	$review_payload = $make_payload( 'opf_e2e_review', 'Review' );
 	$review_payload['fields'][] = [
-		'id' => 'opf_e2e_unsupported_file',
-		'label' => 'Unsupported upload',
-		'type' => 'file',
+		'id' => 'opf_e2e_unsupported_card',
+		'label' => 'Unsupported card',
+		'type' => 'card',
 		'required' => false,
 		'conditionals' => [],
 		'clone' => [ 'enabled' => false ],
 		'options' => [ 'choices' => [] ],
 		'pricing' => [ 'enabled' => false, 'type' => 'fixed', 'amount' => 0 ],
+	];
+	$review_payload['fields'][] = [
+		'id' => 'opf_e2e_file',
+		'label' => 'Artwork upload',
+		'type' => 'file',
+		'required' => true,
+		'conditionals' => [],
+		'clone' => [ 'enabled' => false ],
+		'options' => [ 'choices' => [], 'multiple' => true, 'accept' => 'jpg|jpeg|jpe,pdf', 'maxsize' => 4 ],
+		'pricing' => [ 'enabled' => true, 'type' => 'fixed', 'amount' => 5 ],
 	];
 	$review_payload['fields'][] = [
 		'id' => 'opf_e2e_repeat_name',
@@ -246,6 +256,7 @@ try {
 	$review_notes = get_post_meta( $review_opf_id, '_opf_needs_review', true );
 	$repeat_field = null;
 	$repeat_section = null;
+	$upload_field = null;
 	foreach ( (array) ( $review_data['fields'] ?? [] ) as $field ) {
 		if ( 'Repeated name' === ( $field['label'] ?? '' ) ) {
 			$repeat_field = $field;
@@ -253,9 +264,16 @@ try {
 		if ( 'Attendees' === ( $field['label'] ?? '' ) ) {
 			$repeat_section = $field;
 		}
+		if ( 'Artwork upload' === ( $field['label'] ?? '' ) ) {
+			$upload_field = $field;
+		}
 	}
 	$assert( 'draft' === $review_post->post_status, 'A group with unsupported source data was published instead of held for review.' );
 	$assert( is_array( $review_notes ) && false !== strpos( implode( ' ', $review_notes ), 'unsupported field types dropped' ), 'Review-required source details were not recorded.' );
+	$assert( 'upload' === ( $upload_field['type'] ?? '' ), 'WAPF file field did not import as an upload field: ' . wp_json_encode( $upload_field ) );
+	$assert( true === ( $upload_field['multiple'] ?? null ) && 4.0 === (float) ( $upload_field['max_size'] ?? 0 ), 'WAPF upload multiple/maxsize settings did not survive import: ' . wp_json_encode( $upload_field ) );
+	$assert( [ 'jpg', 'jpeg', 'jpe', 'pdf' ] === ( $upload_field['accepted_types'] ?? [] ), 'WAPF upload accepted types did not survive import: ' . wp_json_encode( $upload_field ) );
+	$assert( 'none' === ( $upload_field['pricing']['type'] ?? '' ) && false !== strpos( implode( ' ', (array) $review_notes ), 'upload field' ), 'Upload field pricing was not dropped with a review note.' );
 	$assert( [ 'enabled' => true, 'mode' => 'button', 'max' => 6 ] === ( $repeat_field['repeat'] ?? null ), 'WAPF button clone mode and maximum did not survive import persistence: ' . wp_json_encode( [ 'repeat_field' => $repeat_field, 'notes' => $review_notes ] ) );
 	$assert( [ 'enabled' => true, 'mode' => 'quantity' ] === ( $repeat_section['repeat'] ?? null ), 'WAPF quantity clone mode did not survive import persistence on its section: ' . wp_json_encode( [ 'repeat_section' => $repeat_section, 'notes' => $review_notes ] ) );
 	$assert( false !== strpos( implode( ' ', $review_notes ), 'quantity or section repeat behavior that OPF does not implement yet' ), 'Imported repeater was not explicitly held for runtime review.' );
@@ -266,7 +284,7 @@ try {
 	require_once ABSPATH . 'wp-admin/includes/plugin.php';
 	$plugins = get_plugins();
 	$wapf_version = $plugins['advanced-product-fields-for-woocommerce/advanced-product-fields-for-woocommerce.php']['Version'] ?? 'unknown';
-	echo sprintf( "ok WAPF %s global/local import, later-field formula remapping and evaluation, button field and quantity section config preservation, review drafts, malformed report, dry-run, product attachment, persistence, idempotent repeat\n", $wapf_version );
+	echo sprintf( "ok WAPF %s global/local import, later-field formula remapping and evaluation, file→upload mapping with review flag, button field and quantity section config preservation, review drafts, malformed report, dry-run, product attachment, persistence, idempotent repeat\n", $wapf_version );
 } finally {
 	$source_keys = [];
 	if ( $global_id && ! is_wp_error( $global_id ) ) {

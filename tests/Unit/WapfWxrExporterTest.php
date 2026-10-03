@@ -209,6 +209,119 @@ final class WapfWxrExporterTest extends TestCase {
 		$this->assertSame( '([price] + [field.weight]) * [qty]', $group['fields'][1]['pricing']['amount'] );
 	}
 
+	public function test_wxr_preserves_products_field_options_subtype_and_choices(): void {
+		$xml = WapfWxrExporter::build_document( [ [
+			'id' => 99,
+			'title' => 'Linked products',
+			'data' => [ 'schema' => 1, 'fields' => [ [
+				'id' => 'linked', 'label' => 'Linked', 'type' => 'products', 'subtype' => 'card-qty',
+				'product_selection' => 'manual', 'display' => 'plus_min',
+				'min_choices' => 1, 'max_choices' => 9,
+				'items_per_row' => 3, 'incl_img' => true, 'incl_desc' => false,
+				'slot_1' => 'price', 'slot_2' => 'stock',
+				'hide_cart' => true,
+				'choices' => [
+					[ 'slug' => 'a', 'label' => '', 'product_id' => 51, 'pricing_type' => 'fixed',
+						'quantity' => [ 'default' => 2, 'min' => 1, 'max' => 8 ] ],
+					[ 'slug' => 'b', 'label' => '', 'product_id' => 77, 'pricing_type' => 'none' ],
+				],
+			] ], 'rule_groups' => [] ],
+		] ], [ 'site_url' => 'https://example.test', 'site_title' => 'Example Store' ] );
+		$document = new \DOMDocument();
+		$this->assertTrue( $document->loadXML( $xml ) );
+		$xpath = new \DOMXPath( $document );
+		$xpath->registerNamespace( 'content', 'http://purl.org/rss/1.0/modules/content/' );
+		$content = $xpath->query( '/rss/channel/item/content:encoded' )->item( 0 )->textContent;
+		$group = unserialize( $content, [ 'allowed_classes' => false ] );
+
+		$field = $group['fields'][0];
+		$this->assertSame( 'products', $field['type'] );
+		$this->assertSame( 'card-qty', $field['subtype'] );
+		$this->assertSame( 'manual', $field['options']['product_selection'] );
+		$this->assertSame( 'plus_min', $field['options']['display'] );
+		$this->assertSame( 1, $field['options']['min_choices'] );
+		$this->assertSame( 9, $field['options']['max_choices'] );
+		$this->assertSame( 3, $field['options']['items_per_row'] );
+		$this->assertSame( 'price', $field['options']['slot_1'] );
+		$this->assertSame( 'stock', $field['options']['slot_2'] );
+		$this->assertFalse( $field['options']['incl_desc'] );
+		$this->assertSame( 'true', $field['options']['hide_cart'] );
+		$choice = $field['options']['choices'][0];
+		$this->assertSame( 51, $choice['id'] );
+		$this->assertSame( 'a', $choice['slug'] );
+		$this->assertSame( 'fixed', $choice['pricing_type'] );
+		$this->assertSame( [ 'min' => 1, 'max' => 8, 'default' => 2 ], $choice['options'] );
+		$this->assertSame( 'none', $field['options']['choices'][1]['pricing_type'] );
+	}
+
+	public function test_wxr_preserves_category_products_query_and_file_options(): void {
+		$xml = WapfWxrExporter::build_document( [ [
+			'id' => 100,
+			'title' => 'Query and upload',
+			'data' => [ 'schema' => 1, 'fields' => [
+				[
+					'id' => 'related', 'label' => 'Related', 'type' => 'products', 'subtype' => 'vcard',
+					'product_selection' => 'category',
+					'product_query' => [ 'query_id' => 44, 'query_label' => 'Extras', 'limit' => 7, 'sort' => 'name_asc', 'pricing_type' => 'none' ],
+					'img_fit' => 'contain',
+				],
+				[
+					'id' => 'art', 'label' => 'Artwork', 'type' => 'upload',
+					'multiple' => true, 'max_size' => 2.5, 'accepted_types' => [ 'png', 'pdf' ],
+				],
+			], 'rule_groups' => [] ],
+		] ], [ 'site_url' => 'https://example.test', 'site_title' => 'Example Store' ] );
+		$document = new \DOMDocument();
+		$this->assertTrue( $document->loadXML( $xml ) );
+		$xpath = new \DOMXPath( $document );
+		$xpath->registerNamespace( 'content', 'http://purl.org/rss/1.0/modules/content/' );
+		$content = $xpath->query( '/rss/channel/item/content:encoded' )->item( 0 )->textContent;
+		$group = unserialize( $content, [ 'allowed_classes' => false ] );
+
+		$products_field = $group['fields'][0];
+		$this->assertSame( 'category', $products_field['options']['product_selection'] );
+		$this->assertSame( 44, $products_field['options']['product_query']['query_id'] );
+		$this->assertSame( 'name_asc', $products_field['options']['product_query']['sort'] );
+		$this->assertSame( 'none', $products_field['options']['product_query']['pricing_type'] );
+		$this->assertSame( 'contain', $products_field['options']['img_fit'] );
+
+		$file_field = $group['fields'][1];
+		$this->assertSame( 'file', $file_field['type'] );
+		$this->assertTrue( $file_field['options']['multiple'] );
+		$this->assertSame( 2.5, $file_field['options']['maxsize'] );
+		$this->assertSame( 'png,pdf', $file_field['options']['accept'] );
+	}
+
+	public function test_wxr_preserves_variables_and_placement(): void {
+		$xml = WapfWxrExporter::build_document( [ [
+			'id' => 101,
+			'title' => 'Variables',
+			'data' => [ 'schema' => 1,
+				'fields' => [ [ 'id' => 'width', 'label' => 'Width', 'type' => 'number' ] ],
+				'variables' => [ [
+					'name' => 'fee', 'default' => '[field.width] * 2',
+					'rules' => [ [ 'type' => 'field', 'field' => 'width', 'condition' => '==', 'value' => 'x', 'variable' => 'lookuptable(t;width;2)' ] ],
+				] ],
+				'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'product', 'operator' => 'in', 'terms' => [ '44' ] ] ] ] ],
+			],
+		] ], [ 'site_url' => 'https://example.test', 'site_title' => 'Example Store' ] );
+		$document = new \DOMDocument();
+		$this->assertTrue( $document->loadXML( $xml ) );
+		$xpath = new \DOMXPath( $document );
+		$xpath->registerNamespace( 'content', 'http://purl.org/rss/1.0/modules/content/' );
+		$content = $xpath->query( '/rss/channel/item/content:encoded' )->item( 0 )->textContent;
+		$group = unserialize( $content, [ 'allowed_classes' => false ] );
+
+		$this->assertSame( 'fee', $group['variables'][0]['name'] );
+		$this->assertSame( '[field.width] * 2', $group['variables'][0]['default'] );
+		$this->assertSame( 'lookuptable(t;width;2)', $group['variables'][0]['rules'][0]['variable'] );
+		$this->assertSame( [ [ 'id' => '44', 'text' => '44' ] ], $group['rule_groups'][0]['rules'][0]['value'] );
+
+		// The serialized payload must survive the OPF import path too.
+		$mapped = \OPF\Engine\WapfMapper::map( $group );
+		$this->assertSame( 'fee', $mapped['group']['variables'][0]['name'] );
+	}
+
 	public function test_requires_valid_site_url_and_source_group_identity(): void {
 		$this->expectException( \InvalidArgumentException::class );
 		$this->expectExceptionMessage( 'source site URL' );

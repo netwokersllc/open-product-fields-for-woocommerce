@@ -48,6 +48,19 @@ final class WapfMapper {
 		'img'            => 'content_image',
 		'section'        => 'section',
 		'sectionend'     => 'section_end',
+		'file'           => 'upload',
+		// Stored WAPF groups write type `products` with a separate `subtype`
+		// key; the `products-*` spellings cover payloads that flattened the
+		// subtype into the type name.
+		'products'           => 'products',
+		'products-checkbox'  => 'products',
+		'products-radio'     => 'products',
+		'products-dropdown'  => 'products',
+		'products-image'     => 'products',
+		'products-card'      => 'products',
+		'products-vcard'     => 'products',
+		'products-card-qty'  => 'products',
+		'products-vcard-qty' => 'products',
 	];
 
 	/**
@@ -88,8 +101,10 @@ final class WapfMapper {
 		$opf_ids_by_index = [];
 		$opf_ids_by_wapf_id = [];
 		$source_order_by_wapf_id = [];
+		$source_type_by_wapf_id = [];
 		$sumqty_safe_wapf_ids = [];
 		$unrepeated_by_index = [];
+		$inside_repeated_section_by_index = [];
 		$repeat_section_stack = [];
 		$source_fields = is_array( $wapf['fields'] ?? null ) ? $wapf['fields'] : [];
 
@@ -115,6 +130,7 @@ final class WapfMapper {
 			if ( '' !== $source_id ) {
 				$opf_ids_by_wapf_id[ $source_id ] = null;
 				$source_order_by_wapf_id[ $source_id ] = null;
+				$source_type_by_wapf_id[ $source_id ] = $wapf_type;
 				$sumqty_safe_wapf_ids[ $source_id ] = false;
 				if ( $duplicate_source_id ) {
 					$notes[] = sprintf( 'WAPF field ID "%s" is duplicated; conditions referencing it need review.', $source_id );
@@ -128,7 +144,8 @@ final class WapfMapper {
 			$field_id = self::field_id( (string) ( $wapf_field['label'] ?? '' ), (string) ( $wapf_field['id'] ?? '' ), $seen_ids );
 			$seen_ids[ $field_id ] = true;
 			$opf_ids_by_index[ $index ] = $field_id;
-			$unrepeated_by_index[ $index ] = $clone_disabled && ! in_array( true, $repeat_section_stack, true );
+			$inside_repeated_section_by_index[ $index ] = in_array( true, $repeat_section_stack, true );
+			$unrepeated_by_index[ $index ] = $clone_disabled && ! $inside_repeated_section_by_index[ $index ];
 			if ( '' !== $source_id && ! $duplicate_source_id ) {
 				$opf_ids_by_wapf_id[ $source_id ] = $field_id;
 				$source_order_by_wapf_id[ $source_id ] = (int) $index;
@@ -143,12 +160,23 @@ final class WapfMapper {
 				continue;
 			}
 			$wapf_type = (string) ( $wapf_field['type'] ?? 'text' );
+			$mapped_type = self::TYPE_MAP[ $wapf_type ];
 			$field_id = $opf_ids_by_index[ $index ];
+			$label = (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' );
 			// Repeated consumers also need review: clone context propagation is
 			// not established by ordinary image-quantity sumQty parity.
 			$sumqty_references = $unrepeated_by_index[ $index ] ? $sumqty_safe_wapf_ids : [];
 
-			$has_choices = in_array( self::TYPE_MAP[ $wapf_type ], [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ], true );
+			if ( in_array( $mapped_type, [ 'upload', 'products' ], true ) && ! empty( $inside_repeated_section_by_index[ $index ] ) ) {
+				// FieldGroup rejects these types inside repeated sections; WAPF
+				// itself cannot render them there either, so the field is dropped
+				// like an unsupported type instead of failing the whole group.
+				$notes[] = sprintf( 'field "%s" is a %s field inside a repeated section; OPF does not support that placement and the field was dropped.', $label, $mapped_type );
+				$needs_review = true;
+				continue;
+			}
+
+			$has_choices = in_array( $mapped_type, [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ], true );
 			$image_swatch_settings = in_array( $wapf_type, [ 'image-swatch', 'multi-image-swatch' ], true ) ? self::map_image_swatch_settings( $wapf_field, $notes, $needs_review ) : [];
 			$color_swatch_settings = in_array( $wapf_type, [ 'color-swatch', 'multi-color-swatch' ], true ) ? self::map_color_swatch_settings( $wapf_field, $notes, $needs_review ) : [];
 			$selection_limits = in_array( $wapf_type, [ 'multi-text-swatch', 'multi-image-swatch', 'multi-color-swatch' ], true ) ? self::map_swatch_selection_limits( $wapf_field, $notes, $needs_review ) : [];
@@ -176,7 +204,16 @@ final class WapfMapper {
 				$image_id = is_scalar( $raw_image_id ) ? (int) $raw_image_id : 0;
 			}
 			$repeat = self::map_repeat_settings( $wapf_field, $notes, $needs_review );
+			if ( in_array( $mapped_type, [ 'upload', 'products' ], true ) && $repeat ) {
+				// FieldGroup cannot persist repeats on these types; the field
+				// itself still imports so a human can decide how to keep it.
+				$notes[] = sprintf( '%s field "%s" uses WAPF repeat behavior that OPF does not support on this field type; it was imported without repeat settings.', $mapped_type, $label );
+				$needs_review = true;
+				$repeat = [];
+			}
 			$date_settings = 'date' === $wapf_type ? self::map_date_settings( $wapf_field, $notes, $needs_review ) : [];
+			$upload_settings = 'upload' === $mapped_type ? self::map_upload_settings( $wapf_field, $notes, $needs_review ) : [];
+			$products_settings = 'products' === $mapped_type ? self::map_products_settings( $wapf_field, $notes, $needs_review ) : [];
 			$toggle_settings = [];
 			if ( 'true-false' === $wapf_type ) {
 				$toggle_settings['message'] = (string) ( $wapf_field['options']['message'] ?? $wapf_field['message'] ?? '' );
@@ -192,28 +229,39 @@ final class WapfMapper {
 				$text_settings['default'] = $wapf_field['options']['default'];
 			}
 
+			$options = is_array( $wapf_field['options'] ?? null ) ? $wapf_field['options'] : [];
 			$field = FieldGroup::normalize_field(
 				array_merge( [
 					'id'           => $field_id,
 					'label'        => (string) ( $wapf_field['label'] ?? '' ),
 					'description'  => (string) ( $wapf_field['description'] ?? '' ),
-					'type'         => self::TYPE_MAP[ $wapf_type ],
+					'type'         => $mapped_type,
 					'required'     => (bool) ( $wapf_field['required'] ?? false ),
 					'width'        => (int) ( $wapf_field['width'] ?? 100 ),
 					'css_class'    => (string) ( $wapf_field['class'] ?? '' ),
 					'placeholder'  => (string) ( $wapf_field['options']['placeholder'] ?? '' ),
 					'swatch_style' => in_array( $wapf_type, [ 'image-swatch', 'multi-image-swatch' ], true ) ? 'image' : ( in_array( $wapf_type, [ 'color-swatch', 'multi-color-swatch' ], true ) ? 'color' : 'text' ),
 					'multiple'     => in_array( $wapf_type, [ 'multi-text-swatch', 'multi-image-swatch', 'multi-color-swatch' ], true ),
-					'choices'      => $has_choices ? self::map_choices( $wapf_field, $notes, $needs_review, $opf_ids_by_wapf_id, $source_order_by_wapf_id, (int) $index, $sumqty_references ) : [],
-					'pricing'      => self::map_field_pricing( $wapf_field, $notes, $needs_review, $opf_ids_by_wapf_id, $source_order_by_wapf_id, (int) $index, $sumqty_references ),
-					'conditionals' => self::map_conditionals( $wapf_field, $notes, $opf_ids_by_wapf_id, $needs_review ),
+					'choices'      => 'products' === $mapped_type
+						? self::map_product_choices( $wapf_field, $products_settings, $notes, $needs_review )
+						: ( $has_choices ? self::map_choices( $wapf_field, $notes, $needs_review, $opf_ids_by_wapf_id, $source_order_by_wapf_id, (int) $index, $sumqty_references ) : [] ),
+					'pricing'      => in_array( $mapped_type, [ 'upload', 'products' ], true )
+						// Child-product lines and uploads never carry field-level
+						// addon pricing in OPF; enabled source pricing is noted
+						// by the settings mappers instead of failing normalize.
+						? [ 'type' => 'none', 'amount' => 0.0, 'formula' => '' ]
+						: self::map_field_pricing( $wapf_field, $notes, $needs_review, $opf_ids_by_wapf_id, $source_order_by_wapf_id, (int) $index, $sumqty_references ),
+					'conditionals' => self::map_conditionals( $wapf_field, $notes, $opf_ids_by_wapf_id, $needs_review, $source_type_by_wapf_id ),
+					'hide_cart'    => self::truthy( $options['hide_cart'] ?? $wapf_field['hide_cart'] ?? false ),
+					'hide_checkout' => self::truthy( $options['hide_checkout'] ?? $wapf_field['hide_checkout'] ?? false ),
+					'hide_order'   => self::truthy( $options['hide_order'] ?? $wapf_field['hide_order'] ?? false ),
 					'content'      => $content,
 					'image_url'    => $image_url,
 					'image_id'     => $image_id,
 					'content_format' => $content_format,
 					'process_shortcodes' => $process_shortcodes,
 					'repeat' => $repeat,
-				], $image_swatch_settings, $color_swatch_settings, $selection_limits, $quantity_limits, $date_settings, $toggle_settings, $text_settings )
+				], $image_swatch_settings, $color_swatch_settings, $selection_limits, $quantity_limits, $date_settings, $upload_settings, $products_settings, $toggle_settings, $text_settings )
 			);
 			if ( 'paragraph' === $field['type'] ) {
 				if ( ! empty( $wapf_field['required'] ) ) {
@@ -832,6 +880,308 @@ final class WapfMapper {
 	}
 
 	/**
+	 * Loose WAPF boolean check: stored groups use booleans while Tools/JSON
+	 * payloads serialize flags as 'true'/'false' strings.
+	 */
+	private static function truthy( $value ): bool {
+		return in_array( $value, [ true, 1, '1', 'true' ], true );
+	}
+
+	/**
+	 * Map WAPF `file` upload settings to OPF `upload` keys.
+	 *
+	 * WAPF stores `multiple` (bool), `maxsize` (MB number) and `accept`
+	 * (comma-separated wp mime-map keys such as "jpg|jpeg|jpe,pdf"). OPF keeps
+	 * individual extensions; alternate-extension groups pass through the
+	 * normalizer's `|` split.
+	 *
+	 * @param array<string,mixed> $wapf_field WAPF field.
+	 * @return array<string,mixed>
+	 */
+	private static function map_upload_settings( array $wapf_field, array &$notes, bool &$needs_review ): array {
+		$options = is_array( $wapf_field['options'] ?? null ) ? $wapf_field['options'] : [];
+		$label   = (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' );
+		$settings = [];
+
+		if ( array_key_exists( 'multiple', $options ) ) {
+			$settings['multiple'] = self::truthy( $options['multiple'] );
+		}
+		if ( array_key_exists( 'maxsize', $options ) && '' !== $options['maxsize'] && null !== $options['maxsize'] ) {
+			if ( is_numeric( $options['maxsize'] ) && (float) $options['maxsize'] >= 0 ) {
+				$settings['max_size'] = (float) $options['maxsize'];
+			} else {
+				$notes[] = sprintf( 'upload field "%s" has an invalid maximum size %s; the default applies.', $label, self::review_value( $options['maxsize'] ) );
+				$needs_review = true;
+			}
+		}
+		$accept = $options['accept'] ?? null;
+		if ( is_array( $accept ) ) {
+			$accept = implode( ',', array_map( 'strval', $accept ) );
+		}
+		if ( is_string( $accept ) && '' !== trim( $accept ) ) {
+			$extensions = [];
+			foreach ( preg_split( '/\s*,\s*/', trim( $accept ) ) as $token ) {
+				// Tokens are wp mime-map keys (extension groups joined by |);
+				// anything else cannot survive OPF upload normalization.
+				if ( is_string( $token ) && preg_match( '/^\.?[a-zA-Z0-9]+(?:\|[a-zA-Z0-9]+)*$/', $token ) ) {
+					$extensions[] = $token;
+				} else {
+					$notes[] = sprintf( 'upload field "%s" has an unrecognized accepted-type token %s; it needs review.', $label, self::review_value( $token ) );
+					$needs_review = true;
+				}
+			}
+			if ( $extensions ) {
+				$settings['accepted_types'] = $extensions;
+			}
+		}
+
+		$pricing = $wapf_field['pricing'] ?? [];
+		if ( is_array( $pricing ) && ! empty( $pricing['enabled'] ) ) {
+			$notes[] = sprintf( 'upload field "%s" has WAPF pricing enabled; OPF upload fields do not charge and it was imported without pricing.', $label );
+			$needs_review = true;
+		}
+		return $settings;
+	}
+
+	/**
+	 * Map WAPF `products` field settings to the OPF products schema.
+	 *
+	 * WAPF stores the subtype either flattened into the type (`products-card`)
+	 * or as a `subtype` field key; every subtype-specific option lives under
+	 * `options` and is gated by the subtype, mirroring WAPF's own
+	 * Linked_Products_Controller::sanitize_field_data rules.
+	 *
+	 * @param array<string,mixed> $wapf_field WAPF field.
+	 * @return array<string,mixed>
+	 */
+	private static function map_products_settings( array $wapf_field, array &$notes, bool &$needs_review ): array {
+		$options = is_array( $wapf_field['options'] ?? null ) ? $wapf_field['options'] : [];
+		$label   = (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' );
+		$wapf_type = (string) ( $wapf_field['type'] ?? '' );
+
+		if ( str_starts_with( $wapf_type, 'products-' ) ) {
+			$subtype = substr( $wapf_type, strlen( 'products-' ) );
+		} else {
+			$subtype = (string) ( $wapf_field['subtype'] ?? $options['subtype'] ?? 'checkbox' );
+			$subtype = (string) preg_replace( '/^products-/', '', $subtype );
+		}
+		if ( ! in_array( $subtype, FieldGroup::PRODUCTS_SUBTYPES, true ) ) {
+			$notes[] = sprintf( 'products field "%s" has an unsupported subtype "%s"; imported as checkboxes.', $label, $subtype );
+			$needs_review = true;
+			$subtype = 'checkbox';
+		}
+		$qty_subtype = in_array( $subtype, [ 'card-qty', 'vcard-qty' ], true );
+		$settings = [ 'subtype' => $subtype ];
+
+		$selection = (string) ( $options['product_selection'] ?? 'manual' );
+		if ( ! in_array( $selection, [ 'manual', 'category' ], true ) ) {
+			$notes[] = sprintf( 'products field "%s" has an unsupported product selection "%s"; manual selection applies.', $label, $selection );
+			$needs_review = true;
+			$selection = 'manual';
+		}
+		$settings['product_selection'] = $selection;
+
+		if ( 'category' === $selection ) {
+			$query = is_array( $options['product_query'] ?? null ) ? $options['product_query'] : [];
+			if ( empty( $query['query_id'] ) || ! is_numeric( $query['query_id'] ) ) {
+				$notes[] = sprintf( 'products field "%s" uses category selection without a category; the imported field has no choices and needs review.', $label );
+				$needs_review = true;
+			}
+			$settings['product_query'] = [
+				'query_id'     => isset( $query['query_id'] ) && is_numeric( $query['query_id'] ) ? (int) $query['query_id'] : 0,
+				'query_label'  => (string) ( $query['query_label'] ?? '' ),
+				'limit'        => isset( $query['limit'] ) && is_numeric( $query['limit'] ) ? (int) $query['limit'] : 5,
+				'sort'         => in_array( $query['sort'] ?? '', [ 'name_asc', 'name_desc', 'date_asc', 'date_desc' ], true ) ? $query['sort'] : 'date_desc',
+				'pricing_type' => in_array( $query['pricing_type'] ?? '', FieldGroup::PRODUCTS_PRICING_TYPES, true ) ? $query['pricing_type'] : 'fixed',
+			];
+		}
+
+		if ( ! $qty_subtype ) {
+			$qty_method = (string) ( $options['qty_method'] ?? 'one' );
+			if ( ! in_array( $qty_method, [ 'one', 'parent' ], true ) ) {
+				$notes[] = sprintf( 'products field "%s" has an unsupported quantity method "%s"; the default applies.', $label, $qty_method );
+				$needs_review = true;
+			} else {
+				$settings['qty_method'] = $qty_method;
+			}
+		}
+
+		if ( $qty_subtype ) {
+			if ( isset( $options['display'] ) ) {
+				if ( in_array( $options['display'], [ 'default', 'plus_min' ], true ) ) {
+					$settings['display'] = $options['display'];
+				} else {
+					$notes[] = sprintf( 'products field "%s" has an unsupported quantity display "%s"; the default applies.', $label, (string) $options['display'] );
+					$needs_review = true;
+				}
+			}
+			foreach ( [ 'min_choices', 'max_choices' ] as $key ) {
+				if ( ! array_key_exists( $key, $options ) || '' === $options[ $key ] || null === $options[ $key ] ) {
+					continue;
+				}
+				if ( ( is_int( $options[ $key ] ) || ( is_string( $options[ $key ] ) && preg_match( '/^-?\d+$/', $options[ $key ] ) ) ) && (int) $options[ $key ] >= 0 ) {
+					$settings[ $key ] = (int) $options[ $key ];
+				} else {
+					$notes[] = sprintf( 'products field "%s" has an invalid %s setting; the aggregate quantity limit needs review.', $label, $key );
+					$needs_review = true;
+				}
+			}
+		} elseif ( ! in_array( $subtype, [ 'radio', 'dropdown' ], true ) ) {
+			// WAPF min/max_choices on non-quantity subtypes cap the number of
+			// selected products; OPF products fields have no equivalent yet.
+			foreach ( [ 'min_choices', 'max_choices' ] as $key ) {
+				if ( array_key_exists( $key, $options ) && '' !== $options[ $key ] && null !== $options[ $key ] ) {
+					$notes[] = sprintf( 'products field "%s" uses a WAPF %s selection limit that OPF does not enforce; it needs review.', $label, $key );
+					$needs_review = true;
+				}
+			}
+		}
+
+		if ( 'image' === $subtype ) {
+			if ( isset( $options['label_pos'] ) && in_array( $options['label_pos'], [ 'default', 'out', 'hide', 'tooltip' ], true ) ) {
+				$settings['label_pos'] = $options['label_pos'];
+			}
+			// WAPF's admin default is 68px; OPF falls back to 60px when the key
+			// is absent, so the WAPF default is made explicit here.
+			$item_width = $options['item_width'] ?? 68;
+			$settings['item_width'] = is_numeric( $item_width ) ? (int) $item_width : 68;
+		}
+
+		if ( in_array( $subtype, [ 'card', 'vcard', 'card-qty', 'vcard-qty' ], true ) ) {
+			foreach ( [ 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile' ] as $key ) {
+				if ( ! isset( $options[ $key ] ) ) {
+					continue;
+				}
+				if ( is_numeric( $options[ $key ] ) && (int) $options[ $key ] >= 1 ) {
+					$settings[ $key ] = (int) $options[ $key ];
+				} else {
+					$notes[] = sprintf( 'products field "%s" has an invalid %s setting; the card layout needs review.', $label, $key );
+					$needs_review = true;
+				}
+			}
+			foreach ( [ 'incl_img', 'incl_desc' ] as $key ) {
+				if ( array_key_exists( $key, $options ) ) {
+					$settings[ $key ] = self::truthy( $options[ $key ] );
+				}
+			}
+			foreach ( [ 'slot_1', 'slot_2', 'slot_3' ] as $key ) {
+				if ( ! isset( $options[ $key ] ) || '' === $options[ $key ] ) {
+					continue;
+				}
+				if ( in_array( $options[ $key ], [ 'none', 'price', 'stock', 'link' ], true ) ) {
+					$settings[ $key ] = $options[ $key ];
+				} else {
+					$notes[] = sprintf( 'products field "%s" has an unsupported %s value "%s"; the slot is empty.', $label, $key, (string) $options[ $key ] );
+					$needs_review = true;
+				}
+			}
+			if ( in_array( $subtype, [ 'vcard', 'vcard-qty' ], true ) && isset( $options['img_fit'] ) ) {
+				if ( in_array( $options['img_fit'], [ 'cover', 'contain' ], true ) ) {
+					$settings['img_fit'] = $options['img_fit'];
+				} else {
+					$notes[] = sprintf( 'products field "%s" has an unsupported image fit "%s"; the default applies.', $label, (string) $options['img_fit'] );
+					$needs_review = true;
+				}
+			}
+		}
+
+		// Product image zoom is stored under image_zoom (OPF) or large_image
+		// (WAPF swatch vocabulary) depending on the export path.
+		foreach ( [ 'image_zoom', 'large_image' ] as $zoom_key ) {
+			if ( array_key_exists( $zoom_key, $options ) && in_array( $options[ $zoom_key ], [ true, false, 0, 1, '0', '1', 'true', 'false' ], true ) ) {
+				$settings['image_zoom'] = self::truthy( $options[ $zoom_key ] );
+				break;
+			}
+		}
+
+		$pricing = $wapf_field['pricing'] ?? [];
+		if ( is_array( $pricing ) && ! empty( $pricing['enabled'] ) ) {
+			$notes[] = sprintf( 'products field "%s" has WAPF pricing enabled; linked products price themselves, so the field pricing was removed.', $label );
+			$needs_review = true;
+		}
+		return $settings;
+	}
+
+	/**
+	 * Map WAPF `products` choices: manual selections reference products by ID,
+	 * quantity subtypes carry per-choice default/min/max under `options`.
+	 *
+	 * @param array<string,mixed> $wapf_field       WAPF field.
+	 * @param array<string,mixed> $products_settings Resolved subtype/selection.
+	 * @return array<int,array>
+	 */
+	private static function map_product_choices( array $wapf_field, array $products_settings, array &$notes, bool &$needs_review ): array {
+		$options = is_array( $wapf_field['options'] ?? null ) ? $wapf_field['options'] : [];
+		$label   = (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' );
+		if ( 'category' === ( $products_settings['product_selection'] ?? 'manual' ) ) {
+			// Category-mode choices resolve live from product_query; stored
+			// choices are ignored by WAPF as well.
+			return [];
+		}
+		$qty_subtype = in_array( (string) ( $products_settings['subtype'] ?? '' ), [ 'card-qty', 'vcard-qty' ], true );
+		$choices = [];
+		$skipped = 0;
+		foreach ( ( $options['choices'] ?? [] ) as $choice ) {
+			if ( ! is_array( $choice ) ) {
+				continue;
+			}
+			$product_id = $choice['id'] ?? $choice['product_id'] ?? null;
+			if ( ! ( is_int( $product_id ) || ( is_string( $product_id ) && ctype_digit( $product_id ) ) ) || (int) $product_id <= 0 ) {
+				// A choice without a product reference renders nothing in WAPF
+				// either; it is dropped, not silently kept.
+				$skipped++;
+				continue;
+			}
+			$pricing_type = (string) ( $choice['pricing_type'] ?? 'fixed' );
+			if ( ! in_array( $pricing_type, FieldGroup::PRODUCTS_PRICING_TYPES, true ) ) {
+				$notes[] = sprintf( 'product choice "%s" in field "%s" uses unsupported pricing "%s"; it now uses the product price.', (string) ( $choice['slug'] ?? '#' . $product_id ), $label, $pricing_type );
+				$needs_review = true;
+				$pricing_type = 'fixed';
+			}
+			$mapped = [
+				'slug'        => (string) ( $choice['slug'] ?? '' ),
+				'label'       => (string) ( $choice['label'] ?? '' ),
+				'selected'    => ! empty( $choice['selected'] ),
+				'disabled'    => ! empty( $choice['disabled'] ),
+				'product_id'  => (int) $product_id,
+				'pricing_type' => $pricing_type,
+			];
+			if ( $qty_subtype ) {
+				$quantity_options = is_array( $choice['options'] ?? null ) ? $choice['options'] : [];
+				$quantity = [];
+				foreach ( [ 'default', 'min', 'max' ] as $key ) {
+					if ( ! array_key_exists( $key, $quantity_options ) || '' === $quantity_options[ $key ] || null === $quantity_options[ $key ] ) {
+						continue;
+					}
+					if ( is_numeric( $quantity_options[ $key ] ) ) {
+						$quantity[ $key ] = (int) $quantity_options[ $key ];
+					} else {
+						$notes[] = sprintf( 'product choice "%s" in field "%s" has a non-numeric %s quantity; the default applies.', (string) ( $choice['slug'] ?? '#' . $product_id ), $label, $key );
+						$needs_review = true;
+					}
+				}
+				if ( $quantity ) {
+					$mapped['quantity'] = [
+						'default' => (int) ( $quantity['default'] ?? 0 ),
+						'min'     => (int) ( $quantity['min'] ?? 0 ),
+						'max'     => (int) ( $quantity['max'] ?? 999999 ),
+					];
+				}
+			}
+			$choices[] = $mapped;
+		}
+		if ( $skipped ) {
+			$notes[] = sprintf( 'products field "%s" had %d choice(s) without a product reference; they were dropped and need review.', $label, $skipped );
+			$needs_review = true;
+		}
+		if ( ! $choices && ! empty( $options['choices'] ) ) {
+			$notes[] = sprintf( 'products field "%s" has no usable product choices after import; it needs review.', $label );
+			$needs_review = true;
+		}
+		return $choices;
+	}
+
+	/**
 	 * WAPF formula → OPF formula.
 	 *
 	 * WAPF normally divides formula results by product quantity, so formulas
@@ -1058,7 +1408,7 @@ final class WapfMapper {
 	 * @param array<string,bool>  $seen_ids   Known field ids (incl. later ones skipped below).
 	 * @return array<int,array>
 	 */
-	private static function map_conditionals( array $wapf_field, array &$notes, array $opf_ids_by_wapf_id, bool &$needs_review ): array {
+	private static function map_conditionals( array $wapf_field, array &$notes, array $opf_ids_by_wapf_id, bool &$needs_review, array $source_type_by_wapf_id = [] ): array {
 		$out = [];
 		$conditionals = $wapf_field['conditionals'] ?? [];
 		if ( ! is_array( $conditionals ) ) {
@@ -1106,6 +1456,14 @@ final class WapfMapper {
 				$value = in_array( $condition, [ 'check', '!check' ], true ) ? '1' : ( $rule['value'] ?? '' );
 				if ( is_array( $value ) ) {
 					$value = implode( ', ', array_map( 'strval', $value ) );
+				}
+				$source_type = (string) ( $source_type_by_wapf_id[ $source_field_id ] ?? '' );
+				if ( '' !== $source_type && in_array( $operator, [ 'is', 'is_not', 'contains', 'not_contains' ], true )
+					&& ( 'products' === ( self::TYPE_MAP[ $source_type ] ?? '' ) ) ) {
+					// WAPF "product" conditions compare against product IDs;
+					// OPF submits choice slugs. Keep the rule but flag it.
+					$notes[] = sprintf( 'conditional rule on products field "%s" compares a WAPF product reference; OPF evaluates choice slugs, so the rule needs review.', $subject );
+					$needs_review = true;
 				}
 				$rules[] = [
 					'field'    => $subject,

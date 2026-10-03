@@ -44,4 +44,34 @@ final class ExporterTest extends TestCase {
 		$this->assertContains( 'product_target_ids_may_not_match', $package['groups'][0]['warnings'] );
 		$this->assertSame( 2, count( $package['warnings'] ) );
 	}
+
+	public function test_export_marks_linked_product_references_as_site_local(): void {
+		$package = Exporter::build_package( [
+			[
+				'id' => 46,
+				'data' => [ 'fields' => [ [
+					'type' => 'products', 'product_selection' => 'manual',
+					'choices' => [ [ 'product_id' => 12 ] ],
+				] ] ],
+			],
+			[
+				'id' => 47,
+				'data' => [ 'fields' => [ [
+					'type' => 'products', 'product_selection' => 'category',
+					'product_query' => [ 'query_id' => 9 ],
+				] ] ],
+			],
+			[
+				'id' => 48,
+				'data' => [ 'fields' => [ [
+					'type' => 'products', 'product_selection' => 'category',
+					'product_query' => [ 'query_id' => 0 ],
+				] ] ],
+			],
+		], [ 'type' => 'all' ] );
+
+		$this->assertSame( [ 'product_target_ids_may_not_match' ], $package['groups'][0]['warnings'] );
+		$this->assertSame( [ 'product_target_ids_may_not_match' ], $package['groups'][1]['warnings'] );
+		$this->assertSame( [], $package['groups'][2]['warnings'], 'category selection without a query id is not site-local' );
+	}
 }

@@ -44,15 +44,43 @@ final class Exporter {
 		if ( self::has_media_reference( $data ) ) {
 			$warnings[] = 'media_files_not_included';
 		}
+		$has_site_local = false;
 		foreach ( (array) ( $data['rule_groups'] ?? [] ) as $rule_group ) {
 			foreach ( (array) ( $rule_group['rules'] ?? [] ) as $rule ) {
 				if ( is_array( $rule ) && in_array( $rule['subject'] ?? '', [ 'product', 'product_cat', 'product_tag' ], true ) && ! empty( $rule['terms'] ) ) {
-					$warnings[] = 'product_target_ids_may_not_match';
+					$has_site_local = true;
 					break 2;
 				}
 			}
 		}
+		if ( ! $has_site_local ) {
+			$has_site_local = self::has_linked_product_references( $data );
+		}
+		if ( $has_site_local ) {
+			$warnings[] = 'product_target_ids_may_not_match';
+		}
 		return $warnings;
+	}
+
+	/** Linked-products fields carry site-local product/category IDs. */
+	private static function has_linked_product_references( array $data ): bool {
+		foreach ( (array) ( $data['fields'] ?? [] ) as $field ) {
+			if ( ! is_array( $field ) || 'products' !== ( $field['type'] ?? '' ) ) {
+				continue;
+			}
+			if ( 'category' === ( $field['product_selection'] ?? '' ) ) {
+				if ( (int) ( $field['product_query']['query_id'] ?? 0 ) > 0 ) {
+					return true;
+				}
+				continue;
+			}
+			foreach ( (array) ( $field['choices'] ?? [] ) as $choice ) {
+				if ( is_array( $choice ) && (int) ( $choice['product_id'] ?? 0 ) > 0 ) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	private static function has_media_reference( $value ): bool {

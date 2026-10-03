@@ -419,4 +419,217 @@ final class WapfExporterTest extends TestCase {
 				'choices' => [ [ 'slug' => 'a', 'label' => 'A', 'pricing' => [ 'type' => 'formula', 'formula' => '[price.missing] * 2', 'per_unit' => false ] ] ] ],
 		] ] ) );
 	}
+
+	public function test_exports_upload_field_as_wapf_file(): void {
+		$payload = WapfExporter::build_payload( FieldGroup::normalize( [ 'fields' => [ [
+			'id' => 'artwork', 'label' => 'Artwork', 'type' => 'upload', 'required' => true,
+			'multiple' => true, 'max_size' => 4.5, 'accepted_types' => [ 'jpg', 'jpeg', 'pdf' ],
+			'hide_order' => true,
+		] ] ] ) );
+
+		$field = $payload['fields'][0];
+		$this->assertSame( 'file', $field['type'] );
+		$this->assertTrue( $field['required'] );
+		$this->assertTrue( $field['multiple'] );
+		$this->assertSame( 4.5, $field['maxsize'] );
+		$this->assertSame( 'jpg,jpeg,pdf', $field['accept'] );
+		$this->assertSame( 'true', $field['hide_order'] );
+		$this->assertFalse( $field['pricing']['enabled'] );
+
+		// WAPF's importer folds flat keys back into `options`; reproduce that
+		// and verify the OPF import path restores the same normalized field.
+		$source_field = $field;
+		$source_field['options'] = array_intersect_key( $field, array_flip( [ 'multiple', 'accept', 'maxsize', 'hide_order' ] ) );
+		$round_trip = WapfMapper::map( [ 'fields' => [ $source_field ] ] );
+		$this->assertFalse( $round_trip['needs_review'], implode( ' | ', $round_trip['notes'] ) );
+		$imported = $round_trip['group']['fields'][0];
+		$this->assertSame( 'upload', $imported['type'] );
+		$this->assertTrue( $imported['multiple'] );
+		$this->assertSame( 4.5, $imported['max_size'] );
+		$this->assertSame( [ 'jpg', 'jpeg', 'pdf' ], $imported['accepted_types'] );
+		$this->assertTrue( $imported['hide_order'] );
+	}
+
+	public function test_exports_manual_products_field_with_choices_and_card_layout(): void {
+		$payload = WapfExporter::build_payload( FieldGroup::normalize( [ 'fields' => [ [
+			'id' => 'linked', 'label' => 'Linked products', 'type' => 'products', 'subtype' => 'card',
+			'product_selection' => 'manual', 'qty_method' => 'parent',
+			'choices' => [
+				[ 'slug' => 'gift', 'label' => 'Gift wrap', 'selected' => true, 'product_id' => 12, 'pricing_type' => 'fixed' ],
+				[ 'slug' => 'extra', 'label' => '', 'disabled' => true, 'product_id' => 34, 'pricing_type' => 'none' ],
+			],
+			'items_per_row' => 3, 'items_per_row_tablet' => 2, 'items_per_row_mobile' => 1,
+			'incl_img' => true, 'incl_desc' => false,
+			'slot_1' => 'price', 'slot_2' => 'stock', 'slot_3' => 'link',
+			'hide_cart' => true,
+		] ] ] ) );
+
+		$field = $payload['fields'][0];
+		$this->assertSame( 'products', $field['type'] );
+		$this->assertSame( 'card', $field['subtype'] );
+		$this->assertSame( 'manual', $field['product_selection'] );
+		$this->assertSame( 'parent', $field['qty_method'] );
+		$this->assertSame( 3, $field['items_per_row'] );
+		$this->assertTrue( $field['incl_img'] );
+		$this->assertFalse( $field['incl_desc'] );
+		$this->assertSame( [ 'price', 'stock', 'link' ], [ $field['slot_1'], $field['slot_2'], $field['slot_3'] ] );
+		$this->assertSame( 'true', $field['hide_cart'] );
+		$this->assertFalse( $field['pricing']['enabled'] );
+		$this->assertCount( 2, $field['choices'] );
+		$this->assertSame( 12, $field['choices'][0]['id'] );
+		$this->assertSame( 'gift', $field['choices'][0]['slug'] );
+		$this->assertSame( 'fixed', $field['choices'][0]['pricing_type'] );
+		$this->assertSame( 'none', $field['choices'][1]['pricing_type'] );
+		$this->assertTrue( $field['choices'][1]['disabled'] );
+
+		$source_field = $field;
+		$source_field['options'] = array_intersect_key( $field, array_flip( [
+			'choices', 'product_selection', 'qty_method', 'items_per_row',
+			'items_per_row_tablet', 'items_per_row_mobile', 'incl_img', 'incl_desc',
+			'slot_1', 'slot_2', 'slot_3', 'hide_cart',
+		] ) );
+		$round_trip = WapfMapper::map( [ 'fields' => [ $source_field ] ] );
+		$this->assertFalse( $round_trip['needs_review'], implode( ' | ', $round_trip['notes'] ) );
+		$imported = $round_trip['group']['fields'][0];
+		$this->assertSame( 'products', $imported['type'] );
+		$this->assertSame( 'card', $imported['subtype'] );
+		$this->assertSame( 'parent', $imported['qty_method'] );
+		$this->assertSame( 3, $imported['items_per_row'] );
+		$this->assertSame( [ 'price', 'stock', 'link' ], [ $imported['slot_1'], $imported['slot_2'], $imported['slot_3'] ] );
+		$this->assertSame( [ 12, 34 ], array_column( $imported['choices'], 'product_id' ) );
+		$this->assertTrue( $imported['hide_cart'] );
+	}
+
+	public function test_exports_category_products_field_and_qty_subtypes(): void {
+		$payload = WapfExporter::build_payload( FieldGroup::normalize( [ 'fields' => [
+			[
+				'id' => 'related', 'label' => 'Related', 'type' => 'products', 'subtype' => 'vcard',
+				'product_selection' => 'category',
+				'product_query' => [ 'query_id' => 44, 'query_label' => 'Extras', 'limit' => 7, 'sort' => 'name_asc', 'pricing_type' => 'none' ],
+				'img_fit' => 'contain',
+			],
+			[
+				'id' => 'addons', 'label' => 'Addons', 'type' => 'products', 'subtype' => 'card-qty',
+				'product_selection' => 'manual', 'display' => 'plus_min', 'min_choices' => 1, 'max_choices' => 9,
+				'choices' => [
+					[ 'slug' => 'a', 'label' => '', 'product_id' => 51, 'pricing_type' => 'fixed', 'quantity' => [ 'default' => 2, 'min' => 1, 'max' => 8 ] ],
+				],
+			],
+		] ] ) );
+
+		$category_field = $payload['fields'][0];
+		$this->assertSame( 'category', $category_field['product_selection'] );
+		$this->assertArrayNotHasKey( 'choices', $category_field );
+		$this->assertSame( [ 'query_id' => 44, 'query_label' => 'Extras', 'limit' => 7, 'sort' => 'name_asc', 'pricing_type' => 'none' ], $category_field['product_query'] );
+		$this->assertSame( 'contain', $category_field['img_fit'] );
+
+		$qty_field = $payload['fields'][1];
+		$this->assertSame( 'card-qty', $qty_field['subtype'] );
+		$this->assertSame( 'plus_min', $qty_field['display'] );
+		$this->assertSame( 1, $qty_field['min_choices'] );
+		$this->assertSame( 9, $qty_field['max_choices'] );
+		$this->assertArrayNotHasKey( 'qty_method', $qty_field );
+		$this->assertSame( [ 'min' => 1, 'max' => 8, 'default' => 2 ], $qty_field['choices'][0]['options'] );
+
+		foreach ( $payload['fields'] as $index => $field ) {
+			$source_field = $field;
+			$source_field['options'] = array_intersect_key( $field, array_flip( [
+				'choices', 'product_selection', 'product_query', 'display', 'min_choices',
+				'max_choices', 'items_per_row', 'items_per_row_tablet',
+				'items_per_row_mobile', 'incl_img', 'incl_desc', 'slot_1', 'slot_2', 'slot_3', 'img_fit',
+			] ) );
+			$round_trip = WapfMapper::map( [ 'fields' => [ $source_field ] ] );
+			$this->assertFalse( $round_trip['needs_review'], sprintf( 'field %d: %s', $index, implode( ' | ', $round_trip['notes'] ) ) );
+		}
+	}
+
+	public function test_rejects_products_field_pricing_export(): void {
+		// Products choices price themselves; generic OPF addon pricing on a
+		// product choice has no WAPF meaning and must fail closed.
+		$this->expectException( \InvalidArgumentException::class );
+		$this->expectExceptionMessage( 'addon pricing on a product choice' );
+		WapfExporter::build_payload( [
+			'schema' => 1, 'rule_groups' => [], 'mark_required' => true, 'labels_position' => 'above',
+			'fields' => [ [
+				'id' => 'linked', 'label' => 'Linked', 'type' => 'products', 'subtype' => 'checkbox',
+				'description' => '', 'required' => false, 'width' => 100, 'css_class' => '',
+				'placeholder' => '', 'conditionals' => [],
+				'pricing' => [ 'type' => 'none', 'amount' => 0, 'enabled' => false ],
+				'product_selection' => 'manual',
+				'choices' => [ [ 'slug' => 'a', 'label' => '', 'product_id' => 7, 'pricing_type' => 'fixed', 'pricing' => [ 'type' => 'fixed', 'amount' => 5 ] ] ],
+			] ],
+		] );
+	}
+
+	public function test_exports_variables_with_field_references(): void {
+		$payload = WapfExporter::build_payload( FieldGroup::normalize( [
+			'fields' => [ [ 'id' => 'width', 'label' => 'Width', 'type' => 'number' ] ],
+			'variables' => [ [
+				'name' => 'fee', 'default' => '[field.width] * 2',
+				'rules' => [
+					[ 'type' => 'field', 'field' => 'width', 'condition' => '>', 'value' => '10', 'variable' => 'lookuptable(cutting;width;5)' ],
+					[ 'type' => 'qty', 'field' => 'qty', 'condition' => '', 'value' => '', 'variable' => '9' ],
+				],
+			] ],
+		] ) );
+
+		$this->assertCount( 1, $payload['variables'] );
+		$variable = $payload['variables'][0];
+		$this->assertSame( 'fee', $variable['name'] );
+		$this->assertSame( '[field.width] * 2', $variable['default'] );
+		$this->assertSame( 'lookuptable(cutting;width;5)', $variable['rules'][0]['variable'] );
+		$this->assertSame( 'qty', $variable['rules'][1]['type'] );
+
+		$round_trip = WapfMapper::map( [ 'fields' => $payload['fields'], 'variables' => $payload['variables'] ] );
+		$this->assertSame( 'fee', $round_trip['group']['variables'][0]['name'] );
+		$this->assertSame( '[field.width] * 2', $round_trip['group']['variables'][0]['default'] );
+	}
+
+	public function test_rejects_variable_rules_referencing_absent_fields(): void {
+		$this->expectException( \InvalidArgumentException::class );
+		$this->expectExceptionMessage( 'rule reference' );
+		WapfExporter::build_payload( FieldGroup::normalize( [
+			'fields' => [ [ 'id' => 'width', 'label' => 'Width', 'type' => 'number' ] ],
+			'variables' => [ [
+				'name' => 'fee', 'default' => '1',
+				'rules' => [ [ 'type' => 'field', 'field' => 'ghost', 'condition' => '==', 'value' => 'x', 'variable' => '1' ] ],
+			] ],
+		] ) );
+	}
+
+	public function test_rejects_lookuptable_dimensions_referencing_absent_fields(): void {
+		$this->expectException( \InvalidArgumentException::class );
+		$this->expectExceptionMessage( 'unknown field IDs: ghostfield' );
+		WapfExporter::build_payload( FieldGroup::normalize( [ 'fields' => [
+			[ 'id' => 'widthf', 'label' => 'Width', 'type' => 'number',
+				'pricing' => [ 'type' => 'formula', 'formula' => 'lookuptable(cutting;widthf;ghostfield)', 'per_unit' => false ] ],
+		] ] ) );
+	}
+
+	public function test_exports_products_image_subtype_with_label_pos_and_item_width(): void {
+		$payload = WapfExporter::build_payload( FieldGroup::normalize( [ 'fields' => [ [
+			'id' => 'img', 'label' => 'Images', 'type' => 'products', 'subtype' => 'image',
+			'product_selection' => 'manual',
+			'choices' => [ [ 'slug' => 'a', 'label' => '', 'product_id' => 5, 'pricing_type' => 'fixed' ] ],
+			'label_pos' => 'out', 'item_width' => 90,
+		] ] ] ) );
+
+		$field = $payload['fields'][0];
+		$this->assertSame( 'products', $field['type'] );
+		$this->assertSame( 'image', $field['subtype'] );
+		$this->assertSame( 'out', $field['label_pos'] );
+		$this->assertSame( 90, $field['item_width'] );
+		$this->assertSame( 5, $field['choices'][0]['id'] );
+	}
+
+	public function test_exports_lookuptable_formula_with_canonical_field_ids(): void {
+		$payload = WapfExporter::build_payload( FieldGroup::normalize( [ 'fields' => [
+			[ 'id' => 'widthf', 'label' => 'Width', 'type' => 'number' ],
+			[ 'id' => 'fee', 'label' => 'Fee', 'type' => 'text',
+				'pricing' => [ 'type' => 'formula', 'formula' => 'lookuptable(cutting;WIDTHF;2)', 'per_unit' => false ] ],
+		] ] ) );
+
+		$this->assertSame( 'fx', $payload['fields'][1]['pricing']['type'] );
+		$this->assertSame( 'lookuptable(cutting;widthf;2)', $payload['fields'][1]['pricing']['amount'] );
+	}
 }
