@@ -5,6 +5,22 @@
 ( function () {
 	'use strict';
 
+	// wp-i18n is an enqueued dependency in wp-admin; the English fallback keeps
+	// the file runnable in sandboxed tests where no wp global exists.
+	var __ = ( window.wp && window.wp.i18n && window.wp.i18n.__ )
+		? window.wp.i18n.__
+		: function ( text ) { return text; };
+	var sprintf = ( window.wp && window.wp.i18n && window.wp.i18n.sprintf )
+		? window.wp.i18n.sprintf
+		: function ( format ) {
+			var args = Array.prototype.slice.call( arguments, 1 );
+			var auto = 0;
+			return format.replace( /%(\d+)\$([sd])|%([sd])/g, function ( match, pos, type, autoType ) {
+				var i = pos ? parseInt( pos, 10 ) - 1 : auto++;
+				return String( args[ i ] );
+			} );
+		};
+
 	var mount = document.getElementById( 'opf-builder-app' );
 	if ( ! mount ) {
 		return;
@@ -81,7 +97,7 @@
 	}
 
 	function choiceRow( field, choice, index ) {
-		var slugInput = el( 'input', { class: 'opf-b-input opf-b-slug', value: choice.slug, placeholder: 'slug', oninput: function ( e ) {
+		var slugInput = el( 'input', { class: 'opf-b-input opf-b-slug', value: choice.slug, placeholder: __( 'slug', 'open-product-fields-for-woocommerce' ), oninput: function ( e ) {
 			choice.slug = e.target.value;
 		} } );
 		var labelInput = el( 'input', { class: 'opf-b-input', value: choice.label, oninput: function ( e ) {
@@ -100,7 +116,7 @@
 			choice.pricing.type = typeSelect.value;
 			rerender();
 		} );
-		var amountInput = el( 'input', { class: 'opf-b-input', type: 'text', value: choice.pricing.amount || '', placeholder: 'amount' } );
+		var amountInput = el( 'input', { class: 'opf-b-input', type: 'text', value: choice.pricing.amount || '', placeholder: __( 'amount', 'open-product-fields-for-woocommerce' ) } );
 		amountInput.addEventListener( 'input', function ( e ) {
 			choice.pricing.amount = parseFloat( e.target.value ) || 0;
 		} );
@@ -108,7 +124,7 @@
 		formulaInput.addEventListener( 'input', function ( e ) {
 			choice.pricing.formula = e.target.value;
 		} );
-		var selected = el( 'input', { type: 'checkbox', title: 'Preselected' } );
+		var selected = el( 'input', { type: 'checkbox', title: __( 'Preselected', 'open-product-fields-for-woocommerce' ) } );
 		selected.checked = !! choice.selected;
 		selected.disabled = !! choice.disabled;
 		selected.addEventListener( 'change', function () {
@@ -117,8 +133,8 @@
 		var disabled = el( 'input', { type: 'checkbox' } );
 		disabled.checked = !! choice.disabled;
 		var flags = el( 'div', { class: 'opf-b-choice-flags' }, [
-			el( 'label', { class: 'opf-b-choice-flag' }, [ selected, el( 'span', { text: 'Default' } ) ] ),
-			el( 'label', { class: 'opf-b-choice-flag' }, [ disabled, el( 'span', { text: 'Unavailable' } ) ] ),
+			el( 'label', { class: 'opf-b-choice-flag' }, [ selected, el( 'span', { text: __( 'Default', 'open-product-fields-for-woocommerce' ) } ) ] ),
+			el( 'label', { class: 'opf-b-choice-flag' }, [ disabled, el( 'span', { text: __( 'Unavailable', 'open-product-fields-for-woocommerce' ) } ) ] ),
 		] );
 		disabled.addEventListener( 'change', function () {
 			choice.disabled = disabled.checked;
@@ -128,7 +144,7 @@
 				selected.checked = false;
 			}
 		} );
-		var remove = el( 'button', { type: 'button', class: 'button-link opf-b-remove', text: '×', onclick: function () {
+		var remove = el( 'button', { type: 'button', class: 'button-link opf-b-remove', text: __( '×', 'open-product-fields-for-woocommerce' ), onclick: function () {
 			field.choices.splice( index, 1 );
 			rerender();
 		} } );
@@ -143,12 +159,12 @@
 		}
 		var extras = [];
 		if ( 'swatch' === field.type && 'color' === field.swatch_style ) {
-			var colorInput = el( 'input', { class: 'opf-b-input', type: 'color', value: choice.color || '#ffffff', 'aria-label': 'Swatch color' } );
+			var colorInput = el( 'input', { class: 'opf-b-input', type: 'color', value: choice.color || '#ffffff', 'aria-label': __( 'Swatch color', 'open-product-fields-for-woocommerce' ) } );
 			colorInput.addEventListener( 'input', function () { choice.color = colorInput.value.toUpperCase(); } );
 			extras.push( colorInput );
 		}
 
-		var imageUrl = el( 'input', { class: 'opf-b-input opf-b-choice-image-url', type: 'url', value: choice.image || '', placeholder: 'Image URL (optional)' } );
+		var imageUrl = el( 'input', { class: 'opf-b-input opf-b-choice-image-url', type: 'url', value: choice.image || '', placeholder: __( 'Image URL (optional)', 'open-product-fields-for-woocommerce' ) } );
 		imageUrl.addEventListener( 'input', function () {
 			if ( imageUrl.value.trim() ) {
 				choice.image = imageUrl.value.trim();
@@ -157,14 +173,14 @@
 			else delete choice.image;
 			delete choice.image_id;
 		} );
-		var chooseImage = el( 'button', { class: 'button', type: 'button', text: 'Choose image', onclick: function () {
+		var chooseImage = el( 'button', { class: 'button', type: 'button', text: __( 'Choose image', 'open-product-fields-for-woocommerce' ), onclick: function () {
 			if ( ! window.wp || ! window.wp.media ) {
-				window.alert( 'The WordPress Media Library is unavailable on this screen.' );
+				window.alert( __( 'The WordPress Media Library is unavailable on this screen.', 'open-product-fields-for-woocommerce' ) );
 				return;
 			}
 			var frame = window.wp.media( {
-				title: 'Choose swatch image',
-				button: { text: 'Use image' },
+				title: __( 'Choose swatch image', 'open-product-fields-for-woocommerce' ),
+				button: { text: __( 'Use image', 'open-product-fields-for-woocommerce' ) },
 				library: { type: 'image' },
 				multiple: false,
 			} );
@@ -185,10 +201,10 @@
 
 	function bulkChoiceImport( field, list ) {
 		var color = 'swatch' === field.type && 'color' === field.swatch_style;
-		var help = el( 'p', { class: 'description', text: 'Place one option on each line. Blank lines are skipped; duplicate labels are kept. New choices are appended to existing choices.' + ( color ? ' For colors, use Label, #ffffff. Missing or invalid colors use white.' : '' ) } );
-		var input = el( 'textarea', { class: 'textarea opf-b-input', rows: '6', 'aria-label': 'Choices to import', placeholder: color ? 'White, #ffffff\nRed, #ff0000' : 'Option A\nOption B' } );
+		var help = el( 'p', { class: 'description', text: __( 'Place one option on each line. Blank lines are skipped; duplicate labels are kept. New choices are appended to existing choices.', 'open-product-fields-for-woocommerce' ) + ( color ? __( ' For colors, use Label, #ffffff. Missing or invalid colors use white.', 'open-product-fields-for-woocommerce' ) : '' ) } );
+		var input = el( 'textarea', { class: 'textarea opf-b-input', rows: '6', 'aria-label': __( 'Choices to import', 'open-product-fields-for-woocommerce' ), placeholder: color ? __( 'White, #ffffff\nRed, #ff0000', 'open-product-fields-for-woocommerce' ) : __( 'Option A\nOption B', 'open-product-fields-for-woocommerce' ) } );
 		var status = el( 'p', { role: 'status', 'aria-live': 'polite' } );
-		var button = el( 'button', { type: 'button', class: 'btn button', text: 'Import choices', onclick: function () {
+		var button = el( 'button', { type: 'button', class: 'btn button', text: __( 'Import choices', 'open-product-fields-for-woocommerce' ), onclick: function () {
 			var lines = input.value.split( /\r\n|\n|\r/ );
 			var taken = Object.create( null );
 			field.choices.forEach( function ( choice ) { taken[ choice.slug ] = true; } );
@@ -218,7 +234,10 @@
 				list.appendChild( choiceRow( field, choice, field.choices.length - 1 ) );
 				imported++;
 			} );
-			status.textContent = imported + ' out of ' + lines.length + ' lines imported.';
+			status.textContent = sprintf(
+								/* translators: 1: imported count, 2: total lines. */
+								__( '%1$d out of %2$d lines imported.', 'open-product-fields-for-woocommerce' ),
+								imported, lines.length );
 			input.value = '';
 			button.disabled = true;
 			input.focus();
@@ -234,8 +253,8 @@
 		button.disabled = true;
 		input.addEventListener( 'input', function () { button.disabled = ! input.value.trim(); } );
 		return el( 'details', { class: 'opf-b-bulk-import' }, [
-			el( 'summary', { text: 'Bulk import choices' } ), help,
-			labeledControl( 'Choices to import', input ), button, status,
+			el( 'summary', { text: __( 'Bulk import choices', 'open-product-fields-for-woocommerce' ) } ), help,
+			labeledControl( __( 'Choices to import', 'open-product-fields-for-woocommerce' ), input ), button, status,
 		] );
 	}
 
@@ -274,22 +293,22 @@
 	function productChoiceRow( field, choice, index ) {
 		var qtySubtype = isProductsQtySubtype( field );
 		var nameEl = el( 'span', { class: 'opf-b-product-name', text: ( choice.label || '#' + choice.product_id ) + ' — #' + choice.product_id } );
-		var pricing = el( 'select', { class: 'opf-b-input', 'aria-label': 'Price' }, [
-			el( 'option', { value: 'fixed', text: 'Product price' } ),
-			el( 'option', { value: 'none', text: 'Free' } ),
+		var pricing = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Price', 'open-product-fields-for-woocommerce' ) }, [
+			el( 'option', { value: 'fixed', text: __( 'Product price', 'open-product-fields-for-woocommerce' ) } ),
+			el( 'option', { value: 'none', text: __( 'Free', 'open-product-fields-for-woocommerce' ) } ),
 		] );
 		pricing.value = choice.pricing_type || 'fixed';
 		pricing.addEventListener( 'change', function () { choice.pricing_type = pricing.value; } );
 		var cells = [ nameEl, pricing ];
 		var selected = null;
 		if ( ! qtySubtype ) {
-			selected = el( 'input', { type: 'checkbox', title: 'Preselected' } );
+			selected = el( 'input', { type: 'checkbox', title: __( 'Preselected', 'open-product-fields-for-woocommerce' ) } );
 			selected.checked = !! choice.selected;
 			selected.disabled = !! choice.disabled;
 			selected.addEventListener( 'change', function () { choice.selected = selected.checked; } );
 			cells.push( selected );
 		}
-		var disabled = el( 'input', { type: 'checkbox', title: 'Unavailable' } );
+		var disabled = el( 'input', { type: 'checkbox', title: __( 'Unavailable', 'open-product-fields-for-woocommerce' ) } );
 		disabled.checked = !! choice.disabled;
 		disabled.addEventListener( 'change', function () {
 			choice.disabled = disabled.checked;
@@ -304,7 +323,7 @@
 		cells.push( disabled );
 		if ( qtySubtype ) {
 			choice.quantity = choice.quantity || { default: 0, min: 0, max: 999999 };
-			[ [ 'default', 'Default qty' ], [ 'min', 'Min qty' ], [ 'max', 'Max qty' ] ].forEach( function ( setting ) {
+			[ [ 'default', __( 'Default qty', 'open-product-fields-for-woocommerce' ) ], [ 'min', __( 'Min qty', 'open-product-fields-for-woocommerce' ) ], [ 'max', __( 'Max qty', 'open-product-fields-for-woocommerce' ) ] ].forEach( function ( setting ) {
 				var input = el( 'input', { class: 'opf-b-input opf-b-product-qty', type: 'number', min: '0', max: '999999', value: choice.quantity[ setting[ 0 ] ], title: setting[ 1 ], placeholder: setting[ 1 ] } );
 				input.addEventListener( 'input', function () {
 					choice.quantity[ setting[ 0 ] ] = Math.max( 0, Math.min( 999999, Number( input.value ) || 0 ) );
@@ -312,7 +331,7 @@
 				cells.push( input );
 			} );
 		}
-		var remove = el( 'button', { type: 'button', class: 'button-link opf-b-remove', text: '×', onclick: function () {
+		var remove = el( 'button', { type: 'button', class: 'button-link opf-b-remove', text: __( '×', 'open-product-fields-for-woocommerce' ), onclick: function () {
 			field.choices.splice( index, 1 );
 			rerender();
 		} } );
@@ -326,25 +345,25 @@
 		}
 		var wrap = el( 'div', { class: 'opf-b-products-settings' } );
 
-		var subtype = el( 'select', { class: 'opf-b-input', 'aria-label': 'Display' }, PRODUCT_SUBTYPES.map( function ( t ) {
+		var subtype = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Display', 'open-product-fields-for-woocommerce' ) }, PRODUCT_SUBTYPES.map( function ( t ) {
 			var option = el( 'option', { value: t, text: t } );
 			option.selected = t === field.subtype;
 			return option;
 		} ) );
 		subtype.addEventListener( 'change', function () { field.subtype = subtype.value; rerender(); } );
-		wrap.appendChild( labeledControl( 'Display', subtype ) );
+		wrap.appendChild( labeledControl( __( 'Display', 'open-product-fields-for-woocommerce' ), subtype ) );
 
-		var selection = el( 'select', { class: 'opf-b-input', 'aria-label': 'Product selection' }, [
-			el( 'option', { value: 'manual', text: 'Pick products manually' } ),
-			el( 'option', { value: 'category', text: 'Products from a category' } ),
+		var selection = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Product selection', 'open-product-fields-for-woocommerce' ) }, [
+			el( 'option', { value: 'manual', text: __( 'Pick products manually', 'open-product-fields-for-woocommerce' ) } ),
+			el( 'option', { value: 'category', text: __( 'Products from a category', 'open-product-fields-for-woocommerce' ) } ),
 		] );
 		selection.value = field.product_selection || 'manual';
 		selection.addEventListener( 'change', function () { field.product_selection = selection.value; rerender(); } );
-		wrap.appendChild( labeledControl( 'Product selection', selection ) );
+		wrap.appendChild( labeledControl( __( 'Product selection', 'open-product-fields-for-woocommerce' ), selection ) );
 
 		if ( 'category' === selection.value ) {
 			field.product_query = field.product_query || { query_id: 0, query_label: '', limit: 10, sort: 'date_desc', pricing_type: 'fixed' };
-			var cat = el( 'select', { class: 'opf-b-input', 'aria-label': 'Product category' }, [ el( 'option', { value: '0', text: 'Choose a category…' } ) ].concat(
+			var cat = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Product category', 'open-product-fields-for-woocommerce' ) }, [ el( 'option', { value: '0', text: __( 'Choose a category…', 'open-product-fields-for-woocommerce' ) } ) ].concat(
 				productCats.map( function ( term ) {
 					var option = el( 'option', { value: String( term.id ), text: term.name } );
 					return option;
@@ -356,34 +375,34 @@
 				var picked = productCats.filter( function ( term ) { return String( term.id ) === cat.value; } );
 				field.product_query.query_label = picked.length ? picked[ 0 ].name : '';
 			} );
-			wrap.appendChild( labeledControl( 'Category', cat ) );
+			wrap.appendChild( labeledControl( __( 'Category', 'open-product-fields-for-woocommerce' ), cat ) );
 
-			var limit = el( 'input', { class: 'opf-b-input', type: 'number', min: '1', max: '50', value: field.product_query.limit || 10, 'aria-label': 'Maximum products' } );
+			var limit = el( 'input', { class: 'opf-b-input', type: 'number', min: '1', max: '50', value: field.product_query.limit || 10, 'aria-label': __( 'Maximum products', 'open-product-fields-for-woocommerce' ) } );
 			limit.addEventListener( 'input', function () {
 				field.product_query.limit = Math.max( 1, Math.min( 50, Number( limit.value ) || 10 ) );
 			} );
-			wrap.appendChild( labeledControl( 'Maximum products (1–50)', limit ) );
+			wrap.appendChild( labeledControl( __( 'Maximum products (1–50)', 'open-product-fields-for-woocommerce' ), limit ) );
 
-			var sort = el( 'select', { class: 'opf-b-input', 'aria-label': 'Sorting' }, [
-				el( 'option', { value: 'date_desc', text: 'Creation date (newest first)' } ),
-				el( 'option', { value: 'date_asc', text: 'Creation date (oldest first)' } ),
-				el( 'option', { value: 'name_asc', text: 'Title (A–Z)' } ),
-				el( 'option', { value: 'name_desc', text: 'Title (Z–A)' } ),
+			var sort = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Sorting', 'open-product-fields-for-woocommerce' ) }, [
+				el( 'option', { value: 'date_desc', text: __( 'Creation date (newest first)', 'open-product-fields-for-woocommerce' ) } ),
+				el( 'option', { value: 'date_asc', text: __( 'Creation date (oldest first)', 'open-product-fields-for-woocommerce' ) } ),
+				el( 'option', { value: 'name_asc', text: __( 'Title (A–Z)', 'open-product-fields-for-woocommerce' ) } ),
+				el( 'option', { value: 'name_desc', text: __( 'Title (Z–A)', 'open-product-fields-for-woocommerce' ) } ),
 			] );
 			sort.value = field.product_query.sort || 'date_desc';
 			sort.addEventListener( 'change', function () { field.product_query.sort = sort.value; } );
-			wrap.appendChild( labeledControl( 'Sorting', sort ) );
+			wrap.appendChild( labeledControl( __( 'Sorting', 'open-product-fields-for-woocommerce' ), sort ) );
 
-			var queryPricing = el( 'select', { class: 'opf-b-input', 'aria-label': 'Price' }, [
-				el( 'option', { value: 'fixed', text: 'Product price' } ),
-				el( 'option', { value: 'none', text: 'Free' } ),
+			var queryPricing = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Price', 'open-product-fields-for-woocommerce' ) }, [
+				el( 'option', { value: 'fixed', text: __( 'Product price', 'open-product-fields-for-woocommerce' ) } ),
+				el( 'option', { value: 'none', text: __( 'Free', 'open-product-fields-for-woocommerce' ) } ),
 			] );
 			queryPricing.value = field.product_query.pricing_type || 'fixed';
 			queryPricing.addEventListener( 'change', function () { field.product_query.pricing_type = queryPricing.value; } );
-			wrap.appendChild( labeledControl( 'Price', queryPricing ) );
+			wrap.appendChild( labeledControl( __( 'Price', 'open-product-fields-for-woocommerce' ), queryPricing ) );
 		} else {
 			field.choices = Array.isArray( field.choices ) ? field.choices : [];
-			var search = el( 'select', { class: 'wc-product-search opf-b-product-search', multiple: 'multiple', style: 'width:100%', 'data-action': 'woocommerce_json_search_products', 'data-placeholder': 'Search for a product…', 'data-allow_clear': 'true' } );
+			var search = el( 'select', { class: 'wc-product-search opf-b-product-search', multiple: 'multiple', style: 'width:100%', 'data-action': 'woocommerce_json_search_products', 'data-placeholder': __( 'Search for a product…', 'open-product-fields-for-woocommerce' ), 'data-allow_clear': 'true' } );
 			field.choices.forEach( function ( choice ) {
 				var option = el( 'option', { value: String( choice.product_id ), text: choice.label || '#' + choice.product_id } );
 				option.selected = true;
@@ -404,7 +423,7 @@
 				rerender();
 			} );
 			wrap.appendChild( el( 'div', { class: 'opf-b-product-picker' }, [ search ] ) );
-			var header = el( 'div', { class: 'opf-b-choices-header', html: '<strong>Linked products</strong> <em>(product · price · default · unavailable' + ( isProductsQtySubtype( field ) ? ' · qty bounds' : '' ) + ')</em>' } );
+			var header = el( 'div', { class: 'opf-b-choices-header', html: '<strong>' + __( 'Linked products', 'open-product-fields-for-woocommerce' ) + '</strong> <em>(' + ( isProductsQtySubtype( field ) ? __( 'product · price · default · unavailable · qty bounds', 'open-product-fields-for-woocommerce' ) : __( 'product · price · default · unavailable', 'open-product-fields-for-woocommerce' ) ) + ')</em>' } );
 			var list = el( 'div', { class: 'opf-b-choices' }, field.choices.map( function ( choice, i ) {
 				return productChoiceRow( field, choice, i );
 			} ) );
@@ -413,22 +432,22 @@
 		}
 
 		if ( ! isProductsQtySubtype( field ) ) {
-			var qtyMethod = el( 'select', { class: 'opf-b-input', 'aria-label': 'Child quantity' }, [
-				el( 'option', { value: 'one', text: 'Always add 1 to the cart' } ),
-				el( 'option', { value: 'parent', text: 'Match the parent product quantity' } ),
+			var qtyMethod = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Child quantity', 'open-product-fields-for-woocommerce' ) }, [
+				el( 'option', { value: 'one', text: __( 'Always add 1 to the cart', 'open-product-fields-for-woocommerce' ) } ),
+				el( 'option', { value: 'parent', text: __( 'Match the parent product quantity', 'open-product-fields-for-woocommerce' ) } ),
 			] );
 			qtyMethod.value = field.qty_method || 'one';
 			qtyMethod.addEventListener( 'change', function () { field.qty_method = qtyMethod.value; } );
-			wrap.appendChild( labeledControl( 'Child quantity', qtyMethod ) );
+			wrap.appendChild( labeledControl( __( 'Child quantity', 'open-product-fields-for-woocommerce' ), qtyMethod ) );
 		} else {
-			var display = el( 'select', { class: 'opf-b-input', 'aria-label': 'Quantity controls' }, [
-				el( 'option', { value: 'default', text: 'Number input' } ),
-				el( 'option', { value: 'plus_min', text: '+/− buttons' } ),
+			var display = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Quantity controls', 'open-product-fields-for-woocommerce' ) }, [
+				el( 'option', { value: 'default', text: __( 'Number input', 'open-product-fields-for-woocommerce' ) } ),
+				el( 'option', { value: 'plus_min', text: __( '+/− buttons', 'open-product-fields-for-woocommerce' ) } ),
 			] );
 			display.value = field.display || 'default';
 			display.addEventListener( 'change', function () { field.display = display.value; } );
-			wrap.appendChild( labeledControl( 'Quantity controls', display ) );
-			[ [ 'min_choices', 'Minimum total quantity' ], [ 'max_choices', 'Maximum total quantity' ] ].forEach( function ( setting ) {
+			wrap.appendChild( labeledControl( __( 'Quantity controls', 'open-product-fields-for-woocommerce' ), display ) );
+			[ [ 'min_choices', __( 'Minimum total quantity', 'open-product-fields-for-woocommerce' ) ], [ 'max_choices', __( 'Maximum total quantity', 'open-product-fields-for-woocommerce' ) ] ].forEach( function ( setting ) {
 				var bound = el( 'input', { class: 'opf-b-input', type: 'number', min: '0', max: '999999', value: null === field[ setting[ 0 ] ] || undefined === field[ setting[ 0 ] ] ? '' : field[ setting[ 0 ] ], 'aria-label': setting[ 1 ] } );
 				bound.addEventListener( 'input', function () {
 					if ( '' !== bound.value ) field[ setting[ 0 ] ] = Math.max( 0, Math.min( 999999, Number( bound.value ) || 0 ) );
@@ -440,7 +459,7 @@
 
 		if ( isProductsCardSubtype( field ) ) {
 			var cardBox = el( 'div', { class: 'opf-b-products-card-settings' } );
-			[ [ 'items_per_row', 'Desktop columns (1–4)', 2 ], [ 'items_per_row_tablet', 'Tablet columns (1–4)', 1 ], [ 'items_per_row_mobile', 'Mobile columns (1–4)', 1 ] ].forEach( function ( setting ) {
+			[ [ 'items_per_row', __( 'Desktop columns (1–4)', 'open-product-fields-for-woocommerce' ), 2 ], [ 'items_per_row_tablet', __( 'Tablet columns (1–4)', 'open-product-fields-for-woocommerce' ), 1 ], [ 'items_per_row_mobile', __( 'Mobile columns (1–4)', 'open-product-fields-for-woocommerce' ), 1 ] ].forEach( function ( setting ) {
 				var input = el( 'input', { class: 'opf-b-input', type: 'number', min: '1', max: '4', value: field[ setting[ 0 ] ] || setting[ 2 ], 'aria-label': setting[ 1 ] } );
 				input.addEventListener( 'input', function () {
 					if ( input.value ) field[ setting[ 0 ] ] = Math.max( 1, Math.min( 4, Number( input.value ) || setting[ 2 ] ) );
@@ -448,59 +467,59 @@
 				} );
 				cardBox.appendChild( labeledControl( setting[ 1 ], input ) );
 			} );
-			[ [ 'incl_img', 'Show product image' ], [ 'incl_desc', 'Show product description' ] ].forEach( function ( setting ) {
+			[ [ 'incl_img', __( 'Show product image', 'open-product-fields-for-woocommerce' ) ], [ 'incl_desc', __( 'Show product description', 'open-product-fields-for-woocommerce' ) ] ].forEach( function ( setting ) {
 				var toggle = el( 'input', { type: 'checkbox' } );
 				toggle.checked = false !== field[ setting[ 0 ] ];
 				toggle.addEventListener( 'change', function () { field[ setting[ 0 ] ] = toggle.checked; } );
 				cardBox.appendChild( labeledControl( setting[ 1 ], toggle ) );
 			} );
 			[ 'slot_1', 'slot_2', 'slot_3' ].forEach( function ( slotKey, slotIndex ) {
-				var slot = el( 'select', { class: 'opf-b-input', 'aria-label': 'Card slot ' + ( slotIndex + 1 ) }, [
-					el( 'option', { value: 'none', text: 'Nothing' } ),
-					el( 'option', { value: 'price', text: 'Price' } ),
-					el( 'option', { value: 'stock', text: 'Stock availability' } ),
-					el( 'option', { value: 'link', text: 'Product link' } ),
+				var slot = el( 'select', { class: 'opf-b-input', 'aria-label': sprintf( /* translators: %d: card slot number. */ __( 'Card slot %d', 'open-product-fields-for-woocommerce' ), slotIndex + 1 ) }, [
+					el( 'option', { value: 'none', text: __( 'Nothing', 'open-product-fields-for-woocommerce' ) } ),
+					el( 'option', { value: 'price', text: __( 'Price', 'open-product-fields-for-woocommerce' ) } ),
+					el( 'option', { value: 'stock', text: __( 'Stock availability', 'open-product-fields-for-woocommerce' ) } ),
+					el( 'option', { value: 'link', text: __( 'Product link', 'open-product-fields-for-woocommerce' ) } ),
 				] );
 				slot.value = field[ slotKey ] || 'none';
 				slot.addEventListener( 'change', function () { field[ slotKey ] = slot.value; } );
-				cardBox.appendChild( labeledControl( 'Card slot ' + ( slotIndex + 1 ), slot ) );
+				cardBox.appendChild( labeledControl( sprintf( /* translators: %d: card slot number. */ __( 'Card slot %d', 'open-product-fields-for-woocommerce' ), slotIndex + 1 ), slot ) );
 			} );
 			if ( 'vcard' === field.subtype || 'vcard-qty' === field.subtype ) {
-				var fit = el( 'select', { class: 'opf-b-input', 'aria-label': 'Image fit' }, [
-					el( 'option', { value: 'cover', text: 'Cover' } ),
-					el( 'option', { value: 'contain', text: 'Contain' } ),
+				var fit = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Image fit', 'open-product-fields-for-woocommerce' ) }, [
+					el( 'option', { value: 'cover', text: __( 'Cover', 'open-product-fields-for-woocommerce' ) } ),
+					el( 'option', { value: 'contain', text: __( 'Contain', 'open-product-fields-for-woocommerce' ) } ),
 				] );
 				fit.value = field.img_fit || 'cover';
 				fit.addEventListener( 'change', function () { field.img_fit = fit.value; } );
-				cardBox.appendChild( labeledControl( 'Image fit', fit ) );
+				cardBox.appendChild( labeledControl( __( 'Image fit', 'open-product-fields-for-woocommerce' ), fit ) );
 			}
 			wrap.appendChild( cardBox );
 		}
 
 		if ( 'image' === field.subtype ) {
-			var labelPos = el( 'select', { class: 'opf-b-input', 'aria-label': 'Label position' }, [
-				el( 'option', { value: 'default', text: 'Below image, inside choice' } ),
-				el( 'option', { value: 'out', text: 'Below image, outside choice' } ),
-				el( 'option', { value: 'hide', text: 'Hide label visually' } ),
-				el( 'option', { value: 'tooltip', text: 'Show label on hover/focus' } ),
+			var labelPos = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Label position', 'open-product-fields-for-woocommerce' ) }, [
+				el( 'option', { value: 'default', text: __( 'Below image, inside choice', 'open-product-fields-for-woocommerce' ) } ),
+				el( 'option', { value: 'out', text: __( 'Below image, outside choice', 'open-product-fields-for-woocommerce' ) } ),
+				el( 'option', { value: 'hide', text: __( 'Hide label visually', 'open-product-fields-for-woocommerce' ) } ),
+				el( 'option', { value: 'tooltip', text: __( 'Show label on hover/focus', 'open-product-fields-for-woocommerce' ) } ),
 			] );
 			labelPos.value = field.label_pos || 'tooltip';
 			labelPos.addEventListener( 'change', function () { field.label_pos = labelPos.value; } );
-			wrap.appendChild( labeledControl( 'Image label position', labelPos ) );
-			var itemWidth = el( 'input', { class: 'opf-b-input', type: 'number', min: '30', max: '300', value: field.item_width || 60, 'aria-label': 'Image width' } );
+			wrap.appendChild( labeledControl( __( 'Image label position', 'open-product-fields-for-woocommerce' ), labelPos ) );
+			var itemWidth = el( 'input', { class: 'opf-b-input', type: 'number', min: '30', max: '300', value: field.item_width || 60, 'aria-label': __( 'Image width', 'open-product-fields-for-woocommerce' ) } );
 			itemWidth.addEventListener( 'input', function () {
 				if ( itemWidth.value ) field.item_width = Math.max( 30, Math.min( 300, Number( itemWidth.value ) || 60 ) );
 				else delete field.item_width;
 			} );
-			wrap.appendChild( labeledControl( 'Image width (30–300 px)', itemWidth ) );
+			wrap.appendChild( labeledControl( __( 'Image width (30–300 px)', 'open-product-fields-for-woocommerce' ), itemWidth ) );
 		}
 
 		var imageZoom = el( 'input', { type: 'checkbox' } );
 		imageZoom.checked = !! field.image_zoom;
 		imageZoom.addEventListener( 'change', function () { field.image_zoom = imageZoom.checked; } );
-		wrap.appendChild( labeledControl( 'Swap/zoom the main product image on selection', imageZoom ) );
+		wrap.appendChild( labeledControl( __( 'Swap/zoom the main product image on selection', 'open-product-fields-for-woocommerce' ), imageZoom ) );
 
-		[ [ 'hide_cart', 'Hide children in the cart' ], [ 'hide_checkout', 'Hide children at checkout' ], [ 'hide_order', 'Hide children on orders/emails' ] ].forEach( function ( setting ) {
+		[ [ 'hide_cart', __( 'Hide children in the cart', 'open-product-fields-for-woocommerce' ) ], [ 'hide_checkout', __( 'Hide children at checkout', 'open-product-fields-for-woocommerce' ) ], [ 'hide_order', __( 'Hide children on orders/emails', 'open-product-fields-for-woocommerce' ) ] ].forEach( function ( setting ) {
 			var toggle = el( 'input', { type: 'checkbox' } );
 			toggle.checked = !! field[ setting[ 0 ] ];
 			toggle.addEventListener( 'change', function () { field[ setting[ 0 ] ] = toggle.checked; } );
@@ -516,12 +535,12 @@
 			return el( 'option', { value: candidate.id, text: ( candidate.label || candidate.id ) + ' (' + candidate.id + ')' } );
 		} );
 		if ( rule.field && ! sources.some( function ( candidate ) { return candidate.id === rule.field; } ) ) {
-			fieldOptions.unshift( el( 'option', { value: rule.field, text: 'Unavailable field: ' + rule.field } ) );
+			fieldOptions.unshift( el( 'option', { value: rule.field, text: sprintf( /* translators: %s: field id. */ __( 'Unavailable field: %s', 'open-product-fields-for-woocommerce' ), rule.field ) } ) );
 		}
 		if ( ! fieldOptions.length ) {
-			fieldOptions.push( el( 'option', { value: '', text: 'Add another field first' } ) );
+			fieldOptions.push( el( 'option', { value: '', text: __( 'Add another field first', 'open-product-fields-for-woocommerce' ) } ) );
 		}
-		var fieldSelect = el( 'select', { class: 'opf-b-input', 'aria-label': 'Condition field' }, fieldOptions );
+		var fieldSelect = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Condition field', 'open-product-fields-for-woocommerce' ) }, fieldOptions );
 		fieldSelect.value = rule.field || '';
 		fieldSelect.disabled = ! sources.length;
 		fieldSelect.addEventListener( 'change', function () {
@@ -531,10 +550,10 @@
 		} );
 
 		var operatorLabels = [
-			[ 'is', 'Is' ], [ 'is_not', 'Is not' ], [ 'contains', 'Contains' ], [ 'not_contains', 'Does not contain' ],
-			[ 'greater', 'Is greater than' ], [ 'less', 'Is less than' ], [ 'empty', 'Is empty' ], [ 'not_empty', 'Is not empty' ],
+			[ 'is', __( 'Is', 'open-product-fields-for-woocommerce' ) ], [ 'is_not', __( 'Is not', 'open-product-fields-for-woocommerce' ) ], [ 'contains', __( 'Contains', 'open-product-fields-for-woocommerce' ) ], [ 'not_contains', __( 'Does not contain', 'open-product-fields-for-woocommerce' ) ],
+			[ 'greater', __( 'Is greater than', 'open-product-fields-for-woocommerce' ) ], [ 'less', __( 'Is less than', 'open-product-fields-for-woocommerce' ) ], [ 'empty', __( 'Is empty', 'open-product-fields-for-woocommerce' ) ], [ 'not_empty', __( 'Is not empty', 'open-product-fields-for-woocommerce' ) ],
 		];
-		var operatorSelect = el( 'select', { class: 'opf-b-input', 'aria-label': 'Condition operator' }, operatorLabels.map( function ( item ) {
+		var operatorSelect = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Condition operator', 'open-product-fields-for-woocommerce' ) }, operatorLabels.map( function ( item ) {
 			var option = el( 'option', { value: item[ 0 ], text: item[ 1 ] } );
 			option.selected = item[ 0 ] === rule.operator;
 			return option;
@@ -553,33 +572,33 @@
 					return el( 'option', { value: choice.slug, text: choice.label + ' (' + choice.slug + ')' } );
 				} );
 				if ( rule.value && ! source.choices.some( function ( choice ) { return choice.slug === rule.value; } ) ) {
-					choiceOptions.unshift( el( 'option', { value: rule.value, text: 'Current value: ' + rule.value } ) );
+					choiceOptions.unshift( el( 'option', { value: rule.value, text: sprintf( /* translators: %s: stored condition value. */ __( 'Current value: %s', 'open-product-fields-for-woocommerce' ), rule.value ) } ) );
 				}
-				valueControl = el( 'select', { class: 'opf-b-input', 'aria-label': 'Condition value' }, choiceOptions );
+				valueControl = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Condition value', 'open-product-fields-for-woocommerce' ) }, choiceOptions );
 				valueControl.value = rule.value;
 			} else if ( source && 'toggle' === source.type ) {
-				valueControl = el( 'select', { class: 'opf-b-input', 'aria-label': 'Condition value' }, [
-					el( 'option', { value: '1', text: 'Checked' } ),
-					el( 'option', { value: '0', text: 'Not checked' } ),
+				valueControl = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Condition value', 'open-product-fields-for-woocommerce' ) }, [
+					el( 'option', { value: '1', text: __( 'Checked', 'open-product-fields-for-woocommerce' ) } ),
+					el( 'option', { value: '0', text: __( 'Not checked', 'open-product-fields-for-woocommerce' ) } ),
 				] );
 				valueControl.value = rule.value;
 			} else {
 				var inputType = source && 'number' === source.type ? 'number' : ( source && 'date' === source.type ? 'date' : 'text' );
-				valueControl = el( 'input', { class: 'opf-b-input', type: inputType, value: rule.value || '', 'aria-label': 'Condition value' } );
+				valueControl = el( 'input', { class: 'opf-b-input', type: inputType, value: rule.value || '', 'aria-label': __( 'Condition value', 'open-product-fields-for-woocommerce' ) } );
 			}
 			valueControl.addEventListener( 'input', function () { rule.value = valueControl.value; } );
 			valueControl.addEventListener( 'change', function () { rule.value = valueControl.value; } );
 		}
 
-		var remove = el( 'button', { type: 'button', class: 'button button-link-delete', text: 'Remove rule', onclick: function () {
+		var remove = el( 'button', { type: 'button', class: 'button button-link-delete', text: __( 'Remove rule', 'open-product-fields-for-woocommerce' ), onclick: function () {
 			var index = conditional.rules.indexOf( rule );
 			if ( index !== -1 ) conditional.rules.splice( index, 1 );
 			rerender();
 		} } );
 		return el( 'div', { class: 'opf-b-conditional-rule' }, [
-			labeledControl( 'Field', fieldSelect ),
-			labeledControl( 'Operator', operatorSelect ),
-			valueControl ? labeledControl( 'Value', valueControl ) : el( 'span', { class: 'description', text: 'No value needed' } ),
+			labeledControl( __( 'Field', 'open-product-fields-for-woocommerce' ), fieldSelect ),
+			labeledControl( __( 'Operator', 'open-product-fields-for-woocommerce' ), operatorSelect ),
+			valueControl ? labeledControl( __( 'Value', 'open-product-fields-for-woocommerce' ), valueControl ) : el( 'span', { class: 'description', text: __( 'No value needed', 'open-product-fields-for-woocommerce' ) } ),
 			remove,
 		] );
 	}
@@ -589,38 +608,38 @@
 		var sourceFields = model.fields.filter( function ( candidate ) { return candidate.id !== field.id; } );
 		var groups = field.conditionals.map( function ( conditional, groupIndex ) {
 			conditional.rules = Array.isArray( conditional.rules ) ? conditional.rules : [];
-			var action = el( 'select', { class: 'opf-b-input', 'aria-label': 'Visibility action' }, [
-				el( 'option', { value: 'show', text: 'Show this field if' } ),
-				el( 'option', { value: 'hide', text: 'Hide this field if' } ),
+			var action = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Visibility action', 'open-product-fields-for-woocommerce' ) }, [
+				el( 'option', { value: 'show', text: __( 'Show this field if', 'open-product-fields-for-woocommerce' ) } ),
+				el( 'option', { value: 'hide', text: __( 'Hide this field if', 'open-product-fields-for-woocommerce' ) } ),
 			] );
 			action.value = conditional.action || 'show';
 			action.addEventListener( 'change', function () { conditional.action = action.value; } );
-			var logic = el( 'select', { class: 'opf-b-input', 'aria-label': 'How to combine rules' }, [
-				el( 'option', { value: 'all', text: 'All rules match' } ),
-				el( 'option', { value: 'any', text: 'Any rule matches' } ),
+			var logic = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'How to combine rules', 'open-product-fields-for-woocommerce' ) }, [
+				el( 'option', { value: 'all', text: __( 'All rules match', 'open-product-fields-for-woocommerce' ) } ),
+				el( 'option', { value: 'any', text: __( 'Any rule matches', 'open-product-fields-for-woocommerce' ) } ),
 			] );
 			logic.value = conditional.logic || 'all';
 			logic.addEventListener( 'change', function () { conditional.logic = logic.value; } );
-			var addRule = el( 'button', { type: 'button', class: 'button', text: '+ Add rule', onclick: function () {
+			var addRule = el( 'button', { type: 'button', class: 'button', text: __( '+ Add rule', 'open-product-fields-for-woocommerce' ), onclick: function () {
 				conditional.rules.push( { field: sourceFields[ 0 ].id, operator: 'is', value: '' } );
 				rerender();
 			} } );
 			addRule.disabled = ! sourceFields.length;
-			var removeGroup = el( 'button', { type: 'button', class: 'button button-link-delete', text: 'Remove condition', onclick: function () {
+			var removeGroup = el( 'button', { type: 'button', class: 'button button-link-delete', text: __( 'Remove condition', 'open-product-fields-for-woocommerce' ), onclick: function () {
 				field.conditionals.splice( groupIndex, 1 );
 				rerender();
 			} } );
 			var rules = conditional.rules.map( function ( rule ) { return conditionalRuleRow( field, conditional, rule ); } );
 			if ( ! rules.length ) {
-				rules.push( el( 'p', { class: 'description', text: 'Add at least one rule for this condition to take effect.' } ) );
+				rules.push( el( 'p', { class: 'description', text: __( 'Add at least one rule for this condition to take effect.', 'open-product-fields-for-woocommerce' ) } ) );
 			}
 			return el( 'div', { class: 'opf-b-conditional-group' }, [
-				el( 'div', { class: 'opf-b-conditional-settings' }, [ labeledControl( 'Action', action ), labeledControl( 'Rule matching', logic ) ] ),
+				el( 'div', { class: 'opf-b-conditional-settings' }, [ labeledControl( __( 'Action', 'open-product-fields-for-woocommerce' ), action ), labeledControl( __( 'Rule matching', 'open-product-fields-for-woocommerce' ), logic ) ] ),
 			el( 'div', { class: 'opf-b-conditional-rules' }, rules ),
 			el( 'div', { class: 'opf-b-conditional-actions' }, [ addRule, removeGroup ] ),
 			] );
 		} );
-		var addCondition = el( 'button', { type: 'button', class: 'button', text: '+ Add condition', onclick: function () {
+		var addCondition = el( 'button', { type: 'button', class: 'button', text: __( '+ Add condition', 'open-product-fields-for-woocommerce' ), onclick: function () {
 			field.conditionals.push( {
 				action: 'show', logic: 'all',
 				rules: sourceFields.length ? [ { field: sourceFields[ 0 ].id, operator: 'is', value: '' } ] : [],
@@ -629,8 +648,8 @@
 		} } );
 		addCondition.disabled = ! sourceFields.length;
 		return el( 'div', { class: 'opf-b-conditional-editor' }, [
-			el( 'strong', { text: 'Visibility conditions' } ),
-			el( 'p', { class: 'description', text: 'Condition groups are combined as alternatives; rules inside each group use the selected matching rule.' } ),
+			el( 'strong', { text: __( 'Visibility conditions', 'open-product-fields-for-woocommerce' ) } ),
+			el( 'p', { class: 'description', text: __( 'Condition groups are combined as alternatives; rules inside each group use the selected matching rule.', 'open-product-fields-for-woocommerce' ) } ),
 			el( 'div', { class: 'opf-b-conditional-groups' }, groups ),
 			addCondition,
 		] );
@@ -645,7 +664,7 @@
 		if ( 'paragraph' === field.type ) {
 			field.content = field.content || '';
 		}
-		var label = el( 'input', { class: 'opf-b-input opf-b-label', value: field.label, placeholder: 'Field label' } );
+		var label = el( 'input', { class: 'opf-b-input opf-b-label', value: field.label, placeholder: __( 'Field label', 'open-product-fields-for-woocommerce' ) } );
 		label.addEventListener( 'input', function ( e ) {
 			field.label = e.target.value;
 		} );
@@ -672,31 +691,31 @@
 				field.pricing = { type: 'none', amount: 0, formula: '' };
 			}
 			if ( in_array( field.type, [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ] ) && ! field.choices.length ) {
-				field.choices = [ { slug: 'option-1', label: 'Option 1', selected: false, disabled: false, quantity: { default: 0, min: 0, max: 999999 }, pricing: { type: 'none', amount: 0, formula: '' } } ];
+				field.choices = [ { slug: 'option-1', label: sprintf( /* translators: %d: choice number. */ __( 'Option %d', 'open-product-fields-for-woocommerce' ), 1 ), selected: false, disabled: false, quantity: { default: 0, min: 0, max: 999999 }, pricing: { type: 'none', amount: 0, formula: '' } } ];
 			}
 			rerender();
 		} );
 
-		var req = el( 'input', { type: 'checkbox', title: 'Required' } );
+		var req = el( 'input', { type: 'checkbox', title: __( 'Required', 'open-product-fields-for-woocommerce' ) } );
 		req.checked = ! [ 'image_quantity', 'paragraph', 'content_image', 'section', 'section_end' ].includes( field.type ) && !! field.required;
 		req.disabled = [ 'image_quantity', 'paragraph', 'content_image', 'section', 'section_end' ].includes( field.type );
 		req.addEventListener( 'change', function () {
 			field.required = req.checked;
 		} );
 
-		var desc = el( 'input', { class: 'opf-b-input opf-b-description', value: field.description || '', placeholder: 'Description (optional)' } );
+		var desc = el( 'input', { class: 'opf-b-input opf-b-description', value: field.description || '', placeholder: __( 'Description (optional)', 'open-product-fields-for-woocommerce' ) } );
 		desc.addEventListener( 'input', function ( e ) {
 			field.description = e.target.value;
 		} );
 
-		var duplicate = el( 'button', { type: 'button', class: 'button opf-b-duplicate-field', text: 'Duplicate field', onclick: function () {
+		var duplicate = el( 'button', { type: 'button', class: 'button opf-b-duplicate-field', text: __( 'Duplicate field', 'open-product-fields-for-woocommerce' ), onclick: function () {
 			var copy = JSON.parse( JSON.stringify( field ) );
 			copy.id = uniqueId( slugify( field.id || 'field' ) + '-copy' );
 			model.fields.splice( index + 1, 0, copy );
 			rerender();
 		} } );
 
-		var remove = el( 'button', { type: 'button', class: 'button button-link-delete', text: 'Delete field', onclick: function () {
+		var remove = el( 'button', { type: 'button', class: 'button button-link-delete', text: __( 'Delete field', 'open-product-fields-for-woocommerce' ), onclick: function () {
 			model.fields.splice( index, 1 );
 			rerender();
 		} } );
@@ -704,18 +723,18 @@
 		var head = el( 'div', { class: 'opf-b-field-head' }, [ label, typeSel, desc, req, duplicate, remove ] );
 		var card = el( 'div', { class: 'opf-b-field' }, [ head ] );
 		if ( 'toggle' === field.type ) {
-			var message = el( 'input', { class: 'opf-b-input', type: 'text', value: field.message || '', 'aria-label': 'Checkbox message' } );
+			var message = el( 'input', { class: 'opf-b-input', type: 'text', value: field.message || '', 'aria-label': __( 'Checkbox message', 'open-product-fields-for-woocommerce' ) } );
 			message.addEventListener( 'input', function () { field.message = message.value; } );
-			var toggleDefault = el( 'select', { class: 'opf-b-input', 'aria-label': 'Default value' }, [
-				el( 'option', { value: '0', text: 'Unchecked' } ), el( 'option', { value: '1', text: 'Checked' } ),
+			var toggleDefault = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Default value', 'open-product-fields-for-woocommerce' ) }, [
+				el( 'option', { value: '0', text: __( 'Unchecked', 'open-product-fields-for-woocommerce' ) } ), el( 'option', { value: '1', text: __( 'Checked', 'open-product-fields-for-woocommerce' ) } ),
 			] );
 			toggleDefault.value = field.default === '1' ? '1' : '0';
 			toggleDefault.addEventListener( 'change', function () { field.default = toggleDefault.value; } );
-			card.appendChild( el( 'div', { class: 'opf-b-constraints' }, [ labeledControl( 'Checkbox message', message ), labeledControl( 'Default value', toggleDefault ) ] ) );
+			card.appendChild( el( 'div', { class: 'opf-b-constraints' }, [ labeledControl( __( 'Checkbox message', 'open-product-fields-for-woocommerce' ), message ), labeledControl( __( 'Default value', 'open-product-fields-for-woocommerce' ), toggleDefault ) ] ) );
 		}
 		if ( [ 'text', 'url' ].indexOf( field.type ) !== -1 ) {
 			var textSettings = el( 'div', { class: 'opf-b-constraints' } );
-			[ [ 'placeholder', 'Placeholder' ], [ 'default', 'Default value' ] ].forEach( function ( setting ) {
+			[ [ 'placeholder', __( 'Placeholder', 'open-product-fields-for-woocommerce' ) ], [ 'default', __( 'Default value', 'open-product-fields-for-woocommerce' ) ] ].forEach( function ( setting ) {
 				var input = el( 'input', { class: 'opf-b-input', type: 'text', value: field[ setting[ 0 ] ] == null ? '' : String( field[ setting[ 0 ] ] ), 'aria-label': setting[ 1 ] } );
 				input.addEventListener( 'input', function () {
 					if ( input.value ) field[ setting[ 0 ] ] = input.value;
@@ -744,11 +763,11 @@
 				}
 				rerender();
 			} );
-			repeatSettings.appendChild( labeledControl( isSection ? 'Repeat this section' : 'Allow customers to add repeated rows', repeatEnabled ) );
+			repeatSettings.appendChild( labeledControl( isSection ? __( 'Repeat this section', 'open-product-fields-for-woocommerce' ) : __( 'Allow customers to add repeated rows', 'open-product-fields-for-woocommerce' ), repeatEnabled ) );
 			if ( field.repeat && field.repeat.enabled ) {
 				var repeatMode = el( 'select', { class: 'opf-b-input', 'data-opf-repeat-mode': field.id }, [
-					el( 'option', { value: 'button', text: 'Customer adds rows with a button' } ),
-					el( 'option', { value: 'quantity', text: 'Match product quantity' } ),
+					el( 'option', { value: 'button', text: __( 'Customer adds rows with a button', 'open-product-fields-for-woocommerce' ) } ),
+					el( 'option', { value: 'quantity', text: __( 'Match product quantity', 'open-product-fields-for-woocommerce' ) } ),
 				] );
 				repeatMode.value = field.repeat.mode || 'button';
 				repeatMode.addEventListener( 'change', function () {
@@ -762,15 +781,15 @@
 					}
 					rerender();
 				} );
-				repeatSettings.appendChild( labeledControl( 'Repeat mode', repeatMode ) );
+				repeatSettings.appendChild( labeledControl( __( 'Repeat mode', 'open-product-fields-for-woocommerce' ), repeatMode ) );
 				if ( 'button' === ( field.repeat.mode || 'button' ) ) {
-					var repeatMax = el( 'input', { class: 'opf-b-input', type: 'number', min: '1', step: '1', value: field.repeat.max || '', placeholder: '10000', 'data-opf-repeat-max': field.id, 'aria-label': 'Maximum repeated rows' } );
+					var repeatMax = el( 'input', { class: 'opf-b-input', type: 'number', min: '1', step: '1', value: field.repeat.max || '', placeholder: '10000', 'data-opf-repeat-max': field.id, 'aria-label': __( 'Maximum repeated rows', 'open-product-fields-for-woocommerce' ) } );
 					repeatMax.addEventListener( 'input', function () {
 						if ( repeatMax.value ) field.repeat.max = Number( repeatMax.value );
 						else delete field.repeat.max;
 					} );
-					repeatSettings.appendChild( labeledControl( 'Maximum rows (blank uses 10000)', repeatMax ) );
-					[ [ 'add', 'Add button text' ], [ 'del', 'Remove button text' ] ].forEach( function ( setting ) {
+					repeatSettings.appendChild( labeledControl( __( 'Maximum rows (blank uses 10000)', 'open-product-fields-for-woocommerce' ), repeatMax ) );
+					[ [ 'add', __( 'Add button text', 'open-product-fields-for-woocommerce' ) ], [ 'del', __( 'Remove button text', 'open-product-fields-for-woocommerce' ) ] ].forEach( function ( setting ) {
 						var labelInput = el( 'input', { class: 'opf-b-input', type: 'text', maxlength: '200', value: field.repeat[ setting[ 0 ] ] || '', 'data-opf-repeat-label': field.id + ':' + setting[ 0 ] } );
 						labelInput.addEventListener( 'input', function () {
 							if ( labelInput.value.trim() ) field.repeat[ setting[ 0 ] ] = labelInput.value.trim();
@@ -784,16 +803,16 @@
 					if ( duplicateLabel.value.trim() ) field.repeat.label = duplicateLabel.value.trim();
 					else delete field.repeat.label;
 				} );
-				repeatSettings.appendChild( labeledControl( isSection ? 'Section instance label ({n} is the section number)' : 'Duplicate row label ({n} is the row number)', duplicateLabel ) );
+				repeatSettings.appendChild( labeledControl( isSection ? __( 'Section instance label ({n} is the section number)', 'open-product-fields-for-woocommerce' ) : __( 'Duplicate row label ({n} is the row number)', 'open-product-fields-for-woocommerce' ), duplicateLabel ) );
 			}
 			card.appendChild( repeatSettings );
 		} else if ( field.repeat && field.repeat.enabled ) {
-			card.appendChild( el( 'p', { class: 'description opf-b-repeat-notice', text: 'Repeat settings are preserved, but this field type cannot repeat yet.' } ) );
+			card.appendChild( el( 'p', { class: 'description opf-b-repeat-notice', text: __( 'Repeat settings are preserved, but this field type cannot repeat yet.', 'open-product-fields-for-woocommerce' ) } ) );
 		}
 		if ( 'paragraph' === field.type ) {
-			var contentFormat = el( 'select', { class: 'opf-b-input', 'aria-label': 'Paragraph format' }, [
-				el( 'option', { value: 'plain', text: 'Plain text' } ),
-				el( 'option', { value: 'html', text: 'Basic HTML' } ),
+			var contentFormat = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Paragraph format', 'open-product-fields-for-woocommerce' ) }, [
+				el( 'option', { value: 'plain', text: __( 'Plain text', 'open-product-fields-for-woocommerce' ) } ),
+				el( 'option', { value: 'html', text: __( 'Basic HTML', 'open-product-fields-for-woocommerce' ) } ),
 			] );
 			contentFormat.value = field.content_format || 'plain';
 			contentFormat.addEventListener( 'change', function () {
@@ -801,32 +820,32 @@
 				if ( 'plain' === contentFormat.value ) field.process_shortcodes = false;
 				rerender();
 			} );
-			card.appendChild( labeledControl( 'Paragraph format', contentFormat ) );
-			var content = el( 'textarea', { class: 'opf-b-input opf-b-paragraph-content', rows: 4, 'aria-label': 'Paragraph content' } );
+			card.appendChild( labeledControl( __( 'Paragraph format', 'open-product-fields-for-woocommerce' ), contentFormat ) );
+			var content = el( 'textarea', { class: 'opf-b-input opf-b-paragraph-content', rows: 4, 'aria-label': __( 'Paragraph content', 'open-product-fields-for-woocommerce' ) } );
 			content.value = field.content || '';
 			content.addEventListener( 'input', function () { field.content = content.value; } );
-			card.appendChild( el( 'label', { class: 'opf-b-paragraph-label', text: 'Paragraph content' }, [ content ] ) );
+			card.appendChild( el( 'label', { class: 'opf-b-paragraph-label', text: __( 'Paragraph content', 'open-product-fields-for-woocommerce' ) }, [ content ] ) );
 			if ( 'html' === field.content_format ) {
 				var processShortcodes = el( 'input', { type: 'checkbox' } );
 				processShortcodes.checked = !! field.process_shortcodes;
 				processShortcodes.addEventListener( 'change', function () { field.process_shortcodes = processShortcodes.checked; } );
-				card.appendChild( labeledControl( 'Process WordPress shortcodes', processShortcodes ) );
+				card.appendChild( labeledControl( __( 'Process WordPress shortcodes', 'open-product-fields-for-woocommerce' ), processShortcodes ) );
 			}
 		}
 		if ( 'content_image' === field.type ) {
-			var contentImageUrl = el( 'input', { class: 'opf-b-input', type: 'url', value: field.image_url || '', placeholder: 'Image URL (https or local path)', 'aria-label': 'Content image URL' } );
+			var contentImageUrl = el( 'input', { class: 'opf-b-input', type: 'url', value: field.image_url || '', placeholder: __( 'Image URL (https or local path)', 'open-product-fields-for-woocommerce' ), 'aria-label': __( 'Content image URL', 'open-product-fields-for-woocommerce' ) } );
 			contentImageUrl.addEventListener( 'input', function () {
 				field.image_url = contentImageUrl.value;
 				delete field.image_id;
 			} );
-			var chooseContentImage = el( 'button', { class: 'button', type: 'button', text: 'Choose image', onclick: function () {
+			var chooseContentImage = el( 'button', { class: 'button', type: 'button', text: __( 'Choose image', 'open-product-fields-for-woocommerce' ), onclick: function () {
 				if ( ! window.wp || ! window.wp.media ) {
-					window.alert( 'The WordPress Media Library is unavailable on this screen.' );
+					window.alert( __( 'The WordPress Media Library is unavailable on this screen.', 'open-product-fields-for-woocommerce' ) );
 					return;
 				}
 				var frame = window.wp.media( {
-					title: 'Choose informative image',
-					button: { text: 'Use image' },
+					title: __( 'Choose informative image', 'open-product-fields-for-woocommerce' ),
+					button: { text: __( 'Use image', 'open-product-fields-for-woocommerce' ) },
 					library: { type: 'image' },
 					multiple: false,
 				} );
@@ -839,19 +858,19 @@
 				} );
 				frame.open();
 			} } );
-			card.appendChild( labeledControl( 'Informative image URL', contentImageUrl ) );
+			card.appendChild( labeledControl( __( 'Informative image URL', 'open-product-fields-for-woocommerce' ), contentImageUrl ) );
 			card.appendChild( chooseContentImage );
 		}
 
 		if ( 'products' !== field.type && ( field.choices.length || in_array( field.type, [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ], true ) ) ) {
-			var addChoice = el( 'button', { type: 'button', class: 'button', text: '+ Add choice', onclick: function () {
+			var addChoice = el( 'button', { type: 'button', class: 'button', text: __( '+ Add choice', 'open-product-fields-for-woocommerce' ), onclick: function () {
 				var n = field.choices.length + 1;
-				var choice = { slug: 'option-' + n, label: 'Option ' + n, selected: false, disabled: false, quantity: { default: 0, min: 0, max: 999999 }, pricing: { type: 'none', amount: 0, formula: '' } };
+				var choice = { slug: 'option-' + n, label: sprintf( /* translators: %d: choice number. */ __( 'Option %d', 'open-product-fields-for-woocommerce' ), n ), selected: false, disabled: false, quantity: { default: 0, min: 0, max: 999999 }, pricing: { type: 'none', amount: 0, formula: '' } };
 				if ( 'color' === field.swatch_style ) choice.color = '#FFFFFF';
 				field.choices.push( choice );
 				rerender();
 			} } );
-			var header = el( 'div', { class: 'opf-b-choices-header', html: '<strong>Choices</strong> <em>(slug · label · pricing)</em>' } );
+			var header = el( 'div', { class: 'opf-b-choices-header', html: '<strong>' + __( 'Choices', 'open-product-fields-for-woocommerce' ) + '</strong> <em>(' + __( 'slug · label · pricing', 'open-product-fields-for-woocommerce' ) + ')</em>' } );
 			var list = el( 'div', { class: 'opf-b-choices' }, field.choices.map( function ( c, i ) {
 				return choiceRow( field, c, i );
 			} ) );
@@ -861,7 +880,7 @@
 			card.appendChild( bulkChoiceImport( field, list ) );
 		}
 		if ( 'image_quantity' === field.type ) {
-			[ [ 'min_choices', 'Minimum total quantity' ], [ 'max_choices', 'Maximum total quantity' ] ].forEach( function ( setting ) {
+			[ [ 'min_choices', __( 'Minimum total quantity', 'open-product-fields-for-woocommerce' ) ], [ 'max_choices', __( 'Maximum total quantity', 'open-product-fields-for-woocommerce' ) ] ].forEach( function ( setting ) {
 				var limit = el( 'input', { class: 'opf-b-input', type: 'number', min: '0', max: '999999', value: null === field[ setting[ 0 ] ] || undefined === field[ setting[ 0 ] ] ? '' : field[ setting[ 0 ] ] } );
 				limit.addEventListener( 'input', function () {
 					if ( '' !== limit.value ) field[ setting[ 0 ] ] = Math.max( 0, Math.min( 999999, Number( limit.value ) || 0 ) );
@@ -871,7 +890,7 @@
 			} );
 			field.choices.forEach( function ( choice ) {
 				choice.quantity = choice.quantity || { default: 0, min: 0, max: 999999 };
-				[ [ 'default', 'Default quantity' ], [ 'min', 'Minimum quantity' ], [ 'max', 'Maximum quantity' ] ].forEach( function ( setting ) {
+				[ [ 'default', __( 'Default quantity', 'open-product-fields-for-woocommerce' ) ], [ 'min', __( 'Minimum quantity', 'open-product-fields-for-woocommerce' ) ], [ 'max', __( 'Maximum quantity', 'open-product-fields-for-woocommerce' ) ] ].forEach( function ( setting ) {
 					var input = el( 'input', { class: 'opf-b-input', type: 'number', min: '0', max: '999999', value: choice.quantity[ setting[ 0 ] ] } );
 					input.addEventListener( 'input', function () { choice.quantity[ setting[ 0 ] ] = Math.max( 0, Math.min( 999999, Number( input.value ) || 0 ) ); } );
 					card.appendChild( labeledControl( choice.label + ' — ' + setting[ 1 ], input ) );
@@ -881,9 +900,9 @@
 		if ( 'swatch' === field.type ) {
 			var imageSettings = el( 'div', { class: 'opf-b-image-swatch-settings' } );
 			var swatchStyle = el( 'select', { class: 'opf-b-input' }, [
-				el( 'option', { value: 'text', text: 'Text swatches' } ),
-				el( 'option', { value: 'image', text: 'Image swatches' } ),
-				el( 'option', { value: 'color', text: 'Color swatches' } ),
+				el( 'option', { value: 'text', text: __( 'Text swatches', 'open-product-fields-for-woocommerce' ) } ),
+				el( 'option', { value: 'image', text: __( 'Image swatches', 'open-product-fields-for-woocommerce' ) } ),
+				el( 'option', { value: 'color', text: __( 'Color swatches', 'open-product-fields-for-woocommerce' ) } ),
 			] );
 			swatchStyle.value = field.swatch_style || 'text';
 			swatchStyle.addEventListener( 'change', function () {
@@ -891,14 +910,14 @@
 				if ( 'color' === swatchStyle.value ) field.choices.forEach( function ( choice ) { if ( ! choice.color ) choice.color = '#FFFFFF'; } );
 				rerender();
 			} );
-			imageSettings.appendChild( labeledControl( 'Swatch appearance', swatchStyle ) );
+			imageSettings.appendChild( labeledControl( __( 'Swatch appearance', 'open-product-fields-for-woocommerce' ), swatchStyle ) );
 
 			var multiple = el( 'input', { type: 'checkbox' } );
 			multiple.checked = !! field.multiple;
 			multiple.addEventListener( 'change', function () { field.multiple = multiple.checked; rerender(); } );
-			imageSettings.appendChild( labeledControl( 'Allow multiple selections', multiple ) );
+			imageSettings.appendChild( labeledControl( __( 'Allow multiple selections', 'open-product-fields-for-woocommerce' ), multiple ) );
 			if ( field.multiple ) {
-				[ [ 'min_choices', 'Minimum choices' ], [ 'max_choices', 'Maximum choices' ] ].forEach( function ( setting ) {
+				[ [ 'min_choices', __( 'Minimum choices', 'open-product-fields-for-woocommerce' ) ], [ 'max_choices', __( 'Maximum choices', 'open-product-fields-for-woocommerce' ) ] ].forEach( function ( setting ) {
 					var input = el( 'input', { class: 'opf-b-input', type: 'number', min: '1', max: '10000', value: field[ setting[ 0 ] ] || '' } );
 					input.addEventListener( 'input', function () {
 						if ( input.value ) field[ setting[ 0 ] ] = Number( input.value );
@@ -909,24 +928,24 @@
 			}
 			if ( 'color' === field.swatch_style ) {
 				var colorLayout = el( 'select', { class: 'opf-b-input' }, [
-					el( 'option', { value: 'square', text: 'Square' } ),
-					el( 'option', { value: 'rounded', text: 'Rounded corners' } ),
-					el( 'option', { value: 'circle', text: 'Circle' } ),
+					el( 'option', { value: 'square', text: __( 'Square', 'open-product-fields-for-woocommerce' ) } ),
+					el( 'option', { value: 'rounded', text: __( 'Rounded corners', 'open-product-fields-for-woocommerce' ) } ),
+					el( 'option', { value: 'circle', text: __( 'Circle', 'open-product-fields-for-woocommerce' ) } ),
 				] );
 				colorLayout.value = field.color_layout || 'circle';
 				colorLayout.addEventListener( 'change', function () { field.color_layout = colorLayout.value; } );
-				imageSettings.appendChild( labeledControl( 'Color shape', colorLayout ) );
+				imageSettings.appendChild( labeledControl( __( 'Color shape', 'open-product-fields-for-woocommerce' ), colorLayout ) );
 				var colorSize = el( 'input', { class: 'opf-b-input', type: 'number', min: '5', max: '500', value: field.color_size || 30 } );
 				colorSize.addEventListener( 'input', function () { field.color_size = Number( colorSize.value ) || 30; } );
-				imageSettings.appendChild( labeledControl( 'Color size (px)', colorSize ) );
+				imageSettings.appendChild( labeledControl( __( 'Color size (px)', 'open-product-fields-for-woocommerce' ), colorSize ) );
 				var colorLabel = el( 'select', { class: 'opf-b-input' }, [
-					el( 'option', { value: 'default', text: 'Show below' } ),
-					el( 'option', { value: 'hide', text: 'Hide visually' } ),
-					el( 'option', { value: 'tooltip', text: 'Show on hover/focus' } ),
+					el( 'option', { value: 'default', text: __( 'Show below', 'open-product-fields-for-woocommerce' ) } ),
+					el( 'option', { value: 'hide', text: __( 'Hide visually', 'open-product-fields-for-woocommerce' ) } ),
+					el( 'option', { value: 'tooltip', text: __( 'Show on hover/focus', 'open-product-fields-for-woocommerce' ) } ),
 				] );
 				colorLabel.value = field.color_label_pos || 'tooltip';
 				colorLabel.addEventListener( 'change', function () { field.color_label_pos = colorLabel.value; } );
-				imageSettings.appendChild( labeledControl( 'Color label position', colorLabel ) );
+				imageSettings.appendChild( labeledControl( __( 'Color label position', 'open-product-fields-for-woocommerce' ), colorLabel ) );
 			}
 			if ( 'image' !== field.swatch_style ) {
 				card.appendChild( imageSettings );
@@ -935,27 +954,27 @@
 			var imageZoom = el( 'input', { type: 'checkbox', 'data-opf-image-setting': 'image_zoom' } );
 			imageZoom.checked = !! field.image_zoom;
 			imageZoom.addEventListener( 'change', function () { field.image_zoom = imageZoom.checked; } );
-			imageSettings.appendChild( labeledControl( 'Enlarge image on hover and keyboard focus', imageZoom ) );
+			imageSettings.appendChild( labeledControl( __( 'Enlarge image on hover and keyboard focus', 'open-product-fields-for-woocommerce' ), imageZoom ) );
 
 			var labelPosition = el( 'select', { class: 'opf-b-input', 'data-opf-image-setting': 'label_pos' }, [
-				el( 'option', { value: 'default', text: 'Below image, inside choice' } ),
-				el( 'option', { value: 'out', text: 'Below image, outside choice' } ),
-				el( 'option', { value: 'hide', text: 'Hide label visually' } ),
-				el( 'option', { value: 'tooltip', text: 'Show label on hover/focus' } ),
+				el( 'option', { value: 'default', text: __( 'Below image, inside choice', 'open-product-fields-for-woocommerce' ) } ),
+				el( 'option', { value: 'out', text: __( 'Below image, outside choice', 'open-product-fields-for-woocommerce' ) } ),
+				el( 'option', { value: 'hide', text: __( 'Hide label visually', 'open-product-fields-for-woocommerce' ) } ),
+				el( 'option', { value: 'tooltip', text: __( 'Show label on hover/focus', 'open-product-fields-for-woocommerce' ) } ),
 			] );
 			labelPosition.value = field.label_pos || 'out';
 			labelPosition.addEventListener( 'change', function () { field.label_pos = labelPosition.value; } );
-			imageSettings.appendChild( labeledControl( 'Image label position', labelPosition ) );
+			imageSettings.appendChild( labeledControl( __( 'Image label position', 'open-product-fields-for-woocommerce' ), labelPosition ) );
 
 			var gridLayout = el( 'select', { class: 'opf-b-input', 'data-opf-image-setting': 'grid_layout' }, [
-				el( 'option', { value: 'fixed', text: 'Fixed image width' } ),
-				el( 'option', { value: 'flexible', text: 'Responsive columns' } ),
+				el( 'option', { value: 'fixed', text: __( 'Fixed image width', 'open-product-fields-for-woocommerce' ) } ),
+				el( 'option', { value: 'flexible', text: __( 'Responsive columns', 'open-product-fields-for-woocommerce' ) } ),
 			] );
 			gridLayout.value = field.grid_layout || 'fixed';
 			gridLayout.addEventListener( 'change', function () { field.grid_layout = gridLayout.value; rerender(); } );
-			imageSettings.appendChild( labeledControl( 'Image grid layout', gridLayout ) );
+			imageSettings.appendChild( labeledControl( __( 'Image grid layout', 'open-product-fields-for-woocommerce' ), gridLayout ) );
 
-			[ [ 'item_width', 'Image width (20–300 px)', 20, 300, 68 ], [ 'items_per_row', 'Desktop columns (1–15)', 1, 15, 3 ], [ 'items_per_row_tablet', 'Tablet columns (1–10)', 1, 10, 3 ], [ 'items_per_row_mobile', 'Mobile columns (1–10)', 1, 10, 3 ] ].forEach( function ( setting ) {
+			[ [ 'item_width', __( 'Image width (20–300 px)', 'open-product-fields-for-woocommerce' ), 20, 300, 68 ], [ 'items_per_row', __( 'Desktop columns (1–15)', 'open-product-fields-for-woocommerce' ), 1, 15, 3 ], [ 'items_per_row_tablet', __( 'Tablet columns (1–10)', 'open-product-fields-for-woocommerce' ), 1, 10, 3 ], [ 'items_per_row_mobile', __( 'Mobile columns (1–10)', 'open-product-fields-for-woocommerce' ), 1, 10, 3 ] ].forEach( function ( setting ) {
 				var input = el( 'input', { class: 'opf-b-input', type: 'number', min: String( setting[ 2 ] ), max: String( setting[ 3 ] ), value: field[ setting[ 0 ] ] || setting[ 4 ], 'data-opf-image-setting': setting[ 0 ] } );
 				input.addEventListener( 'input', function () {
 					if ( input.value ) field[ setting[ 0 ] ] = Number( input.value );
@@ -967,14 +986,14 @@
 		}
 		if ( 'date' === field.type ) {
 			var dateBounds = el( 'div', { class: 'opf-b-constraints' } );
-			[ [ 'allow_past', 'Allow past dates' ], [ 'allow_future', 'Allow future dates' ] ].forEach( function ( setting ) {
+			[ [ 'allow_past', __( 'Allow past dates', 'open-product-fields-for-woocommerce' ) ], [ 'allow_future', __( 'Allow future dates', 'open-product-fields-for-woocommerce' ) ] ].forEach( function ( setting ) {
 				var checkbox = el( 'input', { type: 'checkbox' } );
 				checkbox.checked = field[ setting[ 0 ] ] !== false;
 				checkbox.addEventListener( 'change', function () { field[ setting[ 0 ] ] = checkbox.checked; } );
 				var label = el( 'label', { class: 'opf-b-date-policy' }, [ checkbox, document.createTextNode( setting[ 1 ] ) ] );
 				dateBounds.appendChild( label );
 			} );
-			[ [ 'min_date', 'Minimum date (2026-12-31 or 7d)' ], [ 'max_date', 'Maximum date (2026-12-31 or 1y 2m)' ] ].forEach( function ( setting ) {
+			[ [ 'min_date', __( 'Minimum date (2026-12-31 or 7d)', 'open-product-fields-for-woocommerce' ) ], [ 'max_date', __( 'Maximum date (2026-12-31 or 1y 2m)', 'open-product-fields-for-woocommerce' ) ] ].forEach( function ( setting ) {
 				var input = el( 'input', { class: 'opf-b-input', type: 'text', value: field[ setting[ 0 ] ] || '', placeholder: setting[ 1 ] } );
 				input.addEventListener( 'input', function () {
 					if ( input.value.trim() ) field[ setting[ 0 ] ] = input.value.trim();
@@ -982,19 +1001,19 @@
 				} );
 				dateBounds.appendChild( input );
 			} );
-			var cutoffInput = el( 'input', { class: 'opf-b-input', type: 'time', value: field.cutoff_time || '', placeholder: 'Disable today after' } );
+			var cutoffInput = el( 'input', { class: 'opf-b-input', type: 'time', value: field.cutoff_time || '', placeholder: __( 'Disable today after', 'open-product-fields-for-woocommerce' ) } );
 			cutoffInput.addEventListener( 'input', function () {
 				if ( cutoffInput.value ) field.cutoff_time = cutoffInput.value;
 				else delete field.cutoff_time;
 			} );
 			dateBounds.appendChild( cutoffInput );
-			var disabledWeekdays = el( 'input', { class: 'opf-b-input', type: 'text', value: Array.isArray( field.disabled_weekdays ) ? field.disabled_weekdays.join( ', ' ) : '', placeholder: 'Disabled weekdays (0=Sun … 6=Sat)' } );
+			var disabledWeekdays = el( 'input', { class: 'opf-b-input', type: 'text', value: Array.isArray( field.disabled_weekdays ) ? field.disabled_weekdays.join( ', ' ) : '', placeholder: __( 'Disabled weekdays (0=Sun … 6=Sat)', 'open-product-fields-for-woocommerce' ) } );
 			disabledWeekdays.addEventListener( 'input', function () {
 				var days = disabledWeekdays.value.split( ',' ).map( function ( value ) { return value.trim(); } ).filter( Boolean );
 				if ( days.length && days.every( function ( day ) { return /^[0-6]$/.test( day ); } ) ) field.disabled_weekdays = days.map( Number );
 				else if ( ! days.length ) delete field.disabled_weekdays;
 			} );
-			var disabledDates = el( 'input', { class: 'opf-b-input', type: 'text', value: Array.isArray( field.disabled_dates ) ? field.disabled_dates.join( ', ' ) : '', placeholder: 'Disabled dates/ranges (YYYY-MM-DD, MM-DD, or start end)' } );
+			var disabledDates = el( 'input', { class: 'opf-b-input', type: 'text', value: Array.isArray( field.disabled_dates ) ? field.disabled_dates.join( ', ' ) : '', placeholder: __( 'Disabled dates/ranges (YYYY-MM-DD, MM-DD, or start end)', 'open-product-fields-for-woocommerce' ) } );
 			disabledDates.addEventListener( 'input', function () {
 				var rules = disabledDates.value.split( ',' ).map( function ( value ) { return value.trim(); } ).filter( Boolean );
 				if ( rules.length ) field.disabled_dates = rules;
@@ -1111,7 +1130,7 @@
 		}
 
 		var status = document.getElementById( 'opf-b-status' );
-		status.textContent = 'Saving…';
+		status.textContent = __( 'Saving…', 'open-product-fields-for-woocommerce' );
 		window.fetch( restUrl, {
 			method: 'POST',
 			credentials: 'same-origin',
@@ -1129,19 +1148,19 @@
 				if ( ! parseInt( mount.dataset.postId, 10 ) ) {
 					mount.dataset.postId = j.id;
 				}
-				status.textContent = 'Saved.';
+				status.textContent = __( 'Saved.', 'open-product-fields-for-woocommerce' );
 			} else {
-				status.textContent = 'Save failed: ' + ( j.message || 'unknown error' );
+				status.textContent = sprintf( /* translators: %s: error message. */ __( 'Save failed: %s', 'open-product-fields-for-woocommerce' ), j.message || __( 'unknown error', 'open-product-fields-for-woocommerce' ) );
 			}
 		} ).catch( function ( e ) {
-			status.textContent = 'Save failed: ' + e;
+			status.textContent = sprintf( /* translators: %s: error message. */ __( 'Save failed: %s', 'open-product-fields-for-woocommerce' ), e );
 		} );
 	}
 
 	function preview() {
 		var frame = document.getElementById( 'opf-b-preview' );
 		var status = document.getElementById( 'opf-b-status' );
-		status.textContent = 'Loading preview…';
+		status.textContent = __( 'Loading preview…', 'open-product-fields-for-woocommerce' );
 		window.fetch( previewRest, {
 			method: 'POST',
 			credentials: 'same-origin',
@@ -1150,10 +1169,10 @@
 		} ).then( function ( r ) {
 			return r.json();
 		} ).then( function ( j ) {
-			frame.innerHTML = j.html || ( j.message || 'No preview available.' );
+			frame.innerHTML = j.html || ( j.message || __( 'No preview available.', 'open-product-fields-for-woocommerce' ) );
 			status.textContent = '';
 		} ).catch( function ( e ) {
-			status.textContent = 'Preview failed: ' + e;
+			status.textContent = sprintf( /* translators: %s: error message. */ __( 'Preview failed: %s', 'open-product-fields-for-woocommerce' ), e );
 		} );
 	}
 
@@ -1211,12 +1230,12 @@
 	}
 
 	var toolbar = el( 'div', { class: 'opf-b-toolbar' }, [
-		el( 'button', { type: 'button', class: 'button button-primary', text: '+ Add field', onclick: function () {
+		el( 'button', { type: 'button', class: 'button button-primary', text: __( '+ Add field', 'open-product-fields-for-woocommerce' ), onclick: function () {
 			model.fields.push( { id: uniqueId( 'field' ), label: '', description: '', type: 'text', required: false, width: 100, choices: [], pricing: { type: 'none', amount: 0, formula: '' }, conditionals: [] } );
 			rerender();
 		} } ),
-		el( 'button', { type: 'button', class: 'button', text: 'Save', onclick: save } ),
-		el( 'button', { type: 'button', class: 'button', text: 'Refresh preview', onclick: preview } ),
+		el( 'button', { type: 'button', class: 'button', text: __( 'Save', 'open-product-fields-for-woocommerce' ), onclick: save } ),
+		el( 'button', { type: 'button', class: 'button', text: __( 'Refresh preview', 'open-product-fields-for-woocommerce' ), onclick: preview } ),
 		el( 'span', { id: 'opf-b-status', class: 'opf-b-status' } )
 	] );
 
@@ -1225,7 +1244,7 @@
 
 	mount.appendChild( toolbar );
 	mount.appendChild( app );
-	mount.appendChild( el( 'h4', { text: 'Preview' } ) );
+	mount.appendChild( el( 'h4', { text: __( 'Preview', 'open-product-fields-for-woocommerce' ) } ) );
 	mount.appendChild( frame );
 
 	rerender();

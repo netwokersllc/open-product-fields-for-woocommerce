@@ -71,6 +71,7 @@ final class Assets {
 				'window.OPF_FIELDS = ' . wp_json_encode( $registry, JSON_UNESCAPED_UNICODE ) . ';'
 				. 'window.OPF_DATE_FORMAT = ' . wp_json_encode( $date_format ) . ';'
 				. 'window.OPF_TODAY = ' . wp_json_encode( $today ) . ';'
+				. 'window.OPF_I18N = ' . wp_json_encode( self::frontend_i18n(), JSON_UNESCAPED_UNICODE ) . ';'
 			);
 		}
 		if ( Renderer::compat() || null !== WoocsIntegration::frontend_config() ) {
@@ -80,6 +81,62 @@ final class Assets {
 			);
 		}
 		wp_enqueue_style( 'opf-frontend' );
+	}
+
+	/**
+	 * Predefined frontend strings served to the field scripts.
+	 *
+	 * Script modules cannot use wp_set_script_translations, so the translated
+	 * strings ride along the existing window.OPF_* registry. Every key has a
+	 * matching English fallback inside the JavaScript; '%d'/'%s' placeholders
+	 * are substituted client-side. Weekday abbreviations come from WP_Locale
+	 * so the date picker heading follows the site language.
+	 *
+	 * @return array<string,string|array<int,string>>
+	 */
+	private static function frontend_i18n(): array {
+		global $wp_locale;
+		$weekdays = [];
+		for ( $i = 0; $i < 7; $i++ ) {
+			$weekdays[] = is_object( $wp_locale ) && method_exists( $wp_locale, 'get_weekday_abbrev' )
+				? $wp_locale->get_weekday_abbrev( $wp_locale->get_weekday( $i ) )
+				: [ 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' ][ $i ];
+		}
+		return [
+			'site_locale'               => function_exists( 'get_locale' ) ? str_replace( '_', '-', (string) get_locale() ) : '',
+			/* translators: %d: minimum number of items. */
+			'choose_at_least_items'     => __( 'Choose at least %d items in total.', 'open-product-fields-for-woocommerce' ),
+			/* translators: %d: maximum number of items. */
+			'choose_no_more_items'      => __( 'Choose no more than %d items in total.', 'open-product-fields-for-woocommerce' ),
+			/* translators: %d: maximum number of selectable options. */
+			'select_no_more_options'    => __( 'Select no more than %d options.', 'open-product-fields-for-woocommerce' ),
+			'required_choices_rows'     => __( 'Select the required choices in every repeated row.', 'open-product-fields-for-woocommerce' ),
+			'choose_date'               => __( 'Choose date', 'open-product-fields-for-woocommerce' ),
+			'choose_a_date'             => __( 'Choose a date', 'open-product-fields-for-woocommerce' ),
+			'previous_month'            => __( 'Previous month', 'open-product-fields-for-woocommerce' ),
+			'next_month'                => __( 'Next month', 'open-product-fields-for-woocommerce' ),
+			'calendar_dates'            => __( 'Calendar dates', 'open-product-fields-for-woocommerce' ),
+			'no_selectable_dates'       => __( 'No selectable dates this month.', 'open-product-fields-for-woocommerce' ),
+			'date_unavailable'          => __( 'This date is unavailable.', 'open-product-fields-for-woocommerce' ),
+			'weekday_abbreviations'     => $weekdays,
+			/* translators: %d: repeated-row number. */
+			'remove_row'                => __( 'Remove row %d', 'open-product-fields-for-woocommerce' ),
+			'remove'                    => __( 'Remove', 'open-product-fields-for-woocommerce' ),
+			'wait_for_uploads'          => __( 'Wait for uploads to finish.', 'open-product-fields-for-woocommerce' ),
+			'choose_a_file'             => __( 'Choose a file.', 'open-product-fields-for-woocommerce' ),
+			'file_upload_progress'      => __( 'File upload progress', 'open-product-fields-for-woocommerce' ),
+			'choose_files_or_drop'      => __( 'Choose files or drop them here.', 'open-product-fields-for-woocommerce' ),
+			'remove_file_first'         => __( 'Remove a file before uploading another.', 'open-product-fields-for-woocommerce' ),
+			/* translators: %s: file name. */
+			'uploading'                 => __( 'Uploading %s', 'open-product-fields-for-woocommerce' ),
+			'upload_failed'             => __( 'Upload failed. Try again.', 'open-product-fields-for-woocommerce' ),
+			'uploads_unavailable'       => __( 'Uploads are unavailable. Refresh the page.', 'open-product-fields-for-woocommerce' ),
+			/* translators: %s: file name. */
+			'remove_file'               => __( 'Remove %s', 'open-product-fields-for-woocommerce' ),
+			'could_not_remove'          => __( 'Could not remove this file.', 'open-product-fields-for-woocommerce' ),
+			'file_removed'              => __( 'File removed.', 'open-product-fields-for-woocommerce' ),
+			'upload_complete'           => __( 'Upload complete.', 'open-product-fields-for-woocommerce' ),
+		];
 	}
 
 	/**
@@ -124,5 +181,6 @@ final class Assets {
 		wp_enqueue_style( 'woocommerce_admin_styles' );
 		wp_enqueue_script( 'wc-enhanced-select' );
 		wp_enqueue_script( 'opf-builder', OPF_URL . 'assets/js/opf-builder.js', [ 'wp-element', 'wp-components', 'wp-data', 'wp-api-fetch', 'wp-i18n', 'wc-enhanced-select' ], OPF_VERSION, true );
+		wp_set_script_translations( 'opf-builder', 'open-product-fields-for-woocommerce', OPF_DIR . 'languages' );
 	}
 }

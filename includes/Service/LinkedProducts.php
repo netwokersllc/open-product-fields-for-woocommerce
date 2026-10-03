@@ -434,6 +434,7 @@ final class LinkedProducts {
 			$wanted_ids = [];
 			foreach ( $requested as $slug => $qty ) {
 				if ( ! isset( $by_slug[ $slug ] ) ) {
+					/* translators: %s: field label. */
 					return [ 'error' => sprintf( __( 'Some selections of "%s" are invalid. Please refresh the page and try again.', 'open-product-fields-for-woocommerce' ), $field['label'] ) ];
 				}
 				$wanted_ids[] = (int) $by_slug[ $slug ]['product_id'];
@@ -443,10 +444,12 @@ final class LinkedProducts {
 				$choice = $by_slug[ $slug ];
 				$pid    = (int) $choice['product_id'];
 				if ( $pid === $parent_pid ) {
+					/* translators: %s: field label. */
 					return [ 'error' => sprintf( __( 'Some selections of "%s" are invalid. Please refresh the page and try again.', 'open-product-fields-for-woocommerce' ), $field['label'] ) ];
 				}
 				$product = $products[ $pid ] ?? null;
 				if ( ! $product ) {
+					/* translators: %s: field label. */
 					return [ 'error' => sprintf( __( 'Some selections of "%s" are no longer available for purchase.', 'open-product-fields-for-woocommerce' ), $field['label'] ) ];
 				}
 				$price_type = self::price_type( $field, (string) ( $choice['pricing_type'] ?? 'fixed' ) );
@@ -471,6 +474,7 @@ final class LinkedProducts {
 			foreach ( $requested as $slug => $qty ) {
 				$product = $allowed[ (int) $slug ] ?? null;
 				if ( ! $product ) {
+					/* translators: %s: field label. */
 					return [ 'error' => sprintf( __( 'Some selections of "%s" are invalid. Please refresh the page and try again.', 'open-product-fields-for-woocommerce' ), $field['label'] ) ];
 				}
 				$price_type = self::price_type( $field, (string) ( $query['pricing_type'] ?? 'fixed' ) );
@@ -506,19 +510,23 @@ final class LinkedProducts {
 			$total      = array_sum( array_map( 'intval', (array) $quantities ) );
 			$provided   = $provided && $total > 0;
 			foreach ( (array) ( is_array( $value ) ? ( $value['invalid'] ?? [] ) : [] ) as $slug ) {
+				/* translators: %s: choice slug. */
 				$errors[] = sprintf( __( '"%s" quantity is invalid.', 'open-product-fields-for-woocommerce' ), $slug );
 			}
 			// Aggregate bounds (WAPF validate_quantity_selector).
 			if ( isset( $field['min_choices'] ) && $total < $field['min_choices'] ) {
-				$errors[] = sprintf( __( '"%s" requires a minimum of %d total items.', 'open-product-fields-for-woocommerce' ), $field['label'], $field['min_choices'] );
+				/* translators: 1: field label, 2: minimum number of items. */
+				$errors[] = sprintf( __( '"%1$s" requires a minimum of %2$d total items.', 'open-product-fields-for-woocommerce' ), $field['label'], $field['min_choices'] );
 			}
 			if ( isset( $field['max_choices'] ) && $total > $field['max_choices'] ) {
-				$errors[] = sprintf( __( '"%s" requires a maximum of %d total items.', 'open-product-fields-for-woocommerce' ), $field['label'], $field['max_choices'] );
+				/* translators: 1: field label, 2: maximum number of items. */
+				$errors[] = sprintf( __( '"%1$s" requires a maximum of %2$d total items.', 'open-product-fields-for-woocommerce' ), $field['label'], $field['max_choices'] );
 			}
 		}
 
 		if ( ! $provided ) {
 			if ( ! empty( $field['required'] ) ) {
+				/* translators: %s: field label. */
 				$errors[] = sprintf( __( 'The field "%s" is required.', 'open-product-fields-for-woocommerce' ), $field['label'] );
 			}
 			return $errors;
@@ -534,14 +542,17 @@ final class LinkedProducts {
 			/** @var \WC_Product $child_product */
 			$child_product = $child['product'];
 			if ( ! $child_product->is_purchasable() ) {
+				/* translators: %s: product name. */
 				$errors[] = sprintf( __( 'The product "%s" is no longer available for purchase.', 'open-product-fields-for-woocommerce' ), $child_product->get_name() );
 				continue;
 			}
 			if ( ! $child_product->is_in_stock() ) {
+				/* translators: %s: product name. */
 				$errors[] = sprintf( __( 'The product "%s" is no longer in stock.', 'open-product-fields-for-woocommerce' ), $child_product->get_name() );
 				continue;
 			}
 			if ( ! $child_product->has_enough_stock( $child['qty'] ) ) {
+				/* translators: %s: product name. */
 				$errors[] = sprintf( __( 'The product "%s" doesn\'t have enough stock. Please select a smaller quantity.', 'open-product-fields-for-woocommerce' ), $child_product->get_name() );
 			}
 		}

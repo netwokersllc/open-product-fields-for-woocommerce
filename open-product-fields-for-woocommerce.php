@@ -75,6 +75,10 @@ function opf_activate(): void {
 }
 
 function opf_boot(): void {
+	// Without this call WordPress only looks in WP_LANG_DIR/plugins for
+	// translations; catalogs bundled under languages/ would never load.
+	load_plugin_textdomain( 'open-product-fields-for-woocommerce', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+
 	FieldGroups::init();
 
 	// Keep the stored version in sync (upgrade path for future migrations).

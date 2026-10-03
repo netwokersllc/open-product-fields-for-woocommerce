@@ -13,16 +13,23 @@
 
 const REGISTRY = window.OPF_FIELDS || {};
 
+// Translated frontend strings injected beside OPF_FIELDS (see
+// Assets::enqueue_frontend). English fallbacks keep the module functional
+// when the registry is absent (tests, third-party mounts).
+const I18N = window.OPF_I18N || {};
+const i18n = ( key, fallback ) => I18N[ key ] || fallback;
+const i18nFmt = ( key, fallback, value ) => i18n( key, fallback ).replace( /%[sd]|%\d+\$[sd]/, () => String( value ) );
+
 const imageQuantityLimitMessage = ( def, quantities ) => {
 	const total = Object.values( quantities || {} ).reduce( ( sum, quantity ) => {
 		const parsed = Number( quantity );
 		return sum + ( Number.isInteger( parsed ) && parsed >= 0 ? parsed : 0 );
 	}, 0 );
 	if ( null !== def.min_choices && undefined !== def.min_choices && total < Number( def.min_choices ) ) {
-		return 'Choose at least ' + def.min_choices + ' items in total.';
+		return i18nFmt( 'choose_at_least_items', 'Choose at least %d items in total.', def.min_choices );
 	}
 	if ( null !== def.max_choices && undefined !== def.max_choices && total > Number( def.max_choices ) ) {
-		return 'Choose no more than ' + def.max_choices + ' items in total.';
+		return i18nFmt( 'choose_no_more_items', 'Choose no more than %d items in total.', def.max_choices );
 	}
 	return '';
 };
@@ -139,14 +146,14 @@ const initDatePicker = ( fieldEl, input ) => {
 	const toggle = document.createElement( 'button' );
 	toggle.type = 'button';
 	toggle.className = 'opf-date-picker__toggle';
-	toggle.textContent = 'Choose date';
+	toggle.textContent = i18n( 'choose_date', 'Choose date' );
 	toggle.setAttribute( 'aria-haspopup', 'dialog' );
 	toggle.setAttribute( 'aria-expanded', 'false' );
 	const panel = document.createElement( 'div' );
 	panel.className = 'opf-date-picker__panel';
 	panel.id = input.id + '-calendar';
 	panel.setAttribute( 'role', 'dialog' );
-	panel.setAttribute( 'aria-label', 'Choose a date' );
+	panel.setAttribute( 'aria-label', i18n( 'choose_a_date', 'Choose a date' ) );
 	panel.hidden = true;
 	toggle.setAttribute( 'aria-controls', panel.id );
 	const header = document.createElement( 'div' );
@@ -154,7 +161,7 @@ const initDatePicker = ( fieldEl, input ) => {
 	const previous = document.createElement( 'button' );
 	previous.type = 'button';
 	previous.textContent = '‹';
-	previous.setAttribute( 'aria-label', 'Previous month' );
+	previous.setAttribute( 'aria-label', i18n( 'previous_month', 'Previous month' ) );
 	const monthLabel = document.createElement( 'strong' );
 	monthLabel.id = input.id + '-calendar-month';
 	monthLabel.setAttribute( 'aria-live', 'polite' );
@@ -162,12 +169,12 @@ const initDatePicker = ( fieldEl, input ) => {
 	const next = document.createElement( 'button' );
 	next.type = 'button';
 	next.textContent = '›';
-	next.setAttribute( 'aria-label', 'Next month' );
+	next.setAttribute( 'aria-label', i18n( 'next_month', 'Next month' ) );
 	header.append( previous, monthLabel, next );
 	const grid = document.createElement( 'div' );
 	grid.className = 'opf-date-picker__grid';
 	grid.setAttribute( 'role', 'grid' );
-	grid.setAttribute( 'aria-label', 'Calendar dates' );
+	grid.setAttribute( 'aria-label', i18n( 'calendar_dates', 'Calendar dates' ) );
 	const status = document.createElement( 'div' );
 	status.className = 'opf-date-picker__status';
 	status.setAttribute( 'role', 'status' );
@@ -178,7 +185,7 @@ const initDatePicker = ( fieldEl, input ) => {
 	let visibleMonth = ( input.value || new Date().toISOString().slice( 0, 10 ) ).slice( 0, 7 ) + '-01';
 	const displayDate = ( isoDate ) => {
 		const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec( isoDate );
-		if ( ! match ) return 'Choose date';
+		if ( ! match ) return i18n( 'choose_date', 'Choose date' );
 		const values = { yyyy: match[1], yy: match[1].slice( -2 ), mm: match[2], m: String( Number( match[2] ) ), dd: match[3], d: String( Number( match[3] ) ) };
 		const format = input.dataset.opfDateFormat || 'mm-dd-yyyy';
 		return format.replace( /yyyy|yy|mm|m|dd|d/gi, ( token ) => values[token.toLowerCase()] || token );
@@ -187,8 +194,8 @@ const initDatePicker = ( fieldEl, input ) => {
 	const render = () => {
 		grid.textContent = '';
 		const month = new Date( visibleMonth + 'T00:00:00Z' );
-		monthLabel.textContent = new Intl.DateTimeFormat( undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' } ).format( month );
-		const labels = [ 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' ];
+		monthLabel.textContent = new Intl.DateTimeFormat( I18N.site_locale || undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' } ).format( month );
+		const labels = Array.isArray( I18N.weekday_abbreviations ) && 7 === I18N.weekday_abbreviations.length ? I18N.weekday_abbreviations : [ 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' ];
 		const headingRow = document.createElement( 'div' );
 		headingRow.setAttribute( 'role', 'row' );
 		labels.slice( weekStart ).concat( labels.slice( 0, weekStart ) ).forEach( ( label ) => {
@@ -217,7 +224,7 @@ const initDatePicker = ( fieldEl, input ) => {
 			choice.type = 'button';
 			choice.textContent = String( day );
 			choice.dataset.opfDate = isoDate;
-			choice.setAttribute( 'aria-label', new Intl.DateTimeFormat( undefined, { dateStyle: 'full', timeZone: 'UTC' } ).format( new Date( isoDate + 'T00:00:00Z' ) ) );
+			choice.setAttribute( 'aria-label', new Intl.DateTimeFormat( I18N.site_locale || undefined, { dateStyle: 'full', timeZone: 'UTC' } ).format( new Date( isoDate + 'T00:00:00Z' ) ) );
 			choice.disabled = dateIsBlocked( input, isoDate );
 			choice.tabIndex = ! choice.disabled && ! tabStopSet && ( isoDate === input.value || ! input.value ) ? 0 : -1;
 			if ( choice.tabIndex === 0 ) tabStopSet = true;
@@ -241,8 +248,8 @@ const initDatePicker = ( fieldEl, input ) => {
 			}
 		}
 		if ( row.children.length ) grid.appendChild( row );
-		status.textContent = grid.querySelector( 'button:not(:disabled)' ) ? '' : 'No selectable dates this month.';
-		toggle.textContent = input.value ? displayDate( input.value ) : 'Choose date';
+		status.textContent = grid.querySelector( 'button:not(:disabled)' ) ? '' : i18n( 'no_selectable_dates', 'No selectable dates this month.' );
+		toggle.textContent = input.value ? displayDate( input.value ) : i18n( 'choose_date', 'Choose date' );
 	};
 	input.opfRenderDateCalendar = render;
 	const changeMonth = ( amount ) => {
@@ -323,14 +330,14 @@ const initDatePicker = ( fieldEl, input ) => {
 	} );
 	input.addEventListener( 'input', () => {
 		const invalid = !! input.value && dateIsBlocked( input, input.value );
-		input.setCustomValidity( invalid ? 'This date is unavailable.' : '' );
+		input.setCustomValidity( invalid ? i18n( 'date_unavailable', 'This date is unavailable.' ) : '' );
 		render();
 	} );
 	render();
 	if ( input.dataset.opfDateCutoff && window.setInterval && ! input.opfDateCutoffTimer ) {
 		input.opfDateCutoffTimer = window.setInterval( () => {
 			if ( ! panel.hidden ) render();
-			if ( input.value ) input.setCustomValidity( dateIsBlocked( input, input.value ) ? 'This date is unavailable.' : '' );
+			if ( input.value ) input.setCustomValidity( dateIsBlocked( input, input.value ) ? i18n( 'date_unavailable', 'This date is unavailable.' ) : '' );
 		}, 15000 );
 		window.addEventListener( 'pagehide', () => window.clearInterval( input.opfDateCutoffTimer ), { once: true } );
 	}
@@ -405,7 +412,7 @@ const init = () => {
 				repeater.querySelectorAll( '[data-opf-repeat-instance]' ).forEach( ( instance ) => {
 					const inputs = Array.from( instance.querySelectorAll( 'input[type="checkbox"]' ) );
 					const invalid = inputs.filter( ( input ) => input.checked ).length < minimum;
-					inputs.forEach( ( input, index ) => input.setCustomValidity( invalid && index === 0 ? 'Select the required choices in every repeated row.' : '' ) );
+					inputs.forEach( ( input, index ) => input.setCustomValidity( invalid && index === 0 ? i18n( 'required_choices_rows', 'Select the required choices in every repeated row.' ) : '' ) );
 				} );
 			} );
 		};
@@ -434,10 +441,10 @@ const init = () => {
 						remove = document.createElement( 'button' );
 						remove.type = 'button';
 						remove.className = 'opf-field-repeat__remove';
-						remove.textContent = repeatDef.repeat && repeatDef.repeat.del ? repeatDef.repeat.del : 'Remove';
+						remove.textContent = repeatDef.repeat && repeatDef.repeat.del ? repeatDef.repeat.del : i18n( 'remove', 'Remove' );
 						instance.appendChild( remove );
 					}
-					remove.setAttribute( 'aria-label', 'Remove row ' + ( index + 1 ) );
+					remove.setAttribute( 'aria-label', i18nFmt( 'remove_row', 'Remove row %d', index + 1 ) );
 					remove.disabled = instances.length <= 1;
 					instance.querySelectorAll( '[name]' ).forEach( ( input ) => {
 						input.name = input.name.replace( /\[\d+\](\[\])?$/, '[' + index + ']$1' );
@@ -650,7 +657,7 @@ const init = () => {
 			const fid = fieldEl.getAttribute( 'data-opf-field' );
 			const input = event.target;
 			if ( 'date' === input.type && input.value && dateIsBlocked( input, input.value ) ) {
-				input.setCustomValidity( 'This date is unavailable.' );
+				input.setCustomValidity( i18n( 'date_unavailable', 'This date is unavailable.' ) );
 			} else if ( 'date' === input.type ) {
 				input.setCustomValidity( '' );
 			}
@@ -660,7 +667,7 @@ const init = () => {
 				const checked = choiceScope.querySelectorAll( 'input:checked' ).length;
 				if ( input.checked && maxChoices && checked > maxChoices ) {
 					input.checked = false;
-					input.setCustomValidity( 'Select no more than ' + maxChoices + ' options.' );
+					input.setCustomValidity( i18nFmt( 'select_no_more_options', 'Select no more than %d options.', maxChoices ) );
 				} else {
 					groupEl.querySelectorAll( '[data-opf-field="' + fid + '"] input[type="checkbox"]' ).forEach( ( choiceInput ) => choiceInput.setCustomValidity( '' ) );
 				}

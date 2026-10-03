@@ -33,6 +33,27 @@ final class FieldGroups {
 		add_filter( 'post_row_actions', [ __CLASS__, 'duplicate_row_action' ], 10, 2 );
 		add_action( 'admin_post_opf_duplicate_field_group', [ __CLASS__, 'handle_duplicate' ] );
 		add_action( 'admin_notices', [ __CLASS__, 'duplicate_notice' ] );
+		add_filter( 'pll_get_post_types', [ __CLASS__, 'add_cpt_to_polylang' ], 10, 2 );
+	}
+
+	/**
+	 * Register the group post type with Polylang, like WAPF does for
+	 * `wapf_product`. Groups are always translatable (language column,
+	 * editor metabox, translation links and frontend query filtering), but
+	 * hidden from the Polylang settings list so merchants cannot untranslate
+	 * them. Harmless when Polylang is absent — the filter never fires.
+	 *
+	 * @param array<string,string> $post_types  Translated post types.
+	 * @param bool                 $is_settings Whether the settings screen list is being built.
+	 * @return array<string,string>
+	 */
+	public static function add_cpt_to_polylang( array $post_types, bool $is_settings ): array {
+		if ( $is_settings ) {
+			unset( $post_types['opf_field_group'] );
+		} else {
+			$post_types['opf_field_group'] = 'opf_field_group';
+		}
+		return $post_types;
 	}
 
 	/**
@@ -59,6 +80,7 @@ final class FieldGroups {
 		$actions['duplicate'] = sprintf(
 			'<a href="%1$s" aria-label="%2$s">%3$s</a>',
 			esc_url( $url ),
+			/* translators: %s: field group title. */
 			esc_attr( sprintf( __( 'Duplicate “%s”', 'open-product-fields-for-woocommerce' ), $post->post_title ) ),
 			esc_html__( 'Duplicate', 'open-product-fields-for-woocommerce' )
 		);
@@ -98,6 +120,7 @@ final class FieldGroups {
 			0,
 			$duplicate['group'],
 			[
+				/* translators: %s: original field group title. */
 				'title'  => sprintf( __( '%s (Copy)', 'open-product-fields-for-woocommerce' ), $post->post_title ),
 				'status' => 'publish',
 			]
