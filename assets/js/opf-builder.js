@@ -42,9 +42,14 @@
 	model.fields = model.fields || [];
 	model.rule_groups = model.rule_groups || [];
 
-	var TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'image_quantity', 'products', 'paragraph', 'content_image', 'section', 'section_end' ];
+	var TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'upload', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'image_quantity', 'products', 'paragraph', 'content_image', 'section', 'section_end' ];
 	var PRICING = [ 'none', 'fixed', 'percent', 'formula' ];
 	var REPEATABLE_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch' ];
+	// Accepted-type choices mirror WAPF Extended's `accept` option, which lists
+	// the keys of WordPress `get_allowed_mime_types()` minus WAPF's executable
+	// deny-list. Values are the same mime-group keys WAPF stores; the OPF schema
+	// expands each `a|b` group into its individual extensions on save/render.
+	var UPLOAD_TYPE_GROUPS = '3g2|3gp2 3gp|3gpp 7z aac asf|asx avi avif bmp class css csv dfxp divx doc docm docx dotm dotx flac flv gif gz|gzip heic heics heif heifs ico ics jpg|jpeg|jpe key mdb mid|midi mka mkv mov|qt mp3|m4a|m4b mp4|m4v mpeg|mpg|mpe mpp numbers odb odc odf odg odp ods odt ogg|oga ogv onetoc|onetoc2|onetmp|onepkg oxps pages pdf png potm potx pot|pps|ppt ppam ppsm ppsx pptm pptx psd rar ra|ram rtf rtx sldm sldx tar tiff|tif tsv txt|asc|c|cc|h|srt vtt wav|x-wav wax webm webp wm wma wmv wmx wp|wpd wri xcf xlam xla|xls|xlt|xlw xlsb xlsm xlsx xltm xltx xps zip'.split( ' ' );
 
 	function el( tag, attrs, children ) {
 		var node = document.createElement( tag );
@@ -263,6 +268,49 @@
 			document.createTextNode( label ),
 			control,
 		] );
+	}
+
+	// Upload field options mirror WAPF Extended's `file` field surface:
+	// `multiple`, `accept` (allowed types) and `maxsize` (MB). OPF never exposes
+	// upload pricing because the schema rejects it.
+	function uploadEditor( field ) {
+		var editor = el( 'div', { class: 'opf-b-upload-settings' } );
+		var multiple = el( 'input', { type: 'checkbox', 'data-opf-upload-setting': 'multiple' } );
+		multiple.checked = !! field.multiple;
+		multiple.addEventListener( 'change', function () { field.multiple = multiple.checked; } );
+		editor.appendChild( labeledControl( __( 'Allow multiple files', 'open-product-fields-for-woocommerce' ), multiple ) );
+
+		var selectedTypes = Array.isArray( field.accepted_types )
+			? field.accepted_types.slice()
+			: ( field.accepted_types ? String( field.accepted_types ).split( /[\s,]+/ ) : [] );
+		var selected = {};
+		selectedTypes.forEach( function ( entry ) {
+			String( entry ).split( '|' ).forEach( function ( extension ) {
+				if ( extension ) selected[ extension.toLowerCase().replace( /^\./, '' ) ] = true;
+			} );
+		} );
+		var types = el( 'select', { class: 'opf-b-input opf-b-upload-types', multiple: 'multiple', size: '8', 'data-opf-upload-setting': 'accepted_types', 'aria-label': __( 'Accepted file types', 'open-product-fields-for-woocommerce' ) } );
+		UPLOAD_TYPE_GROUPS.forEach( function ( group ) {
+			var option = el( 'option', { value: group, text: group } );
+			option.selected = group.split( '|' ).every( function ( extension ) { return selected[ extension ]; } );
+			types.appendChild( option );
+		} );
+		types.addEventListener( 'change', function () {
+			field.accepted_types = Array.prototype.slice.call( types.options )
+				.filter( function ( option ) { return option.selected; } )
+				.map( function ( option ) { return option.value; } );
+		} );
+		editor.appendChild( labeledControl( __( 'Accepted file types', 'open-product-fields-for-woocommerce' ), types ) );
+		editor.appendChild( el( 'p', { class: 'description', text: __( 'Leave unselected to allow every WordPress-permitted file type.', 'open-product-fields-for-woocommerce' ) } ) );
+
+		var size = el( 'input', { class: 'opf-b-input', type: 'number', min: '0', step: '0.1', value: null === field.max_size || undefined === field.max_size ? '' : field.max_size, 'data-opf-upload-setting': 'max_size', 'aria-label': __( 'Maximum file size (MB)', 'open-product-fields-for-woocommerce' ) } );
+		size.addEventListener( 'input', function () {
+			if ( '' !== size.value ) field.max_size = Math.max( 0, Number( size.value ) || 0 );
+			else delete field.max_size;
+		} );
+		editor.appendChild( labeledControl( __( 'Maximum file size (MB)', 'open-product-fields-for-woocommerce' ), size ) );
+		editor.appendChild( el( 'p', { class: 'description', text: __( 'WAPF default is 1 MB. PHP and WordPress limits are always enforced server-side.', 'open-product-fields-for-woocommerce' ) } ) );
+		return editor;
 	}
 
 	var PRODUCT_SUBTYPES = [ 'checkbox', 'radio', 'dropdown', 'image', 'card', 'vcard', 'card-qty', 'vcard-qty' ];
@@ -690,6 +738,13 @@
 				field.choices = [];
 				field.pricing = { type: 'none', amount: 0, formula: '' };
 			}
+			if ( 'upload' === field.type ) {
+				field.choices = [];
+				field.pricing = { type: 'none', amount: 0, formula: '' };
+				field.multiple = !! field.multiple;
+				if ( null === field.max_size || undefined === field.max_size ) field.max_size = 1;
+				if ( ! Array.isArray( field.accepted_types ) ) field.accepted_types = field.accepted_types ? [ field.accepted_types ] : [];
+			}
 			if ( in_array( field.type, [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ] ) && ! field.choices.length ) {
 				field.choices = [ { slug: 'option-1', label: sprintf( /* translators: %d: choice number. */ __( 'Option %d', 'open-product-fields-for-woocommerce' ), 1 ), selected: false, disabled: false, quantity: { default: 0, min: 0, max: 999999 }, pricing: { type: 'none', amount: 0, formula: '' } } ];
 			}
@@ -746,6 +801,9 @@
 		}
 		if ( 'products' === field.type ) {
 			card.appendChild( productsEditor( field ) );
+		}
+		if ( 'upload' === field.type ) {
+			card.appendChild( uploadEditor( field ) );
 		}
 		card.appendChild( conditionalEditor( field ) );
 		if ( REPEATABLE_TYPES.indexOf( field.type ) !== -1 || 'section' === field.type ) {

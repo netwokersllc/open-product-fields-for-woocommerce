@@ -476,7 +476,12 @@
 
 /* Upload controls inherit the host theme's typography and colors. */
 .opf-upload { padding: 1rem; border: 1px dashed currentColor; border-radius: .35rem; }
-.opf-upload__files > div { display: flex; gap: 1rem; align-items: center; justify-content: space-between; margin-top: .5rem; }
+.opf-upload__hint { margin: 0 0 .5rem; }
+.opf-upload__file { display: flex; gap: .75rem; align-items: center; margin-top: .5rem; }
+.opf-upload__preview { flex: 0 0 auto; display: flex; justify-content: center; width: 52px; }
+.opf-upload__thumb { width: auto; height: auto; max-width: 52px; max-height: 52px; border-radius: .25rem; object-fit: cover; }
+.opf-upload__name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.opf-upload__remove { flex: 0 0 auto; }
 .opf-upload progress { width: 100%; margin-top: .5rem; }
 .opf-upload__status { margin-top: .5rem; }
 
