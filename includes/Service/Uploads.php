@@ -20,6 +20,7 @@ final class Uploads {
 		add_action( 'woocommerce_order_item_meta_end', [ __CLASS__, 'order_links' ], 10, 3 );
 		add_action( 'woocommerce_after_order_itemmeta', [ __CLASS__, 'admin_order_links' ], 10, 2 );
 		add_action( 'woocommerce_new_order_item', [ __CLASS__, 'bind_order' ], 10, 3 );
+		UploadReissue::init();
 		add_action( 'admin_post_opf_delete_order_uploads', [ __CLASS__, 'delete_order_uploads' ] );
 		add_action( 'woocommerce_admin_order_data_after_order_details', [ __CLASS__, 'delete_order_button' ] );
 		register_deactivation_hook( OPF_FILE, [ __CLASS__, 'deactivate' ] );
@@ -394,6 +395,95 @@ final class Uploads {
 			if ( $record && ! self::claimed( $record ) && hash_equals( $record['owner'], self::owner() ) ) {
 				$record['order_id'] = (int) $order_id;
 				update_option( self::PREFIX . $file['token'], $record, false );
+			}
+		}
+	}
+
+	/**
+	 * Mint a fresh session-owned copy of an order-bound upload for order-again.
+	 * UploadReissue has already proven the request may access the source file;
+	 * this enforces the same storage limits as a fresh upload and reuses a live
+	 * reissue for the same session+source so repeated reorder clicks cannot
+	 * multiply private bytes. Returns the new token, or null on any failure.
+	 *
+	 * @param string $source_token Token of the order-bound source upload.
+	 * @param array  $source       Source upload record.
+	 */
+	public static function reissue_token( string $source_token, array $source ): ?string {
+		$lock = null;
+		try {
+			$root        = self::root();
+			$source_path = self::path( $source_token );
+			if ( ! $source_path ) {
+				return null;
+			}
+			$lock_path = $root . '/.upload.lock';
+			if ( is_link( $lock_path ) ) {
+				throw new \RuntimeException();
+			}
+			$lock = fopen( $lock_path, 'c' );
+			if ( ! $lock || ! flock( $lock, LOCK_EX ) ) {
+				throw new \RuntimeException();
+			}
+			chmod( $lock_path, 0600 );
+			$owner      = self::owner();
+			$site_files = 0;
+			$site_bytes = 0;
+			foreach ( glob( $root . '/*.bin' ) ?: [] as $stored ) {
+				if ( is_link( $stored ) ) {
+					throw new \RuntimeException();
+				}
+				$site_files++;
+				$site_bytes += filesize( $stored );
+			}
+			$total = 0;
+			$bytes = 0;
+			foreach ( self::records() as $token => $record ) {
+				if ( ( $record['reissued_from'] ?? '' ) === $source_token && hash_equals( (string) $record['owner'], $owner ) && ! self::claimed( $record ) && $record['created'] + self::TTL > time() && null !== self::path( $token ) ) {
+					return $token;
+				}
+				if ( $record['owner'] !== $owner || ! empty( $record['order_id'] ) || $record['created'] + self::TTL <= time() ) {
+					continue;
+				}
+				$total++;
+				$bytes += $record['size'];
+			}
+			$max_bytes = defined( 'OPF_UPLOAD_MAX_BYTES' ) ? max( 1, (int) OPF_UPLOAD_MAX_BYTES ) : 1024 * MB_IN_BYTES;
+			$max_files = defined( 'OPF_UPLOAD_MAX_FILES' ) ? max( 1, (int) OPF_UPLOAD_MAX_FILES ) : 10000;
+			$budget    = max( wp_max_upload_size(), (int) apply_filters( 'opf_upload_session_budget', 100 * MB_IN_BYTES ) );
+			if ( $site_files >= $max_files || $site_bytes + $source['size'] > $max_bytes || $total >= self::max_files( [ 'multiple' => true ] ) || $bytes + $source['size'] > $budget ) {
+				return null;
+			}
+			$token = bin2hex( random_bytes( 32 ) );
+			$path  = $root . '/' . $token . '.bin';
+			if ( ! copy( $source_path, $path ) ) {
+				throw new \RuntimeException();
+			}
+			chmod( $path, 0600 );
+			$record = [
+				'name'          => $source['name'],
+				'mime'          => $source['mime'],
+				'size'          => $source['size'],
+				'owner'         => $owner,
+				'product_id'    => $source['product_id'],
+				'group_id'      => $source['group_id'],
+				'field_id'      => $source['field_id'],
+				'created'       => time(),
+				'order_id'      => 0,
+				'cart'          => false,
+				'reissued_from' => $source_token,
+			];
+			if ( ! add_option( self::PREFIX . $token, $record, '', false ) ) {
+				unlink( $path );
+				throw new \RuntimeException();
+			}
+			return $token;
+		} catch ( \Throwable $error ) {
+			return null;
+		} finally {
+			if ( is_resource( $lock ) ) {
+				flock( $lock, LOCK_UN );
+				fclose( $lock );
 			}
 		}
 	}
