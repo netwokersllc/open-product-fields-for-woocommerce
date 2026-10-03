@@ -34,12 +34,23 @@ The 131 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 | Status | Rows | Meaning for the gate |
 | --- | ---: | --- |
 | Baseline supported | 1 | Promising baseline only; not accepted as proof |
-| Supported | 12 | Includes verified text, textarea, email, select, radio, paragraph shortcode, and cart/order lifecycle behavior |
-| Supported with documented difference | 7 | Includes quantity-flat pricing; remaining differences need explicit non-regression review and acceptance |
-| Partial | 103 | Material parity or proof remains; both upload rows have a private-storage foundation but still lack builder/import/export parity and additional lifecycle proof |
-| Gap | 8 | Known absent in the current OPF tree, including linked products/cards, image zoom, card image changes, and exact variation targeting |
-| Needs audit | 0 | Available source, marketing claims, and every published release delta are mapped; exact release details remain scoped to partial rows |
-| **Total** | **131** | **G1 complete for available evidence; G2 remains open** |
+| Supported | 24 | Text/textarea/email/select/radio/paragraph shortcode; full rule targeting (conditional/global/category/type/attribute/exclusion/auth/role/language); date weekdays/cutoff/week-start; 12 formula functions incl. len/min-max/text-compare/advanced/date/dow/month/checked/sumqty/trig/price-id/field-state |
+| Supported with documented difference | 10 | Includes quantity-flat pricing; date recurring-year strictness, a11y-exceeding picker, and ISO-canonical storage differences reviewed |
+| Partial | 97 | Material parity or proof remains; child-products field type, upload order-again reissue, and custom formula variables now implemented with lifecycle proof pending deeper gates |
+| Gap | 5 | Cards quantity-conditionals/main-image, swatch/image-quantity zoom, exact variation targeting, minimum platform — all assigned to active implementation lanes |
+| Needs audit | 0 | — |
+| **Total** | **131** | **G1 complete for available evidence; G2 in progress — 34/131 (26%) accepted-inclusive, 24/131 (18.3%) strict-supported** |
+
+Progress notes — 2026-10-03 (parallel lanes): linked-products field shipped
+(`LinkedProducts` service, qty sync, Store API `opf.childItem`, order-again
+remap, image zoom); secure upload order-again token reissue (strictly stronger
+than WAPF's .htaccess re-link); custom formula variables/`lookuptable`/`files`
+in engine+browser with cart-time wiring; 9 rule-targeting rows and 6 date rows
+promoted on real-browser/WAPF-reference evidence; 12 formula rows proven through
+preview→cart→checkout→order→refund→order-again. Open divergence found by the
+price lane: OPF multiplies per-unit choice addons by line quantity where WAPF
+bakes fixed per-unit `calc_price` — identical at qty 1, divergent at qty>1;
+queued for a dedicated semantics lane before the affected price rows can close.
 
 The previously listed `WAPF-MIGRATION-REPORT-REPEATABILITY` item is an OPF-only
 release-safety check, not a WAPF capability. It is excluded from the parity
