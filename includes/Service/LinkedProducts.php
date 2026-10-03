@@ -291,6 +291,15 @@ final class LinkedProducts {
 		return apply_filters( 'opf/linked_products/choice', $choice, $field, $product );
 	}
 
+	/** Check both authored and current render-time availability. */
+	private static function choice_is_disabled( array $field, array $choice, \WC_Product $product ): bool {
+		if ( ! empty( $choice['disabled'] ) ) {
+			return true;
+		}
+		$choice['product'] = $product;
+		return ! empty( self::expand_choice( $field, $choice, $product )['disabled'] );
+	}
+
 	/* ------------------------------------------------------------------
 	 * Submission handling — sanitize + resolve + validate.
 	 * ------------------------------------------------------------------ */
@@ -448,7 +457,7 @@ final class LinkedProducts {
 					return [ 'error' => sprintf( __( 'Some selections of "%s" are invalid. Please refresh the page and try again.', 'open-product-fields-for-woocommerce' ), $field['label'] ) ];
 				}
 				$product = $products[ $pid ] ?? null;
-				if ( ! $product ) {
+				if ( ! $product || self::choice_is_disabled( $field, $choice, $product ) ) {
 					/* translators: %s: field label. */
 					return [ 'error' => sprintf( __( 'Some selections of "%s" are no longer available for purchase.', 'open-product-fields-for-woocommerce' ), $field['label'] ) ];
 				}
@@ -476,6 +485,21 @@ final class LinkedProducts {
 				if ( ! $product ) {
 					/* translators: %s: field label. */
 					return [ 'error' => sprintf( __( 'Some selections of "%s" are invalid. Please refresh the page and try again.', 'open-product-fields-for-woocommerce' ), $field['label'] ) ];
+				}
+				// Category choices receive their unavailable flag from the same
+				// live choice filter used when rendering the products field.
+				$choice = [
+					'slug'         => (string) $product->get_id(),
+					'label'        => '',
+					'selected'     => false,
+					'disabled'     => false,
+					'product_id'   => $product->get_id(),
+					'pricing_type' => $query['pricing_type'] ?? 'fixed',
+					'product'      => $product,
+				];
+				if ( self::choice_is_disabled( $field, $choice, $product ) ) {
+					/* translators: %s: field label. */
+					return [ 'error' => sprintf( __( 'Some selections of "%s" are no longer available for purchase.', 'open-product-fields-for-woocommerce' ), $field['label'] ) ];
 				}
 				$price_type = self::price_type( $field, (string) ( $query['pricing_type'] ?? 'fixed' ) );
 				$choices[ $product->get_id() ] = [

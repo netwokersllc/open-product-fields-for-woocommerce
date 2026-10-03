@@ -1,6 +1,14 @@
 <?php
 
 namespace {
+	if ( ! class_exists( 'WP_REST_Request' ) ) {
+		class WP_REST_Request {
+			public function get_param( $key ) { return $GLOBALS['opf_submitted']; }
+		}
+	}
+	if ( ! function_exists( 'wp_unslash' ) ) {
+		function wp_unslash( $value ) { return $value; }
+	}
 	if ( ! class_exists( 'WC_Cart' ) ) {
 		class WC_Cart {}
 	}
@@ -160,6 +168,7 @@ use OPF\Engine\FieldGroup;
 use OPF\Service\CartIntegration;
 use OPF\Service\FieldGroups;
 use OPF\Service\LinkedProducts;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
@@ -305,6 +314,70 @@ final class LinkedProductsLifecycleTest extends TestCase {
 	}
 
 	/* ---------------------------------------------------------------- validate */
+
+	public static function disabled_selection_cases(): array {
+		$cases = [];
+		foreach ( [ 'checkbox', 'radio', 'dropdown', 'image', 'card', 'vcard', 'card-qty', 'vcard-qty' ] as $subtype ) {
+			foreach ( [ 'manual-authored', 'manual-filtered', 'category-filtered' ] as $source ) {
+				foreach ( [ 'classic', 'store-api', 'order-again' ] as $transport ) {
+					$cases[ "$subtype/$source/$transport" ] = [ $subtype, $source, $transport ];
+				}
+			}
+		}
+		return $cases;
+	}
+
+	#[DataProvider( 'disabled_selection_cases' )]
+	public function test_disabled_child_selection_is_rejected_across_transports( string $subtype, string $source, string $transport ): void {
+		$field = $this->field( [
+			'subtype' => $subtype,
+			'product_selection' => 'category-filtered' === $source ? 'category' : 'manual',
+			'product_query' => [ 'query_id' => 3 ],
+			'choices' => [
+				[ 'product_id' => 11, 'disabled' => 'manual-authored' === $source ],
+				[ 'product_id' => 12 ],
+			],
+		] );
+		$GLOBALS['opf_wpml_filters']['opf_groups_for_product'] = function () use ( $field ) {
+			return [ $this->group_with( $field ) ];
+		};
+		// Render-time filters can disable category and manual choices. A filter
+		// must also never re-enable a choice marked unavailable by the author.
+		$GLOBALS['opf_wpml_filters']['opf/linked_products/choice'] = static function ( $choice, $field, $product ) use ( $source ) {
+			$choice['disabled'] = 'manual-authored' !== $source && 11 === $choice['product']->get_id();
+			return $choice;
+		};
+		$GLOBALS['opf_woocs_products'][42] = $this->parent_product();
+		$is_qty = LinkedProducts::is_qty_subtype( $field );
+		$disabled_slug = 'category-filtered' === $source ? '11' : 'p11';
+		$enabled_slug = 'category-filtered' === $source ? '12' : 'p12';
+
+		foreach ( [ true, false ] as $select_disabled ) {
+			if ( $is_qty ) {
+				$value = [ $disabled_slug => $select_disabled ? 2 : 0, $enabled_slug => 1 ];
+				if ( 'order-again' === $transport ) {
+					$value = [ '_opf_type' => 'products', 'quantities' => $value, 'invalid' => [] ];
+				}
+			} else {
+				$value = $select_disabled ? $disabled_slug : $enabled_slug;
+			}
+			$payload = [ '77' => [ 'addons' => $value ] ];
+			$_POST = [];
+			$GLOBALS['opf_notices'] = [];
+			$data = [];
+			if ( 'classic' === $transport ) {
+				$_POST['opf'] = $payload;
+			} elseif ( 'store-api' === $transport ) {
+				$GLOBALS['opf_submitted'] = $payload;
+				$data = CartIntegration::capture_store_api( [], new \WP_REST_Request() )['cart_item_data'];
+				$data = CartIntegration::attach( $data, 42 );
+			} else {
+				$data[ CartIntegration::ITEM_KEY ] = $payload;
+			}
+			$this->assertSame( ! $select_disabled, CartIntegration::validate_add_to_cart( true, 42, 1, 0, [], $data ) );
+			$this->assertCount( $select_disabled ? 1 : 0, $GLOBALS['opf_notices'] );
+		}
+	}
 
 	public function test_validate_field_reports_required_and_errors(): void {
 		$field = $this->field( [ 'required' => true ] );
