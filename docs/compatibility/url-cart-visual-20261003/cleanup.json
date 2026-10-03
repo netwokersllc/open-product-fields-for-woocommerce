@@ -1,0 +1,19 @@
+{
+    "baseline": {
+        "posts": 1027,
+        "active_plugins": [
+            "woocommerce\/woocommerce.php",
+            "sqlite-database-integration\/load.php",
+            "open-product-fields-for-woocommerce\/open-product-fields-for-woocommerce.php"
+        ]
+    },
+    "after": {
+        "posts": 1027,
+        "active_plugins": [
+            "woocommerce\/woocommerce.php",
+            "sqlite-database-integration\/load.php",
+            "open-product-fields-for-woocommerce\/open-product-fields-for-woocommerce.php"
+        ]
+    },
+    "restored": true
+}
