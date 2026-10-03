@@ -46,6 +46,35 @@ test('fixed stays flat per line and percent scales by default', () => {
 	assert.equal(context.__choiceOrFieldAddon(p, 'a', 100, 5, 0, ''), 2);
 });
 
+test('verbatim [qty] formulas price as WAPF fx regardless of per_unit', () => {
+	// Regression: per_unit must not re-scale a formula that consumed [qty] —
+	// the line adds eval(formula) once (WAPF fixed per-unit calc_price).
+	const verbatim = { type: 'select', choices: [{ slug: 'a', pricing: { type: 'formula', formula: '[price] * 0.1 * [qty]', per_unit: true } }] };
+	assert.equal(context.__choiceOrFieldAddon(verbatim, 'a', 100, 3, 0, ''), 10);
+	assert.equal(context.__choiceOrFieldAddon(verbatim, 'a', 100, 1, 0, ''), 10);
+	// qty_based row: eval verbatim per unit.
+	assert.equal(context.__choiceOrFieldAddon(verbatim, 'a', 100, 3, 0, '', {}, {}, 100, true), 30);
+	// A mapper-normalized formula (formula_raw ≠ formula) keeps per-unit
+	// semantics even when an interior [qty] survives the strip.
+	const normalized = { type: 'select', choices: [{ slug: 'a', pricing: { type: 'formula', formula: '([price] + [addons]) * [qty] + 1', formula_raw: '(([price] + [options_total]) * [qty] + 1) * [qty]', per_unit: true } }] };
+	assert.equal(context.__choiceOrFieldAddon(normalized, 'a', 10, 3, 0, ''), 31);
+});
+
+test('image_quantity choices price the entered count as the value', () => {
+	// WAPF image-swatch-qty: entered count is $val (nr/nrq/[x] consume it);
+	// fixed stays flat per selected choice, qt per product unit.
+	const def = {
+		type: 'image_quantity',
+		choices: [
+			{ slug: 'oak', label: 'Oak', pricing: { type: 'fixed', amount: 2, per_unit: false } },
+			{ slug: 'ash', label: 'Ash', pricing: { type: 'formula', formula: '[x]*3', per_unit: true } },
+		],
+	};
+	const value = { _opf_type: 'image_quantity', quantities: { oak: 2, ash: 3 } };
+	// oak flat 2/3 per unit + ash nrq 3*3 per unit.
+	assert.equal(context.__choiceOrFieldAddon(def, value, 10, 3, 0, ''), 2 / 3 + 9);
+});
+
 test('qty_based rows apply the WAPF clone_type=qty truth table', () => {
 	const flatFormula = { type: 'select', choices: [{ slug: 'a', pricing: { type: 'formula', formula: '[price] * 0.2' } }] };
 	assert.equal(context.__choiceOrFieldAddon(flatFormula, 'a', 100, 4, 0, '', {}, {}, 100, true), 20);

@@ -47,10 +47,12 @@ remap, image zoom); secure upload order-again token reissue (strictly stronger
 than WAPF's .htaccess re-link); custom formula variables/`lookuptable`/`files`
 in engine+browser with cart-time wiring; 9 rule-targeting rows and 6 date rows
 promoted on real-browser/WAPF-reference evidence; 12 formula rows proven through
-preview→cart→checkout→order→refund→order-again. Open divergence found by the
-price lane: OPF multiplies per-unit choice addons by line quantity where WAPF
-bakes fixed per-unit `calc_price` — identical at qty 1, divergent at qty>1;
-queued for a dedicated semantics lane before the affected price rows can close.
+preview→cart→checkout→order→refund→order-again. Former divergence resolved 2026-10-03
+(qty-semantics lane): verbatim `[qty]` fx formulas now price via WAPF's own
+`result/qty`/`result` rows instead of re-multiplying `per_unit`; choice/image-quantity
+`$val` plumbing restored; `split_quantity_repeat_cart_item` foreign-item guard fixed a real
+WAPF-coexistence cart corruption. 23 cases × qty {1,3} = 46/46 legs identical to WAPF
+(unit, line, order totals, persisted meta); proof in the qty-semantics parity matrix.
 
 The previously listed `WAPF-MIGRATION-REPORT-REPEATABILITY` item is an OPF-only
 release-safety check, not a WAPF capability. It is excluded from the parity

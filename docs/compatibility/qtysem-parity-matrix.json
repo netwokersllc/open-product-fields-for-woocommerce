@@ -1,0 +1,2746 @@
+{
+    "generated": "2026-10-03T13:37:55+00:00",
+    "wapf_version": "3.1.5",
+    "woocommerce": "11.1.0",
+    "php": "8.5.11",
+    "base_price": 10,
+    "cases": [
+        {
+            "case": "fixed",
+            "wapf_type": "fixed",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 15,
+                                "line_total": 15
+                            }
+                        ],
+                        "calc_prices": [
+                            5
+                        ],
+                        "cart_total": 15,
+                        "order": {
+                            "total": 15,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 15,
+                                    "meta": {
+                                        "opt": "A (+&#36;5.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 15,
+                                "line_total": 15
+                            }
+                        ],
+                        "cart_total": 15,
+                        "order": {
+                            "total": 15,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 15,
+                                    "meta": {
+                                        "Opt": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 11.6667,
+                                "line_total": 35
+                            }
+                        ],
+                        "calc_prices": [
+                            1.6667
+                        ],
+                        "cart_total": 35,
+                        "order": {
+                            "total": 35,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 35,
+                                    "meta": {
+                                        "opt": "A (+&#36;1.67)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 11.6667,
+                                "line_total": 35
+                            }
+                        ],
+                        "cart_total": 35,
+                        "order": {
+                            "total": 35,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 35,
+                                    "meta": {
+                                        "Opt": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "qt",
+            "wapf_type": "qt",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 15,
+                                "line_total": 15
+                            }
+                        ],
+                        "calc_prices": [
+                            5
+                        ],
+                        "cart_total": 15,
+                        "order": {
+                            "total": 15,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 15,
+                                    "meta": {
+                                        "opt": "A (+&#36;5.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 15,
+                                "line_total": 15
+                            }
+                        ],
+                        "cart_total": 15,
+                        "order": {
+                            "total": 15,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 15,
+                                    "meta": {
+                                        "Opt": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 15,
+                                "line_total": 45
+                            }
+                        ],
+                        "calc_prices": [
+                            5
+                        ],
+                        "cart_total": 45,
+                        "order": {
+                            "total": 45,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 45,
+                                    "meta": {
+                                        "opt": "A (+&#36;5.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 15,
+                                "line_total": 45
+                            }
+                        ],
+                        "cart_total": 45,
+                        "order": {
+                            "total": 45,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 45,
+                                    "meta": {
+                                        "Opt": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "p",
+            "wapf_type": "p",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 12,
+                                "line_total": 12
+                            }
+                        ],
+                        "calc_prices": [
+                            2
+                        ],
+                        "cart_total": 12,
+                        "order": {
+                            "total": 12,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 12,
+                                    "meta": {
+                                        "opt": "A (+&#36;2.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 12,
+                                "line_total": 12
+                            }
+                        ],
+                        "cart_total": 12,
+                        "order": {
+                            "total": 12,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 12,
+                                    "meta": {
+                                        "Opt": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 10.6667,
+                                "line_total": 32
+                            }
+                        ],
+                        "calc_prices": [
+                            0.6667
+                        ],
+                        "cart_total": 32,
+                        "order": {
+                            "total": 32,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 32,
+                                    "meta": {
+                                        "opt": "A (+&#36;0.67)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 10.6667,
+                                "line_total": 32
+                            }
+                        ],
+                        "cart_total": 32,
+                        "order": {
+                            "total": 32,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 32,
+                                    "meta": {
+                                        "Opt": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "percent",
+            "wapf_type": "percent",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 12,
+                                "line_total": 12
+                            }
+                        ],
+                        "calc_prices": [
+                            2
+                        ],
+                        "cart_total": 12,
+                        "order": {
+                            "total": 12,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 12,
+                                    "meta": {
+                                        "opt": "A (+&#36;2.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 12,
+                                "line_total": 12
+                            }
+                        ],
+                        "cart_total": 12,
+                        "order": {
+                            "total": 12,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 12,
+                                    "meta": {
+                                        "Opt": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 12,
+                                "line_total": 36
+                            }
+                        ],
+                        "calc_prices": [
+                            2
+                        ],
+                        "cart_total": 36,
+                        "order": {
+                            "total": 36,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 36,
+                                    "meta": {
+                                        "opt": "A (+&#36;2.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 12,
+                                "line_total": 36
+                            }
+                        ],
+                        "cart_total": 36,
+                        "order": {
+                            "total": 36,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 36,
+                                    "meta": {
+                                        "Opt": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "fx_qty",
+            "wapf_type": "fx",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 12,
+                                "line_total": 12
+                            }
+                        ],
+                        "calc_prices": [
+                            2
+                        ],
+                        "cart_total": 12,
+                        "order": {
+                            "total": 12,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 12,
+                                    "meta": {
+                                        "opt": "A (+&#36;2.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 12,
+                                "line_total": 12
+                            }
+                        ],
+                        "cart_total": 12,
+                        "order": {
+                            "total": 12,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 12,
+                                    "meta": {
+                                        "Opt": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 12,
+                                "line_total": 36
+                            }
+                        ],
+                        "calc_prices": [
+                            2
+                        ],
+                        "cart_total": 36,
+                        "order": {
+                            "total": 36,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 36,
+                                    "meta": {
+                                        "opt": "A (+&#36;2.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 12,
+                                "line_total": 36
+                            }
+                        ],
+                        "cart_total": 36,
+                        "order": {
+                            "total": 36,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 36,
+                                    "meta": {
+                                        "Opt": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "fx_mapped",
+            "wapf_type": "fx",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 15,
+                                "line_total": 15
+                            }
+                        ],
+                        "calc_prices": [
+                            5
+                        ],
+                        "cart_total": 15,
+                        "order": {
+                            "total": 15,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 15,
+                                    "meta": {
+                                        "opt": "A (+&#36;5.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 15,
+                                "line_total": 15
+                            }
+                        ],
+                        "cart_total": 15,
+                        "order": {
+                            "total": 15,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 15,
+                                    "meta": {
+                                        "Opt": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 15,
+                                "line_total": 45
+                            }
+                        ],
+                        "calc_prices": [
+                            5
+                        ],
+                        "cart_total": 45,
+                        "order": {
+                            "total": 45,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 45,
+                                    "meta": {
+                                        "opt": "A (+&#36;5.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 15,
+                                "line_total": 45
+                            }
+                        ],
+                        "cart_total": 45,
+                        "order": {
+                            "total": 45,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 45,
+                                    "meta": {
+                                        "Opt": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "fx_flat",
+            "wapf_type": "fx",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 17,
+                                "line_total": 17
+                            }
+                        ],
+                        "calc_prices": [
+                            7
+                        ],
+                        "cart_total": 17,
+                        "order": {
+                            "total": 17,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 17,
+                                    "meta": {
+                                        "opt": "A (+&#36;7.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 17,
+                                "line_total": 17
+                            }
+                        ],
+                        "cart_total": 17,
+                        "order": {
+                            "total": 17,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 17,
+                                    "meta": {
+                                        "Opt": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 12.3333,
+                                "line_total": 37
+                            }
+                        ],
+                        "calc_prices": [
+                            2.3333
+                        ],
+                        "cart_total": 37,
+                        "order": {
+                            "total": 37,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 37,
+                                    "meta": {
+                                        "opt": "A (+&#36;2.33)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 12.3333,
+                                "line_total": 37
+                            }
+                        ],
+                        "cart_total": 37,
+                        "order": {
+                            "total": 37,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 37,
+                                    "meta": {
+                                        "Opt": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "nr",
+            "wapf_type": "nr",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 18,
+                                "line_total": 18
+                            }
+                        ],
+                        "calc_prices": [
+                            8
+                        ],
+                        "cart_total": 18,
+                        "order": {
+                            "total": 18,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 18,
+                                    "meta": {
+                                        "x": "4 (+&#36;8.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 18,
+                                "line_total": 18
+                            }
+                        ],
+                        "cart_total": 18,
+                        "order": {
+                            "total": 18,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 18,
+                                    "meta": {
+                                        "X": "4"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 12.6667,
+                                "line_total": 38
+                            }
+                        ],
+                        "calc_prices": [
+                            2.6667
+                        ],
+                        "cart_total": 38,
+                        "order": {
+                            "total": 38,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 38,
+                                    "meta": {
+                                        "x": "4 (+&#36;2.67)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 12.6667,
+                                "line_total": 38
+                            }
+                        ],
+                        "cart_total": 38,
+                        "order": {
+                            "total": 38,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 38,
+                                    "meta": {
+                                        "X": "4"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "nrq",
+            "wapf_type": "nrq",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 18,
+                                "line_total": 18
+                            }
+                        ],
+                        "calc_prices": [
+                            8
+                        ],
+                        "cart_total": 18,
+                        "order": {
+                            "total": 18,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 18,
+                                    "meta": {
+                                        "x": "4 (+&#36;8.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 18,
+                                "line_total": 18
+                            }
+                        ],
+                        "cart_total": 18,
+                        "order": {
+                            "total": 18,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 18,
+                                    "meta": {
+                                        "X": "4"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 18,
+                                "line_total": 54
+                            }
+                        ],
+                        "calc_prices": [
+                            8
+                        ],
+                        "cart_total": 54,
+                        "order": {
+                            "total": 54,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 54,
+                                    "meta": {
+                                        "x": "4 (+&#36;8.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 18,
+                                "line_total": 54
+                            }
+                        ],
+                        "cart_total": 54,
+                        "order": {
+                            "total": 54,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 54,
+                                    "meta": {
+                                        "X": "4"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "char",
+            "wapf_type": "char",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 12,
+                                "line_total": 12
+                            }
+                        ],
+                        "calc_prices": [
+                            2
+                        ],
+                        "cart_total": 12,
+                        "order": {
+                            "total": 12,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 12,
+                                    "meta": {
+                                        "x": "abcd (+&#36;2.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 12,
+                                "line_total": 12
+                            }
+                        ],
+                        "cart_total": 12,
+                        "order": {
+                            "total": 12,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 12,
+                                    "meta": {
+                                        "X": "abcd"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 10.6667,
+                                "line_total": 32
+                            }
+                        ],
+                        "calc_prices": [
+                            0.6667
+                        ],
+                        "cart_total": 32,
+                        "order": {
+                            "total": 32,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 32,
+                                    "meta": {
+                                        "x": "abcd (+&#36;0.67)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 10.6667,
+                                "line_total": 32
+                            }
+                        ],
+                        "cart_total": 32,
+                        "order": {
+                            "total": 32,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 32,
+                                    "meta": {
+                                        "X": "abcd"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "charq",
+            "wapf_type": "charq",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 12,
+                                "line_total": 12
+                            }
+                        ],
+                        "calc_prices": [
+                            2
+                        ],
+                        "cart_total": 12,
+                        "order": {
+                            "total": 12,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 12,
+                                    "meta": {
+                                        "x": "abcd (+&#36;2.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 12,
+                                "line_total": 12
+                            }
+                        ],
+                        "cart_total": 12,
+                        "order": {
+                            "total": 12,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 12,
+                                    "meta": {
+                                        "X": "abcd"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 12,
+                                "line_total": 36
+                            }
+                        ],
+                        "calc_prices": [
+                            2
+                        ],
+                        "cart_total": 36,
+                        "order": {
+                            "total": 36,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 36,
+                                    "meta": {
+                                        "x": "abcd (+&#36;2.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 12,
+                                "line_total": 36
+                            }
+                        ],
+                        "cart_total": 36,
+                        "order": {
+                            "total": 36,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 36,
+                                    "meta": {
+                                        "X": "abcd"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "img_fixed",
+            "wapf_type": "fixed",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 16,
+                                "line_total": 16
+                            }
+                        ],
+                        "calc_prices": [
+                            3,
+                            3
+                        ],
+                        "cart_total": 16,
+                        "order": {
+                            "total": 16,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 16,
+                                    "meta": {
+                                        "prints": "Oak: 2 (+&#36;3.00), Ash: 3 (+&#36;3.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 16,
+                                "line_total": 16
+                            }
+                        ],
+                        "cart_total": 16,
+                        "order": {
+                            "total": 16,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 16,
+                                    "meta": {
+                                        "Prints": "Oak: 2, Ash: 3"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 12,
+                                "line_total": 36
+                            }
+                        ],
+                        "calc_prices": [
+                            1,
+                            1
+                        ],
+                        "cart_total": 36,
+                        "order": {
+                            "total": 36,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 36,
+                                    "meta": {
+                                        "prints": "Oak: 2 (+&#36;1.00), Ash: 3 (+&#36;1.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 12,
+                                "line_total": 36
+                            }
+                        ],
+                        "cart_total": 36,
+                        "order": {
+                            "total": 36,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 36,
+                                    "meta": {
+                                        "Prints": "Oak: 2, Ash: 3"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "img_qt",
+            "wapf_type": "qt",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 16,
+                                "line_total": 16
+                            }
+                        ],
+                        "calc_prices": [
+                            3,
+                            3
+                        ],
+                        "cart_total": 16,
+                        "order": {
+                            "total": 16,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 16,
+                                    "meta": {
+                                        "prints": "Oak: 2 (+&#36;3.00), Ash: 3 (+&#36;3.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 16,
+                                "line_total": 16
+                            }
+                        ],
+                        "cart_total": 16,
+                        "order": {
+                            "total": 16,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 16,
+                                    "meta": {
+                                        "Prints": "Oak: 2, Ash: 3"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 16,
+                                "line_total": 48
+                            }
+                        ],
+                        "calc_prices": [
+                            3,
+                            3
+                        ],
+                        "cart_total": 48,
+                        "order": {
+                            "total": 48,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 48,
+                                    "meta": {
+                                        "prints": "Oak: 2 (+&#36;3.00), Ash: 3 (+&#36;3.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 16,
+                                "line_total": 48
+                            }
+                        ],
+                        "cart_total": 48,
+                        "order": {
+                            "total": 48,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 48,
+                                    "meta": {
+                                        "Prints": "Oak: 2, Ash: 3"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "img_nr",
+            "wapf_type": "nr",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 20,
+                                "line_total": 20
+                            }
+                        ],
+                        "calc_prices": [
+                            4,
+                            6
+                        ],
+                        "cart_total": 20,
+                        "order": {
+                            "total": 20,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 20,
+                                    "meta": {
+                                        "prints": "Oak: 2 (+&#36;4.00), Ash: 3 (+&#36;6.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 20,
+                                "line_total": 20
+                            }
+                        ],
+                        "cart_total": 20,
+                        "order": {
+                            "total": 20,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 20,
+                                    "meta": {
+                                        "Prints": "Oak: 2, Ash: 3"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 13.3333,
+                                "line_total": 40
+                            }
+                        ],
+                        "calc_prices": [
+                            1.3333,
+                            2
+                        ],
+                        "cart_total": 40,
+                        "order": {
+                            "total": 40,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 40,
+                                    "meta": {
+                                        "prints": "Oak: 2 (+&#36;1.33), Ash: 3 (+&#36;2.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 13.3333,
+                                "line_total": 40
+                            }
+                        ],
+                        "cart_total": 40,
+                        "order": {
+                            "total": 40,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 40,
+                                    "meta": {
+                                        "Prints": "Oak: 2, Ash: 3"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "img_nrq",
+            "wapf_type": "nrq",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 20,
+                                "line_total": 20
+                            }
+                        ],
+                        "calc_prices": [
+                            4,
+                            6
+                        ],
+                        "cart_total": 20,
+                        "order": {
+                            "total": 20,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 20,
+                                    "meta": {
+                                        "prints": "Oak: 2 (+&#36;4.00), Ash: 3 (+&#36;6.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 20,
+                                "line_total": 20
+                            }
+                        ],
+                        "cart_total": 20,
+                        "order": {
+                            "total": 20,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 20,
+                                    "meta": {
+                                        "Prints": "Oak: 2, Ash: 3"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 20,
+                                "line_total": 60
+                            }
+                        ],
+                        "calc_prices": [
+                            4,
+                            6
+                        ],
+                        "cart_total": 60,
+                        "order": {
+                            "total": 60,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 60,
+                                    "meta": {
+                                        "prints": "Oak: 2 (+&#36;4.00), Ash: 3 (+&#36;6.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 20,
+                                "line_total": 60
+                            }
+                        ],
+                        "cart_total": 60,
+                        "order": {
+                            "total": 60,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 60,
+                                    "meta": {
+                                        "Prints": "Oak: 2, Ash: 3"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "qb_fixed",
+            "wapf_type": "fixed",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 15,
+                                "line_total": 15
+                            }
+                        ],
+                        "calc_prices": [
+                            5
+                        ],
+                        "cart_total": 15,
+                        "order": {
+                            "total": 15,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 15,
+                                    "meta": {
+                                        "x": "A (+&#36;5.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 15,
+                                "line_total": 15
+                            }
+                        ],
+                        "cart_total": 15,
+                        "order": {
+                            "total": 15,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 15,
+                                    "meta": {
+                                        "X": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 15,
+                                "line_total": 45
+                            }
+                        ],
+                        "calc_prices": [
+                            5
+                        ],
+                        "cart_total": 45,
+                        "order": {
+                            "total": 45,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 45,
+                                    "meta": {
+                                        "x": "A (+&#36;5.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 15,
+                                "line_total": 45
+                            }
+                        ],
+                        "cart_total": 45,
+                        "order": {
+                            "total": 45,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 45,
+                                    "meta": {
+                                        "X": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "qb_qt",
+            "wapf_type": "qt",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 15,
+                                "line_total": 15
+                            }
+                        ],
+                        "calc_prices": [
+                            5
+                        ],
+                        "cart_total": 15,
+                        "order": {
+                            "total": 15,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 15,
+                                    "meta": {
+                                        "x": "A (+&#36;5.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 15,
+                                "line_total": 15
+                            }
+                        ],
+                        "cart_total": 15,
+                        "order": {
+                            "total": 15,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 15,
+                                    "meta": {
+                                        "X": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 25,
+                                "line_total": 75
+                            }
+                        ],
+                        "calc_prices": [
+                            15
+                        ],
+                        "cart_total": 75,
+                        "order": {
+                            "total": 75,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 75,
+                                    "meta": {
+                                        "x": "A (+&#36;15.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 25,
+                                "line_total": 75
+                            }
+                        ],
+                        "cart_total": 75,
+                        "order": {
+                            "total": 75,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 75,
+                                    "meta": {
+                                        "X": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "qb_p",
+            "wapf_type": "p",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 12,
+                                "line_total": 12
+                            }
+                        ],
+                        "calc_prices": [
+                            2
+                        ],
+                        "cart_total": 12,
+                        "order": {
+                            "total": 12,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 12,
+                                    "meta": {
+                                        "x": "A (+&#36;2.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 12,
+                                "line_total": 12
+                            }
+                        ],
+                        "cart_total": 12,
+                        "order": {
+                            "total": 12,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 12,
+                                    "meta": {
+                                        "X": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 12,
+                                "line_total": 36
+                            }
+                        ],
+                        "calc_prices": [
+                            2
+                        ],
+                        "cart_total": 36,
+                        "order": {
+                            "total": 36,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 36,
+                                    "meta": {
+                                        "x": "A (+&#36;2.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 12,
+                                "line_total": 36
+                            }
+                        ],
+                        "cart_total": 36,
+                        "order": {
+                            "total": 36,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 36,
+                                    "meta": {
+                                        "X": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "qb_percent",
+            "wapf_type": "percent",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 12,
+                                "line_total": 12
+                            }
+                        ],
+                        "calc_prices": [
+                            2
+                        ],
+                        "cart_total": 12,
+                        "order": {
+                            "total": 12,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 12,
+                                    "meta": {
+                                        "x": "A (+&#36;2.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 12,
+                                "line_total": 12
+                            }
+                        ],
+                        "cart_total": 12,
+                        "order": {
+                            "total": 12,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 12,
+                                    "meta": {
+                                        "X": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 16,
+                                "line_total": 48
+                            }
+                        ],
+                        "calc_prices": [
+                            6
+                        ],
+                        "cart_total": 48,
+                        "order": {
+                            "total": 48,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 48,
+                                    "meta": {
+                                        "x": "A (+&#36;6.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 16,
+                                "line_total": 48
+                            }
+                        ],
+                        "cart_total": 48,
+                        "order": {
+                            "total": 48,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 48,
+                                    "meta": {
+                                        "X": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "qb_mixed_fixed",
+            "wapf_type": "fixed",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 15,
+                                "line_total": 15
+                            }
+                        ],
+                        "calc_prices": [
+                            5
+                        ],
+                        "cart_total": 15,
+                        "order": {
+                            "total": 15,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 15,
+                                    "meta": {
+                                        "x": "A (+&#36;5.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 15,
+                                "line_total": 15
+                            }
+                        ],
+                        "cart_total": 15,
+                        "order": {
+                            "total": 15,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 15,
+                                    "meta": {
+                                        "X": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 18,
+                                "line_total": 18
+                            },
+                            {
+                                "quantity": 2,
+                                "unit_price": 15,
+                                "line_total": 30
+                            }
+                        ],
+                        "calc_prices": [
+                            5,
+                            8
+                        ],
+                        "cart_total": 48,
+                        "order": {
+                            "total": 48,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 18,
+                                    "meta": {
+                                        "x": "B (+&#36;8.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                },
+                                {
+                                    "quantity": 2,
+                                    "total": 30,
+                                    "meta": {
+                                        "x": "A (+&#36;5.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 18,
+                                "line_total": 18
+                            },
+                            {
+                                "quantity": 2,
+                                "unit_price": 15,
+                                "line_total": 30
+                            }
+                        ],
+                        "cart_total": 48,
+                        "order": {
+                            "total": 48,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 18,
+                                    "meta": {
+                                        "X": "B"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                },
+                                {
+                                    "quantity": 2,
+                                    "total": 30,
+                                    "meta": {
+                                        "X": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "qb_mixed_qt",
+            "wapf_type": "qt",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 15,
+                                "line_total": 15
+                            }
+                        ],
+                        "calc_prices": [
+                            5
+                        ],
+                        "cart_total": 15,
+                        "order": {
+                            "total": 15,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 15,
+                                    "meta": {
+                                        "x": "A (+&#36;5.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 15,
+                                "line_total": 15
+                            }
+                        ],
+                        "cart_total": 15,
+                        "order": {
+                            "total": 15,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 15,
+                                    "meta": {
+                                        "X": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 18,
+                                "line_total": 18
+                            },
+                            {
+                                "quantity": 2,
+                                "unit_price": 20,
+                                "line_total": 40
+                            }
+                        ],
+                        "calc_prices": [
+                            10,
+                            8
+                        ],
+                        "cart_total": 58,
+                        "order": {
+                            "total": 58,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 18,
+                                    "meta": {
+                                        "x": "B (+&#36;8.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                },
+                                {
+                                    "quantity": 2,
+                                    "total": 40,
+                                    "meta": {
+                                        "x": "A (+&#36;10.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 18,
+                                "line_total": 18
+                            },
+                            {
+                                "quantity": 2,
+                                "unit_price": 20,
+                                "line_total": 40
+                            }
+                        ],
+                        "cart_total": 58,
+                        "order": {
+                            "total": 58,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 18,
+                                    "meta": {
+                                        "X": "B"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                },
+                                {
+                                    "quantity": 2,
+                                    "total": 40,
+                                    "meta": {
+                                        "X": "A"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "qb_fx",
+            "wapf_type": "fx",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 12,
+                                "line_total": 12
+                            }
+                        ],
+                        "calc_prices": [
+                            2
+                        ],
+                        "cart_total": 12,
+                        "order": {
+                            "total": 12,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 12,
+                                    "meta": {
+                                        "x": "x (+&#36;2.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 12,
+                                "line_total": 12
+                            }
+                        ],
+                        "cart_total": 12,
+                        "order": {
+                            "total": 12,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 12,
+                                    "meta": {
+                                        "X": "x"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 16,
+                                "line_total": 48
+                            }
+                        ],
+                        "calc_prices": [
+                            6
+                        ],
+                        "cart_total": 48,
+                        "order": {
+                            "total": 48,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 48,
+                                    "meta": {
+                                        "x": "x (+&#36;6.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 16,
+                                "line_total": 48
+                            }
+                        ],
+                        "cart_total": 48,
+                        "order": {
+                            "total": 48,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 48,
+                                    "meta": {
+                                        "X": "x"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        },
+        {
+            "case": "img_sumqty",
+            "wapf_type": "sumQty",
+            "rows": [
+                {
+                    "qty": 1,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 15,
+                                "line_total": 15
+                            }
+                        ],
+                        "calc_prices": [
+                            5
+                        ],
+                        "cart_total": 15,
+                        "order": {
+                            "total": 15,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 15,
+                                    "meta": {
+                                        "prints": "Oak: 2, Ash: 3",
+                                        "fee": "a (+&#36;5.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 1,
+                                "unit_price": 15,
+                                "line_total": 15
+                            }
+                        ],
+                        "cart_total": 15,
+                        "order": {
+                            "total": 15,
+                            "lines": [
+                                {
+                                    "quantity": 1,
+                                    "total": 15,
+                                    "meta": {
+                                        "Prints": "Oak: 2, Ash: 3"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                },
+                {
+                    "qty": 3,
+                    "wapf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 15,
+                                "line_total": 45
+                            }
+                        ],
+                        "calc_prices": [
+                            5
+                        ],
+                        "cart_total": 45,
+                        "order": {
+                            "total": 45,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 45,
+                                    "meta": {
+                                        "prints": "Oak: 2, Ash: 3",
+                                        "fee": "a (+&#36;5.00)"
+                                    },
+                                    "has_opf": false,
+                                    "has_wapf": true
+                                }
+                            ]
+                        }
+                    },
+                    "opf": {
+                        "lines": [
+                            {
+                                "quantity": 3,
+                                "unit_price": 15,
+                                "line_total": 45
+                            }
+                        ],
+                        "cart_total": 45,
+                        "order": {
+                            "total": 45,
+                            "lines": [
+                                {
+                                    "quantity": 3,
+                                    "total": 45,
+                                    "meta": {
+                                        "Prints": "Oak: 2, Ash: 3"
+                                    },
+                                    "has_opf": true,
+                                    "has_wapf": false
+                                }
+                            ]
+                        }
+                    },
+                    "match": true
+                }
+            ]
+        }
+    ],
+    "mismatches": []
+}

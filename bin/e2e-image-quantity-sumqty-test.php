@@ -118,10 +118,12 @@ try {
 	$assert( [] === ( $values['prints']['invalid'] ?? null ), 'Valid quantities were marked invalid.' );
 	$oracle = array_sum( array_map( 'intval', array_column( [ [ 'label' => '2' ], [ 'label' => '3' ] ], 'label' ) ) );
 	$assert( 5 === $oracle, 'WAPF 3.1.5 oracle calculation changed.' );
-	$expected_unit_price = 10.0 + ( 2 * 2.0 ) + ( 3 * 3.0 ) + $oracle;
-	$assert( 28.0 === $expected_unit_price, 'Fixture expected price changed.' );
-	$assert( abs( (float) $cart_item['data']->get_price() - $expected_unit_price ) < 0.001, 'Expected cart unit price 28.00: base 10 + choices 13 + sumQty 5.' );
-	$assert( 2 === (int) $cart_item['quantity'] && abs( (float) $cart_item['line_total'] - 56.0 ) < 0.001, 'Two-unit cart line did not total 56.00.' );
+	// WAPF image-swatch-qty passes each entered count to do_pricing as $val;
+	// fixed/qt pricing ignores it — only nr-style [x] formulas consume it.
+	$expected_unit_price = 10.0 + 2.0 + 3.0 + $oracle;
+	$assert( 20.0 === $expected_unit_price, 'Fixture expected price changed.' );
+	$assert( abs( (float) $cart_item['data']->get_price() - $expected_unit_price ) < 0.001, 'Expected cart unit price 20.00: base 10 + flat choices 5 + sumQty 5.' );
+	$assert( 2 === (int) $cart_item['quantity'] && abs( (float) $cart_item['line_total'] - 40.0 ) < 0.001, 'Two-unit cart line did not total 40.00.' );
 	$display = apply_filters( 'woocommerce_get_item_data', [], $cart_item );
 	$prints_display = array_values( array_filter( $display, static fn( $row ) => 'Prints' === $row['name'] ) );
 	$assert( 1 === count( $prints_display ) && 'Oak: 2, Ash: 3' === $prints_display[0]['value'], 'Cart display did not preserve choice labels and quantities.' );
@@ -137,7 +139,7 @@ try {
 	$order->save();
 	// Read a fresh object to prove storage, rather than only the in-memory item.
 	$stored_line = new WC_Order_Item_Product( $line_id );
-	$assert( abs( (float) $stored_line->get_total() - 56.0 ) < 0.001, 'Persisted two-unit order line did not total 56.00.' );
+	$assert( abs( (float) $stored_line->get_total() - 40.0 ) < 0.001, 'Persisted two-unit order line did not total 40.00.' );
 	$assert( 'Oak: 2, Ash: 3' === $stored_line->get_meta( 'Prints', true ), 'Persisted visible order values lost labels or quantities.' );
 	$stored = json_decode( (string) $stored_line->get_meta( '_opf_fields', true ), true );
 	$assert( $expected_quantities === ( $stored[ $group_id ]['prints']['quantities'] ?? null ), 'Persisted structured order metadata lost quantities.' );
@@ -151,7 +153,7 @@ try {
 	$assert( in_array( $response->get_status(), [ 200, 201 ], true ), 'Store API rejected minimum/zero boundary quantities.' );
 	$cart->calculate_totals();
 	$boundary_item = array_values( $cart->get_cart() )[0];
-	$assert( abs( (float) $boundary_item['data']->get_price() - 19.0 ) < 0.001, 'Zero choices or stale quantities affected aggregate minimum boundary price; expected 19.00.' );
+	$assert( abs( (float) $boundary_item['data']->get_price() - 15.0 ) < 0.001, 'Zero choices or stale quantities affected aggregate minimum boundary price; expected 15.00.' );
 	$boundary_display = CartIntegration::visible_selections( $boundary_item['data'], $boundary_item[ CartIntegration::ITEM_KEY ] );
 	$assert( 'Oak: 3' === ( $boundary_display[0]['value'] ?? '' ), 'Zero choices appeared in visible values.' );
 	$cart->empty_cart( true );
@@ -159,7 +161,7 @@ try {
 	$assert( in_array( $response->get_status(), [ 200, 201 ], true ), 'Store API rejected maximum boundary quantities.' );
 	$cart->calculate_totals();
 	$maximum_item = array_values( $cart->get_cart() )[0];
-	$assert( abs( (float) $maximum_item['data']->get_price() - 37.0 ) < 0.001, 'Maximum aggregate boundary price did not include all eight selected images; expected 37.00.' );
+	$assert( abs( (float) $maximum_item['data']->get_price() - 23.0 ) < 0.001, 'Maximum aggregate boundary price did not include all eight selected images; expected 23.00.' );
 } finally {
 	$_POST = $post_before;
 	$cart->empty_cart( true );
@@ -183,4 +185,4 @@ try {
 
 $assert( $cart->is_empty(), 'Cleanup left cart fixtures behind.' );
 $assert( ! get_post( $product_id ) && ! get_post( $group_id ) && ! wc_get_order( $order_id ), 'Cleanup left product, group, or order fixtures behind.' );
-WP_CLI::success( 'Image quantity / sumQty lifecycle passed: 11 invalid Store API and classic cases rejected; aggregate min/max enforced; canonical cart unit 28.00, two-unit order 56.00; labels and structured quantities persisted; minimum boundary 19.00, maximum aggregate boundary 37.00; fixtures/cart cleaned.' );
+WP_CLI::success( 'Image quantity / sumQty lifecycle passed: 11 invalid Store API and classic cases rejected; aggregate min/max enforced; canonical cart unit 20.00, two-unit order 40.00; labels and structured quantities persisted; minimum boundary 15.00, maximum aggregate boundary 23.00; fixtures/cart cleaned.' );

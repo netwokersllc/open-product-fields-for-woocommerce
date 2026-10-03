@@ -101,6 +101,62 @@ final class FormulaLinePricingTest extends TestCase {
 		$this->assertEqualsWithDelta( 5.0 / 3 + 5.0 / 3, Calculator::field_addon( $field, [ 'a', 'b' ], [ 'price' => 10.0, 'qty' => 3 ] ), 0.000001 );
 	}
 
+	// ---- Verbatim WAPF fx expressions ([qty] inside the stored formula) ----
+
+	/**
+	 * Regression for the proof-lane report: a per_unit formula that still
+	 * references [qty] verbatim must price like WAPF fx — the line adds
+	 * eval(formula) once — instead of multiplying the quantity twice.
+	 * (OPF per-unit addons × Woo line qty vs WAPF fixed calc_price × qty.)
+	 */
+	public function test_verbatim_qty_formula_ignores_per_unit_and_prices_as_fx(): void {
+		$pricing = [ 'type' => 'formula', 'amount' => 0.0, 'formula' => '[price] * 0.1 * [qty]', 'per_unit' => true ];
+		// WAPF fx: eval=30 at qty3 → calc_price 10/unit → unit addons 10.
+		$this->assertSame( 10.0, Calculator::choice_addon( $pricing, 100.0, 3, 0.0 ) );
+		$this->assertSame( 10.0, Calculator::choice_addon( $pricing, 100.0, 1, 0.0 ) );
+		// qty_based row (WAPF clone_type=qty): eval verbatim per unit.
+		$this->assertSame( 30.0, Calculator::choice_addon( $pricing, 100.0, 3, 0.0, [], 0, [], true ) );
+	}
+
+	public function test_verbatim_qty_formula_applies_to_field_level_pricing(): void {
+		$field = [
+			'type' => 'text', 'choices' => [],
+			'pricing' => [ 'type' => 'formula', 'amount' => 0.0, 'formula' => '10 * [qty]', 'per_unit' => true ],
+		];
+		$this->assertSame( 10.0, Calculator::field_addon( $field, 'x', [ 'price' => 10.0, 'qty' => 3 ] ) );
+	}
+
+	/**
+	 * Mapper-normalized formulas (formula_raw differs after stripping a
+	 * compensating outermost *[qty] and renaming [options_total]) keep their
+	 * per-unit semantics even when an interior [qty] survives the strip.
+	 */
+	public function test_normalized_formula_with_interior_qty_keeps_per_unit_semantics(): void {
+		$pricing = [
+			'type' => 'formula', 'amount' => 0.0, 'per_unit' => true,
+			'formula'     => '([price] + [addons]) * [qty] + 1',
+			'formula_raw' => '(([price] + [options_total]) * [qty] + 1) * [qty]',
+		];
+		// At qty 3: (10+0)*3+1 = 31 per unit; the line adds 3*31, matching
+		// WAPF's eval of the raw expression ((10+0)*3+1)*3 = 93.
+		$this->assertSame( 31.0, Calculator::choice_addon( $pricing, 10.0, 3, 0.0 ) );
+	}
+
+	/**
+	 * A formula_raw that reduces to the stored formula (qty_based imports
+	 * keep the factor verbatim; only [options_total] is renamed) still counts
+	 * as verbatim WAPF fx.
+	 */
+	public function test_qty_based_import_formula_raw_only_renames_options_total(): void {
+		$pricing = [
+			'type' => 'formula', 'amount' => 0.0, 'per_unit' => true,
+			'formula'     => '([price] + [addons]) * 2 * [qty]',
+			'formula_raw' => '([price] + [options_total]) * 2 * [qty]',
+		];
+		$this->assertSame( 60.0, Calculator::choice_addon( $pricing, 10.0, 3, 0.0, [], 0, [], true ) );
+		$this->assertSame( 20.0, Calculator::choice_addon( $pricing, 10.0, 3, 0.0 ) );
+	}
+
 	// ---- Schema migration: legacy records keep forced per-unit -------------
 
 	public function test_schema1_records_preserve_forced_per_unit_defaults(): void {

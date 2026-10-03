@@ -31,7 +31,9 @@ const run = (mode, fixture = {}, rows = []) => execFileSync('wp', ['--path=' + p
 		assert.equal(await page.locator('.opf-image-quantity__input[data-choice-slug="disabled"]').isDisabled(), true);
 		const quantity = page.locator('form.cart input[name="quantity"]');
 		const rows = [];
-		for (const [o, a, q, expected] of [[2, 3, 1, 28], [2, 3, 2, 43], [3, 0, 2, 32], [5, 3, 2, 55]]) {
+		// WAPF image-swatch-qty semantics: the entered count is the pricing
+		// value ($v); fixed choices stay flat per line, sumQty prices per unit.
+		for (const [o, a, q, expected] of [[2, 3, 1, 20], [2, 3, 2, 35], [3, 0, 2, 28], [5, 3, 2, 41]]) {
 			await oak.fill(String(o));
 			await ash.fill(String(a));
 			await quantity.fill(String(q));

@@ -43,16 +43,50 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( 5.0, Calculator::field_addon( $field, [ 'navy', 'gold' ], [ 'price' => 10, 'qty' => 1 ] ) );
 	}
 
+	/**
+	 * WAPF image-swatch-qty feeds each entered count into do_pricing() as the
+	 * value label ($val): the pricing type decides whether the count
+	 * multiplies the charge — `fixed` is a flat per-line fee per selected
+	 * choice, `qt` is amount per product unit, and `nr`/`nrq` (OPF:
+	 * [x]-formulas) consume the entered count. OPF therefore does NOT multiply
+	 * the priced choice by the entered quantity; it passes the count as $val.
+	 */
 	public function test_image_quantity_pricing_and_sumqty_use_tagged_choice_quantities(): void {
 		$values = [ '_opf_type' => 'image_quantity', 'quantities' => [ 'oak' => 2, 'ash' => 3 ] ];
 		$field = [
 			'id' => 'images', 'type' => 'image_quantity',
 			'choices' => [
+				// WAPF qt → per-unit fixed: $2 + $1 per product unit.
 				[ 'slug' => 'oak', 'disabled' => false, 'pricing' => [ 'type' => 'fixed', 'amount' => 2.0, 'per_unit' => true ] ],
 				[ 'slug' => 'ash', 'disabled' => false, 'pricing' => [ 'type' => 'fixed', 'amount' => 1.0, 'per_unit' => true ] ],
 			],
 		];
-		$this->assertSame( 7.0, Calculator::field_addon( $field, $values, [ 'price' => 10, 'qty' => 1 ] ) );
+		$this->assertSame( 3.0, Calculator::field_addon( $field, $values, [ 'price' => 10, 'qty' => 1 ] ) );
+		$this->assertSame( 3.0, Calculator::field_addon( $field, $values, [ 'price' => 10, 'qty' => 3 ] ), 'qt-style pricing is per product unit, not per entered count' );
+
+		// WAPF fixed → flat per line, per selected choice.
+		$flat = [
+			'id' => 'images', 'type' => 'image_quantity',
+			'choices' => [
+				[ 'slug' => 'oak', 'disabled' => false, 'pricing' => [ 'type' => 'fixed', 'amount' => 2.0, 'per_unit' => false ] ],
+				[ 'slug' => 'ash', 'disabled' => false, 'pricing' => [ 'type' => 'fixed', 'amount' => 1.5, 'per_unit' => false ] ],
+			],
+		];
+		$this->assertEqualsWithDelta( 3.5 / 3, Calculator::field_addon( $flat, $values, [ 'price' => 10, 'qty' => 3 ] ), 0.000001, 'fixed choices are flat per line' );
+
+		// WAPF nr (val*amount flat per line) and nrq (val*amount per unit)
+		// are expressed as [x]-formulas over the entered count.
+		$nr = [
+			'id' => 'images', 'type' => 'image_quantity',
+			'choices' => [
+				[ 'slug' => 'oak', 'disabled' => false, 'pricing' => [ 'type' => 'formula', 'formula' => '[x]*2', 'per_unit' => false ] ],
+				[ 'slug' => 'ash', 'disabled' => false, 'pricing' => [ 'type' => 'formula', 'formula' => '[x]*3', 'per_unit' => true ] ],
+			],
+		];
+		// oak nr: 2*2/3 per unit; ash nrq: 3*3 per unit → 4/3 + 9.
+		$this->assertEqualsWithDelta( 4.0 / 3 + 9.0, Calculator::field_addon( $nr, $values, [ 'price' => 10, 'qty' => 3 ] ), 0.000001 );
+		$this->assertEqualsWithDelta( 4.0 + 9.0, Calculator::field_addon( $nr, $values, [ 'price' => 10, 'qty' => 1 ] ), 0.000001 );
+
 		$this->assertSame( 5.0, Calculator::evaluate_formula( 'sumQty(images)', 10, 1, 0, '', null, [ 'images' => $values ] ) );
 		$this->assertSame( 0.0, Calculator::evaluate_formula( 'sumQty(unrelated)', 10, 1, 0, '', null, [ 'unrelated' => [ 2, 3 ] ] ) );
 	}
@@ -367,6 +401,24 @@ final class CalculatorTest extends TestCase {
 	/** WAPF [x] aliases [val] (the current field input). */
 	public function test_x_token_aliases_val(): void {
 		$this->assertSame( 8.0, Calculator::evaluate_formula( '[x]*2', 10.0, 1, 0.0, '4' ) );
+	}
+
+	/**
+	 * WAPF char/charq pricing is mb_strlen(val)*amount; a bare [x]/[val]
+	 * inside len() must measure the submitted text, not the numeric ' V '
+	 * placeholder. char → len*amount flat per line; charq → per unit.
+	 */
+	public function test_len_of_x_measures_submitted_text_for_char_pricing(): void {
+		$this->assertSame( 4.0, Calculator::evaluate_formula( 'len([x])', 0.0, 1, 0.0, 'abcd' ) );
+		$this->assertSame( 2.0, Calculator::evaluate_formula( 'len([x];true)', 0.0, 1, 0.0, ' a b ' ) );
+		$field = [
+			'type' => 'text', 'choices' => [],
+			'pricing' => [ 'type' => 'formula', 'amount' => 0.0, 'formula' => 'len([x])*2', 'per_unit' => false ],
+		];
+		// char: 4 chars * 2 = 8 per line → 8/3 per unit.
+		$this->assertEqualsWithDelta( 8.0 / 3, Calculator::field_addon( $field, 'abcd', [ 'price' => 0.0, 'qty' => 3 ] ), 0.000001 );
+		$field['pricing']['per_unit'] = true; // charq.
+		$this->assertSame( 8.0, Calculator::field_addon( $field, 'abcd', [ 'price' => 0.0, 'qty' => 3 ] ) );
 	}
 
 	/**

@@ -27,15 +27,17 @@ test('browser formulas resolve base, quantity, addons and entered value variable
 	assert.equal(context.__choiceOrFieldAddon({ type: 'text', pricing: { type: 'percent', amount: 10 } }, 'yes', 25, 1, 0, 'yes', {}, {}, 10), 2.5);
 });
 
-test('sumQty reads only tagged image choice quantities and image quantity pricing multiplies per choice', () => {
+test('sumQty reads only tagged image choice quantities and image quantity pricing feeds the count as the value', () => {
 	const quantities = { _opf_type: 'image_quantity', quantities: { oak: 2, ash: 3 } };
 	assert.equal(context.__evalFormula('sumQty(images)', 10, 1, 0, '', { images: quantities }), 5);
 	assert.equal(context.__evalFormula('sumQty(unrelated)', 10, 1, 0, '', { unrelated: [2, 3] }), 0);
+	// WAPF image-swatch-qty: the entered count is the pricing value ($v) —
+	// nr-style [x] formulas consume it; fixed stays a per-line flat fee.
 	assert.equal(context.__choiceOrFieldAddon({
 		type: 'image_quantity',
 		choices: [
-			{ slug: 'oak', pricing: { type: 'fixed', amount: 2 } },
-			{ slug: 'ash', pricing: { type: 'fixed', amount: 1 } },
+			{ slug: 'oak', pricing: { type: 'formula', formula: '[x]*2', per_unit: true } },
+			{ slug: 'ash', pricing: { type: 'formula', formula: '[x]', per_unit: true } },
 		],
 	}, quantities, 10, 1, 0, '', { images: quantities }), 7);
 });

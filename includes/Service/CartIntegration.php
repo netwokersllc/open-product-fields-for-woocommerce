@@ -249,7 +249,11 @@ final class CartIntegration {
 		$values = is_array( $cart_item_data[ self::ITEM_KEY ] ?? null )
 			? $cart_item_data[ self::ITEM_KEY ]
 			: ( $item[ self::ITEM_KEY ] ?? [] );
-		if ( ! $item || ! is_array( $values ) ) {
+		// Items without OPF values carry nothing to split. They are foreign
+		// (e.g. WAPF items on a product that also has an OPF repeat group) or
+		// OPF items whose only fields went unsubmitted — rewriting their
+		// quantity from the submitted count would undo another engine's split.
+		if ( ! $item || ! is_array( $values ) || [] === $values ) {
 			return;
 		}
 

@@ -111,7 +111,7 @@ try {
 			$order->save();
 			$stored = new WC_Order_Item_Product( $line_id );
 			$stored_values = json_decode( (string) $stored->get_meta( '_opf_fields', true ), true );
-			$assert( abs( (float) $stored->get_total() - 43 ) < 0.001 && 2 === $stored->get_quantity(), 'Stored order quantity/total mismatch.' );
+			$assert( abs( (float) $stored->get_total() - 35 ) < 0.001 && 2 === $stored->get_quantity(), 'Stored order quantity/total mismatch.' );
 			$assert( $expected_quantities === $stored_values[ $group_id ]['prints']['quantities'] && ! isset( $stored_values[ $group_id ]['absent'] ), 'Stored structured values retained unknown keys or lost quantities.' );
 			$assert( 'Oak: 2, Ash: 3' === $stored->get_meta( 'Prints', true ) && 'selected' === $stored_values[ $group_id ]['fee'], 'Stored visible label or formula selection changed.' );
 			$assert( ! empty( json_decode( (string) $stored->get_meta( '_opf_fields_snapshot', true ), true ) ), 'Stored snapshot missing.' );
@@ -126,4 +126,4 @@ try {
 	wc_clear_notices();
 	if ( $order_id && wc_get_order( $order_id ) ) { wc_get_order( $order_id )->delete( true ); }
 }
-echo wp_json_encode( [ 'matched' => $results, 'persisted_order_line' => 43, 'cleanup' => 'cart/orders clean' ] );
+echo wp_json_encode( [ 'matched' => $results, 'persisted_order_line' => 35, 'cleanup' => 'cart/orders clean' ] );

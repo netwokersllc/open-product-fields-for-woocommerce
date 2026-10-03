@@ -1214,6 +1214,9 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
         case 'max': result = args.length ? Math.max(...args.map(number)) : 0; break;
         case 'len': {
           let value = String(args[0]);
+          // A bare [x]/[val] measures the submitted text (WAPF replaces the
+          // token before len runs), not the numeric ' V ' placeholder.
+          if (value.trim().toLowerCase() === 'v') value = String(val ?? '');
           if (args[1] === 'true') value = value.replace(/\s/g, '');
           result = value.length;
           break;
@@ -1355,7 +1358,18 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
 
 // Per-unit contribution of one pricing block (WAPF do_pricing parity):
 // normal fields → per_unit ? result : result/qty; quantity-repeat (WAPF
-// clone_type=qty) fields → per_unit ? result*qty : result.
+// clone_type=qty) fields → per_unit ? result*qty : result. A formula that
+// still references [qty] verbatim (no normalized formula_raw, or formula_raw
+// reduces to the stored formula) is a WAPF fx line-space expression: the line
+// adds eval(formula) once, so per_unit does not apply.
+const verbatimWapfFx = (pricing) => {
+  if (pricing.type !== 'formula') return false;
+  const formula = String(pricing.formula || '');
+  if (!/\[qty\]/i.test(formula)) return false;
+  const raw = String(pricing.formula_raw || '').trim();
+  if (!raw) return true;
+  return formula === raw.split('[options_total]').join('[addons]');
+};
 const choiceUnitAddon = (pricing, base, qty, addons, val, fieldValues = {}, fieldPrices = {}, formulaBase = base, qtyBased = false) => {
   const t = pricing.type;
   let result = 0;
@@ -1363,6 +1377,7 @@ const choiceUnitAddon = (pricing, base, qty, addons, val, fieldValues = {}, fiel
   else if (t === 'percent') result = base * ((parseFloat(pricing.amount) || 0) / 100);
   else if (t === 'formula') result = evalFormula(pricing.formula || pricing.formula_raw, formulaBase, qty, addons, val, fieldValues, null, fieldPrices);
   else return 0;
+  if (verbatimWapfFx(pricing)) return qtyBased ? result : result / qty;
   const perUnit = pricing.per_unit !== undefined && pricing.per_unit !== null
     ? !!pricing.per_unit
     : !(t === 'fixed' || t === 'formula');
@@ -1376,7 +1391,10 @@ const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}
     return (def.choices || []).reduce((sum, choice) => {
       const count = Math.max(0, parseInt(quantities[choice.slug], 10) || 0);
       if (!count || choice.disabled) return sum;
-      return sum + count * choiceUnitAddon(choice.pricing || {}, base, qty, addons, '', fieldValues, fieldPrices, formulaBase, qtyBased);
+      // WAPF image-swatch-qty passes the entered count into do_pricing as
+      // the value label: nr/nrq/[x] formulas consume it; the pricing type
+      // decides whether the count multiplies the charge.
+      return sum + choiceUnitAddon(choice.pricing || {}, base, qty, addons, String(count), fieldValues, fieldPrices, formulaBase, qtyBased);
     }, 0);
   }
   if (def.type === 'swatch' || def.type === 'select' || def.type === 'radio' || def.type === 'checkbox') {
@@ -1384,7 +1402,8 @@ const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}
     let sum = 0;
     (def.choices || []).forEach((c) => {
       if (!slugs.includes(c.slug) || c.disabled) return;
-      sum += choiceUnitAddon(c.pricing || {}, base, qty, addons, val, fieldValues, fieldPrices, formulaBase, qtyBased);
+      // WAPF passes the selected choice's label as the pricing value.
+      sum += choiceUnitAddon(c.pricing || {}, base, qty, addons, String(c.label ?? ''), fieldValues, fieldPrices, formulaBase, qtyBased);
     });
     return sum;
   }

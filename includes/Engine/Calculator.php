@@ -10,7 +10,15 @@
  *  - Quantity-repeat fields (WAPF clone_type=qty) use the qty_based row:
  *    per_unit=false → result per unit, per_unit=true → result*qty per unit.
  *  - formula : expression over [price] (base unit price), [addons] (addons computed
- *              before this choice, per unit), [qty] (line quantity), [val] (text input).
+ *              before this choice, per unit), [qty] (line quantity), [val]/[x]
+ *              (current value: entered text, choice label, or entered image
+ *              quantity — the $v input of WAPF do_pricing()).
+ *  - A formula that still references [qty] verbatim (not a mapper-normalized
+ *    expression — i.e. no formula_raw, or formula_raw reduces to the stored
+ *    formula) is a WAPF fx line-space expression: per_unit does not apply.
+ *    The line adds exactly eval(formula): per-unit share result/qty on normal
+ *    fields and result on qty_based fields. Mapper-stripped formulas keep
+ *    [qty]-free per-unit semantics.
  *
  * @package open-product-fields-for-woocommerce
  */
@@ -69,7 +77,11 @@ final class Calculator {
 			foreach ( $field['choices'] as $choice ) {
 				$quantity = max( 0, (int) ( $quantities[ $choice['slug'] ] ?? 0 ) );
 				if ( $quantity && empty( $choice['disabled'] ) ) {
-					$total += $quantity * self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices, $qty_based, $field_labels, $options );
+					// WAPF image-swatch-qty passes the entered count into
+					// do_pricing as $val (the value label) — nr/nrq/[x]
+					// formulas consume it; the pricing type itself decides
+					// whether the count multiplies the charge.
+					$total += self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices, $qty_based, $field_labels, $options, (string) $quantity );
 				}
 			}
 			return max( 0.0, (float) $total );
@@ -89,7 +101,9 @@ final class Calculator {
 				foreach ( $slugs as $slug ) {
 					foreach ( $field['choices'] as $choice ) {
 						if ( $choice['slug'] === (string) $slug && ! $choice['disabled'] ) {
-							$total += self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices, $qty_based, $field_labels, $options );
+							// WAPF passes the selected choice's label as $val
+							// (used by nr/char pricing and [x]/[val] formulas).
+							$total += self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices, $qty_based, $field_labels, $options, (string) ( $choice['label'] ?? '' ) );
 							if ( ! in_array( $field['type'], [ 'checkbox' ], true ) && !( 'swatch' === $field['type'] && ! empty( $field['multiple'] ) ) ) {
 								break;
 							}
@@ -129,8 +143,11 @@ final class Calculator {
 	 * into cart lines whose quantity is the identical-unit count.)
 	 *
 	 * @param array<string,mixed> $pricing Normalized choice pricing.
+	 * @param string              $val     WAPF $v for [x]/[val]/nr-style pricing:
+	 *                                     the choice label or, for image_quantity,
+	 *                                     the entered per-choice quantity.
 	 */
-	public static function choice_addon( array $pricing, float $price, int $qty, float $addons, array $field_values = [], int $product_id = 0, array $field_prices = [], bool $qty_based = false, array $field_labels = [], array $options = [] ): float {
+	public static function choice_addon( array $pricing, float $price, int $qty, float $addons, array $field_values = [], int $product_id = 0, array $field_prices = [], bool $qty_based = false, array $field_labels = [], array $options = [], string $val = '' ): float {
 		$qty = max( 1, $qty );
 		$result = null;
 		switch ( $pricing['type'] ) {
@@ -141,10 +158,15 @@ final class Calculator {
 				$result = $price * ( (float) $pricing['amount'] / 100 );
 				break;
 			case 'formula':
-				$result = self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, '', null, $field_values, $product_id, $field_prices, $field_labels, $options );
+				$result = self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, $val, null, $field_values, $product_id, $field_prices, $field_labels, $options );
 				break;
 			default:
 				return 0.0;
+		}
+		if ( self::formula_is_verbatim_wapf_expression( $pricing ) ) {
+			// WAPF fx row: the line adds eval(formula) exactly once; per_unit
+			// must not re-scale an expression that already consumed [qty].
+			return $qty_based ? $result : $result / $qty;
 		}
 		if ( $qty_based ) {
 			return self::pricing_is_per_unit( $pricing ) ? $result * $qty : $result;
@@ -177,10 +199,46 @@ final class Calculator {
 			default:
 				return 0.0;
 		}
+		if ( self::formula_is_verbatim_wapf_expression( $pricing ) ) {
+			// WAPF fx row: the line adds eval(formula) exactly once; per_unit
+			// must not re-scale an expression that already consumed [qty].
+			return $qty_based ? $result : $result / $qty;
+		}
 		if ( $qty_based ) {
 			return self::pricing_is_per_unit( $pricing ) ? $result * $qty : $result;
 		}
 		return self::pricing_is_per_unit( $pricing ) ? $result : $result / $qty;
+	}
+
+	/**
+	 * Is the stored formula an un-normalized WAPF fx line-space expression?
+	 *
+	 * WAPF fx evaluates the author's expression at the line quantity and
+	 * divides by qty for the per-unit cart price (or returns it verbatim on
+	 * qty_based fields). WAPFMapper strips a compensating outermost `* [qty]`
+	 * for normal fields and records the original in `formula_raw`; a stored
+	 * formula that still mentions [qty] while matching its raw source (or
+	 * having no raw source at all) was never normalized, so it must be priced
+	 * with the fx row — otherwise per_unit would multiply the line total by
+	 * the quantity twice (WAPF↔OPF divergence at qty>1).
+	 *
+	 * @param array<string,mixed> $pricing Normalized pricing block.
+	 */
+	private static function formula_is_verbatim_wapf_expression( array $pricing ): bool {
+		if ( 'formula' !== ( $pricing['type'] ?? '' ) ) {
+			return false;
+		}
+		$formula = (string) ( $pricing['formula'] ?? '' );
+		if ( '' === $formula || false === stripos( $formula, '[qty]' ) ) {
+			return false;
+		}
+		$raw = $pricing['formula_raw'] ?? null;
+		if ( ! is_string( $raw ) || '' === trim( $raw ) ) {
+			return true;
+		}
+		// The importer keeps [options_total] unrenamed in formula_raw; compare
+		// against the equivalent normalized source.
+		return $formula === str_replace( '[options_total]', '[addons]', trim( $raw ) );
 	}
 
 	/**
@@ -416,8 +474,14 @@ final class Calculator {
 					return $numeric( (string) $arg, $context );
 				}, $args ) ) : 0;
 			},
-			'len' => static function ( array $args ): int {
+			'len' => static function ( array $args, array $context ): int {
 				$text = empty( $args[0] ) ? '' : (string) $args[0];
+				// A bare [x]/[val] measures the submitted text (WAPF replaces
+				// the token with the raw value before len() runs); the numeric
+				// ' V ' placeholder would otherwise measure itself.
+				if ( 'v' === strtolower( trim( $text ) ) && isset( $context['value'] ) ) {
+					$text = (string) $context['value'];
+				}
 				if ( isset( $args[1] ) && 'true' === $args[1] ) {
 					$text = preg_replace( '/\s/', '', $text ) ?? $text;
 				}
