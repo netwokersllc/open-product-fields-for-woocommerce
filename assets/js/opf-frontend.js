@@ -1197,7 +1197,12 @@ const writeTotals = () => {
       if (!def) return;
       // conditional visibility: hidden fields contribute nothing
       const container = fieldEl;
-      if (container.hasAttribute('hidden')) return;
+      if (container.hasAttribute('hidden')) {
+        // WAPF resolves [price.ID] from the first matching source, even when
+        // that source is hidden. Do not promote a later duplicate's price.
+        if (!Object.prototype.hasOwnProperty.call(fieldPrices, fid)) fieldPrices[fid] = 0;
+        return;
+      }
       const sectionInstance = fieldEl.closest('[data-opf-section-repeat] [data-opf-repeat-instance]');
       const sectionRepeater = sectionInstance && sectionInstance.closest('[data-opf-section-repeat]');
       const sectionRows = sectionRepeater ? Array.from(sectionRepeater.querySelectorAll('.opf-field-repeat__rows > [data-opf-repeat-instance]')) : [];

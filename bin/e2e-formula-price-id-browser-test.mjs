@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const requirePlugin = createRequire(process.cwd() + '/index.js');
 const { chromium } = requirePlugin('playwright');
 const here = path.dirname(fileURLToPath(import.meta.url));
-const frontendScript = fs.readFileSync(path.join(here, '../assets/js/opf-frontend.js'), 'utf8');
+const frontendScript = fs.readFileSync(process.env.OPF_FRONTEND_SCRIPT || path.join(here, '../assets/js/opf-frontend.js'), 'utf8');
 const browser = await chromium.launch();
 const page = await browser.newPage();
 const pageErrors = [];
@@ -77,6 +77,33 @@ try {
 	await page.locator('#derived-value').dispatchEvent('input');
 	await page.waitForFunction(() => document.querySelector('.opf-grand-total')?.textContent === '$121.00', { timeout: 2000 });
 	check('showing the source restores the cross-group formula total', await total('.opf-grand-total') === '$121.00');
+
+	// Cross-group duplicate IDs must keep the first source, including when it is
+	// hidden. A later visible duplicate still contributes its own option price.
+	await page.goto('about:blank');
+	await page.setContent(`<!doctype html><html><body><form class="cart">
+		<input class="qty" name="quantity" type="number" value="1">
+		<div class="opf-product-totals" data-product-price="100"><span class="opf-product-total"></span><span class="opf-options-total"></span><span class="opf-grand-total"></span></div>
+		<div data-opf-fields>
+			<div data-opf-group="early"><div data-opf-field="source"><input type="radio" name="first-source" value="chosen" checked></div></div>
+			<div data-opf-group="duplicate"><div data-opf-field="source"><input type="text" value="later"></div></div>
+			<div data-opf-group="later"><div data-opf-field="derived"><input id="derived-value" type="text" value="2"></div></div>
+		</div></form></body></html>`);
+	await page.addScriptTag({ content: `window.OPF_FIELDS = ${JSON.stringify({
+		early: { source: { type: 'radio', choices: [{ slug: 'chosen', pricing: { type: 'fixed', amount: 0 } }], pricing: { type: 'none' } } },
+		duplicate: { source: { type: 'text', choices: [], pricing: { type: 'fixed', amount: 11 } } },
+		later: { derived: { type: 'text', choices: [], pricing: { type: 'formula', formula: '[price.source] * 2' } } },
+	})};` });
+	await page.addScriptTag({ content: frontendScript });
+	check('visible duplicate retains first zero source price', await total('.opf-options-total') === '$11.00');
+	await page.locator('[data-opf-group="early"] [data-opf-field="source"]').evaluate((node) => { node.hidden = true; });
+	await page.locator('#derived-value').dispatchEvent('input');
+	await page.waitForTimeout(100);
+	check('hidden first duplicate reserves zero instead of promoting later source', await total('.opf-options-total') === '$11.00', await total('.opf-options-total'));
+	await page.locator('[data-opf-group="early"] [data-opf-field="source"]').evaluate((node) => { node.hidden = false; });
+	await page.locator('#derived-value').dispatchEvent('input');
+	await page.waitForTimeout(100);
+	check('showing first duplicate restores its original zero reference price', await total('.opf-options-total') === '$11.00');
 	check('Chromium page has no JavaScript errors', pageErrors.length === 0 && consoleErrors.length === 0, JSON.stringify({ pageErrors, consoleErrors }));
 } catch (error) {
 	failures++;
