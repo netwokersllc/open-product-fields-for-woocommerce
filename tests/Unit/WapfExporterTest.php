@@ -58,6 +58,30 @@ final class WapfExporterTest extends TestCase {
 		$this->assertSame( '!p_tags', $payload['conditions'][0]['rules'][1]['condition'] );
 	}
 
+	public function test_exports_variation_and_attribute_placement_rules(): void {
+		$group = FieldGroup::normalize( [ 'rule_groups' => [ [ 'rules' => [
+			[ 'subject' => 'product_var', 'operator' => 'in', 'terms' => [ '901' ] ],
+			[ 'subject' => 'product_var', 'operator' => 'not_in', 'terms' => [ '902' ] ],
+			[ 'subject' => 'var_att', 'operator' => 'in', 'terms' => [ 'color|red' ] ],
+			[ 'subject' => 'var_att', 'operator' => 'not_in', 'terms' => [ 'color|*' ] ],
+		] ] ] ] );
+
+		$payload = WapfExporter::build_payload( $group );
+		$rules = $payload['conditions'][0]['rules'];
+
+		$this->assertSame( [ 'product_variation', 'product_variation', 'var_att', 'var_att' ], array_column( $rules, 'subject' ) );
+		$this->assertSame( [ 'product_var', '!product_var', 'patts', '!patts' ], array_column( $rules, 'condition' ) );
+		$this->assertSame( [ '901' ], array_column( $rules[0]['value'], 'id' ) );
+		$this->assertSame( [ 'color|red' ], array_column( $rules[2]['value'], 'id' ) );
+
+		$round_trip = WapfMapper::map( [ 'fields' => [], 'rule_groups' => $payload['conditions'] ] );
+		$this->assertFalse( $round_trip['needs_review'] );
+		$this->assertSame( 'product_var', $round_trip['group']['rule_groups'][0]['rules'][0]['subject'] );
+		$this->assertSame( [ '901' ], $round_trip['group']['rule_groups'][0]['rules'][0]['terms'] );
+		$this->assertSame( 'var_att', $round_trip['group']['rule_groups'][0]['rules'][2]['subject'] );
+		$this->assertSame( [ 'color|red' ], $round_trip['group']['rule_groups'][0]['rules'][2]['terms'] );
+	}
+
 	public function test_exports_canonical_imported_product_category_and_tag_placement_rules(): void {
 		$group = FieldGroup::normalize( [ 'rule_groups' => [ [ 'rules' => [
 			[ 'subject' => 'product_cat', 'operator' => 'in', 'terms' => [ '12' ] ],

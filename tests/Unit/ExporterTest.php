@@ -74,4 +74,20 @@ final class ExporterTest extends TestCase {
 		$this->assertSame( [ 'product_target_ids_may_not_match' ], $package['groups'][1]['warnings'] );
 		$this->assertSame( [], $package['groups'][2]['warnings'], 'category selection without a query id is not site-local' );
 	}
+
+	public function test_export_marks_variation_placement_as_site_local_but_not_attribute_slugs(): void {
+		$package = Exporter::build_package( [
+			[
+				'id' => 49,
+				'data' => [ 'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'product_var', 'operator' => 'in', 'terms' => [ '901' ] ] ] ] ] ],
+			],
+			[
+				'id' => 50,
+				'data' => [ 'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'var_att', 'operator' => 'in', 'terms' => [ 'color|red' ] ] ] ] ] ],
+			],
+		], [ 'type' => 'all' ] );
+
+		$this->assertSame( [ 'product_target_ids_may_not_match' ], $package['groups'][0]['warnings'] );
+		$this->assertSame( [], $package['groups'][1]['warnings'], 'attribute slugs are portable between sites' );
+	}
 }

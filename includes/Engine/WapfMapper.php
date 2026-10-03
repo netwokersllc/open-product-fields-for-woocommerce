@@ -1729,6 +1729,10 @@ final class WapfMapper {
 					'product_cats' => 'product_cat',
 					'p_tags'       => 'product_tag',
 					'product_tag'  => 'product_tag',
+					// WAPF group-level variation/attribute rules: variation IDs
+					// (`product_var`) and `attribute|slug` pairs (`patts`).
+					'product_var'  => 'product_var',
+					'patts'        => 'var_att',
 				];
 				if ( ! isset( $map[ $cond ] ) ) {
 					$notes[]      = sprintf( 'placement condition "%s" has no OPF equivalent; rule dropped.', $condition );

@@ -112,7 +112,7 @@ final class ArchiveImporter {
 
 			$review_notes = $entry['warnings'];
 			if ( self::has_site_local_targets( $entry['data'] ) ) {
-				$review_notes[] = 'Site-local product, category, or tag targets may need remapping.';
+				$review_notes[] = 'Site-local product, category, or tag targets may need remapping (variation targets included).';
 			}
 			if ( self::has_media_reference( $entry['data'] ) ) {
 				$review_notes[] = 'Media files are not included in the archive.';
@@ -154,7 +154,7 @@ final class ArchiveImporter {
 	private static function has_site_local_targets( array $data ): bool {
 		foreach ( (array) ( $data['rule_groups'] ?? [] ) as $rule_group ) {
 			foreach ( (array) ( $rule_group['rules'] ?? [] ) as $rule ) {
-				if ( is_array( $rule ) && in_array( $rule['subject'] ?? '', [ 'product', 'product_cat', 'product_tag' ], true ) && ! empty( $rule['terms'] ) ) {
+				if ( is_array( $rule ) && in_array( $rule['subject'] ?? '', [ 'product', 'product_cat', 'product_tag', 'product_var' ], true ) && ! empty( $rule['terms'] ) ) {
 					return true;
 				}
 			}

@@ -425,6 +425,30 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( [ '8768' ], $mapped['group']['rule_groups'][0]['rules'][0]['terms'] );
 	}
 
+	public function test_maps_variation_and_attribute_placement(): void {
+		$wapf = [
+			'fields' => [],
+			'rule_groups' => [ [ 'rules' => [
+				[ 'condition' => 'product_var', 'subject' => 'product_variation', 'value' => [ [ 'id' => '901', 'text' => 'Red' ] ] ],
+				[ 'condition' => '!product_var', 'subject' => 'product_variation', 'value' => [ [ 'id' => '902', 'text' => 'Blue' ] ] ],
+				[ 'condition' => 'patts', 'subject' => 'var_att', 'value' => [ [ 'id' => 'color|red', 'text' => 'Color - Red' ] ] ],
+				[ 'condition' => '!patts', 'subject' => 'var_att', 'value' => [ [ 'id' => 'color|*', 'text' => 'Color - Any' ] ] ],
+			] ] ],
+		];
+
+		$mapped = WapfMapper::map( $wapf );
+		$this->assertFalse( $mapped['needs_review'] );
+		$this->assertSame(
+			[
+				[ 'subject' => 'product_var', 'operator' => 'in', 'terms' => [ '901' ] ],
+				[ 'subject' => 'product_var', 'operator' => 'not_in', 'terms' => [ '902' ] ],
+				[ 'subject' => 'var_att', 'operator' => 'in', 'terms' => [ 'color|red' ] ],
+				[ 'subject' => 'var_att', 'operator' => 'not_in', 'terms' => [ 'color|*' ] ],
+			],
+			$mapped['group']['rule_groups'][0]['rules']
+		);
+	}
+
 	public function test_maps_user_and_language_placement(): void {
 		$wapf = [
 			'fields' => [],

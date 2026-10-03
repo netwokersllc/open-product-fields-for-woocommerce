@@ -699,6 +699,24 @@ final class WapfExporter {
 			'tag'         => 'p_tags',
 			'product_tag' => 'p_tags',
 		];
+		// WAPF group rules carry variation-scoped subjects separately:
+		// `product_variation`/`product_var` (variation IDs) and
+		// `var_att`/`patts` (`attribute|slug` pairs). Both are accepted verbatim
+		// by WAPF's native importer, so preserve them instead of failing closed.
+		if ( in_array( $rule['subject'], [ 'product_var', 'var_att' ], true ) ) {
+			if ( ! in_array( $rule['operator'], [ 'in', 'not_in' ], true ) || ! $rule['terms'] ) {
+				throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve a variation placement rule without targets.' );
+			}
+			$is_variation = 'product_var' === $rule['subject'];
+			$condition    = ( 'not_in' === $rule['operator'] ? '!' : '' ) . ( $is_variation ? 'product_var' : 'patts' );
+			return [
+				'subject'   => $is_variation ? 'product_variation' : 'var_att',
+				'condition' => $condition,
+				'value'     => array_map( static function ( $term ) {
+					return [ 'id' => (string) $term, 'text' => (string) $term ];
+				}, $rule['terms'] ),
+			];
+		}
 		if ( ! isset( $subject_map[ $rule['subject'] ] ) || ! in_array( $rule['operator'], [ 'in', 'not_in' ], true ) || ! $rule['terms'] ) {
 			throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve a group placement rule.' );
 		}
