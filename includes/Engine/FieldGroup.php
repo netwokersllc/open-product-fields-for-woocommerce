@@ -180,13 +180,23 @@ final class FieldGroup {
 			}
 		}
 
-		return [
+		$normalized = [
 			'schema'       => self::SCHEMA,
 			'fields'       => $fields,
 			'rule_groups'  => $rule_groups,
 			'mark_required' => (bool) ( $data['mark_required'] ?? true ),
 			'labels_position' => ( $data['labels_position'] ?? 'above' ) === 'below' ? 'below' : 'above',
 		];
+
+		// WAPF formula variables ride along verbatim (same shape WapfMapper emits
+		// and Calculator/CartIntegration consume); dropped on save = data loss.
+		foreach ( ( $data['variables'] ?? [] ) as $variable ) {
+			if ( is_array( $variable ) ) {
+				$normalized['variables'][] = $variable;
+			}
+		}
+
+		return $normalized;
 	}
 
 	/**
