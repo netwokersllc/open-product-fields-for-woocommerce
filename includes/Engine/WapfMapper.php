@@ -188,7 +188,7 @@ final class WapfMapper {
 				$toggle_settings['default'] = 'checked' === $default ? '1' : '0';
 			}
 			$text_settings = [];
-			if ( 'text' === $wapf_type && is_array( $wapf_field['options'] ?? null ) && array_key_exists( 'default', $wapf_field['options'] ) ) {
+			if ( in_array( $wapf_type, [ 'text', 'url' ], true ) && is_array( $wapf_field['options'] ?? null ) && array_key_exists( 'default', $wapf_field['options'] ) ) {
 				$text_settings['default'] = $wapf_field['options']['default'];
 			}
 

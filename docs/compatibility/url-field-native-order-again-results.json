@@ -1,0 +1,349 @@
+{
+  "base": "http://127.0.0.1:8137",
+  "phase": "again",
+  "checks": [
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Woo order-again route adds one item https://example.invalid/?a=1&b=2",
+      "pass": true
+    },
+    {
+      "label": "actual order-again API preserves exact URL https://example.invalid/?a=1&b=2",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Woo order-again route adds one item https://例え.テスト/こんにちは?q=✓",
+      "pass": true
+    },
+    {
+      "label": "actual order-again API preserves exact URL https://例え.テスト/こんにちは?q=✓",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Woo order-again route adds one item https://example.invalid/café?q=é",
+      "pass": true
+    },
+    {
+      "label": "actual order-again API preserves exact URL https://example.invalid/café?q=é",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Woo order-again route adds one item https://xn--r8jz45g.xn--zckzah/%E3%81%93?q=%E2%9C%93",
+      "pass": true
+    },
+    {
+      "label": "actual order-again API preserves exact URL https://xn--r8jz45g.xn--zckzah/%E3%81%93?q=%E2%9C%93",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Woo order-again route adds one item https://example.invalid/a b",
+      "pass": true
+    },
+    {
+      "label": "actual order-again API preserves exact URL https://example.invalid/a b",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Woo order-again route adds one item customsafe://example.invalid/path",
+      "pass": true
+    },
+    {
+      "label": "actual order-again API preserves exact URL customsafe://example.invalid/path",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Woo order-again route adds one item mailto:é@example.invalid",
+      "pass": true
+    },
+    {
+      "label": "actual order-again API preserves exact URL mailto:é@example.invalid",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Woo order-again route adds one item tel:+123",
+      "pass": true
+    },
+    {
+      "label": "actual order-again API preserves exact URL tel:+123",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Woo order-again route adds one item urn:isbn:978123",
+      "pass": true
+    },
+    {
+      "label": "actual order-again API preserves exact URL urn:isbn:978123",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Woo order-again route adds one item http:example.invalid",
+      "pass": true
+    },
+    {
+      "label": "actual order-again API preserves exact URL http:example.invalid",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Woo order-again route adds one item mailto:",
+      "pass": true
+    },
+    {
+      "label": "actual order-again API preserves exact URL mailto:",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "no uncaught browser errors",
+      "pass": true
+    }
+  ],
+  "observations": [],
+  "orders": [
+    {
+      "value": "https://example.invalid/?a=1&b=2",
+      "group": "15074",
+      "order_id": 15079,
+      "url": "http://127.0.0.1:8137/cart/?order_again=15079&_wpnonce=09d05f3c42",
+      "cart": [
+        {
+          "name": "Profile URL",
+          "value": "https://example.invalid/?a=1&amp;b=2",
+          "display": ""
+        },
+        {
+          "name": "Default URL",
+          "value": "https://example.invalid/?a=1&amp;b=2",
+          "display": ""
+        }
+      ]
+    },
+    {
+      "value": "https://例え.テスト/こんにちは?q=✓",
+      "group": "15074",
+      "order_id": 15080,
+      "url": "http://127.0.0.1:8137/cart/?order_again=15080&_wpnonce=09d05f3c42",
+      "cart": [
+        {
+          "name": "Profile URL",
+          "value": "https://例え.テスト/こんにちは?q=✓",
+          "display": ""
+        },
+        {
+          "name": "Default URL",
+          "value": "https://例え.テスト/こんにちは?q=✓",
+          "display": ""
+        }
+      ]
+    },
+    {
+      "value": "https://example.invalid/café?q=é",
+      "group": "15074",
+      "order_id": 15081,
+      "url": "http://127.0.0.1:8137/cart/?order_again=15081&_wpnonce=09d05f3c42",
+      "cart": [
+        {
+          "name": "Profile URL",
+          "value": "https://example.invalid/café?q=é",
+          "display": ""
+        },
+        {
+          "name": "Default URL",
+          "value": "https://example.invalid/café?q=é",
+          "display": ""
+        }
+      ]
+    },
+    {
+      "value": "https://xn--r8jz45g.xn--zckzah/%E3%81%93?q=%E2%9C%93",
+      "group": "15074",
+      "order_id": 15082,
+      "url": "http://127.0.0.1:8137/cart/?order_again=15082&_wpnonce=09d05f3c42",
+      "cart": [
+        {
+          "name": "Profile URL",
+          "value": "https://xn--r8jz45g.xn--zckzah/%E3%81%93?q=%E2%9C%93",
+          "display": ""
+        },
+        {
+          "name": "Default URL",
+          "value": "https://xn--r8jz45g.xn--zckzah/%E3%81%93?q=%E2%9C%93",
+          "display": ""
+        }
+      ]
+    },
+    {
+      "value": "https://example.invalid/a b",
+      "group": "15074",
+      "order_id": 15083,
+      "url": "http://127.0.0.1:8137/cart/?order_again=15083&_wpnonce=09d05f3c42",
+      "cart": [
+        {
+          "name": "Profile URL",
+          "value": "https://example.invalid/a b",
+          "display": ""
+        },
+        {
+          "name": "Default URL",
+          "value": "https://example.invalid/a b",
+          "display": ""
+        }
+      ]
+    },
+    {
+      "value": "customsafe://example.invalid/path",
+      "group": "15074",
+      "order_id": 15084,
+      "url": "http://127.0.0.1:8137/cart/?order_again=15084&_wpnonce=09d05f3c42",
+      "cart": [
+        {
+          "name": "Profile URL",
+          "value": "customsafe://example.invalid/path",
+          "display": ""
+        },
+        {
+          "name": "Default URL",
+          "value": "customsafe://example.invalid/path",
+          "display": ""
+        }
+      ]
+    },
+    {
+      "value": "mailto:é@example.invalid",
+      "group": "15074",
+      "order_id": 15085,
+      "url": "http://127.0.0.1:8137/cart/?order_again=15085&_wpnonce=09d05f3c42",
+      "cart": [
+        {
+          "name": "Profile URL",
+          "value": "mailto:é@example.invalid",
+          "display": ""
+        },
+        {
+          "name": "Default URL",
+          "value": "mailto:é@example.invalid",
+          "display": ""
+        }
+      ]
+    },
+    {
+      "value": "tel:+123",
+      "group": "15074",
+      "order_id": 15086,
+      "url": "http://127.0.0.1:8137/cart/?order_again=15086&_wpnonce=09d05f3c42",
+      "cart": [
+        {
+          "name": "Profile URL",
+          "value": "tel:+123",
+          "display": ""
+        },
+        {
+          "name": "Default URL",
+          "value": "tel:+123",
+          "display": ""
+        }
+      ]
+    },
+    {
+      "value": "urn:isbn:978123",
+      "group": "15074",
+      "order_id": 15087,
+      "url": "http://127.0.0.1:8137/cart/?order_again=15087&_wpnonce=09d05f3c42",
+      "cart": [
+        {
+          "name": "Profile URL",
+          "value": "urn:isbn:978123",
+          "display": ""
+        },
+        {
+          "name": "Default URL",
+          "value": "urn:isbn:978123",
+          "display": ""
+        }
+      ]
+    },
+    {
+      "value": "http:example.invalid",
+      "group": "15074",
+      "order_id": 15088,
+      "url": "http://127.0.0.1:8137/cart/?order_again=15088&_wpnonce=09d05f3c42",
+      "cart": [
+        {
+          "name": "Profile URL",
+          "value": "http:example.invalid",
+          "display": ""
+        },
+        {
+          "name": "Default URL",
+          "value": "http:example.invalid",
+          "display": ""
+        }
+      ]
+    },
+    {
+      "value": "mailto:",
+      "group": "15074",
+      "order_id": 15089,
+      "url": "http://127.0.0.1:8137/cart/?order_again=15089&_wpnonce=09d05f3c42",
+      "cart": [
+        {
+          "name": "Profile URL",
+          "value": "mailto:",
+          "display": ""
+        },
+        {
+          "name": "Default URL",
+          "value": "mailto:",
+          "display": ""
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "browser": "149.0.7827.55"
+}

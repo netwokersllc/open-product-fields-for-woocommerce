@@ -1,0 +1,9 @@
+<?php
+
+declare (strict_types=1);
+namespace OPF\Vendor\Rowbot\URL\Component\Host\Math\Exception;
+
+use OPF\Vendor\Rowbot\URL\Exception\URLException;
+class MathException extends URLException
+{
+}

@@ -1,0 +1,21 @@
+[
+ ["https://example.invalid/?a=1&b=2",true,true],
+ ["https://例え.テスト/こんにちは?q=✓",true,true],
+ ["https://example.invalid/café?q=é",true,true],
+ ["https://xn--r8jz45g.xn--zckzah/%E3%81%93?q=%E2%9C%93",true,true],
+ ["https://example.invalid/a b",true,true],
+ ["customsafe://example.invalid/path",true,true],
+ ["mailto:é@example.invalid",true,true],
+ ["tel:+123",true,true],
+ ["urn:isbn:978123",true,true],
+ ["http:example.invalid",true,true],
+ ["mailto:",true,true],
+ ["javascript:alert(1)",true,false],
+ ["data:text/html,x",true,false],
+ ["https://example.invalid/<script>",true,false],
+ ["http://256.256.256.256",false,false],
+ ["http://[no]/",false,false],
+ ["https://example.invalid:99999/",false,false],
+ ["https://",false,false],
+ ["not-a-url",false,false]
+]

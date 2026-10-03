@@ -1,0 +1,1054 @@
+{
+  "base": "http://127.0.0.1:8137",
+  "phase": "commerce",
+  "checks": [
+    {
+      "label": "admin REST saves native default https://example.invalid/?a=1&b=2",
+      "pass": true
+    },
+    {
+      "label": "admin reload preserves exact native default https://example.invalid/?a=1&b=2",
+      "pass": true
+    },
+    {
+      "label": "served OPF/Free/Extended native validity https://example.invalid/?a=1&b=2",
+      "pass": true
+    },
+    {
+      "label": "storefront renders exact saved default https://example.invalid/?a=1&b=2",
+      "pass": true
+    },
+    {
+      "label": "native URL has an accessible associated label",
+      "pass": true
+    },
+    {
+      "label": "keyboard moves to default URL input",
+      "pass": true
+    },
+    {
+      "label": "actual classic HTTP acceptance https://example.invalid/?a=1&b=2",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP acceptance https://example.invalid/?a=1&b=2",
+      "pass": true
+    },
+    {
+      "label": "actual Store API cart preserves trimmed native value https://example.invalid/?a=1&b=2",
+      "pass": true
+    },
+    {
+      "label": "actual Store API checkout persists native value https://example.invalid/?a=1&b=2",
+      "pass": true
+    },
+    {
+      "label": "checkout route returns real order confirmation",
+      "pass": true
+    },
+    {
+      "label": "order confirmation renders readable native URL https://example.invalid/?a=1&b=2",
+      "pass": true
+    },
+    {
+      "label": "admin REST saves native default https://例え.テスト/こんにちは?q=✓",
+      "pass": true
+    },
+    {
+      "label": "admin reload preserves exact native default https://例え.テスト/こんにちは?q=✓",
+      "pass": true
+    },
+    {
+      "label": "served OPF/Free/Extended native validity https://例え.テスト/こんにちは?q=✓",
+      "pass": true
+    },
+    {
+      "label": "storefront renders exact saved default https://例え.テスト/こんにちは?q=✓",
+      "pass": true
+    },
+    {
+      "label": "native URL has an accessible associated label",
+      "pass": true
+    },
+    {
+      "label": "keyboard moves to default URL input",
+      "pass": true
+    },
+    {
+      "label": "actual classic HTTP acceptance https://例え.テスト/こんにちは?q=✓",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP acceptance https://例え.テスト/こんにちは?q=✓",
+      "pass": true
+    },
+    {
+      "label": "actual Store API cart preserves trimmed native value https://例え.テスト/こんにちは?q=✓",
+      "pass": true
+    },
+    {
+      "label": "actual Store API checkout persists native value https://例え.テスト/こんにちは?q=✓",
+      "pass": true
+    },
+    {
+      "label": "checkout route returns real order confirmation",
+      "pass": true
+    },
+    {
+      "label": "order confirmation renders readable native URL https://例え.テスト/こんにちは?q=✓",
+      "pass": true
+    },
+    {
+      "label": "admin REST saves native default https://example.invalid/café?q=é",
+      "pass": true
+    },
+    {
+      "label": "admin reload preserves exact native default https://example.invalid/café?q=é",
+      "pass": true
+    },
+    {
+      "label": "served OPF/Free/Extended native validity https://example.invalid/café?q=é",
+      "pass": true
+    },
+    {
+      "label": "storefront renders exact saved default https://example.invalid/café?q=é",
+      "pass": true
+    },
+    {
+      "label": "native URL has an accessible associated label",
+      "pass": true
+    },
+    {
+      "label": "keyboard moves to default URL input",
+      "pass": true
+    },
+    {
+      "label": "actual classic HTTP acceptance https://example.invalid/café?q=é",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP acceptance https://example.invalid/café?q=é",
+      "pass": true
+    },
+    {
+      "label": "actual Store API cart preserves trimmed native value https://example.invalid/café?q=é",
+      "pass": true
+    },
+    {
+      "label": "actual Store API checkout persists native value https://example.invalid/café?q=é",
+      "pass": true
+    },
+    {
+      "label": "checkout route returns real order confirmation",
+      "pass": true
+    },
+    {
+      "label": "order confirmation renders readable native URL https://example.invalid/café?q=é",
+      "pass": true
+    },
+    {
+      "label": "admin REST saves native default https://xn--r8jz45g.xn--zckzah/%E3%81%93?q=%E2%9C%93",
+      "pass": true
+    },
+    {
+      "label": "admin reload preserves exact native default https://xn--r8jz45g.xn--zckzah/%E3%81%93?q=%E2%9C%93",
+      "pass": true
+    },
+    {
+      "label": "served OPF/Free/Extended native validity https://xn--r8jz45g.xn--zckzah/%E3%81%93?q=%E2%9C%93",
+      "pass": true
+    },
+    {
+      "label": "storefront renders exact saved default https://xn--r8jz45g.xn--zckzah/%E3%81%93?q=%E2%9C%93",
+      "pass": true
+    },
+    {
+      "label": "native URL has an accessible associated label",
+      "pass": true
+    },
+    {
+      "label": "keyboard moves to default URL input",
+      "pass": true
+    },
+    {
+      "label": "actual classic HTTP acceptance https://xn--r8jz45g.xn--zckzah/%E3%81%93?q=%E2%9C%93",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP acceptance https://xn--r8jz45g.xn--zckzah/%E3%81%93?q=%E2%9C%93",
+      "pass": true
+    },
+    {
+      "label": "actual Store API cart preserves trimmed native value https://xn--r8jz45g.xn--zckzah/%E3%81%93?q=%E2%9C%93",
+      "pass": true
+    },
+    {
+      "label": "actual Store API checkout persists native value https://xn--r8jz45g.xn--zckzah/%E3%81%93?q=%E2%9C%93",
+      "pass": true
+    },
+    {
+      "label": "checkout route returns real order confirmation",
+      "pass": true
+    },
+    {
+      "label": "order confirmation renders readable native URL https://xn--r8jz45g.xn--zckzah/%E3%81%93?q=%E2%9C%93",
+      "pass": true
+    },
+    {
+      "label": "admin REST saves native default https://example.invalid/a b",
+      "pass": true
+    },
+    {
+      "label": "admin reload preserves exact native default https://example.invalid/a b",
+      "pass": true
+    },
+    {
+      "label": "served OPF/Free/Extended native validity https://example.invalid/a b",
+      "pass": true
+    },
+    {
+      "label": "storefront renders exact saved default https://example.invalid/a b",
+      "pass": true
+    },
+    {
+      "label": "native URL has an accessible associated label",
+      "pass": true
+    },
+    {
+      "label": "keyboard moves to default URL input",
+      "pass": true
+    },
+    {
+      "label": "actual classic HTTP acceptance https://example.invalid/a b",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP acceptance https://example.invalid/a b",
+      "pass": true
+    },
+    {
+      "label": "actual Store API cart preserves trimmed native value https://example.invalid/a b",
+      "pass": true
+    },
+    {
+      "label": "actual Store API checkout persists native value https://example.invalid/a b",
+      "pass": true
+    },
+    {
+      "label": "checkout route returns real order confirmation",
+      "pass": true
+    },
+    {
+      "label": "order confirmation renders readable native URL https://example.invalid/a b",
+      "pass": true
+    },
+    {
+      "label": "admin REST saves native default customsafe://example.invalid/path",
+      "pass": true
+    },
+    {
+      "label": "admin reload preserves exact native default customsafe://example.invalid/path",
+      "pass": true
+    },
+    {
+      "label": "served OPF/Free/Extended native validity customsafe://example.invalid/path",
+      "pass": true
+    },
+    {
+      "label": "storefront renders exact saved default customsafe://example.invalid/path",
+      "pass": true
+    },
+    {
+      "label": "native URL has an accessible associated label",
+      "pass": true
+    },
+    {
+      "label": "keyboard moves to default URL input",
+      "pass": true
+    },
+    {
+      "label": "actual classic HTTP acceptance customsafe://example.invalid/path",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP acceptance customsafe://example.invalid/path",
+      "pass": true
+    },
+    {
+      "label": "actual Store API cart preserves trimmed native value customsafe://example.invalid/path",
+      "pass": true
+    },
+    {
+      "label": "actual Store API checkout persists native value customsafe://example.invalid/path",
+      "pass": true
+    },
+    {
+      "label": "checkout route returns real order confirmation",
+      "pass": true
+    },
+    {
+      "label": "order confirmation renders readable native URL customsafe://example.invalid/path",
+      "pass": true
+    },
+    {
+      "label": "admin REST saves native default mailto:é@example.invalid",
+      "pass": true
+    },
+    {
+      "label": "admin reload preserves exact native default mailto:é@example.invalid",
+      "pass": true
+    },
+    {
+      "label": "served OPF/Free/Extended native validity mailto:é@example.invalid",
+      "pass": true
+    },
+    {
+      "label": "storefront renders exact saved default mailto:é@example.invalid",
+      "pass": true
+    },
+    {
+      "label": "native URL has an accessible associated label",
+      "pass": true
+    },
+    {
+      "label": "keyboard moves to default URL input",
+      "pass": true
+    },
+    {
+      "label": "actual classic HTTP acceptance mailto:é@example.invalid",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP acceptance mailto:é@example.invalid",
+      "pass": true
+    },
+    {
+      "label": "actual Store API cart preserves trimmed native value mailto:é@example.invalid",
+      "pass": true
+    },
+    {
+      "label": "actual Store API checkout persists native value mailto:é@example.invalid",
+      "pass": true
+    },
+    {
+      "label": "checkout route returns real order confirmation",
+      "pass": true
+    },
+    {
+      "label": "order confirmation renders readable native URL mailto:é@example.invalid",
+      "pass": true
+    },
+    {
+      "label": "admin REST saves native default tel:+123",
+      "pass": true
+    },
+    {
+      "label": "admin reload preserves exact native default tel:+123",
+      "pass": true
+    },
+    {
+      "label": "served OPF/Free/Extended native validity tel:+123",
+      "pass": true
+    },
+    {
+      "label": "storefront renders exact saved default tel:+123",
+      "pass": true
+    },
+    {
+      "label": "native URL has an accessible associated label",
+      "pass": true
+    },
+    {
+      "label": "keyboard moves to default URL input",
+      "pass": true
+    },
+    {
+      "label": "actual classic HTTP acceptance tel:+123",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP acceptance tel:+123",
+      "pass": true
+    },
+    {
+      "label": "actual Store API cart preserves trimmed native value tel:+123",
+      "pass": true
+    },
+    {
+      "label": "actual Store API checkout persists native value tel:+123",
+      "pass": true
+    },
+    {
+      "label": "checkout route returns real order confirmation",
+      "pass": true
+    },
+    {
+      "label": "order confirmation renders readable native URL tel:+123",
+      "pass": true
+    },
+    {
+      "label": "admin REST saves native default urn:isbn:978123",
+      "pass": true
+    },
+    {
+      "label": "admin reload preserves exact native default urn:isbn:978123",
+      "pass": true
+    },
+    {
+      "label": "served OPF/Free/Extended native validity urn:isbn:978123",
+      "pass": true
+    },
+    {
+      "label": "storefront renders exact saved default urn:isbn:978123",
+      "pass": true
+    },
+    {
+      "label": "native URL has an accessible associated label",
+      "pass": true
+    },
+    {
+      "label": "keyboard moves to default URL input",
+      "pass": true
+    },
+    {
+      "label": "actual classic HTTP acceptance urn:isbn:978123",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP acceptance urn:isbn:978123",
+      "pass": true
+    },
+    {
+      "label": "actual Store API cart preserves trimmed native value urn:isbn:978123",
+      "pass": true
+    },
+    {
+      "label": "actual Store API checkout persists native value urn:isbn:978123",
+      "pass": true
+    },
+    {
+      "label": "checkout route returns real order confirmation",
+      "pass": true
+    },
+    {
+      "label": "order confirmation renders readable native URL urn:isbn:978123",
+      "pass": true
+    },
+    {
+      "label": "admin REST saves native default http:example.invalid",
+      "pass": true
+    },
+    {
+      "label": "admin reload preserves exact native default http:example.invalid",
+      "pass": true
+    },
+    {
+      "label": "served OPF/Free/Extended native validity http:example.invalid",
+      "pass": true
+    },
+    {
+      "label": "storefront renders exact saved default http:example.invalid",
+      "pass": true
+    },
+    {
+      "label": "native URL has an accessible associated label",
+      "pass": true
+    },
+    {
+      "label": "keyboard moves to default URL input",
+      "pass": true
+    },
+    {
+      "label": "actual classic HTTP acceptance http:example.invalid",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP acceptance http:example.invalid",
+      "pass": true
+    },
+    {
+      "label": "actual Store API cart preserves trimmed native value http:example.invalid",
+      "pass": true
+    },
+    {
+      "label": "actual Store API checkout persists native value http:example.invalid",
+      "pass": true
+    },
+    {
+      "label": "checkout route returns real order confirmation",
+      "pass": true
+    },
+    {
+      "label": "order confirmation renders readable native URL http:example.invalid",
+      "pass": true
+    },
+    {
+      "label": "admin REST saves native default mailto:",
+      "pass": true
+    },
+    {
+      "label": "admin reload preserves exact native default mailto:",
+      "pass": true
+    },
+    {
+      "label": "served OPF/Free/Extended native validity mailto:",
+      "pass": true
+    },
+    {
+      "label": "storefront renders exact saved default mailto:",
+      "pass": true
+    },
+    {
+      "label": "native URL has an accessible associated label",
+      "pass": true
+    },
+    {
+      "label": "keyboard moves to default URL input",
+      "pass": true
+    },
+    {
+      "label": "actual classic HTTP acceptance mailto:",
+      "pass": true
+    },
+    {
+      "label": "clear disposable cart",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP acceptance mailto:",
+      "pass": true
+    },
+    {
+      "label": "actual Store API cart preserves trimmed native value mailto:",
+      "pass": true
+    },
+    {
+      "label": "actual Store API checkout persists native value mailto:",
+      "pass": true
+    },
+    {
+      "label": "checkout route returns real order confirmation",
+      "pass": true
+    },
+    {
+      "label": "order confirmation renders readable native URL mailto:",
+      "pass": true
+    },
+    {
+      "label": "served OPF/Free/Extended native validity javascript:alert(1)",
+      "pass": true
+    },
+    {
+      "label": "native URL has an accessible associated label",
+      "pass": true
+    },
+    {
+      "label": "keyboard moves to default URL input",
+      "pass": true
+    },
+    {
+      "label": "actual classic HTTP acceptance javascript:alert(1)",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP acceptance javascript:alert(1)",
+      "pass": true
+    },
+    {
+      "label": "served OPF/Free/Extended native validity data:text/html,x",
+      "pass": true
+    },
+    {
+      "label": "native URL has an accessible associated label",
+      "pass": true
+    },
+    {
+      "label": "keyboard moves to default URL input",
+      "pass": true
+    },
+    {
+      "label": "actual classic HTTP acceptance data:text/html,x",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP acceptance data:text/html,x",
+      "pass": true
+    },
+    {
+      "label": "served OPF/Free/Extended native validity https://example.invalid/<script>",
+      "pass": true
+    },
+    {
+      "label": "native URL has an accessible associated label",
+      "pass": true
+    },
+    {
+      "label": "keyboard moves to default URL input",
+      "pass": true
+    },
+    {
+      "label": "actual classic HTTP acceptance https://example.invalid/<script>",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP acceptance https://example.invalid/<script>",
+      "pass": true
+    },
+    {
+      "label": "served OPF/Free/Extended native validity http://256.256.256.256",
+      "pass": true
+    },
+    {
+      "label": "native URL has an accessible associated label",
+      "pass": true
+    },
+    {
+      "label": "keyboard moves to default URL input",
+      "pass": true
+    },
+    {
+      "label": "actual classic HTTP acceptance http://256.256.256.256",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP acceptance http://256.256.256.256",
+      "pass": true
+    },
+    {
+      "label": "served OPF/Free/Extended native validity http://[no]/",
+      "pass": true
+    },
+    {
+      "label": "native URL has an accessible associated label",
+      "pass": true
+    },
+    {
+      "label": "keyboard moves to default URL input",
+      "pass": true
+    },
+    {
+      "label": "actual classic HTTP acceptance http://[no]/",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP acceptance http://[no]/",
+      "pass": true
+    },
+    {
+      "label": "served OPF/Free/Extended native validity https://example.invalid:99999/",
+      "pass": true
+    },
+    {
+      "label": "native URL has an accessible associated label",
+      "pass": true
+    },
+    {
+      "label": "keyboard moves to default URL input",
+      "pass": true
+    },
+    {
+      "label": "actual classic HTTP acceptance https://example.invalid:99999/",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP acceptance https://example.invalid:99999/",
+      "pass": true
+    },
+    {
+      "label": "served OPF/Free/Extended native validity https://",
+      "pass": true
+    },
+    {
+      "label": "native URL has an accessible associated label",
+      "pass": true
+    },
+    {
+      "label": "keyboard moves to default URL input",
+      "pass": true
+    },
+    {
+      "label": "actual classic HTTP acceptance https://",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP acceptance https://",
+      "pass": true
+    },
+    {
+      "label": "served OPF/Free/Extended native validity not-a-url",
+      "pass": true
+    },
+    {
+      "label": "native URL has an accessible associated label",
+      "pass": true
+    },
+    {
+      "label": "keyboard moves to default URL input",
+      "pass": true
+    },
+    {
+      "label": "actual classic HTTP acceptance not-a-url",
+      "pass": true
+    },
+    {
+      "label": "actual Store API HTTP acceptance not-a-url",
+      "pass": true
+    },
+    {
+      "label": "native input stays within mobile viewport",
+      "pass": true
+    },
+    {
+      "label": "no uncaught browser errors",
+      "pass": true
+    }
+  ],
+  "observations": [
+    {
+      "value": "https://example.invalid/?a=1&b=2",
+      "nativeExpected": true,
+      "accepted": true,
+      "native": [
+        true,
+        true,
+        true
+      ],
+      "classicAccepted": true,
+      "storeAccepted": true,
+      "storeStatus": 201
+    },
+    {
+      "value": "https://例え.テスト/こんにちは?q=✓",
+      "nativeExpected": true,
+      "accepted": true,
+      "native": [
+        true,
+        true,
+        true
+      ],
+      "classicAccepted": true,
+      "storeAccepted": true,
+      "storeStatus": 201
+    },
+    {
+      "value": "https://example.invalid/café?q=é",
+      "nativeExpected": true,
+      "accepted": true,
+      "native": [
+        true,
+        true,
+        true
+      ],
+      "classicAccepted": true,
+      "storeAccepted": true,
+      "storeStatus": 201
+    },
+    {
+      "value": "https://xn--r8jz45g.xn--zckzah/%E3%81%93?q=%E2%9C%93",
+      "nativeExpected": true,
+      "accepted": true,
+      "native": [
+        true,
+        true,
+        true
+      ],
+      "classicAccepted": true,
+      "storeAccepted": true,
+      "storeStatus": 201
+    },
+    {
+      "value": "https://example.invalid/a b",
+      "nativeExpected": true,
+      "accepted": true,
+      "native": [
+        true,
+        true,
+        true
+      ],
+      "classicAccepted": true,
+      "storeAccepted": true,
+      "storeStatus": 201
+    },
+    {
+      "value": "customsafe://example.invalid/path",
+      "nativeExpected": true,
+      "accepted": true,
+      "native": [
+        true,
+        true,
+        true
+      ],
+      "classicAccepted": true,
+      "storeAccepted": true,
+      "storeStatus": 201
+    },
+    {
+      "value": "mailto:é@example.invalid",
+      "nativeExpected": true,
+      "accepted": true,
+      "native": [
+        true,
+        true,
+        true
+      ],
+      "classicAccepted": true,
+      "storeAccepted": true,
+      "storeStatus": 201
+    },
+    {
+      "value": "tel:+123",
+      "nativeExpected": true,
+      "accepted": true,
+      "native": [
+        true,
+        true,
+        true
+      ],
+      "classicAccepted": true,
+      "storeAccepted": true,
+      "storeStatus": 201
+    },
+    {
+      "value": "urn:isbn:978123",
+      "nativeExpected": true,
+      "accepted": true,
+      "native": [
+        true,
+        true,
+        true
+      ],
+      "classicAccepted": true,
+      "storeAccepted": true,
+      "storeStatus": 201
+    },
+    {
+      "value": "http:example.invalid",
+      "nativeExpected": true,
+      "accepted": true,
+      "native": [
+        true,
+        true,
+        true
+      ],
+      "classicAccepted": true,
+      "storeAccepted": true,
+      "storeStatus": 201
+    },
+    {
+      "value": "mailto:",
+      "nativeExpected": true,
+      "accepted": true,
+      "native": [
+        true,
+        true,
+        true
+      ],
+      "classicAccepted": true,
+      "storeAccepted": true,
+      "storeStatus": 201
+    },
+    {
+      "value": "javascript:alert(1)",
+      "nativeExpected": true,
+      "accepted": false,
+      "native": [
+        true,
+        true,
+        true
+      ],
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    },
+    {
+      "value": "data:text/html,x",
+      "nativeExpected": true,
+      "accepted": false,
+      "native": [
+        true,
+        true,
+        true
+      ],
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    },
+    {
+      "value": "https://example.invalid/<script>",
+      "nativeExpected": true,
+      "accepted": false,
+      "native": [
+        true,
+        true,
+        true
+      ],
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    },
+    {
+      "value": "http://256.256.256.256",
+      "nativeExpected": false,
+      "accepted": false,
+      "native": [
+        false,
+        false,
+        false
+      ],
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    },
+    {
+      "value": "http://[no]/",
+      "nativeExpected": false,
+      "accepted": false,
+      "native": [
+        false,
+        false,
+        false
+      ],
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    },
+    {
+      "value": "https://example.invalid:99999/",
+      "nativeExpected": false,
+      "accepted": false,
+      "native": [
+        false,
+        false,
+        false
+      ],
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    },
+    {
+      "value": "https://",
+      "nativeExpected": false,
+      "accepted": false,
+      "native": [
+        false,
+        false,
+        false
+      ],
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    },
+    {
+      "value": "not-a-url",
+      "nativeExpected": false,
+      "accepted": false,
+      "native": [
+        false,
+        false,
+        false
+      ],
+      "classicAccepted": false,
+      "storeAccepted": false,
+      "storeStatus": 400
+    }
+  ],
+  "orders": [
+    {
+      "value": "https://example.invalid/?a=1&b=2",
+      "group": "15074",
+      "order_id": 15079
+    },
+    {
+      "value": "https://例え.テスト/こんにちは?q=✓",
+      "group": "15074",
+      "order_id": 15080
+    },
+    {
+      "value": "https://example.invalid/café?q=é",
+      "group": "15074",
+      "order_id": 15081
+    },
+    {
+      "value": "https://xn--r8jz45g.xn--zckzah/%E3%81%93?q=%E2%9C%93",
+      "group": "15074",
+      "order_id": 15082
+    },
+    {
+      "value": "https://example.invalid/a b",
+      "group": "15074",
+      "order_id": 15083
+    },
+    {
+      "value": "customsafe://example.invalid/path",
+      "group": "15074",
+      "order_id": 15084
+    },
+    {
+      "value": "mailto:é@example.invalid",
+      "group": "15074",
+      "order_id": 15085
+    },
+    {
+      "value": "tel:+123",
+      "group": "15074",
+      "order_id": 15086
+    },
+    {
+      "value": "urn:isbn:978123",
+      "group": "15074",
+      "order_id": 15087
+    },
+    {
+      "value": "http:example.invalid",
+      "group": "15074",
+      "order_id": 15088
+    },
+    {
+      "value": "mailto:",
+      "group": "15074",
+      "order_id": 15089
+    }
+  ],
+  "errors": [],
+  "browser": "149.0.7827.55"
+}

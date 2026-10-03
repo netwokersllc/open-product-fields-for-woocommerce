@@ -1,5 +1,11 @@
 # Native WAPF URL compatibility audit — acceptance withheld
 
+**Follow-up, 2026-10-03:** the implementation and measured cases in
+[native URL parity follow-up](URL-FIELD-NATIVE-PARITY.md) supersede the
+recommendation below for the eight valid URL mismatches and invalid IPv4 case.
+That follow-up records current implementation and real browser/commerce tests;
+this document retains the 2026-10-01 baseline observations for history.
+
 Executed on 2026-10-01, completed at 18:37 UTC, against URL commit
 `0932610f1529a8c30a86f6814e8db481c5ce68e6` in `/tmp/opf-url-parity`.
 The isolated SQLite WordPress/WooCommerce site was `/tmp/opf-url-woo`,
