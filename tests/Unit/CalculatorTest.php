@@ -88,6 +88,27 @@ final class CalculatorTest extends TestCase {
 		$this->assertSame( 0.0, Calculator::evaluate_formula( 'checked(missing)', 0.0, 1, 0.0, '', null, [ 'tags' => [ 'red' ] ] ) );
 	}
 
+	public function test_len_matches_wapf_server_semantics(): void {
+		// WAPF's second argument is case-sensitive: only the literal 'true' strips.
+		$this->assertSame( 17.0, Calculator::evaluate_formula( 'len(a quick brown fox; TRUE)', 0.0, 1, 0.0 ) );
+		$this->assertSame( 17.0, Calculator::evaluate_formula( 'min(len(a quick brown fox; TRUE); 99)', 0.0, 1, 0.0 ) );
+		// PHP \s strips ASCII whitespace only: NBSP, em-space, and NEL count.
+		$this->assertSame( 3.0, Calculator::evaluate_formula( 'len([field.t]; true)', 0.0, 1, 0.0, '', null, [ 't' => "A\u{00A0}B" ] ) );
+		$this->assertSame( 3.0, Calculator::evaluate_formula( 'len([field.t]; true)', 0.0, 1, 0.0, '', null, [ 't' => "A\u{2003}B" ] ) );
+		$this->assertSame( 3.0, Calculator::evaluate_formula( 'len([field.t]; true)', 0.0, 1, 0.0, '', null, [ 't' => "A\u{0085}B" ] ) );
+		// mb_strlen counts code points (WAPF order side): emoji counts as one.
+		$this->assertSame( 3.0, Calculator::evaluate_formula( 'len([field.t])', 0.0, 1, 0.0, '', null, [ 't' => "A\u{1F600}B" ] ) );
+		$this->assertSame( 4.0, Calculator::evaluate_formula( 'len([field.t])', 0.0, 1, 0.0, '', null, [ 't' => "Ae\u{0301}B" ] ) );
+		// empty() treats a submitted "0" like WAPF: length zero.
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'len([field.t])', 0.0, 1, 0.0, '', null, [ 't' => '0' ] ) );
+		// [field.X] resolves the submitted slug to its choice label.
+		$this->assertSame( 11.0, Calculator::evaluate_formula( 'len([field.size])', 0.0, 1, 0.0, '', null, [ 'size' => 'xl' ], 0, [], [ 'size' => [ 'xl' => 'Extra Large' ] ] ) );
+		$this->assertSame( 10.0, Calculator::evaluate_formula( 'if([field.size]=Extra Large;10;20)', 0.0, 1, 0.0, '', null, [ 'size' => 'xl' ], 0, [], [ 'size' => [ 'xl' => 'Extra Large' ] ] ) );
+		// The X_slug suffix picks one submitted value when a field has several.
+		$this->assertSame( 6.0, Calculator::evaluate_formula( 'len([field.size_m])', 0.0, 1, 0.0, '', null, [ 'size' => [ 'xl', 'm' ] ], 0, [], [ 'size' => [ 'xl' => 'Extra Large', 'm' => 'Medium' ] ] ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'len([field.size_missing])', 0.0, 1, 0.0, '', null, [ 'size' => [ 'xl', 'm' ] ], 0, [], [ 'size' => [ 'xl' => 'Extra Large', 'm' => 'Medium' ] ] ) );
+	}
+
 	public function test_public_api_registers_safe_formula_functions_with_arguments_and_context(): void {
 		API::add_formula_function(
 			'opf_test_scale',

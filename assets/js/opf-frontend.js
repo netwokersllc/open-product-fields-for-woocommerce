@@ -691,6 +691,40 @@ const fmtMoney = (amount) => {
   return neg + format.replace('%1$s', symbol).replace('%2$s', price);
 };
 
+// WAPF resolves [field.X] to the first submitted value's label; submitted
+// choice values are slugs, so they are translated through the def-provided
+// slug→label map carried on fieldValues.__opf_labels. WAPF's field.X_slug
+// suffix picks one submitted value when a field has several; OPF field ids
+// may contain underscores, so the full token is tried as a field id first.
+const formulaFieldLabel = (token, fieldValues) => {
+  const labels = fieldValues && typeof fieldValues === 'object' ? fieldValues.__opf_labels || {} : {};
+  const parts = token.split('_');
+  let fid = parts[0].toLowerCase();
+  let option = parts.length > 1 ? parts[1] : null;
+  let value = fieldValues ? fieldValues[fid] : undefined;
+  if (value === undefined) {
+    const whole = token.toLowerCase();
+    if (fieldValues && Object.prototype.hasOwnProperty.call(fieldValues, whole)) {
+      fid = whole;
+      option = null;
+      value = fieldValues[fid];
+    } else {
+      return '';
+    }
+  }
+  const vals = Array.isArray(value) ? value : [value];
+  if (option !== null && vals.length > 1) {
+    const hit = vals.find((v) => String(v) === option);
+    if (hit === undefined) return '0';
+    const hitLabel = labels[fid] ? labels[fid][String(hit)] : undefined;
+    return hitLabel !== undefined ? String(hitLabel) : '0';
+  }
+  const first = vals[0];
+  const scalar = first == null ? '' : String(first);
+  const resolved = labels[fid] ? labels[fid][scalar] : undefined;
+  return resolved !== undefined ? String(resolved) : scalar;
+};
+
 const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOverride = null, fieldPrices = {}) => {
   // Safe mirror of the server-side evaluator (per-unit formulas; the qty
   // factor was stripped at import and is re-applied by the caller).
@@ -706,8 +740,7 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
     else {
       const field = /^\[field\.([a-z0-9_-]+)\]$/i.exec(value);
       if (field) {
-        const fieldValue = fieldValues[String(field[1]).toLowerCase()];
-        value = fieldValue == null || Array.isArray(fieldValue) ? '' : String(fieldValue);
+        value = formulaFieldLabel(String(field[1]), fieldValues);
       }
     }
     let year;
@@ -750,11 +783,7 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
     const value = fieldPrices[String(id).toLowerCase()];
     const amount = Array.isArray(value) ? value.reduce((sum, item) => sum + (Number(item) || 0), 0) : Number(value);
     return String(Number.isFinite(amount) ? amount : 0);
-  }).replace(/\[field\.([a-z0-9_-]+)\]/gi, (token, id) => {
-    const value = fieldValues[String(id).toLowerCase()];
-    const scalar = Array.isArray(value) ? value[0] : value;
-    return scalar == null ? '' : String(scalar);
-  });
+  }).replace(/\[field\.([a-z0-9_-]+)\]/gi, (token, id) => formulaFieldLabel(String(id), fieldValues));
   const expr = resolved
     .replace(/\[price\]/gi, ' P ')
     .replace(/\[qty\]/gi, ' Q ')
@@ -893,9 +922,9 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
         case 'min': result = args.length ? Math.min(...args.map(number)) : 0; break;
         case 'max': result = args.length ? Math.max(...args.map(number)) : 0; break;
         case 'len': {
-          let value = args[0] || '';
-          if ((args[1] || '').toLowerCase() === 'true') value = value.replace(/\s/gu, '');
-          result = [...value].length;
+          let value = String(args[0]);
+          if (args[1] === 'true') value = value.replace(/\s/g, '');
+          result = value.length;
           break;
         }
         case 'checked': {
@@ -1178,6 +1207,18 @@ const writeTotals = () => {
         values[fid] = '';
       }
     });
+    const choiceLabels = {};
+    fields.forEach((fieldEl) => {
+      const fid = fieldEl.getAttribute('data-opf-field');
+      const def = (window.OPF_FIELDS || {})[gid]?.[fid];
+      if (!def || !Array.isArray(def.choices)) return;
+      const map = {};
+      def.choices.forEach((choice) => {
+        if (choice && choice.slug != null && choice.label != null) map[String(choice.slug)] = String(choice.label);
+      });
+      if (Object.keys(map).length) choiceLabels[String(fid).toLowerCase()] = map;
+    });
+    values.__opf_labels = choiceLabels;
     // WAPF clone_type=qty parity: quantity-repeat units merge into cart lines
     // whose quantity is the count of identical units. The clone signature is
     // the WHOLE unit — every quantity-scope field's value at that index —

@@ -480,6 +480,15 @@ final class CartIntegration {
 			}
 
 			$group_values = (array) $values[ $gid ];
+			// WAPF `[field.X]` resolves to the submitted value's label, not its slug.
+			$field_labels = [];
+			foreach ( $group->data['fields'] as $label_field ) {
+				foreach ( (array) ( $label_field['choices'] ?? [] ) as $label_choice ) {
+					if ( isset( $label_choice['slug'], $label_choice['label'] ) ) {
+						$field_labels[ strtolower( (string) $label_field['id'] ) ][ (string) $label_choice['slug'] ] = (string) $label_choice['label'];
+					}
+				}
+			}
 
 			foreach ( $group->data['fields'] as $field ) {
 				if ( in_array( $field['type'], [ 'paragraph', 'section', 'section_end' ], true ) ) {
@@ -518,6 +527,7 @@ final class CartIntegration {
 								'addons'       => $per_unit,
 								'field_values' => $clone_values,
 								'field_prices' => $clone_prices,
+								'field_labels' => $field_labels,
 								'product_id'   => $product->get_id(),
 								// WAPF clone_type=qty → qty_based do_pricing row.
 								'qty_based'    => 'quantity' === (string) ( $priced_field['repeat']['mode'] ?? '' ),
@@ -543,6 +553,7 @@ final class CartIntegration {
 						'addons' => $per_unit,
 						'field_values' => $group_values,
 						'field_prices' => $field_prices,
+						'field_labels' => $field_labels,
 						'product_id' => $product->get_id(),
 					]
 				);

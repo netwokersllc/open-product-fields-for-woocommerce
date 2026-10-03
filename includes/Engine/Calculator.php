@@ -43,6 +43,7 @@ final class Calculator {
 		$addons = (float) ( $context['addons'] ?? 0.0 );
 		$field_values = is_array( $context['field_values'] ?? null ) ? $context['field_values'] : [];
 		$field_prices = is_array( $context['field_prices'] ?? null ) ? $context['field_prices'] : [];
+		$field_labels = is_array( $context['field_labels'] ?? null ) ? $context['field_labels'] : [];
 
 		if ( ! empty( $field['repeat']['enabled'] ) ) {
 			$instance_field = $field;
@@ -66,7 +67,7 @@ final class Calculator {
 			foreach ( $field['choices'] as $choice ) {
 				$quantity = max( 0, (int) ( $quantities[ $choice['slug'] ] ?? 0 ) );
 				if ( $quantity && empty( $choice['disabled'] ) ) {
-					$total += $quantity * self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices, $qty_based );
+					$total += $quantity * self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices, $qty_based, $field_labels );
 				}
 			}
 			return max( 0.0, (float) $total );
@@ -86,7 +87,7 @@ final class Calculator {
 				foreach ( $slugs as $slug ) {
 					foreach ( $field['choices'] as $choice ) {
 						if ( $choice['slug'] === (string) $slug && ! $choice['disabled'] ) {
-							$total += self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices, $qty_based );
+							$total += self::choice_addon( $choice['pricing'], $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices, $qty_based, $field_labels );
 							if ( ! in_array( $field['type'], [ 'checkbox' ], true ) && !( 'swatch' === $field['type'] && ! empty( $field['multiple'] ) ) ) {
 								break;
 							}
@@ -98,7 +99,7 @@ final class Calculator {
 			default:
 				// Text-like fields use field-level pricing only.
 				$amount = is_scalar( $value ) ? (string) $value : '';
-				$total += self::field_pricing_addon( $field['pricing'], $amount, $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices, $qty_based );
+				$total += self::field_pricing_addon( $field['pricing'], $amount, $price, $qty, $addons, $field_values, (int) ( $context['product_id'] ?? 0 ), $field_prices, $qty_based, $field_labels );
 				break;
 		}
 
@@ -127,7 +128,7 @@ final class Calculator {
 	 *
 	 * @param array<string,mixed> $pricing Normalized choice pricing.
 	 */
-	public static function choice_addon( array $pricing, float $price, int $qty, float $addons, array $field_values = [], int $product_id = 0, array $field_prices = [], bool $qty_based = false ): float {
+	public static function choice_addon( array $pricing, float $price, int $qty, float $addons, array $field_values = [], int $product_id = 0, array $field_prices = [], bool $qty_based = false, array $field_labels = [] ): float {
 		$qty = max( 1, $qty );
 		$result = null;
 		switch ( $pricing['type'] ) {
@@ -138,7 +139,7 @@ final class Calculator {
 				$result = $price * ( (float) $pricing['amount'] / 100 );
 				break;
 			case 'formula':
-				$result = self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, '', null, $field_values, $product_id, $field_prices );
+				$result = self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, '', null, $field_values, $product_id, $field_prices, $field_labels );
 				break;
 			default:
 				return 0.0;
@@ -155,7 +156,7 @@ final class Calculator {
 	 *
 	 * @param array<string,mixed> $pricing Normalized field pricing.
 	 */
-	public static function field_pricing_addon( array $pricing, string $value, float $price, int $qty, float $addons, array $field_values = [], int $product_id = 0, array $field_prices = [], bool $qty_based = false ): float {
+	public static function field_pricing_addon( array $pricing, string $value, float $price, int $qty, float $addons, array $field_values = [], int $product_id = 0, array $field_prices = [], bool $qty_based = false, array $field_labels = [] ): float {
 		if ( '' === trim( $value ) ) {
 			return 0.0;
 		}
@@ -169,7 +170,7 @@ final class Calculator {
 				$result = $price * ( (float) $pricing['amount'] / 100 );
 				break;
 			case 'formula':
-				$result = self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, $value, null, $field_values, $product_id, $field_prices );
+				$result = self::evaluate_formula( $pricing['formula'], $price, $qty, $addons, $value, null, $field_values, $product_id, $field_prices, $field_labels );
 				break;
 			default:
 				return 0.0;
@@ -187,7 +188,7 @@ final class Calculator {
 	 * validated [field.{id}] date references. No eval() — recursive descent
 	 * parser. Syntax errors and invalid dates fail closed to zero.
 	 */
-	public static function evaluate_formula( string $formula, float $price, int $qty, float $addons, string $val = '', ?string $today = null, array $field_values = [], int $product_id = 0, array $field_prices = [] ): float {
+	public static function evaluate_formula( string $formula, float $price, int $qty, float $addons, string $val = '', ?string $today = null, array $field_values = [], int $product_id = 0, array $field_prices = [], array $field_labels = [] ): float {
 		if ( $product_id > 0 && function_exists( 'apply_filters' ) ) {
 			$price = (float) apply_filters( 'opf_formula_base_price', $price, $product_id );
 		}
@@ -208,25 +209,21 @@ final class Calculator {
 		);
 		$formula = preg_replace_callback(
 			'/\[field\.([a-zA-Z0-9_-]+)\]/i',
-			static function ( array $match ) use ( $field_values ): string {
-				$value = $field_values[ strtolower( $match[1] ) ] ?? '';
-				if ( is_array( $value ) ) {
-					$value = reset( $value );
-				}
-				return is_scalar( $value ) ? (string) $value : '';
+			static function ( array $match ) use ( $field_values, $field_labels ): string {
+				return self::formula_field_label( $match[1], $field_values, $field_labels );
 			},
 			$formula
 		);
 		$formula = preg_replace( '/today\s*\(\s*\)/i', '__OPF_TODAY__', $formula );
 		$formula = preg_replace_callback(
 			'/\bdatediff\s*\(([^()]*)\)/i',
-			static function ( array $match ) use ( $val, $today, $field_values ): string {
+			static function ( array $match ) use ( $val, $today, $field_values, $field_labels ): string {
 				$args = self::split_formula_arguments( $match[1] );
 				if ( 2 !== count( $args ) ) {
 					return '0';
 				}
-				$date1 = self::parse_formula_date( $args[0], $val, $field_values, $today );
-				$date2 = self::parse_formula_date( $args[1], $val, $field_values, $today );
+				$date1 = self::parse_formula_date( $args[0], $val, $field_values, $today, $field_labels );
+				$date2 = self::parse_formula_date( $args[1], $val, $field_values, $today, $field_labels );
 				if ( null === $date1 || null === $date2 ) {
 					return '0';
 				}
@@ -236,8 +233,8 @@ final class Calculator {
 		);
 		$formula = preg_replace_callback(
 			'/\b(dow|month)\s*\(([^()]*)\)/i',
-			static function ( array $match ) use ( $val, $today, $field_values ): string {
-				$date = self::parse_formula_date( $match[2], $val, $field_values, $today );
+			static function ( array $match ) use ( $val, $today, $field_values, $field_labels ): string {
+				$date = self::parse_formula_date( $match[2], $val, $field_values, $today, $field_labels );
 				if ( null === $date ) {
 					return '0';
 				}
@@ -245,7 +242,7 @@ final class Calculator {
 			},
 			$formula
 		);
-		$formula = str_replace(
+		$formula = str_ireplace(
 			[ '[price]', '[qty]', '[addons]', '[options_total]', '[val]' ],
 			[ ' P ', ' Q ', ' A ', ' A ', ' V ' ],
 			$formula
@@ -259,6 +256,7 @@ final class Calculator {
 				'value'        => $val,
 				'field_values' => $field_values,
 				'field_prices' => $field_prices,
+				'field_labels' => $field_labels,
 				'product_id'   => $product_id > 0 ? $product_id : null,
 			]
 		);
@@ -387,9 +385,9 @@ final class Calculator {
 				}, $args ) ) : 0;
 			},
 			'len' => static function ( array $args ): int {
-				$text = (string) ( $args[0] ?? '' );
-				if ( isset( $args[1] ) && 'true' === strtolower( trim( (string) $args[1] ) ) ) {
-					$text = preg_replace( '/\s/u', '', $text ) ?? $text;
+				$text = empty( $args[0] ) ? '' : (string) $args[0];
+				if ( isset( $args[1] ) && 'true' === $args[1] ) {
+					$text = preg_replace( '/\s/', '', $text ) ?? $text;
 				}
 				return function_exists( 'mb_strlen' ) ? mb_strlen( $text, 'UTF-8' ) : strlen( $text );
 			},
@@ -472,13 +470,50 @@ final class Calculator {
 		return $functions;
 	}
 
+	/**
+	 * Resolve a `[field.X]` token the way WAPF does: the first submitted
+	 * value's label. Choice submissions store slugs, so submitted scalars are
+	 * translated through the group's slug→label map when one is provided.
+	 * WAPF's `field.X_slug` suffix selects one submitted value when a field
+	 * has several; OPF field ids may contain underscores, so the full token
+	 * is tried as a field id before the suffix split.
+	 */
+	private static function formula_field_label( string $token, array $field_values, array $field_labels ): string {
+		$parts  = explode( '_', $token );
+		$fid    = strtolower( (string) $parts[0] );
+		$option = $parts[1] ?? null;
+		if ( ! array_key_exists( $fid, $field_values ) ) {
+			$whole = strtolower( $token );
+			if ( ! array_key_exists( $whole, $field_values ) ) {
+				return '';
+			}
+			$fid    = $whole;
+			$option = null;
+		}
+		$values = is_array( $field_values[ $fid ] ) ? array_values( $field_values[ $fid ] ) : [ $field_values[ $fid ] ];
+		if ( null !== $option && count( $values ) > 1 ) {
+			foreach ( $values as $submitted ) {
+				if ( is_scalar( $submitted ) && (string) $submitted === $option ) {
+					return isset( $field_labels[ $fid ][ (string) $submitted ] ) ? (string) $field_labels[ $fid ][ (string) $submitted ] : '0';
+				}
+			}
+			return '0';
+		}
+		$first  = $values[0] ?? '';
+		$scalar = is_scalar( $first ) ? (string) $first : '';
+		return isset( $field_labels[ $fid ][ $scalar ] ) ? (string) $field_labels[ $fid ][ $scalar ] : $scalar;
+	}
+
 	/** Evaluate an arithmetic expression using the current pricing context. */
 	private static function formula_numeric_value( string $expression, array $context ): float {
-		$expression = strtolower( trim( $expression ) );
-		if ( 'true' === $expression ) {
+		// Argument case is significant (e.g. len(x;TRUE) must not strip). Only
+		// the true/false literals are matched case-insensitively.
+		$expression = trim( $expression );
+		$lower      = strtolower( $expression );
+		if ( 'true' === $lower ) {
 			return 1.0;
 		}
-		if ( 'false' === $expression ) {
+		if ( 'false' === $lower ) {
 			return 0.0;
 		}
 		return self::evaluate_formula(
@@ -490,7 +525,8 @@ final class Calculator {
 		null,
 			(array) ( $context['field_values'] ?? [] ),
 			(int) ( $context['product_id'] ?? 0 ),
-			(array) ( $context['field_prices'] ?? [] )
+			(array) ( $context['field_prices'] ?? [] ),
+			(array) ( $context['field_labels'] ?? [] )
 		);
 	}
 
@@ -634,7 +670,7 @@ final class Calculator {
 	}
 
 	/** Resolve a WAPF date function argument to a strictly validated date. */
-	private static function parse_formula_date( string $argument, string $val, array $field_values, string $today ): ?\DateTimeImmutable {
+	private static function parse_formula_date( string $argument, string $val, array $field_values, string $today, array $field_labels = [] ): ?\DateTimeImmutable {
 		$argument = trim( $argument );
 		if ( strlen( $argument ) >= 2 && ( ( "'" === $argument[0] && "'" === substr( $argument, -1 ) ) || ( '"' === $argument[0] && '"' === substr( $argument, -1 ) ) ) ) {
 			$argument = substr( $argument, 1, -1 );
@@ -644,8 +680,7 @@ final class Calculator {
 		} elseif ( '[val]' === strtolower( $argument ) ) {
 			$argument = $val;
 		} elseif ( preg_match( '/^\[field\.([a-zA-Z0-9_-]+)\]$/i', $argument, $field_match ) ) {
-			$value = $field_values[ strtolower( $field_match[1] ) ] ?? null;
-			$argument = is_scalar( $value ) ? (string) $value : '';
+			$argument = self::formula_field_label( $field_match[1], $field_values, $field_labels );
 		}
 		$argument = trim( $argument );
 
