@@ -240,6 +240,46 @@ final class WapfExporterTest extends TestCase {
 		$this->assertSame( [ 'user_role', 'user_role', 'user_language' ], array_column( $round_trip['group']['rule_groups'][0]['rules'], 'subject' ) );
 	}
 
+	public function test_exports_variation_attribute_and_type_placement(): void {
+		$group = FieldGroup::normalize( [ 'rule_groups' => [ [ 'rules' => [
+			[ 'subject' => 'product_var', 'operator' => 'in', 'terms' => [ '55' ] ],
+			[ 'subject' => 'var_att', 'operator' => 'in', 'terms' => [ 'color|red', 'size|*' ] ],
+			[ 'subject' => 'product_type', 'operator' => 'not_in', 'terms' => [ 'grouped' ] ],
+		] ] ] ] );
+		$payload = WapfExporter::build_payload( $group );
+		$rules = $payload['conditions'][0]['rules'];
+		$this->assertSame( [ 'product_variation', 'product_var' ], [ $rules[0]['subject'], $rules[0]['condition'] ] );
+		$this->assertSame( [ 'var_att', 'patts' ], [ $rules[1]['subject'], $rules[1]['condition'] ] );
+		$this->assertSame(
+			[ [ 'id' => 'color|red', 'text' => 'color|red' ], [ 'id' => 'size|*', 'text' => 'size|*' ] ],
+			$rules[1]['value']
+		);
+		$this->assertSame( [ 'product_type', '!product_type' ], [ $rules[2]['subject'], $rules[2]['condition'] ] );
+
+		$round_trip = WapfMapper::map( [ 'fields' => [], 'rule_groups' => $payload['conditions'] ] );
+		$this->assertFalse( $round_trip['needs_review'], implode( ' | ', $round_trip['notes'] ) );
+		$this->assertSame(
+			[
+				[ 'subject' => 'product_var', 'operator' => 'in', 'terms' => [ '55' ] ],
+				[ 'subject' => 'var_att', 'operator' => 'in', 'terms' => [ 'color|red', 'size|*' ] ],
+				[ 'subject' => 'product_type', 'operator' => 'not_in', 'terms' => [ 'grouped' ] ],
+			],
+			$round_trip['group']['rule_groups'][0]['rules']
+		);
+	}
+
+	public function test_refuses_variation_scoped_field_conditional_on_export(): void {
+		$group = FieldGroup::normalize( [ 'fields' => [
+			[ 'id' => 'target', 'label' => 'Target', 'type' => 'text', 'conditionals' => [ [ 'action' => 'show', 'logic' => 'all', 'rules' => [
+				[ 'subject' => 'var_att', 'operator' => 'in', 'terms' => [ 'color|red' ] ],
+			] ] ] ],
+		] ] );
+
+		$this->expectException( \InvalidArgumentException::class );
+		$this->expectExceptionMessage( 'variation-scoped field conditional' );
+		WapfExporter::build_payload( $group );
+	}
+
 	public function test_expands_any_rules_into_or_conditionals_and_maps_wapf_pro_operators(): void {
 		$group = FieldGroup::normalize( [
 			'fields' => [

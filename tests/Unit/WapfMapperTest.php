@@ -475,6 +475,59 @@ final class WapfMapperTest extends TestCase {
 		);
 	}
 
+	public function test_maps_variation_attribute_and_type_placement(): void {
+		$wapf = [
+			'fields' => [],
+			'rule_groups' => [ [ 'rules' => [
+				[ 'condition' => 'product_var', 'subject' => 'product_variation', 'value' => [ [ 'id' => '55', 'text' => '#55' ] ] ],
+				[ 'condition' => '!product_var', 'subject' => 'product_variation', 'value' => [ [ 'id' => '56', 'text' => '#56' ] ] ],
+				[ 'condition' => 'patts', 'subject' => 'var_att', 'value' => [ [ 'id' => 'color|red', 'text' => 'Red' ] ] ],
+				[ 'condition' => '!patts', 'subject' => 'var_att', 'value' => [ [ 'id' => 'size|xl', 'text' => 'XL' ] ] ],
+				[ 'condition' => 'product_type', 'subject' => 'product_type', 'value' => [ [ 'id' => 'variable', 'text' => 'Variable' ] ] ],
+				[ 'condition' => '!product_type', 'subject' => 'product_type', 'value' => [ [ 'id' => 'grouped', 'text' => 'Grouped' ] ] ],
+			] ] ],
+		];
+
+		$mapped = WapfMapper::map( $wapf );
+		$this->assertFalse( $mapped['needs_review'], implode( ' | ', $mapped['notes'] ) );
+		$this->assertSame(
+			[
+				[ 'subject' => 'product_var', 'operator' => 'in', 'terms' => [ '55' ] ],
+				[ 'subject' => 'product_var', 'operator' => 'not_in', 'terms' => [ '56' ] ],
+				[ 'subject' => 'var_att', 'operator' => 'in', 'terms' => [ 'color|red' ] ],
+				[ 'subject' => 'var_att', 'operator' => 'not_in', 'terms' => [ 'size|xl' ] ],
+				[ 'subject' => 'product_type', 'operator' => 'in', 'terms' => [ 'variable' ] ],
+				[ 'subject' => 'product_type', 'operator' => 'not_in', 'terms' => [ 'grouped' ] ],
+			],
+			$mapped['group']['rule_groups'][0]['rules']
+		);
+	}
+
+	public function test_maps_variation_scoped_field_conditionals(): void {
+		$wapf = [
+			'fields' => [
+				[ 'id' => 'size', 'label' => 'Size', 'type' => 'text', 'conditionals' => [ [ 'rules' => [
+					[ 'condition' => 'patts', 'value' => [ [ 'id' => 'fabric|cotton', 'text' => 'Cotton' ] ] ],
+				] ] ], 'options' => [], 'pricing' => [ 'enabled' => false ] ],
+				[ 'id' => 'note', 'label' => 'Note', 'type' => 'text', 'conditionals' => [ [ 'rules' => [
+					[ 'condition' => '!product_var', 'value' => [ [ 'id' => '77', 'text' => '#77' ] ] ],
+				] ] ], 'options' => [], 'pricing' => [ 'enabled' => false ] ],
+			],
+			'rule_groups' => [],
+		];
+
+		$mapped = WapfMapper::map( $wapf );
+		$this->assertFalse( $mapped['needs_review'], implode( ' | ', $mapped['notes'] ) );
+		$this->assertSame(
+			[ [ 'subject' => 'var_att', 'operator' => 'in', 'terms' => [ 'fabric|cotton' ] ] ],
+			$mapped['group']['fields'][0]['conditionals'][0]['rules']
+		);
+		$this->assertSame(
+			[ [ 'subject' => 'product_var', 'operator' => 'not_in', 'terms' => [ '77' ] ] ],
+			$mapped['group']['fields'][1]['conditionals'][0]['rules']
+		);
+	}
+
 	public function test_attaches_local_groups_to_host_product(): void {
 		$mapped = WapfMapper::map( $this->swatch_group(), [ 'attach_product_ids' => [ 199813 ] ] );
 		$rules  = $mapped['group']['rule_groups'][0]['rules'];

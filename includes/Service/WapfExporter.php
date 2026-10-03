@@ -637,6 +637,13 @@ final class WapfExporter {
 			foreach ( $blocks as $rules ) {
 				$mapped = [];
 				foreach ( $rules as $rule ) {
+					if ( ! isset( $rule['field'] ) || '' === (string) $rule['field'] ) {
+						// WAPF Tools cannot represent variation-scoped field
+						// conditionals: its own export projection strips
+						// product_var/patts field rules. Fail closed instead of
+						// silently losing the gate.
+						throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve a variation-scoped field conditional.' );
+					}
 					if ( ! in_array( $rule['field'], $field_ids, true ) ) {
 						throw new \InvalidArgumentException( sprintf( 'WAPF Tools export cannot preserve unresolved field reference "%s".', $rule['field'] ) );
 					}
@@ -690,6 +697,32 @@ final class WapfExporter {
 				'subject' => $is_role ? 'user' : 'system',
 				'condition' => ( 'not_in' === $rule['operator'] ? '!' : '' ) . ( $is_role ? 'role' : 'lang' ),
 				'value' => [ [ 'id' => (string) $rule['terms'][0], 'text' => (string) $rule['terms'][0] ] ],
+			];
+		}
+		// Variation/attribute/type targeting maps back onto WAPF's group
+		// conditions. WAPF Tools stores the discriminator in `condition` and
+		// keeps `product_var`/`patts`/`product_type` intact (the export
+		// projection only renames product/product_cat), so these round-trip.
+		if ( in_array( $rule['subject'], [ 'product_var', 'var_att', 'product_type' ], true ) ) {
+			if ( ! in_array( $rule['operator'], [ 'in', 'not_in' ], true ) || ! $rule['terms'] ) {
+				throw new \InvalidArgumentException( 'WAPF Tools export cannot preserve a variation placement rule without terms.' );
+			}
+			$condition_map = [
+				'product_var'  => 'product_var',
+				'var_att'      => 'patts',
+				'product_type' => 'product_type',
+			];
+			$subject_map_wapf = [
+				'product_var'  => 'product_variation',
+				'var_att'      => 'var_att',
+				'product_type' => 'product_type',
+			];
+			return [
+				'subject'   => $subject_map_wapf[ $rule['subject'] ],
+				'condition' => ( 'not_in' === $rule['operator'] ? '!' : '' ) . $condition_map[ $rule['subject'] ],
+				'value'     => array_map( static function ( $term ) {
+					return [ 'id' => (string) $term, 'text' => (string) $term ];
+				}, $rule['terms'] ),
 			];
 		}
 		$subject_map = [

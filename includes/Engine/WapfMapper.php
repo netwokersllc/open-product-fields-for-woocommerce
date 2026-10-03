@@ -1599,6 +1599,32 @@ final class WapfMapper {
 					continue;
 				}
 				$condition = (string) ( $rule['condition'] ?? '' );
+				// WAPF also merges variation-scoped group rules into field
+				// conditionals (`product_var`/`patts`). They carry `value` terms
+				// instead of a field reference; map them onto OPF's
+				// `VariationRules` subjects so imported groups keep the gate.
+				$variation_subject = self::variation_conditional_subject( $condition );
+				if ( null !== $variation_subject ) {
+					$terms = [];
+					foreach ( (array) ( $rule['value'] ?? [] ) as $value ) {
+						if ( is_array( $value ) && isset( $value['id'] ) ) {
+							$terms[] = (string) $value['id'];
+						} elseif ( is_scalar( $value ) && '' !== (string) $value ) {
+							$terms[] = (string) $value;
+						}
+					}
+					if ( ! $terms ) {
+						$notes[]      = sprintf( 'field "%s" has a variation conditional without terms; it needs review.', (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' ) );
+						$needs_review = true;
+						continue;
+					}
+					$rules[] = [
+						'subject'  => $variation_subject,
+						'operator' => isset( $condition[0] ) && '!' === $condition[0] ? 'not_in' : 'in',
+						'terms'    => $terms,
+					];
+					continue;
+				}
 				$operator  = self::CONDITION_MAP[ $condition ] ?? null;
 				$source_field_id = is_scalar( $rule['field'] ?? $rule['subject'] ?? null ) ? (string) ( $rule['field'] ?? $rule['subject'] ) : '';
 				$subject = isset( $opf_ids_by_wapf_id[ $source_field_id ] ) && is_string( $opf_ids_by_wapf_id[ $source_field_id ] )
@@ -1643,6 +1669,27 @@ final class WapfMapper {
 			}
 		}
 		return $out;
+	}
+
+	/**
+	 * Map a WAPF variation-scoped field condition name onto an OPF subject.
+	 *
+	 * WAPF stores/merges `product_var`/`!product_var` (variation IDs) and
+	 * `patts`/`!patts` (`attr|value` pairs) as field conditionals; OPF models
+	 * these as `product_var` and `var_att` subjects in `Evaluator::VARIATION_SUBJECTS`.
+	 *
+	 * @param string $condition WAPF condition name (optionally `!`-negated).
+	 * @return string|null OPF subject, or null when not variation-scoped.
+	 */
+	private static function variation_conditional_subject( string $condition ): ?string {
+		$base = ltrim( $condition, '!' );
+		if ( 'product_var' === $base ) {
+			return 'product_var';
+		}
+		if ( 'patts' === $base ) {
+			return 'var_att';
+		}
+		return null;
 	}
 
 	/**
@@ -1729,10 +1776,12 @@ final class WapfMapper {
 					'product_cats' => 'product_cat',
 					'p_tags'       => 'product_tag',
 					'product_tag'  => 'product_tag',
-					// WAPF group-level variation/attribute rules: variation IDs
-					// (`product_var`) and `attribute|slug` pairs (`patts`).
+					// Variation/attribute/type targeting added by the RULE lane;
+					// WAPF `patts` is the `attr|value` pair list OPF evaluates as
+					// `var_att` (Evaluator::VARIATION_SUBJECTS).
 					'product_var'  => 'product_var',
 					'patts'        => 'var_att',
+					'product_type' => 'product_type',
 				];
 				if ( ! isset( $map[ $cond ] ) ) {
 					$notes[]      = sprintf( 'placement condition "%s" has no OPF equivalent; rule dropped.', $condition );
