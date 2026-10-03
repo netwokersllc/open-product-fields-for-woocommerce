@@ -664,6 +664,8 @@ final class LinkedProducts {
 				self::$adding = true;
 				try {
 					foreach ( $resolved['choices'] as $child ) {
+						// WAPF alias bridge: wapf/linked_products/cart_choice.
+						$child = \OPF\Compat\WapfHooks::linked_products_cart_choice( $child, $field, $product->get_id() );
 						/** @var \WC_Product $child_product */
 						$child_product = $child['product'];
 						$is_variation  = str_contains( $child_product->get_type(), 'variation' );

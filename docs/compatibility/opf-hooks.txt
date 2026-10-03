@@ -1,0 +1,16 @@
+opf_addon_price
+opf_cart_item_base_price
+opf_features_linked_products
+opf_formula_base_price
+opf_frontend_config
+opf_groups_for_product
+opf/linked_products/by_id_args
+opf/linked_products/choice
+opf/linked_products/query_args
+opf_lookup_tables
+opf/setting/
+opf_show_price_hints
+opf_show_totals
+opf_skip_validation
+opf_theme_compat
+opf_upload_session_budget

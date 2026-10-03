@@ -1,0 +1,520 @@
+<?php
+/**
+ * WAPF `wapf/*` alias bridge — lifecycle proof.
+ *
+ * Runs in its own process with a real (tiny) WordPress hook registry so the
+ * bridge's `add_filter()` shims and unwrapped dispatches are exercised exactly
+ * as they would be in production: a `wapf/…` listener is registered, an OPF
+ * lifecycle runs, and the listener must fire with the WAPF argument shape.
+ */
+
+namespace {
+	if ( ! defined( 'ABSPATH' ) ) {
+		define( 'ABSPATH', __DIR__ . '/' );
+	}
+
+	/* ---------------------------------------------------------- hook harness */
+
+	if ( ! function_exists( 'add_filter' ) ) {
+		function add_filter( $tag, $callback, $priority = 10, $accepted = 1 ) {
+			$GLOBALS['wp_hooks'][ $tag ][ (int) $priority ][] = [ 'cb' => $callback, 'accepted' => (int) $accepted ];
+			ksort( $GLOBALS['wp_hooks'][ $tag ] );
+			return true;
+		}
+		function add_action( $tag, $callback, $priority = 10, $accepted = 1 ) {
+			return add_filter( $tag, $callback, $priority, $accepted );
+		}
+		function apply_filters( $tag, $value, ...$args ) {
+			foreach ( $GLOBALS['wp_hooks'][ $tag ] ?? [] as $callbacks ) {
+				foreach ( $callbacks as $hook ) {
+					$pass  = array_slice( $args, 0, max( 0, $hook['accepted'] - 1 ) );
+					$value = call_user_func( $hook['cb'], $value, ...$pass );
+				}
+			}
+			return $value;
+		}
+		function do_action( $tag, ...$args ) {
+			foreach ( $GLOBALS['wp_hooks'][ $tag ] ?? [] as $callbacks ) {
+				foreach ( $callbacks as $hook ) {
+					call_user_func( $hook['cb'], ...array_slice( $args, 0, $hook['accepted'] ) );
+				}
+			}
+		}
+		function has_filter( $tag ) {
+			return ! empty( $GLOBALS['wp_hooks'][ $tag ] );
+		}
+		function remove_filter() {}
+	}
+
+	if ( ! function_exists( '__' ) ) {
+		function __( $text, $domain = null ) { return (string) $text; }
+	}
+	if ( ! function_exists( 'esc_html' ) ) {
+		function esc_html( $text ) { return htmlspecialchars( (string) $text, ENT_QUOTES ); }
+	}
+	if ( ! function_exists( 'esc_attr' ) ) {
+		function esc_attr( $text ) { return htmlspecialchars( (string) $text, ENT_QUOTES ); }
+	}
+	if ( ! function_exists( 'esc_url' ) ) {
+		function esc_url( $text ) { return (string) $text; }
+	}
+	if ( ! function_exists( 'wp_kses_post' ) ) {
+		function wp_kses_post( $text ) { return (string) $text; }
+	}
+	if ( ! function_exists( 'sanitize_text_field' ) ) {
+		function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
+	}
+	if ( ! function_exists( 'sanitize_textarea_field' ) ) {
+		function sanitize_textarea_field( $value ) { return trim( strip_tags( (string) $value ) ); }
+	}
+	if ( ! function_exists( 'sanitize_key' ) ) {
+		function sanitize_key( $key ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $key ) ); }
+	}
+	if ( ! function_exists( 'wp_list_pluck' ) ) {
+		function wp_list_pluck( $list, $field ) {
+			$out = [];
+			foreach ( (array) $list as $item ) {
+				if ( is_array( $item ) && array_key_exists( $field, $item ) ) {
+					$out[] = $item[ $field ];
+				}
+			}
+			return $out;
+		}
+	}
+	if ( ! function_exists( 'wp_json_encode' ) ) {
+		function wp_json_encode( $value, $flags = 0 ) { return json_encode( $value, $flags ); }
+	}
+	if ( ! function_exists( 'wp_unslash' ) ) {
+		function wp_unslash( $value ) { return $value; }
+	}
+	if ( ! function_exists( 'selected' ) ) {
+		function selected( $a, $b, $echo = true ) { return ''; }
+	}
+	if ( ! function_exists( 'wc_price' ) ) {
+		function wc_price( $price ) { return '$' . $price; }
+	}
+	if ( ! function_exists( 'wc_add_notice' ) ) {
+		function wc_add_notice( $message, $type = 'success' ) { $GLOBALS['opf_notices'][] = [ $type, $message ]; }
+	}
+	if ( ! function_exists( 'wp_doing_ajax' ) ) {
+		function wp_doing_ajax() { return false; }
+	}
+	if ( ! function_exists( 'is_cart' ) ) {
+		function is_cart() { return false; }
+	}
+	if ( ! function_exists( 'is_checkout' ) ) {
+		function is_checkout() { return false; }
+	}
+	if ( ! function_exists( 'is_user_logged_in' ) ) {
+		function is_user_logged_in() { return false; }
+	}
+	if ( ! function_exists( 'wp_get_current_user' ) ) {
+		function wp_get_current_user() { return (object) [ 'roles' => [] ]; }
+	}
+	if ( ! function_exists( 'wc_get_product_term_ids' ) ) {
+		function wc_get_product_term_ids( $product_id, $taxonomy ) { return []; }
+	}
+	if ( ! function_exists( 'wp_cache_supports' ) ) {
+		function wp_cache_supports( $feature ) { return false; }
+	}
+	if ( ! function_exists( 'wp_cache_get' ) ) {
+		function wp_cache_get( $key, $group = '' ) { return false; }
+	}
+	if ( ! function_exists( 'wp_cache_set' ) ) {
+		function wp_cache_set( $key, $value, $group = '' ) { return true; }
+	}
+	if ( ! function_exists( 'get_posts' ) ) {
+		function get_posts( $args = [] ) { return []; }
+	}
+	if ( ! function_exists( 'wp_get_attachment_image_src' ) ) {
+		function wp_get_attachment_image_src( $id, $size ) { return [ 'https://example.test/img-' . $id . '-' . $size . '.jpg' ]; }
+	}
+	if ( ! function_exists( 'wp_get_attachment_image' ) ) {
+		function wp_get_attachment_image( $id, $size, $icon = false, $attr = [] ) { return '<img src="https://example.test/img-' . $id . '-' . ( is_array( $size ) ? 'array' : $size ) . '.jpg" />'; }
+	}
+	if ( ! function_exists( 'wp_get_attachment_image_url' ) ) {
+		function wp_get_attachment_image_url( $id, $size ) { return 'https://example.test/img-' . $id . '-full.jpg'; }
+	}
+	if ( ! function_exists( 'wc_placeholder_img_src' ) ) {
+		function wc_placeholder_img_src( $size ) { return 'https://example.test/placeholder.jpg'; }
+	}
+	if ( ! function_exists( 'wp_enqueue_script' ) ) {
+		function wp_enqueue_script( ...$args ) {}
+	}
+	if ( ! function_exists( 'wp_enqueue_style' ) ) {
+		function wp_enqueue_style( ...$args ) {}
+	}
+	if ( ! function_exists( 'wp_print_inline_script_tag' ) ) {
+		function wp_print_inline_script_tag( $script ) {}
+	}
+	if ( ! function_exists( 'admin_url' ) ) {
+		function admin_url( $path = '' ) { return 'https://example.test/wp-admin/' . ltrim( (string) $path, '/' ); }
+	}
+	if ( ! function_exists( 'get_locale' ) ) {
+		function get_locale() { return 'en_US'; }
+	}
+	if ( ! function_exists( 'get_woocommerce_currency' ) ) {
+		function get_woocommerce_currency() { return 'USD'; }
+	}
+	if ( ! function_exists( 'get_woocommerce_currency_symbol' ) ) {
+		function get_woocommerce_currency_symbol() { return '$'; }
+	}
+	if ( ! function_exists( 'wc_get_price_thousand_separator' ) ) {
+		function wc_get_price_thousand_separator() { return ','; }
+	}
+	if ( ! function_exists( 'wc_get_price_decimal_separator' ) ) {
+		function wc_get_price_decimal_separator() { return '.'; }
+	}
+	if ( ! function_exists( 'wc_get_price_decimals' ) ) {
+		function wc_get_price_decimals() { return 2; }
+	}
+	if ( ! function_exists( 'get_woocommerce_price_format' ) ) {
+		function get_woocommerce_price_format() { return '%1$s%2$s'; }
+	}
+	if ( ! function_exists( 'wc_prices_include_tax' ) ) {
+		function wc_prices_include_tax() { return false; }
+	}
+	if ( ! function_exists( 'wc_get_products' ) ) {
+		function wc_get_products( $args ) {
+			$all = $GLOBALS['opf_linked_products'] ?? [];
+			$out = [];
+			foreach ( $all as $id => $product ) {
+				if ( isset( $args['include'] ) && ! in_array( (int) $id, array_map( 'intval', (array) $args['include'] ), true ) ) {
+					continue;
+				}
+				if ( isset( $args['exclude'] ) && in_array( (int) $id, array_map( 'intval', (array) $args['exclude'] ), true ) ) {
+					continue;
+				}
+				$out[] = $product;
+			}
+			return $out;
+		}
+	}
+	if ( ! function_exists( 'wc_get_product' ) ) {
+		function wc_get_product( $id ) { return $GLOBALS['opf_products'][ $id ] ?? false; }
+	}
+	if ( ! function_exists( 'WC' ) ) {
+		function WC() { return (object) [ 'cart' => $GLOBALS['opf_cart'] ?? null ]; }
+	}
+	if ( ! function_exists( 'update_option' ) ) {
+		function update_option( $key, $value, $autoload = false ) { $GLOBALS['opf_test_options'][ $key ] = $value; return true; }
+	}
+
+	if ( ! class_exists( 'WC_Product' ) ) {
+		class WC_Product {
+			private $data;
+			public function __construct( array $data = [] ) {
+				$this->data = array_merge( [
+					'id' => 42, 'parent_id' => 0, 'name' => 'Product 42', 'title' => 'Product 42',
+					'price' => 20.0, 'type' => 'simple', 'purchasable' => true, 'in_stock' => true,
+					'stock' => null, 'sold_individually' => false, 'image_id' => 0,
+					'availability' => 'In stock', 'permalink' => 'https://example.test/p/42',
+					'short_description' => 'Short', 'description' => 'Long', 'attributes' => [],
+				], $data );
+			}
+			public function get_id() { return (int) $this->data['id']; }
+			public function get_parent_id() { return (int) $this->data['parent_id']; }
+			public function get_name() { return (string) $this->data['name']; }
+			public function get_title() { return (string) $this->data['title']; }
+			public function get_price( $context = 'view' ) { return $this->data['price']; }
+			public function set_price( $price ) { $this->data['price'] = $price; }
+			public function set_sale_price( $price ) {}
+			public function get_type() { return (string) $this->data['type']; }
+			public function is_purchasable() { return (bool) $this->data['purchasable']; }
+			public function is_in_stock() { return (bool) $this->data['in_stock']; }
+			public function has_enough_stock( $qty ) { return null === $this->data['stock'] || $qty <= $this->data['stock']; }
+			public function is_sold_individually() { return (bool) $this->data['sold_individually']; }
+			public function get_image_id() { return (int) $this->data['image_id']; }
+			public function get_availability() { return [ 'availability' => $this->data['availability'] ]; }
+			public function get_permalink() { return (string) $this->data['permalink']; }
+			public function get_short_description() { return (string) $this->data['short_description']; }
+			public function get_description() { return (string) $this->data['description']; }
+			public function get_attributes() { return $this->data['attributes']; }
+		}
+	}
+	if ( ! class_exists( 'WC_Cart' ) ) {
+		class WC_Cart {
+			public $cart_contents = [];
+			public function get_cart() { return $this->cart_contents; }
+			public function get_cart_item( $key ) { return $this->cart_contents[ $key ] ?? []; }
+			public function set_quantity( $key, $quantity, $refresh = true ) { $this->cart_contents[ $key ]['quantity'] = $quantity; }
+			public function add_to_cart( $product_id, $quantity, $variation_id, $variation, $data ) {
+				$key = 'child-' . count( $this->cart_contents );
+				$this->cart_contents[ $key ] = [ 'key' => $key, 'product_id' => $product_id, 'quantity' => $quantity ] + $data;
+				return $key;
+			}
+			public function remove_cart_item( $key ) { unset( $this->cart_contents[ $key ] ); }
+		}
+	}
+	if ( ! class_exists( 'WC_Order' ) ) {
+		class WC_Order {
+			public function get_id() { return 1001; }
+		}
+	}
+	if ( ! class_exists( 'WC_Order_Item_Product' ) ) {
+		class WC_Order_Item_Product {
+			public $meta = [];
+			private $product;
+			private $quantity;
+			public function __construct( $product = null, $quantity = 1, array $meta = [] ) {
+				$this->product  = $product;
+				$this->quantity = $quantity;
+				$this->meta     = $meta;
+			}
+			public function get_product() { return $this->product; }
+			public function get_quantity() { return $this->quantity; }
+			public function get_id() { return 5; }
+			public function add_meta_data( $key, $value, $unique = false ) { $this->meta[ $key ] = $value; }
+			public function get_meta( $key, $single = true ) { return $this->meta[ $key ] ?? ''; }
+		}
+	}
+}
+
+namespace OPF\Tests\Unit {
+
+use OPF\Compat\WapfHooks;
+use OPF\Engine\FieldGroup;
+use OPF\Service\CartIntegration;
+use OPF\Service\FieldGroups;
+use OPF\Service\LinkedProducts;
+use OPF\Service\Renderer;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\TestCase;
+
+#[RunTestsInSeparateProcesses]
+#[PreserveGlobalState( false )]
+final class WapfHooksBridgeTest extends TestCase {
+
+	/** @var array<string,array<int,array>> */
+	private array $fired = [];
+
+	protected function setUp(): void {
+		$GLOBALS['wp_hooks']           = [];
+		$GLOBALS['opf_test_options']   = [];
+		$GLOBALS['opf_products']       = [
+			11 => new \WC_Product( [ 'id' => 11, 'name' => 'Mug', 'price' => 8.0 ] ),
+			42 => new \WC_Product( [ 'id' => 42, 'name' => 'Parent', 'price' => 20.0 ] ),
+		];
+		$GLOBALS['opf_linked_products'] = $GLOBALS['opf_products'];
+		$GLOBALS['opf_notices']         = [];
+		$_POST                          = [];
+		FieldGroups::flush_cache();
+
+		$this->fired = [];
+
+		// The bridge under test.
+		WapfHooks::init();
+
+		// A third-party WAPF integration listening on the WAPF names.
+		foreach ( $this->bridged_hooks() as $hook ) {
+			add_filter( $hook, function ( ...$args ) use ( $hook ) {
+				$this->fired[ $hook ][] = $args;
+				return $args[0];
+			}, 10, 8 );
+		}
+
+		// Feed OPF the test group for any product.
+		add_filter( 'opf_groups_for_product', fn( $groups, $product ) => [ $this->group_entry() ], 10, 2 );
+	}
+
+	/** The exact WAPF hook names this lane bridges. */
+	private function bridged_hooks(): array {
+		return [
+			'wapf/features/linked_products', 'wapf/linked_products/choice', 'wapf/products/query',
+			'wapf/product_field_groups', 'wapf/lookup_tables', 'wapf/skip_cart_validation',
+			'wapf/skip_fieldgroup_validation', 'wapf/pricing_summary',
+			'wapf/pricing/base', 'wapf/pricing/cart_item_base', 'wapf/pricing/cart_item_options',
+			'wapf/pricing/product', 'wapf/cart/item_data', 'wapf/validate',
+			'wapf/order/order_item_field', 'wapf/order_item/meta_display_value',
+			'wapf/order_again/before_cart_item_field', 'wapf/html/field_container_classes',
+			'wapf/html/field_label', 'wapf/html/field_description',
+			'wapf/html/option_wrapper_classes', 'wapf/html/image_swatch_size',
+			'wapf/html/section_container_classes', 'wapf/linked_products/cart_choice',
+			'wapf_before_wrapper', 'wapf_before_product_totals', 'wapf_after_product_totals',
+		];
+	}
+
+	private function field( array $overrides = [] ): array {
+		return FieldGroup::normalize_field( array_merge( [
+			'id' => 'name', 'label' => 'Name', 'type' => 'text',
+			'pricing' => [ 'type' => 'fixed', 'amount' => 5 ],
+		], $overrides ) );
+	}
+
+	private function group_entry(): array {
+		$fields = [
+			$this->field( [ 'id' => 'name', 'label' => 'Name', 'type' => 'text', 'description' => 'Your name', 'pricing' => [ 'type' => 'fixed', 'amount' => 5 ] ] ),
+			$this->field( [
+				'id' => 'opt', 'label' => 'Option', 'type' => 'select',
+				'choices'  => [ [ 'slug' => 'a', 'label' => 'A', 'pricing' => [ 'type' => 'fixed', 'amount' => 3 ] ], [ 'slug' => 'b', 'label' => 'B' ] ],
+			] ),
+			$this->field( [
+				'id' => 'sw', 'label' => 'Swatch', 'type' => 'swatch', 'swatch_style' => 'image',
+				'choices'  => [ [ 'slug' => 's1', 'label' => 'S1', 'image_id' => 7, 'image' => 'https://example.test/s1.jpg', 'pricing' => [ 'type' => 'fixed', 'amount' => 1 ] ] ],
+			] ),
+			$this->field( [ 'id' => 'fx', 'label' => 'Formula', 'type' => 'text', 'pricing' => [ 'type' => 'formula', 'formula' => 'lookuptable(tbl;1)' ] ] ),
+			$this->field( [
+				'id' => 'prods', 'label' => 'Extras', 'type' => 'products', 'product_selection' => 'manual',
+				'choices' => [ [ 'product_id' => 11, 'pricing_type' => 'fixed' ] ],
+			] ),
+			$this->field( [ 'id' => 'sec', 'label' => 'Section', 'type' => 'section' ] ),
+			$this->field( [ 'id' => 'secend', 'label' => '', 'type' => 'section_end' ] ),
+		];
+		$group = new FieldGroup( [ 'schema' => FieldGroup::SCHEMA, 'fields' => $fields ] );
+		return [ 'id' => 77, 'title' => 'Group', 'lang' => '', 'group' => $group ];
+	}
+
+	private function assert_fired( string $hook ): void {
+		$this->assertArrayHasKey( $hook, $this->fired, "WAPF alias '$hook' did not fire on the OPF lifecycle." );
+		$this->assertNotEmpty( $this->fired[ $hook ][0], "WAPF alias '$hook' fired without arguments." );
+	}
+
+	private function fired( string $hook ): array {
+		return $this->fired[ $hook ] ?? [];
+	}
+
+	/* ============================================================ lifecycle */
+
+	public function test_wapf_aliases_fire_across_cart_lifecycle(): void {
+		$product = $GLOBALS['opf_products'][42];
+
+		// --- Service registration surfaces -----------------------------------
+		LinkedProducts::init();
+		$this->assert_fired( 'wapf/features/linked_products' );
+
+		Renderer::show_totals();
+		$this->assert_fired( 'wapf/pricing_summary' );
+
+		// --- FieldGroups::for_product → product_field_groups ------------------
+		FieldGroups::for_product( $product );
+		$this->assert_fired( 'wapf/product_field_groups' );
+
+		// --- Validation: skip + per-field validate ----------------------------
+		$_POST['opf'] = [ '77' => [ 'name' => 'Hello', 'opt' => 'a', 'sw' => 's1', 'fx' => '2' ] ];
+		$passed = CartIntegration::validate_add_to_cart( true, 42, 1, 0, [], [] );
+		$this->assertTrue( $passed );
+		$this->assert_fired( 'wapf/skip_cart_validation' );
+		$this->assert_fired( 'wapf/skip_fieldgroup_validation' );
+		$this->assert_fired( 'wapf/validate' );
+		$validate_args = $this->fired( 'wapf/validate' )[0];
+		$this->assertCount( 8, $validate_args, 'wapf/validate must receive the 8-argument WAPF shape.' );
+		$this->assertIsArray( $validate_args[0], 'wapf/validate arg 0 is the error array.' );
+		$this->assertArrayHasKey( 'error', $validate_args[0] );
+		$this->assertSame( 42, $validate_args[3], 'wapf/validate arg 3 is the product id.' );
+
+		// --- Attach + linked products ----------------------------------------
+		$_POST['opf'] = [ '77' => [ 'name' => 'Hello', 'opt' => 'a', 'sw' => 's1', 'fx' => '2', 'prods' => [ 'p11' ] ] ];
+		$cart_item = CartIntegration::attach( [], 42 );
+		$this->assertArrayHasKey( CartIntegration::ITEM_KEY, $cart_item );
+
+		$product->set_price( 20.0 );
+		FieldGroups::flush_cache();
+		$cart = new \WC_Cart();
+		$cart->cart_contents = [ 'parent' => [ 'key' => 'parent', 'product_id' => 42, 'quantity' => 2, 'data' => $product ] + $cart_item ];
+		$GLOBALS['opf_cart'] = $cart;
+
+		LinkedProducts::add_children( 'parent', 42, 2, 0, [], $cart_item );
+		$this->assert_fired( 'wapf/linked_products/cart_choice' );
+
+		// product_choices triggers opf/linked_products/choice → wapf/linked_products/choice.
+		$field = FieldGroup::normalize_field( [
+			'id' => 'prods', 'label' => 'Extras', 'type' => 'products', 'product_selection' => 'manual',
+			'choices' => [ [ 'product_id' => 11, 'pricing_type' => 'fixed' ] ],
+		] );
+		LinkedProducts::product_choices( $field, $product );
+		$this->assert_fired( 'wapf/linked_products/choice' );
+
+		// products_by_query triggers opf/linked_products/query_args → wapf/products/query.
+		LinkedProducts::products_by_query( [ 'query_id' => 3 ], $product );
+		$this->assert_fired( 'wapf/products/query' );
+
+		// --- Pricing (apply_prices) ------------------------------------------
+		CartIntegration::apply_prices( $cart );
+		$this->assert_fired( 'wapf/pricing/base' );
+		$this->assert_fired( 'wapf/pricing/cart_item_base' );
+		$this->assert_fired( 'wapf/pricing/cart_item_options' );
+		$this->assert_fired( 'wapf/lookup_tables' );
+
+		$base_args = $this->fired( 'wapf/pricing/base' )[0];
+		$this->assertCount( 3, $base_args, 'wapf/pricing/base WAPF shape is ($price,$product,$quantity).' );
+		$this->assertSame( 2, $base_args[2] );
+		$options_args = $this->fired( 'wapf/pricing/cart_item_options' )[0];
+		$this->assertCount( 4, $options_args, 'wapf/pricing/cart_item_options WAPF shape is ($total,$product,$quantity,$cart_item).' );
+		$this->assertArrayHasKey( 'key', $options_args[3] );
+
+		// --- Cart display -----------------------------------------------------
+		CartIntegration::display_item_data( [], $cart->cart_contents['parent'] );
+		$this->assert_fired( 'wapf/cart/item_data' );
+
+		// --- Order meta -------------------------------------------------------
+		$order      = new \WC_Order();
+		$order_item = new \WC_Order_Item_Product( $product, 2 );
+		CartIntegration::persist_order_item( $order_item, 'parent', $cart->cart_contents['parent'], $order );
+		$this->assert_fired( 'wapf/order/order_item_field' );
+		$this->assert_fired( 'wapf/order_item/meta_display_value' );
+		$order_field_args = $this->fired( 'wapf/order/order_item_field' )[0];
+		$this->assertCount( 3, $order_field_args, 'wapf/order/order_item_field WAPF shape is ($meta_field,$cart_item,$field).' );
+		$this->assertArrayHasKey( 'value', $order_field_args[0] );
+
+		// --- Order again ------------------------------------------------------
+		$meta = $order_item->get_meta( '_opf_fields', true );
+		if ( is_string( $meta ) && '' !== $meta ) {
+			$again_item = new \WC_Order_Item_Product( $product, 1, [ '_opf_fields' => $meta ] );
+			CartIntegration::restore_order_again( [], $again_item, $order );
+			$this->assert_fired( 'wapf/order_again/before_cart_item_field' );
+		}
+	}
+
+	public function test_wapf_field_render_aliases_fire(): void {
+		$GLOBALS['product'] = $GLOBALS['opf_products'][42];
+
+		// render_group drives field label/description/classes/section/options/image.
+		ob_start();
+		Renderer::render_group( 77, 'Group', $this->group_entry()['group'], 20.0, $GLOBALS['product'] );
+		ob_end_clean();
+
+		$this->assert_fired( 'wapf/html/section_container_classes' );
+		$this->assert_fired( 'wapf/html/field_container_classes' );
+		$this->assert_fired( 'wapf/html/field_label' );
+		$this->assert_fired( 'wapf/html/field_description' );
+		$this->assert_fired( 'wapf/html/option_wrapper_classes' );
+		$this->assert_fired( 'wapf/html/image_swatch_size' );
+
+		// Full render drives pricing/product + the legacy wrapper/totals actions.
+		ob_start();
+		Renderer::render();
+		ob_end_clean();
+
+		$this->assert_fired( 'wapf/pricing/product' );
+		$this->assert_fired( 'wapf_before_wrapper' );
+		$this->assert_fired( 'wapf_before_product_totals' );
+		$this->assert_fired( 'wapf_after_product_totals' );
+
+		$label_args = $this->fired( 'wapf/html/field_label' )[0];
+		$this->assertCount( 3, $label_args, 'wapf/html/field_label WAPF shape is ($label_content,$field,$product).' );
+		$size_args = $this->fired( 'wapf/html/image_swatch_size' )[0];
+		$this->assertCount( 4, $size_args, 'wapf/html/image_swatch_size WAPF shape is ($size,$field,$product,$choice).' );
+		$this->assertSame( 'medium', $size_args[0] );
+	}
+
+	/** No `wapf/…` listeners → OPF output must be byte-identical to no bridge. */
+	public function test_bridge_is_a_no_op_without_wapf_listeners(): void {
+		$GLOBALS['product'] = $GLOBALS['opf_products'][42];
+
+		$GLOBALS['wp_hooks'] = []; // Drop every listener, including the bridge shims.
+
+		ob_start();
+		Renderer::render_group( 77, 'Group', $this->group_entry()['group'], 20.0, $GLOBALS['product'] );
+		$without_bridge = ob_get_clean();
+
+		WapfHooks::init();
+		ob_start();
+		Renderer::render_group( 77, 'Group', $this->group_entry()['group'], 20.0, $GLOBALS['product'] );
+		$with_bridge = ob_get_clean();
+
+		$this->assertSame( $without_bridge, $with_bridge );
+	}
+}
+
+}

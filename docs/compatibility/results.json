@@ -1,0 +1,405 @@
+{
+  "lane": "currproof",
+  "generated_utc": "2026-10-03T14:47:18Z",
+  "objective": "Re-prove WAPF-COMMERCE-WOOCS / WAPF-COMMERCE-AELIA / WAPF-COMMERCE-FOX with real plugin runtime instead of fake/API-contract simulation.",
+  "environment": {
+    "clone_path": "/tmp/opf-image-currproof-wp",
+    "serve_url": "http://127.0.0.1:8321",
+    "php": "8.5.11",
+    "wordpress": "7.1.2",
+    "woocommerce": "11.1.0",
+    "db": "SQLite drop-in (wp-content/db.php)",
+    "opf_active_at_baseline": true,
+    "wpfx_version": "3.1.5"
+  },
+  "currency_plugin_inventory": {
+    "present_before_work": [],
+    "downloaded": [
+      {
+        "name": "FOX - Currency Switcher Professional for WooCommerce",
+        "slug": "woocommerce-currency-switcher",
+        "version": "1.5.4",
+        "source": "wordpress.org",
+        "download": "https://downloads.wordpress.org/plugin/woocommerce-currency-switcher.zip",
+        "zip_sha256": "2d8ddca92b2af5b34fdffab2f866518661f6b2afa96efb543fa4f299e0da25b5",
+        "installed_index_php_sha256": "95ed71ef39b081222242eeb0bb5b737a350b12aa1cc746ad42a5fea89bca5a76",
+        "installed_classes_woocs_php_sha256": "73d45f061d09515283d66beef96fd08029ca5fa42299e5facc5ba927764f040e",
+        "real": true,
+        "free_tier_limit": "2 currencies (sufficient for this test)"
+      }
+    ],
+    "commercial_only": [
+      {
+        "name": "Aelia Currency Switcher for WooCommerce",
+        "type": "commercial-only",
+        "wordpress_org": false,
+        "free_tier": false,
+        "trial": "14-day free trial",
+        "pricing": "GBP 89.00 ex VAT / year single site",
+        "source_claim": "Aelia's own 2026 comparison: 'Aelia Currency Switcher | Aelia (Diego Zanella) | Sold direct, not on WordPress.org | No, 14-day free trial'",
+        "blocking_fact": "No downloadable free/real package; cannot install the real plugin in the disposable clone without a purchased licence."
+      }
+    ]
+  },
+  "engine_source_hashes": {
+    "OPF": {
+      "includes/Service/WoocsIntegration.php": "84b3e51e0debb357e66c3d11a312dfdbde564b9bdfc30ed6a60bdf8c03beadd6",
+      "includes/Service/AeliaIntegration.php": "1ed07e706cfa17df2e2dfeb006e3cfdf08659a1f5fb7701f5b05007f3fb50151"
+    },
+    "WAPF_EX_3.1.5": {
+      "includes/classes/integrations/class-woocs.php": "08cf25aa8a6f2423a9425dbe4f0e330917b1ced76e9109f20b3ab3a49994503a",
+      "includes/classes/integrations/class-aelia.php": "9f714d87025a0ddaf0b650d10ab2a53566dd1ed98e8f30532fbf255168c4404d"
+    }
+  },
+  "WAPF-COMMERCE-FOX_and_WOOCS_real_runtime": {
+    "verdict": "supported - 1:1 amount parity on real FOX 1.5.4 runtime",
+    "currency_plugin": "FOX/WOOCS 1.5.4 (real, class WOOCS)",
+    "rates": {
+      "USD": 1,
+      "EUR": 2
+    },
+    "scenario": "simple product shop base 10 USD; OPF/WAPF fields flat +3, percent 10%, formula [price]; 1 unit",
+    "expected": {
+      "shop_base": 10,
+      "shop_target": 24,
+      "foreign_total_rate2": 48,
+      "foreign_total_rate3": 72,
+      "default_total": 24
+    },
+    "OPF": {
+      "preview": {
+        "product_base_price": 10,
+        "formula_base_price": 10,
+        "currency_rate": 2,
+        "display_options": {
+          "symbol": "&euro;",
+          "thousand": ",",
+          "decimal": ".",
+          "decimals": 2,
+          "format": "%1$s&nbsp;%2$s"
+        }
+      },
+      "cart_after_totals": {
+        "view_price": 48,
+        "edit_price": 24,
+        "subtotal": 48,
+        "total": 48,
+        "currency": "EUR"
+      },
+      "rate3_view_price": 72,
+      "default_view_price": 24,
+      "order": {
+        "order_id": 15921,
+        "order_currency": "EUR",
+        "line_total": 48,
+        "line_subtotal": 48,
+        "line_name": "currproof OPF real FOX"
+      },
+      "checks_all_pass": true
+    },
+    "WAPF": {
+      "preview": {
+        "raw_view_price": 20,
+        "wapf_base_filter": 10,
+        "currency_rate": 2
+      },
+      "cart_after_totals": {
+        "view_price": 48,
+        "edit_price": 24,
+        "subtotal": 48,
+        "total": 48,
+        "currency": "EUR"
+      },
+      "rate3_view_price": 72,
+      "order": {
+        "order_id": 15932,
+        "order_currency": "EUR",
+        "line_total": 48,
+        "line_subtotal": 48,
+        "line_name": "currproof WAPF real FOX"
+      },
+      "checks_all_pass": true
+    },
+    "parity": {
+      "preview_base_opf": 10,
+      "preview_base_wapf": 10,
+      "cart_foreign_opf": 48,
+      "cart_foreign_wapf": 48,
+      "order_foreign_opf": 48,
+      "order_foreign_wapf": 48,
+      "match": true
+    }
+  },
+  "WAPF-COMMERCE-AELIA": {
+    "verdict": "blocked / partial - real plugin unavailable (commercial-only); faithful stub shows OPF 48 vs WAPF 50",
+    "blocking_fact": "Aelia Currency Switcher is sold direct only (aelia.co), absent from wordpress.org, no free tier. Real runtime parity cannot be certified.",
+    "stub_label": "FAITHFUL HOOK-SURFACE STUB - not the real plugin",
+    "stub_surface": "WC_Aelia_CurrencySwitcher::settings()->base_currency()/get_exchange_rate(); ::instance()->get_selected_currency(); $GLOBALS[\"woocommerce-aelia-currencyswitcher\"]; wc_aelia_cs_convert filter; woocommerce_product_get_price conversion",
+    "scenario": "same as FOX: shop base 10 USD, rate 2, flat +3 / percent 10% / formula [price]",
+    "OPF": {
+      "preview": {
+        "currency": "EUR",
+        "currency_rate": 2,
+        "display_options": {
+          "symbol": "&euro;",
+          "thousand": ",",
+          "decimal": ".",
+          "decimals": 2,
+          "format": "%1$s%2$s"
+        },
+        "product_base_price": 10,
+        "formula_base_price": 10
+      },
+      "cart": {
+        "view_price": 48,
+        "edit_price": 48,
+        "subtotal": 48
+      },
+      "order_line_total": 48,
+      "checks_all_pass": true
+    },
+    "WAPF": {
+      "preview": {
+        "raw_view_price": 20,
+        "wapf_base_filter": 10
+      },
+      "cart": {
+        "view_price": 50,
+        "edit_price": 50,
+        "subtotal": 50
+      },
+      "options_total": 30,
+      "base": 20,
+      "order_line_total": 50
+    },
+    "observed_difference": {
+      "amount_opf": 48,
+      "amount_wapf": 50,
+      "delta": 2,
+      "analysis": "Under the stub, WAPF's Aelia adapter leaves the cart base already converted (base=20), computes percent on that converted base (20*10%=2), and then multiply-converts the whole options total by the rate (options 15 -> 30); line = 20 + 30 = 50. OPF computes all addons on the shop base (percent 10*10%=1, fixed 3, formula 10 -> options 14), sets shop line 24, then converts the whole line once (48). Fixed (3) and formula (10) components agree; the 2.00 delta is exactly the percent component being converted twice by WAPF (2 shop -> 4 foreign vs OPF 2 foreign).",
+      "caveat": "Not certifiable without the real Aelia plugin; recorded as a candidate discrepancy for a licensed-runtime re-check."
+    }
+  },
+  "conversion_path_differences": {
+    "note": "Registered callbacks on real FOX runtime (WOOCS owns final display conversion via woocommerce_product_get_price @9999 for both engines).",
+    "OPF": {
+      "woocommerce_before_calculate_totals": [
+        {
+          "priority": 10,
+          "owner": "WOOCS::woocs_before_calculate_totals_geoip_fix"
+        },
+        {
+          "priority": 10,
+          "owner": "OPF\\Service\\LinkedProducts::remove_orphaned_children"
+        },
+        {
+          "priority": 10,
+          "owner": "OPF\\Service\\LinkedProducts::apply_child_prices"
+        },
+        {
+          "priority": 20,
+          "owner": "OPF\\Service\\CartIntegration::apply_prices"
+        },
+        {
+          "priority": 21,
+          "owner": "OPF\\Service\\AeliaIntegration::convert_cart_prices"
+        }
+      ],
+      "woocommerce_product_get_price": [
+        {
+          "priority": -1000,
+          "owner": "WC_Deprecated_Filter_Hooks::maybe_handle_deprecated_hook"
+        },
+        {
+          "priority": 99,
+          "owner": "Automattic\\WooCommerce\\Internal\\ScheduledSalePriceReconciler::reconcile_price"
+        },
+        {
+          "priority": 9999,
+          "owner": "WOOCS::raw_woocommerce_price"
+        }
+      ],
+      "woocommerce_product_get_regular_price": [
+        {
+          "priority": -1000,
+          "owner": "WC_Deprecated_Filter_Hooks::maybe_handle_deprecated_hook"
+        },
+        {
+          "priority": 9999,
+          "owner": "WOOCS::raw_woocommerce_price"
+        }
+      ],
+      "woocommerce_product_get_sale_price": [
+        {
+          "priority": -1000,
+          "owner": "WC_Deprecated_Filter_Hooks::maybe_handle_deprecated_hook"
+        },
+        {
+          "priority": 9999,
+          "owner": "WOOCS::raw_woocommerce_price_sale"
+        }
+      ],
+      "woocommerce_product_variation_get_price": [
+        {
+          "priority": 9999,
+          "owner": "WOOCS::raw_woocommerce_price"
+        }
+      ],
+      "opf_frontend_config": [
+        {
+          "priority": 10,
+          "owner": "OPF\\Service\\WoocsIntegration::merge_frontend_config"
+        },
+        {
+          "priority": 20,
+          "owner": "OPF\\Service\\AeliaIntegration::merge_frontend_config"
+        }
+      ],
+      "opf_cart_item_base_price": [
+        {
+          "priority": 20,
+          "owner": "OPF\\Service\\WoocsIntegration::cart_base_price"
+        },
+        {
+          "priority": 30,
+          "owner": "OPF\\Service\\AeliaIntegration::cart_base_price"
+        }
+      ],
+      "opf_formula_base_price": [
+        {
+          "priority": 10,
+          "owner": "OPF\\Service\\WoocsIntegration::formula_base_price"
+        },
+        {
+          "priority": 20,
+          "owner": "OPF\\Service\\AeliaIntegration::formula_base_price"
+        }
+      ]
+    },
+    "WAPF": {
+      "woocommerce_before_calculate_totals": [
+        {
+          "priority": 9,
+          "owner": "SW_WAPF_PRO\\Includes\\Classes\\Integrations\\Woocs::recalculate_pricing"
+        },
+        {
+          "priority": 10,
+          "owner": "SW_WAPF_PRO\\Includes\\Controllers\\Extended_Controller::maybe_calculate_weight"
+        },
+        {
+          "priority": 10,
+          "owner": "WOOCS::woocs_before_calculate_totals_geoip_fix"
+        },
+        {
+          "priority": 10,
+          "owner": "SW_WAPF_PRO\\Includes\\Controllers\\Linked_Products_Controller::remove_linked_products"
+        },
+        {
+          "priority": 10,
+          "owner": "SW_WAPF_PRO\\Includes\\Controllers\\Linked_Products_Controller::set_linked_product_price"
+        },
+        {
+          "priority": 11,
+          "owner": "SW_WAPF_PRO\\Includes\\Controllers\\Linked_Products_Controller::maybe_add_weight"
+        },
+        {
+          "priority": 2000,
+          "owner": "SW_WAPF_PRO\\Includes\\Controllers\\Product_Controller::add_prices_to_cart_item"
+        }
+      ],
+      "woocommerce_product_get_price": [
+        {
+          "priority": -1000,
+          "owner": "WC_Deprecated_Filter_Hooks::maybe_handle_deprecated_hook"
+        },
+        {
+          "priority": 99,
+          "owner": "Automattic\\WooCommerce\\Internal\\ScheduledSalePriceReconciler::reconcile_price"
+        },
+        {
+          "priority": 9999,
+          "owner": "WOOCS::raw_woocommerce_price"
+        }
+      ],
+      "woocommerce_product_get_regular_price": [
+        {
+          "priority": -1000,
+          "owner": "WC_Deprecated_Filter_Hooks::maybe_handle_deprecated_hook"
+        },
+        {
+          "priority": 9999,
+          "owner": "WOOCS::raw_woocommerce_price"
+        }
+      ],
+      "woocommerce_product_get_sale_price": [
+        {
+          "priority": -1000,
+          "owner": "WC_Deprecated_Filter_Hooks::maybe_handle_deprecated_hook"
+        },
+        {
+          "priority": 9999,
+          "owner": "WOOCS::raw_woocommerce_price_sale"
+        }
+      ],
+      "woocommerce_product_variation_get_price": [
+        {
+          "priority": 9999,
+          "owner": "WOOCS::raw_woocommerce_price"
+        }
+      ],
+      "wapf/pricing/product": [
+        {
+          "priority": 10,
+          "owner": "SW_WAPF_PRO\\Includes\\Classes\\Integrations\\Woocs::set_product_base_price"
+        }
+      ],
+      "wapf/pricing/cart_item_base": [
+        {
+          "priority": 20,
+          "owner": "SW_WAPF_PRO\\Includes\\Classes\\Integrations\\Woocs::convert_back"
+        }
+      ],
+      "wapf/pricing/cart_item_base_for_formulas": [
+        {
+          "priority": 10,
+          "owner": "SW_WAPF_PRO\\Includes\\Classes\\Integrations\\Woocs::convert_base_back"
+        }
+      ],
+      "wapf/html/pricing_hint/amount": [
+        {
+          "priority": 10,
+          "owner": "SW_WAPF_PRO\\Includes\\Classes\\Integrations\\Woocs::convert_pricing_hint"
+        }
+      ]
+    },
+    "summary": [
+      "OPF sets addon-adjusted cart price via woocommerce_before_calculate_totals @20 (Service\\CartIntegration::apply_prices); WAPF sets it @2000 (Product_Controller::add_prices_to_cart_item) after its @9 recalculate_pricing.",
+      "OPF base back-conversion hook: opf_cart_item_base_price @20 (WoocsIntegration::cart_base_price) + opf_formula_base_price @10. WAPF equivalent: wapf/pricing/cart_item_base @20 (Woocs::convert_back) + wapf/pricing/cart_item_base_for_formulas @10 (Woocs::convert_base_back).",
+      "OPF preview base comes through opf_frontend_config (WoocsIntegration::merge_frontend_config @10). WAPF preview base comes through wapf/pricing/product @10 (Woocs::set_product_base_price) and its own footer script.",
+      "Both engines end with WOOCS::raw_woocommerce_price @9999 on woocommerce_product_get_price, i.e. the currency plugin performs the final display conversion; the engines only normalise the shop-currency base.",
+      "WAPF applies cart prices only on the first woocommerce_before_calculate_totals (did_action guard); OPF re-applies every pass. Observed amounts stayed stable for both."
+    ]
+  },
+  "cleanup": {
+    "performed": true,
+    "steps": [
+      "deactivated woocommerce-currency-switcher and advanced-product-fields-for-woocommerce-extended",
+      "reactivated open-product-fields-for-woocommerce (baseline engine)",
+      "deleted installed plugin dir wp-content/plugins/woocommerce-currency-switcher",
+      "deleted 58 woocs* / _transient*woocs* options created by FOX activation",
+      "removed temp download/work dirs /tmp/opf-lane-currproof-dl and /tmp/currproof-work (harnesses retained in evidence/scripts)"
+    ],
+    "verified_state": {
+      "currency_plugins_present": [],
+      "woocs_options_remaining": 0,
+      "woocommerce_currency": "USD",
+      "opf_active": true,
+      "wpfx_active": false,
+      "currproof_posts_remaining": 0,
+      "cart_empty": true
+    },
+    "production_source_modified": false,
+    "commits_made": false,
+    "ledger_modified": false
+  }
+}

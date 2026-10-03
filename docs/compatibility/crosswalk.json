@@ -1,0 +1,2376 @@
+{
+  "summary": {
+    "wapf_source": "advanced-product-fields-for-woocommerce-extended 3.1.5",
+    "canonical_names": 101,
+    "additional_dynamic": 1,
+    "total_entries": 102,
+    "status_counts": {
+      "absent": 45,
+      "mappable": 52,
+      "implemented": 5
+    },
+    "category_counts": {
+      "linked-products": 13,
+      "admin": 17,
+      "uploads": 21,
+      "cart": 11,
+      "field-render": 25,
+      "pricing": 12,
+      "order-meta": 3
+    },
+    "bridged_count": 27,
+    "unmapped": []
+  },
+  "hooks": [
+    {
+      "wapf_hook": "wapf/add_to_cart_redirect_when_editing",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$redirect_on_edit = apply_filters('wapf/add_to_cart_redirect_when_editing', true);",
+      "file": "includes/controllers/class-product-controller.php",
+      "line": 148,
+      "category": "linked-products",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-product-controller.php:148",
+          "call": "$redirect_on_edit = apply_filters('wapf/add_to_cart_redirect_when_editing', true);"
+        }
+      ],
+      "rationale": "Only relevant to WAPF inline cart editing; OPF does not implement it."
+    },
+    {
+      "wapf_hook": "wapf/add_to_cart_url",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters( 'wapf/add_to_cart_url', $product->get_permalink(), $product, $url );",
+      "file": "includes/controllers/class-product-controller.php",
+      "line": 305,
+      "category": "linked-products",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-product-controller.php:305",
+          "call": "return apply_filters( 'wapf/add_to_cart_url', $product->get_permalink(), $product, $url );"
+        }
+      ],
+      "rationale": "WAPF rewrites add-to-cart URLs for its AJAX flow. OPF relies on native WooCommerce add-to-cart."
+    },
+    {
+      "wapf_hook": "wapf/admin/after_additional_field_settings",
+      "kind": "do_action",
+      "kind_all": [
+        "do_action"
+      ],
+      "signature": "do_action('wapf/admin/after_additional_field_settings');",
+      "file": "views/admin/field.php",
+      "line": 180,
+      "category": "admin",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "do_action",
+          "location": "views/admin/field.php:180",
+          "call": "do_action('wapf/admin/after_additional_field_settings');"
+        }
+      ],
+      "rationale": "OPF field editing is a React builder; no PHP field-settings template hooks."
+    },
+    {
+      "wapf_hook": "wapf/admin/after_field_settings",
+      "kind": "do_action",
+      "kind_all": [
+        "do_action"
+      ],
+      "signature": "do_action( 'wapf/admin/after_field_settings' );",
+      "file": "views/admin/field.php",
+      "line": 181,
+      "category": "admin",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "do_action",
+          "location": "views/admin/field.php:181",
+          "call": "do_action( 'wapf/admin/after_field_settings' );"
+        }
+      ],
+      "rationale": "OPF field editing is a React builder; no PHP field-settings template hooks."
+    },
+    {
+      "wapf_hook": "wapf/admin/after_product_duplication",
+      "kind": "do_action",
+      "kind_all": [
+        "do_action"
+      ],
+      "signature": "do_action('wapf/admin/after_product_duplication', $duplicate, $product, $field_group, $id_map);",
+      "file": "includes/controllers/class-admin-controller.php",
+      "line": 488,
+      "category": "admin",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "do_action",
+          "location": "includes/controllers/class-admin-controller.php:488",
+          "call": "do_action('wapf/admin/after_product_duplication', $duplicate, $product, $field_group, $id_map);"
+        }
+      ],
+      "rationale": "OPF has no per-product field-group duplication hook (global groups are duplicated by FieldGroups)."
+    },
+    {
+      "wapf_hook": "wapf/admin/allowed_product_types",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "if(!in_array($product->get_type(), apply_filters('wapf/admin/allowed_product_types',array('variable','simple'))))",
+      "file": "includes/controllers/class-admin-controller.php",
+      "line": 548,
+      "category": "admin",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-admin-controller.php:548",
+          "call": "if(!in_array($product->get_type(), apply_filters('wapf/admin/allowed_product_types',array('variable','simple'))))"
+        }
+      ],
+      "rationale": "OPF placement supports product/category/tag/attribute/user rules; no allowed-product-types filter."
+    },
+    {
+      "wapf_hook": "wapf/admin/before_additional_field_settings",
+      "kind": "do_action",
+      "kind_all": [
+        "do_action"
+      ],
+      "signature": "<?php do_action('wapf/admin/before_additional_field_settings'); ?>",
+      "file": "views/admin/field.php",
+      "line": 152,
+      "category": "admin",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "do_action",
+          "location": "views/admin/field.php:152",
+          "call": "<?php do_action('wapf/admin/before_additional_field_settings'); ?>"
+        }
+      ],
+      "rationale": "OPF field editing is a React builder; no PHP field-settings template hooks."
+    },
+    {
+      "wapf_hook": "wapf/admin/before_field_settings",
+      "kind": "do_action",
+      "kind_all": [
+        "do_action"
+      ],
+      "signature": "do_action('wapf/admin/before_field_settings');",
+      "file": "views/admin/field.php",
+      "line": 65,
+      "category": "admin",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "do_action",
+          "location": "views/admin/field.php:65",
+          "call": "do_action('wapf/admin/before_field_settings');"
+        }
+      ],
+      "rationale": "OPF field editing is a React builder; no PHP field-settings template hooks."
+    },
+    {
+      "wapf_hook": "wapf/admin/pricing_options",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters('wapf/admin/pricing_options',$options, $field_type);",
+      "file": "includes/classes/class-config.php",
+      "line": 467,
+      "category": "admin",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-config.php:467",
+          "call": "return apply_filters('wapf/admin/pricing_options',$options, $field_type);"
+        }
+      ],
+      "rationale": "OPF pricing types are a fixed schema (fixed/percent/formula/per-unit) in FieldGroup; no admin option filter."
+    },
+    {
+      "wapf_hook": "wapf/admin/product_tab_content_end",
+      "kind": "do_action",
+      "kind_all": [
+        "do_action"
+      ],
+      "signature": "do_action('wapf/admin/product_tab_content_end');",
+      "file": "includes/controllers/class-admin-controller.php",
+      "line": 536,
+      "category": "admin",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "do_action",
+          "location": "includes/controllers/class-admin-controller.php:536",
+          "call": "do_action('wapf/admin/product_tab_content_end');"
+        }
+      ],
+      "rationale": "OPF does not render fields in the WooCommerce product-data tab; groups are global with placement rules."
+    },
+    {
+      "wapf_hook": "wapf/admin/product_tab_content_start",
+      "kind": "do_action",
+      "kind_all": [
+        "do_action"
+      ],
+      "signature": "do_action('wapf/admin/product_tab_content_start');",
+      "file": "includes/controllers/class-admin-controller.php",
+      "line": 510,
+      "category": "admin",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "do_action",
+          "location": "includes/controllers/class-admin-controller.php:510",
+          "call": "do_action('wapf/admin/product_tab_content_start');"
+        }
+      ],
+      "rationale": "OPF does not render fields in the WooCommerce product-data tab; groups are global with placement rules."
+    },
+    {
+      "wapf_hook": "wapf/admin/sanitize_field",
+      "kind": "do_action_ref_array",
+      "kind_all": [
+        "do_action_ref_array"
+      ],
+      "signature": "do_action_ref_array( 'wapf/admin/sanitize_field', array( &$field, &$raw_field ) );",
+      "file": "includes/classes/class-field-groups.php",
+      "line": 342,
+      "category": "admin",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "do_action_ref_array",
+          "location": "includes/classes/class-field-groups.php:342",
+          "call": "do_action_ref_array( 'wapf/admin/sanitize_field', array( &$field, &$raw_field ) );"
+        }
+      ],
+      "rationale": "OPF normalizes saved fields through Engine/FieldGroup schema normalization; no admin sanitize hook."
+    },
+    {
+      "wapf_hook": "wapf/admin/settings_",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$settings = apply_filters('wapf/admin/settings_' . $current_section, $settings);",
+      "file": "includes/controllers/class-admin-controller.php",
+      "line": 912,
+      "category": "admin",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-admin-controller.php:912",
+          "call": "$settings = apply_filters('wapf/admin/settings_' . $current_section, $settings);"
+        }
+      ],
+      "rationale": "Dynamic WAPF admin settings-section filter; OPF settings screens are service-owned with no section hook."
+    },
+    {
+      "wapf_hook": "wapf/admin/settings_sections",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$sections = apply_filters('wapf/admin/settings_sections', [",
+      "file": "includes/controllers/class-admin-controller.php",
+      "line": 593,
+      "category": "admin",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-admin-controller.php:593",
+          "call": "$sections = apply_filters('wapf/admin/settings_sections', ["
+        }
+      ],
+      "rationale": "WAPF admin settings-section registry; OPF settings screens are service-owned with no section hook."
+    },
+    {
+      "wapf_hook": "wapf/admin/tab_classes",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "'class'\t\t=> apply_filters('wapf/admin/tab_classes', ['show_if_simple', 'show_if_variable'] ),",
+      "file": "includes/controllers/class-admin-controller.php",
+      "line": 497,
+      "category": "admin",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-admin-controller.php:497",
+          "call": "'class'\t\t=> apply_filters('wapf/admin/tab_classes', ['show_if_simple', 'show_if_variable'] ),"
+        }
+      ],
+      "rationale": "WAPF product-tab CSS class filter; OPF renders no product-data tab."
+    },
+    {
+      "wapf_hook": "wapf/ajax_file_upload_config",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$dropzone_options = apply_filters('wapf/ajax_file_upload_config', $dropzone_options, $model['field']);",
+      "file": "views/frontend/fields/file.php",
+      "line": 28,
+      "category": "uploads",
+      "status": "mappable",
+      "opf_equivalent": "opf_frontend_config",
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "views/frontend/fields/file.php:28",
+          "call": "$dropzone_options = apply_filters('wapf/ajax_file_upload_config', $dropzone_options, $model['field']);"
+        }
+      ],
+      "rationale": "OPF publishes a frontend config via opf_frontend_config; the WAPF Dropzone config shape is upload-service specific and not emitted."
+    },
+    {
+      "wapf_hook": "wapf/cart/cart_item_field",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters('wapf/cart/cart_item_field', $cart_item_field, $field, $clone_idx );",
+      "file": "includes/classes/class-cart.php",
+      "line": 235,
+      "category": "cart",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-cart.php:235",
+          "call": "return apply_filters('wapf/cart/cart_item_field', $cart_item_field, $field, $clone_idx );"
+        }
+      ],
+      "rationale": "WAPF object-shaped per-field cart value. OPF stores canonical arrays keyed gid/fid (CartIntegration::ITEM_KEY) and renders from definitions; no cart_item_field object surface."
+    },
+    {
+      "wapf_hook": "wapf/cart/item_data",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters('wapf/cart/item_data', $item_data, $cart_item);",
+      "file": "includes/controllers/class-product-controller.php",
+      "line": 712,
+      "category": "cart",
+      "status": "mappable",
+      "opf_equivalent": "woocommerce_get_item_data",
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-product-controller.php:712",
+          "call": "return apply_filters('wapf/cart/item_data', $item_data, $cart_item);"
+        }
+      ],
+      "rationale": "Bridged in CartIntegration::display_item_data; WAPF arg shape ($item_data,$cart_item) preserved."
+    },
+    {
+      "wapf_hook": "wapf/cart/item_values_label",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters( 'wapf/cart/item_values_label', $str, $cartitem_field, $cart_item, true );",
+      "file": "includes/classes/class-helper.php",
+      "line": 869,
+      "category": "cart",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-helper.php:869",
+          "call": "return apply_filters( 'wapf/cart/item_values_label', $str, $cartitem_field, $cart_item, true );"
+        },
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-helper.php:900",
+          "call": "return apply_filters( 'wapf/cart/item_values_label', $str, $cartitem_field, $cart_item, false );"
+        }
+      ],
+      "rationale": "OPF derives cart/order labels from field definitions in CartIntegration::visible_selections. No per-label filter; WAPF form needs cartitem_field context OPF does not materialize."
+    },
+    {
+      "wapf_hook": "wapf/cart_edit_text",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$cart_text = apply_filters('wapf/cart_edit_text', '(' . __('edit','sw-wapf') . ')', $cart_item );",
+      "file": "includes/controllers/class-product-controller.php",
+      "line": 245,
+      "category": "cart",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-product-controller.php:245",
+          "call": "$cart_text = apply_filters('wapf/cart_edit_text', '(' . __('edit','sw-wapf') . ')', $cart_item );"
+        }
+      ],
+      "rationale": "WAPF inline cart-edit affordance. OPF has no inline cart editing feature, so no equivalent surface exists."
+    },
+    {
+      "wapf_hook": "wapf/disable_cart_edit_when_invisible",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "if( apply_filters('wapf/disable_cart_edit_when_invisible', true ) && !$product->is_visible())",
+      "file": "includes/controllers/class-product-controller.php",
+      "line": 236,
+      "category": "cart",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-product-controller.php:236",
+          "call": "if( apply_filters('wapf/disable_cart_edit_when_invisible', true ) && !$product->is_visible())"
+        }
+      ],
+      "rationale": "Only meaningful for WAPF inline cart editing, which OPF does not implement."
+    },
+    {
+      "wapf_hook": "wapf/features/change_price_html",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "if( apply_filters( 'wapf/features/change_price_html', true ) ) {",
+      "file": "includes/controllers/class-admin-controller.php",
+      "line": 198,
+      "category": "field-render",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-admin-controller.php:198",
+          "call": "if( apply_filters( 'wapf/features/change_price_html', true ) ) {"
+        },
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-product-controller.php:85",
+          "call": "if( ! apply_filters( 'wapf/features/change_price_html', true ) ) {"
+        }
+      ],
+      "rationale": "WAPF toggles its own price-HTML replacement. OPF does not replace catalog price HTML (theme/JS integration instead)."
+    },
+    {
+      "wapf_hook": "wapf/features/linked_products",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "if( apply_filters( 'wapf/features/linked_products', true ) ) {",
+      "file": "includes/controllers/class-linked-products-controller.php",
+      "line": 25,
+      "category": "linked-products",
+      "status": "implemented",
+      "opf_equivalent": "opf_features_linked_products",
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-linked-products-controller.php:25",
+          "call": "if( apply_filters( 'wapf/features/linked_products', true ) ) {"
+        }
+      ],
+      "rationale": "OPF already exposes opf_features_linked_products; alias registered."
+    },
+    {
+      "wapf_hook": "wapf/field_group/condition_options",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters('wapf/field_group/condition_options', $product_options );",
+      "file": "includes/classes/class-config.php",
+      "line": 442,
+      "category": "field-render",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-config.php:442",
+          "call": "return apply_filters('wapf/field_group/condition_options', $product_options );"
+        }
+      ],
+      "rationale": "WAPF admin condition-option list for placement rules. OPF placement rules ship a fixed schema."
+    },
+    {
+      "wapf_hook": "wapf/field_group/is_condition_valid",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters( 'wapf/field_group/is_condition_valid', false, $condition, $value, [ 'product' => $product ] );",
+      "file": "includes/classes/class-conditions.php",
+      "line": 178,
+      "category": "field-render",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-conditions.php:178",
+          "call": "return apply_filters( 'wapf/field_group/is_condition_valid', false, $condition, $value, [ 'product' => $product ] );"
+        }
+      ],
+      "rationale": "OPF evaluates conditionals in Engine/Evaluator (core logic, off-limits). No extension filter is exposed for a single condition result."
+    },
+    {
+      "wapf_hook": "wapf/field_options",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$options = apply_filters('wapf/field_options', $options);",
+      "file": "includes/classes/class-config.php",
+      "line": 1529,
+      "category": "field-render",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-config.php:1529",
+          "call": "$options = apply_filters('wapf/field_options', $options);"
+        }
+      ],
+      "rationale": "WAPF admin field-option registry. OPF admin is a React builder backed by FieldGroup schema; no PHP option registry."
+    },
+    {
+      "wapf_hook": "wapf/field_template_model",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$model = apply_filters('wapf/field_template_model', $model, $field, $fieldgroup_id, $product, $cart_item_field );",
+      "file": "includes/classes/class-html.php",
+      "line": 357,
+      "category": "field-render",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-html.php:357",
+          "call": "$model = apply_filters('wapf/field_template_model', $model, $field, $fieldgroup_id, $product, $cart_item_field );"
+        }
+      ],
+      "rationale": "WAPF PHP view-model for field templates. OPF renders server-side PHP directly; no model handoff."
+    },
+    {
+      "wapf_hook": "wapf/field_types",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$fields = apply_filters( 'wapf/field_types', $fields );",
+      "file": "includes/classes/class-config.php",
+      "line": 1892,
+      "category": "field-render",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-config.php:1892",
+          "call": "$fields = apply_filters( 'wapf/field_types', $fields );"
+        }
+      ],
+      "rationale": "WAPF field-type registry. OPF types are enumerated in Engine/FieldGroup + Renderer; no runtime type filter."
+    },
+    {
+      "wapf_hook": "wapf/field_visibility_conditions",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters( 'wapf/field_visibility_conditions', [",
+      "file": "includes/classes/class-config.php",
+      "line": 9,
+      "category": "field-render",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-config.php:9",
+          "call": "return apply_filters( 'wapf/field_visibility_conditions', ["
+        }
+      ],
+      "rationale": "WAPF admin condition-list registry. OPF conditionals are a fixed schema evaluated by Engine/Evaluator."
+    },
+    {
+      "wapf_hook": "wapf/file/ajax_upload_success_file_result",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$res[] = apply_filters( 'wapf/file/ajax_upload_success_file_result', [",
+      "file": "includes/controllers/class-public-controller.php",
+      "line": 166,
+      "category": "uploads",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-public-controller.php:166",
+          "call": "$res[] = apply_filters( 'wapf/file/ajax_upload_success_file_result', ["
+        }
+      ],
+      "rationale": "OPF Uploads REST route returns its own result shape; no per-file success filter."
+    },
+    {
+      "wapf_hook": "wapf/file/check_nonce",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$verify_nonce = apply_filters( 'wapf/file/check_nonce', false );",
+      "file": "includes/controllers/class-public-controller.php",
+      "line": 122,
+      "category": "uploads",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-public-controller.php:122",
+          "call": "$verify_nonce = apply_filters( 'wapf/file/check_nonce', false );"
+        },
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-public-controller.php:137",
+          "call": "$verify_nonce = apply_filters( 'wapf/file/check_nonce', false );"
+        }
+      ],
+      "rationale": "OPF performs nonce/origin checks in Uploads::same_origin; no filter toggle."
+    },
+    {
+      "wapf_hook": "wapf/file/test_file_type",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "if( apply_filters( 'wapf/file/test_file_type', true ) && empty( $file_info['type'] ) ) {",
+      "file": "includes/classes/class-file-upload.php",
+      "line": 137,
+      "category": "uploads",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:137",
+          "call": "if( apply_filters( 'wapf/file/test_file_type', true ) && empty( $file_info['type'] ) ) {"
+        }
+      ],
+      "rationale": "OPF validates types through accepted_types + wp_check_filetype; no filter toggle."
+    },
+    {
+      "wapf_hook": "wapf/file/upload_result",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$upload = apply_filters('wapf/file/upload_result', $upload, $field);",
+      "file": "includes/classes/class-file-upload.php",
+      "line": 110,
+      "category": "uploads",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:110",
+          "call": "$upload = apply_filters('wapf/file/upload_result', $upload, $field);"
+        }
+      ],
+      "rationale": "OPF private-upload pipeline returns tokens, not a wp_handle_upload result; no equivalent filter."
+    },
+    {
+      "wapf_hook": "wapf/function_definitions",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters('wapf/function_definitions', $functions);",
+      "file": "includes/classes/class-config.php",
+      "line": 1659,
+      "category": "linked-products",
+      "status": "mappable",
+      "opf_equivalent": "OPF\\API::add_formula_function",
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-config.php:1659",
+          "call": "return apply_filters('wapf/function_definitions', $functions);"
+        }
+      ],
+      "rationale": "OPF registers formula functions via the public API::add_formula_function; there is no bulk function-definition filter at boot."
+    },
+    {
+      "wapf_hook": "wapf/fx/functions",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters( 'wapf/fx/functions', array_keys( self::$formula_functions ) );",
+      "file": "includes/classes/class-helper.php",
+      "line": 578,
+      "category": "linked-products",
+      "status": "mappable",
+      "opf_equivalent": "OPF\\API::add_formula_function",
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-helper.php:578",
+          "call": "return apply_filters( 'wapf/fx/functions', array_keys( self::$formula_functions ) );"
+        }
+      ],
+      "rationale": "OPF exposes registered function names only through the Calculator internals; no filter listing them."
+    },
+    {
+      "wapf_hook": "wapf/fx/solve",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$solution = apply_filters( 'wapf/fx/solve', $solution, $functions[$i], $args );",
+      "file": "includes/classes/class-helper.php",
+      "line": 733,
+      "category": "linked-products",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-helper.php:733",
+          "call": "$solution = apply_filters( 'wapf/fx/solve', $solution, $functions[$i], $args );"
+        }
+      ],
+      "rationale": "OPF evaluates formulas in Calculator::evaluate_formula (core); no per-call solve filter."
+    },
+    {
+      "wapf_hook": "wapf/htaccess_content",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters('wapf/htaccess_content', $rules, self::$field_for_upload, $restricted_filetypes );",
+      "file": "includes/classes/class-file-upload.php",
+      "line": 41,
+      "category": "uploads",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:41",
+          "call": "return apply_filters('wapf/htaccess_content', $rules, self::$field_for_upload, $restricted_filetypes );"
+        }
+      ],
+      "rationale": "OPF stores uploads outside the web root and serves them through a REST route; no .htaccess protection file."
+    },
+    {
+      "wapf_hook": "wapf/html/field_attributes",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters( 'wapf/html/field_attributes', $field_attributes, $field, $product, $field_group_id );",
+      "file": "includes/classes/class-html.php",
+      "line": 760,
+      "category": "field-render",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-html.php:760",
+          "call": "return apply_filters( 'wapf/html/field_attributes', $field_attributes, $field, $product, $field_group_id );"
+        }
+      ],
+      "rationale": "OPF emits input attributes as preformatted strings in Renderer::render_input/render_choices; no array-attribute filter point."
+    },
+    {
+      "wapf_hook": "wapf/html/field_classes",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$extra_classes = apply_filters( 'wapf/html/field_classes', [], $field );",
+      "file": "includes/classes/class-html.php",
+      "line": 693,
+      "category": "field-render",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-html.php:693",
+          "call": "$extra_classes = apply_filters( 'wapf/html/field_classes', [], $field );"
+        }
+      ],
+      "rationale": "OPF builds input class strings inline rather than an array. wapf/html/field_container_classes is bridged for the container; the inner input class filter is not."
+    },
+    {
+      "wapf_hook": "wapf/html/field_container_attributes",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$attributes = apply_filters( 'wapf/html/field_container_attributes', $attributes, $field );",
+      "file": "includes/classes/class-html.php",
+      "line": 519,
+      "category": "field-render",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-html.php:519",
+          "call": "$attributes = apply_filters( 'wapf/html/field_container_attributes', $attributes, $field );"
+        }
+      ],
+      "rationale": "OPF container attributes are fixed markup; no array filter point on the container."
+    },
+    {
+      "wapf_hook": "wapf/html/field_container_classes",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$extra_classes = apply_filters( 'wapf/html/field_container_classes', [], $field );",
+      "file": "includes/classes/class-html.php",
+      "line": 458,
+      "category": "field-render",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-html.php:458",
+          "call": "$extra_classes = apply_filters( 'wapf/html/field_container_classes', [], $field );"
+        }
+      ],
+      "rationale": "Bridged in Renderer::render_field; WAPF arg shape ($classes,$field) preserved."
+    },
+    {
+      "wapf_hook": "wapf/html/field_description",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters('wapf/html/field_description', '', $field);",
+      "file": "includes/classes/class-html.php",
+      "line": 410,
+      "category": "field-render",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-html.php:410",
+          "call": "return apply_filters('wapf/html/field_description', '', $field);"
+        },
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-html.php:414",
+          "call": "return apply_filters('wapf/html/field_description', $html, $field);"
+        },
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-html.php:424",
+          "call": "return apply_filters('wapf/html/field_description', $field_description, $field);"
+        }
+      ],
+      "rationale": "Bridged in Renderer::render_field; WAPF arg shape ($html,$field) preserved."
+    },
+    {
+      "wapf_hook": "wapf/html/field_label",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$label_content = apply_filters('wapf/html/field_label', $label_content, $field, $product);",
+      "file": "includes/classes/class-html.php",
+      "line": 540,
+      "category": "field-render",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-html.php:540",
+          "call": "$label_content = apply_filters('wapf/html/field_label', $label_content, $field, $product);"
+        }
+      ],
+      "rationale": "Bridged in Renderer::render_field; WAPF arg shape ($label_content,$field,$product) preserved."
+    },
+    {
+      "wapf_hook": "wapf/html/file_entry",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "'previewTemplate'       => '<div class=\"dz-preview\"><div class=\"dz-image\"><img style=\"max-width:100%\" src=\"\" alt=\"\" data-dz-thumbnail /></div><div class=\"dz-filename\" data-dz-name></div><div class=\"dz-left\"><div class=\"dz-progress-wrapper\">",
+      "file": "views/frontend/fields/file.php",
+      "line": 19,
+      "category": "field-render",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "views/frontend/fields/file.php:19",
+          "call": "'previewTemplate'       => '<div class=\"dz-preview\"><div class=\"dz-image\"><img style=\"max-width:100%\" src=\"\" alt=\"\" data-dz-thumbnail /></div><div class=\"dz-filename\" data-dz-name></div><div class=\"dz-left\"><div class=\"dz-progress-wrapper\">"
+        }
+      ],
+      "rationale": "WAPF Dropzone preview template. OPF ships its own private-upload markup/JS; no Dropzone template surface."
+    },
+    {
+      "wapf_hook": "wapf/html/image_swatch_size",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$desired_size = apply_filters( 'wapf/html/image_swatch_size', 'medium', $field, $product, $choice );",
+      "file": "includes/classes/class-html.php",
+      "line": 847,
+      "category": "field-render",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-html.php:847",
+          "call": "$desired_size = apply_filters( 'wapf/html/image_swatch_size', 'medium', $field, $product, $choice );"
+        }
+      ],
+      "rationale": "Bridged in Renderer::render_choices; WAPF arg shape ($size,$field,$product,$choice) preserved."
+    },
+    {
+      "wapf_hook": "wapf/html/option_attributes",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$attributes = apply_filters('wapf/html/option_attributes', $attributes, $field, $product, $option);",
+      "file": "includes/classes/class-html.php",
+      "line": 620,
+      "category": "field-render",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-html.php:620",
+          "call": "$attributes = apply_filters('wapf/html/option_attributes', $attributes, $field, $product, $option);"
+        },
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-html.php:676",
+          "call": "return apply_filters('wapf/html/option_attributes', $attributes, $field, $product, $option);"
+        }
+      ],
+      "rationale": "OPF option attributes are a preformatted string; WAPF passes/returns an array. Bridging would change the type contract, so left unimplemented."
+    },
+    {
+      "wapf_hook": "wapf/html/option_wrapper_classes",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$classes    = apply_filters('wapf/html/option_wrapper_classes', $classes, $field, $product, $option );",
+      "file": "includes/classes/class-html.php",
+      "line": 621,
+      "category": "field-render",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-html.php:621",
+          "call": "$classes    = apply_filters('wapf/html/option_wrapper_classes', $classes, $field, $product, $option );"
+        }
+      ],
+      "rationale": "Bridged in Renderer::render_choices; WAPF arg shape ($classes,$field,$product,$option) preserved."
+    },
+    {
+      "wapf_hook": "wapf/html/pricing_hint",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters( 'wapf/html/pricing_hint', str_replace( ['{x}', '+'], [ ( empty( $amount ) ? 0 : $amount ) . '%', $ar_sign ], $format), $product, $amount, $type, $field, $option );",
+      "file": "includes/classes/class-helper.php",
+      "line": 498,
+      "category": "pricing",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-helper.php:498",
+          "call": "return apply_filters( 'wapf/html/pricing_hint', str_replace( ['{x}', '+'], [ ( empty( $amount ) ? 0 : $amount ) . '%', $ar_sign ], $format), $product, $amount, $type, $field, $option );"
+        },
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-helper.php:503",
+          "call": "return apply_filters('wapf/html/pricing_hint', str_replace( ['{x}', '+'], [ $amount === '' ? '...' : $price_output, $ar_sign ], $format), $product, $amount, $type, $field, $option );"
+        },
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-helper.php:509",
+          "call": "return apply_filters('wapf/html/pricing_hint', str_replace( ['{x}', '+'], [ sprintf('%s %s', $price_output, __( 'per character', 'sw-wapf' ) ) , $ar_sign ], $format), $product, $amount, $type, $field, $option );"
+        },
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-helper.php:513",
+          "call": "return apply_filters('wapf/html/pricing_hint', str_replace( ['{x}', '+' ], [ '&times;' . $price_output, '' ], $format), $product, $amount, $type, $field, $option );"
+        },
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-helper.php:518",
+          "call": "return apply_filters('wapf/html/pricing_hint', str_replace( ['{x}', '+'], [ $price_output , $ar_sign ], $format), $product, $amount, $type, $field, $option );"
+        }
+      ],
+      "rationale": "OPF builds pricing hints in Renderer::pricing_hint_html but has no filter there; the WAPF form also carries field/option context unavailable at that call."
+    },
+    {
+      "wapf_hook": "wapf/html/pricing_hint/amount",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$amount = apply_filters( 'wapf/html/pricing_hint/amount', $amount, $product, $type, $for_page );",
+      "file": "includes/classes/class-helper.php",
+      "line": 494,
+      "category": "pricing",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-helper.php:494",
+          "call": "$amount = apply_filters( 'wapf/html/pricing_hint/amount', $amount, $product, $type, $for_page );"
+        },
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-extended-controller.php:280",
+          "call": "$amount = apply_filters('wapf/html/pricing_hint/amount', $cartitem_field['values'][0]['calc_price'], $cart_item['data'], 'fx', 'cart' );"
+        }
+      ],
+      "rationale": "OPF computes hint amounts from the normalized pricing block in Renderer::pricing_hint_html; no amount filter exposed."
+    },
+    {
+      "wapf_hook": "wapf/html/pricing_hint/format",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$format = apply_filters( 'wapf/html/pricing_hint/format', Util::pricing_hint_format(), $product, $amount, $type );",
+      "file": "includes/classes/class-helper.php",
+      "line": 493,
+      "category": "pricing",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-helper.php:493",
+          "call": "$format = apply_filters( 'wapf/html/pricing_hint/format', Util::pricing_hint_format(), $product, $amount, $type );"
+        }
+      ],
+      "rationale": "OPF hint format is fixed to \" +/- wc_price()\"; no format filter exposed."
+    },
+    {
+      "wapf_hook": "wapf/html/product_totals",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "echo apply_filters( 'wapf/html/product_totals', $totals_html, $product );",
+      "file": "includes/classes/class-html.php",
+      "line": 222,
+      "category": "field-render",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-html.php:222",
+          "call": "echo apply_filters( 'wapf/html/product_totals', $totals_html, $product );"
+        }
+      ],
+      "rationale": "OPF render_totals() echoes its block directly; no filtered totals-HTML return. before/after actions are bridged instead."
+    },
+    {
+      "wapf_hook": "wapf/html/product_totals/data",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$data = apply_filters( 'wapf/html/product_totals/data', [",
+      "file": "includes/classes/class-html.php",
+      "line": 196,
+      "category": "field-render",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-html.php:196",
+          "call": "$data = apply_filters( 'wapf/html/product_totals/data', ["
+        }
+      ],
+      "rationale": "OPF totals data is computed inline in render_totals() as data-* attributes rather than a mutable array."
+    },
+    {
+      "wapf_hook": "wapf/html/section_container_classes",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$extra_classes = apply_filters( 'wapf/html/section_container_classes', $extra_classes, $field );",
+      "file": "includes/classes/class-html.php",
+      "line": 430,
+      "category": "field-render",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-html.php:430",
+          "call": "$extra_classes = apply_filters( 'wapf/html/section_container_classes', $extra_classes, $field );"
+        }
+      ],
+      "rationale": "Bridged in Renderer::render_section; WAPF arg shape ($classes,$field) preserved."
+    },
+    {
+      "wapf_hook": "wapf/licensing/timeout",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "'timeout' \t=> apply_filters('wapf/licensing/timeout', 5),",
+      "file": "includes/classes/class-licensing.php",
+      "line": 210,
+      "category": "admin",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-licensing.php:210",
+          "call": "'timeout' \t=> apply_filters('wapf/licensing/timeout', 5),"
+        }
+      ],
+      "rationale": "OPF is GPL and has no licensing/update-check subsystem."
+    },
+    {
+      "wapf_hook": "wapf/linked_products/cart_choice",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$the_choice = apply_filters( 'wapf/linked_products/cart_choice', $the_choice, $field, $main_product_id );",
+      "file": "includes/controllers/class-linked-products-controller.php",
+      "line": 393,
+      "category": "linked-products",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-linked-products-controller.php:393",
+          "call": "$the_choice = apply_filters( 'wapf/linked_products/cart_choice', $the_choice, $field, $main_product_id );"
+        },
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-linked-products-controller.php:440",
+          "call": "$the_choice                             = apply_filters( 'wapf/linked_products/cart_choice', $the_choice, $field, $main_product_id );"
+        }
+      ],
+      "rationale": "Bridged in LinkedProducts::add_children; WAPF arg shape ($choice,$field,$main_product_id) preserved."
+    },
+    {
+      "wapf_hook": "wapf/linked_products/choice",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters( 'wapf/linked_products/choice', $choice, $field, $product );",
+      "file": "includes/controllers/class-linked-products-controller.php",
+      "line": 1576,
+      "category": "linked-products",
+      "status": "implemented",
+      "opf_equivalent": "opf/linked_products/choice",
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-linked-products-controller.php:1576",
+          "call": "return apply_filters( 'wapf/linked_products/choice', $choice, $field, $product );"
+        }
+      ],
+      "rationale": "OPF already exposes opf/linked_products/choice with the identical WAPF signature; alias registered."
+    },
+    {
+      "wapf_hook": "wapf/lookup_tables",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$tables = apply_filters( 'wapf/lookup_tables', [] );",
+      "file": "includes/controllers/class-product-controller.php",
+      "line": 991,
+      "category": "linked-products",
+      "status": "implemented",
+      "opf_equivalent": "opf_lookup_tables",
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-product-controller.php:991",
+          "call": "$tables = apply_filters( 'wapf/lookup_tables', [] );"
+        },
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-public-controller.php:44",
+          "call": "$tables = apply_filters( 'wapf/lookup_tables', [] );"
+        }
+      ],
+      "rationale": "Calculator already falls back to wapf/lookup_tables; alias on opf_lookup_tables keeps a single application path."
+    },
+    {
+      "wapf_hook": "wapf/message/file_not_valid",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return ['error' =>  apply_filters( 'wapf/message/file_not_valid', __( 'The uploaded file type is not allowed.', 'sw-wapf' )) ];",
+      "file": "includes/classes/class-file-upload.php",
+      "line": 138,
+      "category": "uploads",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:138",
+          "call": "return ['error' =>  apply_filters( 'wapf/message/file_not_valid', __( 'The uploaded file type is not allowed.', 'sw-wapf' )) ];"
+        }
+      ],
+      "rationale": "OPF uses its own localized upload error strings; no message filters."
+    },
+    {
+      "wapf_hook": "wapf/message/file_upload_error",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return sprintf( apply_filters('wapf/message/file_upload_error', __( \"Error uploading file \\\"%s\\\". %s\", 'sw-wapf' ) ),$file['name'], $upload['error'] );",
+      "file": "includes/classes/class-file-upload.php",
+      "line": 117,
+      "category": "uploads",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:117",
+          "call": "return sprintf( apply_filters('wapf/message/file_upload_error', __( \"Error uploading file \\\"%s\\\". %s\", 'sw-wapf' ) ),$file['name'], $upload['error'] );"
+        },
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:302",
+          "call": "return sprintf(apply_filters('wapf/message/file_upload_error', __( \"Error uploading file \\\"%s\\\". %s\", 'sw-wapf' )),$files[$file_key][$i]['name'], $error);"
+        },
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:307",
+          "call": "return sprintf(apply_filters('wapf/message/file_upload_error', __( \"Error uploading file \\\"%s\\\". %s\", 'sw-wapf' )),$files[$file_key][$i]['name'], $error);"
+        },
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:312",
+          "call": "return sprintf(apply_filters('wapf/message/file_upload_error', __( \"Error uploading file \\\"%s\\\". %s\", 'sw-wapf' )),$files[$file_key][$i]['name'], $error);"
+        }
+      ],
+      "rationale": "OPF uses its own localized upload error strings; no message filters."
+    },
+    {
+      "wapf_hook": "wapf/message/file_upload_error_general",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return sprintf( apply_filters( 'wapf/message/file_upload_error_general', __( \"Error uploading file \\\"%s\\\". Please try again.\", 'sw-wapf' ) ), $f );",
+      "file": "includes/classes/class-file-upload.php",
+      "line": 257,
+      "category": "uploads",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:257",
+          "call": "return sprintf( apply_filters( 'wapf/message/file_upload_error_general', __( \"Error uploading file \\\"%s\\\". Please try again.\", 'sw-wapf' ) ), $f );"
+        }
+      ],
+      "rationale": "OPF uses its own localized upload error strings; no message filters."
+    },
+    {
+      "wapf_hook": "wapf/message/file_upload_logged_in",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return ['error' => apply_filters('wapf/message/file_upload_logged_in', __( 'You are not authorized to upload files.', 'sw-wapf' )) ];",
+      "file": "includes/classes/class-file-upload.php",
+      "line": 134,
+      "category": "uploads",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:134",
+          "call": "return ['error' => apply_filters('wapf/message/file_upload_logged_in', __( 'You are not authorized to upload files.', 'sw-wapf' )) ];"
+        },
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:277",
+          "call": "return apply_filters('wapf/message/file_upload_logged_in', __( 'You are not authorized to upload files.', 'sw-wapf' ));"
+        }
+      ],
+      "rationale": "OPF private uploads do not require login; no equivalent message."
+    },
+    {
+      "wapf_hook": "wapf/message/file_upload_nofield",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters('wapf/message/file_upload_nofield', __( \"This file doesn't belong to any product option.\", 'sw-wapf' ));",
+      "file": "includes/classes/class-file-upload.php",
+      "line": 236,
+      "category": "uploads",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:236",
+          "call": "return apply_filters('wapf/message/file_upload_nofield', __( \"This file doesn't belong to any product option.\", 'sw-wapf' ));"
+        }
+      ],
+      "rationale": "OPF rejects orphan uploads at the REST route; no message filter."
+    },
+    {
+      "wapf_hook": "wapf/message/upload_err_cant_write",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "case 4: $error = apply_filters('wapf/message/upload_err_cant_write', __(\"Failed to write file to disk.\",'sw-wapf')); break;",
+      "file": "includes/classes/class-file-upload.php",
+      "line": 298,
+      "category": "uploads",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:298",
+          "call": "case 4: $error = apply_filters('wapf/message/upload_err_cant_write', __(\"Failed to write file to disk.\",'sw-wapf')); break;"
+        }
+      ],
+      "rationale": "OPF uses its own localized upload error strings; no message filters."
+    },
+    {
+      "wapf_hook": "wapf/message/upload_err_ini_size",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "case 1: $error = apply_filters('wapf/message/upload_err_ini_size', __(\"The uploaded file exceeds the upload_max_filesize directive in php.ini.\",'sw-wapf')); break;",
+      "file": "includes/classes/class-file-upload.php",
+      "line": 297,
+      "category": "uploads",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:297",
+          "call": "case 1: $error = apply_filters('wapf/message/upload_err_ini_size', __(\"The uploaded file exceeds the upload_max_filesize directive in php.ini.\",'sw-wapf')); break;"
+        }
+      ],
+      "rationale": "OPF uses its own localized upload error strings; no message filters."
+    },
+    {
+      "wapf_hook": "wapf/message/upload_err_partial",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "case 3: $error = apply_filters('wapf/message/upload_err_partial', __('The uploaded file was only partially uploaded.', 'sw-wapf')); break;",
+      "file": "includes/classes/class-file-upload.php",
+      "line": 299,
+      "category": "uploads",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:299",
+          "call": "case 3: $error = apply_filters('wapf/message/upload_err_partial', __('The uploaded file was only partially uploaded.', 'sw-wapf')); break;"
+        }
+      ],
+      "rationale": "OPF uses its own localized upload error strings; no message filters."
+    },
+    {
+      "wapf_hook": "wapf/message/upload_err_too_big",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$error = apply_filters('wapf/message/upload_err_too_big', __(\"The filesize is too big.\",'sw-wapf'));",
+      "file": "includes/classes/class-file-upload.php",
+      "line": 306,
+      "category": "uploads",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:306",
+          "call": "$error = apply_filters('wapf/message/upload_err_too_big', __(\"The filesize is too big.\",'sw-wapf'));"
+        }
+      ],
+      "rationale": "OPF uses its own localized upload error strings; no message filters."
+    },
+    {
+      "wapf_hook": "wapf/message/upload_err_too_many",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters('wapf/message/upload_err_too_many', __(\"You are not allowed to upload multiple files.\",'sw-wapf'));",
+      "file": "includes/classes/class-file-upload.php",
+      "line": 283,
+      "category": "uploads",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:283",
+          "call": "return apply_filters('wapf/message/upload_err_too_many', __(\"You are not allowed to upload multiple files.\",'sw-wapf'));"
+        }
+      ],
+      "rationale": "OPF uses its own localized upload error strings; no message filters."
+    },
+    {
+      "wapf_hook": "wapf/message/upload_err_type_unsupported",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$error = apply_filters('wapf/message/upload_err_type_unsupported', __(\"This file type is not supported.\",'sw-wapf'));",
+      "file": "includes/classes/class-file-upload.php",
+      "line": 311,
+      "category": "uploads",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:311",
+          "call": "$error = apply_filters('wapf/message/upload_err_type_unsupported', __(\"This file type is not supported.\",'sw-wapf'));"
+        }
+      ],
+      "rationale": "OPF uses its own localized upload error strings; no message filters."
+    },
+    {
+      "wapf_hook": "wapf/message/upload_err_uploads_exceeded",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters('wapf/message/upload_err_uploads_exceeded', __(\"The maximum number of allowed simultanious uploads was exceeded. Please upload less files.\",'sw-wapf'));",
+      "file": "includes/classes/class-file-upload.php",
+      "line": 326,
+      "category": "uploads",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:326",
+          "call": "return apply_filters('wapf/message/upload_err_uploads_exceeded', __(\"The maximum number of allowed simultanious uploads was exceeded. Please upload less files.\",'sw-wapf'));"
+        }
+      ],
+      "rationale": "OPF uses its own localized upload error strings; no message filters."
+    },
+    {
+      "wapf_hook": "wapf/message/upload_error_code",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "default: $error = apply_filters('wapf/message/upload_error_code', sprintf(__('Error code: %s','sw-wapf'), $files[$file_key][$i]['error'] )); break;",
+      "file": "includes/classes/class-file-upload.php",
+      "line": 300,
+      "category": "uploads",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:300",
+          "call": "default: $error = apply_filters('wapf/message/upload_error_code', sprintf(__('Error code: %s','sw-wapf'), $files[$file_key][$i]['error'] )); break;"
+        }
+      ],
+      "rationale": "OPF uses its own localized upload error strings; no message filters."
+    },
+    {
+      "wapf_hook": "wapf/order/order_item_field",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$fields_meta[ $meta_key ] = apply_filters( 'wapf/order/order_item_field', $meta_field, $cart_item, $field );",
+      "file": "includes/controllers/class-product-controller.php",
+      "line": 819,
+      "category": "order-meta",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-product-controller.php:819",
+          "call": "$fields_meta[ $meta_key ] = apply_filters( 'wapf/order/order_item_field', $meta_field, $cart_item, $field );"
+        }
+      ],
+      "rationale": "Bridged in CartIntegration::persist_order_item; WAPF arg shape ($meta_field,$cart_item,$field) preserved."
+    },
+    {
+      "wapf_hook": "wapf/order_again/before_cart_item_field",
+      "kind": "do_action",
+      "kind_all": [
+        "do_action"
+      ],
+      "signature": "do_action( 'wapf/order_again/before_cart_item_field',  $order_item, $field, $clone_idx, $raw_values );",
+      "file": "includes/controllers/class-product-controller.php",
+      "line": 947,
+      "category": "order-meta",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "do_action",
+          "location": "includes/controllers/class-product-controller.php:947",
+          "call": "do_action( 'wapf/order_again/before_cart_item_field',  $order_item, $field, $clone_idx, $raw_values );"
+        }
+      ],
+      "rationale": "Action bridged in CartIntegration::restore_order_again; WAPF arg shape ($order_item,$field,$clone_idx,$raw_values) approximated with clone_idx=0."
+    },
+    {
+      "wapf_hook": "wapf/order_item/meta_display_value",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$display_value = apply_filters('wapf/order_item/meta_display_value',",
+      "file": "includes/controllers/class-product-controller.php",
+      "line": 892,
+      "category": "order-meta",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-product-controller.php:892",
+          "call": "$display_value = apply_filters('wapf/order_item/meta_display_value',"
+        }
+      ],
+      "rationale": "Bridged in CartIntegration::persist_order_item; WAPF arg shape ($display_value,$field) preserved."
+    },
+    {
+      "wapf_hook": "wapf/pricing/addon",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters( 'wapf/pricing/addon', $amount, $product, $type, $for );",
+      "file": "includes/classes/class-helper.php",
+      "line": 451,
+      "category": "pricing",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-helper.php:451",
+          "call": "return apply_filters( 'wapf/pricing/addon', $amount, $product, $type, $for );"
+        }
+      ],
+      "rationale": "OPF computes per-field addons inside Calculator::field_addon (core engine, off-limits). No per-addon extension filter is exposed; use opf_addon_price for per-line totals."
+    },
+    {
+      "wapf_hook": "wapf/pricing/base",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$price = apply_filters('wapf/pricing/base', $price, $product, $quantity);",
+      "file": "includes/classes/class-cart.php",
+      "line": 14,
+      "category": "pricing",
+      "status": "mappable",
+      "opf_equivalent": "opf_cart_item_base_price",
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-cart.php:14",
+          "call": "$price = apply_filters('wapf/pricing/base', $price, $product, $quantity);"
+        }
+      ],
+      "rationale": "Bridged at CartIntegration::apply_prices; WAPF arg shape ($price,$product,$quantity) preserved."
+    },
+    {
+      "wapf_hook": "wapf/pricing/cart_item_base",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$price = apply_filters('wapf/pricing/cart_item_base', $price, $product, $quantity, $cart_item);",
+      "file": "includes/classes/class-cart.php",
+      "line": 15,
+      "category": "pricing",
+      "status": "mappable",
+      "opf_equivalent": "opf_cart_item_base_price",
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-cart.php:15",
+          "call": "$price = apply_filters('wapf/pricing/cart_item_base', $price, $product, $quantity, $cart_item);"
+        }
+      ],
+      "rationale": "Bridged at CartIntegration::apply_prices; WAPF arg shape ($price,$product,$quantity,$cart_item) preserved."
+    },
+    {
+      "wapf_hook": "wapf/pricing/cart_item_base_for_formulas",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$formula_base       = apply_filters( 'wapf/pricing/cart_item_base_for_formulas', $base, $product, $quantity, $cart_item );",
+      "file": "includes/classes/class-cart.php",
+      "line": 37,
+      "category": "pricing",
+      "status": "mappable",
+      "opf_equivalent": "opf_formula_base_price",
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-cart.php:37",
+          "call": "$formula_base       = apply_filters( 'wapf/pricing/cart_item_base_for_formulas', $base, $product, $quantity, $cart_item );"
+        }
+      ],
+      "rationale": "OPF exposes opf_formula_base_price ($price,$product_id) at formula evaluation; WAPF form takes quantity+cart_item which are unavailable there. Left reader-compatible, not auto-bridged."
+    },
+    {
+      "wapf_hook": "wapf/pricing/cart_item_options",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$options_total = apply_filters( 'wapf/pricing/cart_item_options', $options_total, $product, $quantity, $cart_item );",
+      "file": "includes/classes/class-cart.php",
+      "line": 75,
+      "category": "pricing",
+      "status": "mappable",
+      "opf_equivalent": "opf_addon_price",
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-cart.php:75",
+          "call": "$options_total = apply_filters( 'wapf/pricing/cart_item_options', $options_total, $product, $quantity, $cart_item );"
+        }
+      ],
+      "rationale": "Bridged at CartIntegration::apply_prices; WAPF arg shape ($options_total,$product,$quantity,$cart_item) preserved."
+    },
+    {
+      "wapf_hook": "wapf/pricing/display_options",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters( 'wapf/pricing/display_options', $to_return, $for_frontend );",
+      "file": "includes/classes/class-woocommerce-service.php",
+      "line": 277,
+      "category": "pricing",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-woocommerce-service.php:277",
+          "call": "return apply_filters( 'wapf/pricing/display_options', $to_return, $for_frontend );"
+        }
+      ],
+      "rationale": "WAPF admin/theme price-format override. OPF formats prices through WooCommerce + opf_frontend_config; no equivalent display-options filter surface."
+    },
+    {
+      "wapf_hook": "wapf/pricing/price_with_tax",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters( 'wapf/pricing/price_with_tax', $price, $price, $product, $for_page );",
+      "file": "includes/classes/class-helper.php",
+      "line": 405,
+      "category": "pricing",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-helper.php:405",
+          "call": "return apply_filters( 'wapf/pricing/price_with_tax', $price, $price, $product, $for_page );"
+        },
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-helper.php:423",
+          "call": "return apply_filters( 'wapf/pricing/price_with_tax', $price_with_tax, $price, $product, $for_page );"
+        }
+      ],
+      "rationale": "WAPF inline tax display helper. OPF defers all tax formatting to WooCommerce totals (wc_price / WC()->cart), so there is no per-price tax hook."
+    },
+    {
+      "wapf_hook": "wapf/pricing/product",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "'data-product-price'        => apply_filters( 'wapf/pricing/product', $product->get_price(), $product ),",
+      "file": "includes/classes/class-html.php",
+      "line": 199,
+      "category": "pricing",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-html.php:199",
+          "call": "'data-product-price'        => apply_filters( 'wapf/pricing/product', $product->get_price(), $product ),"
+        },
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-product-controller.php:78",
+          "call": "$variant_data['apf_base']  = apply_filters( 'wapf/pricing/product', $variation->get_price(), $variation );"
+        }
+      ],
+      "rationale": "Bridged in Renderer::render as the base price used for display; WAPF arg shape ($price,$product) preserved."
+    },
+    {
+      "wapf_hook": "wapf/pricing_summary",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$show_inner = apply_filters( 'wapf/pricing_summary', $show_inner ? get_option('wapf_pricing_summary', 'lines') : 'hide', $product );",
+      "file": "includes/classes/class-html.php",
+      "line": 211,
+      "category": "pricing",
+      "status": "mappable",
+      "opf_equivalent": "opf_show_totals",
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-html.php:211",
+          "call": "$show_inner = apply_filters( 'wapf/pricing_summary', $show_inner ? get_option('wapf_pricing_summary', 'lines') : 'hide', $product );"
+        }
+      ],
+      "rationale": "Alias registered on opf_show_totals. WAPF returns a summary mode string; OPF keeps its boolean display gate, so the alias receives the boolean."
+    },
+    {
+      "wapf_hook": "wapf/product_field_groups",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters( 'wapf/product_field_groups', $cached, $product );",
+      "file": "includes/classes/class-field-groups.php",
+      "line": 696,
+      "category": "field-render",
+      "status": "implemented",
+      "opf_equivalent": "opf_groups_for_product",
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-field-groups.php:696",
+          "call": "return apply_filters( 'wapf/product_field_groups', $cached, $product );"
+        },
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-field-groups.php:732",
+          "call": "return apply_filters( 'wapf/product_field_groups', $field_groups, $product );"
+        }
+      ],
+      "rationale": "OPF already exposes opf_groups_for_product($groups,$product); alias registered for the WAPF name."
+    },
+    {
+      "wapf_hook": "wapf/products/query",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$args = apply_filters( 'wapf/products/query', $args, $product_query, $main_product );",
+      "file": "includes/classes/class-woocommerce-service.php",
+      "line": 351,
+      "category": "linked-products",
+      "status": "implemented",
+      "opf_equivalent": "opf/linked_products/query_args",
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-woocommerce-service.php:351",
+          "call": "$args = apply_filters( 'wapf/products/query', $args, $product_query, $main_product );"
+        }
+      ],
+      "rationale": "OPF already exposes opf/linked_products/query_args($args,$query,$main_product); alias registered."
+    },
+    {
+      "wapf_hook": "wapf/replace_in_formula",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters('wapf/replace_in_formula', $str, [",
+      "file": "includes/classes/class-helper.php",
+      "line": 678,
+      "category": "linked-products",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-helper.php:678",
+          "call": "return apply_filters('wapf/replace_in_formula', $str, ["
+        }
+      ],
+      "rationale": "OPF performs token replacement inside Calculator (core); no replacement-step filter."
+    },
+    {
+      "wapf_hook": "wapf/sanitize_value",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters('wapf/sanitize_value', $value, $field);",
+      "file": "includes/classes/class-fields.php",
+      "line": 51,
+      "category": "linked-products",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-fields.php:51",
+          "call": "return apply_filters('wapf/sanitize_value', $value, $field);"
+        }
+      ],
+      "rationale": "OPF sanitizes per type in CartIntegration::sanitize_value; adding a filter would touch every return branch in the cart flow. Left unimplemented to avoid behavior churn."
+    },
+    {
+      "wapf_hook": "wapf/section_classes/",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$extra_classes = apply_filters( 'wapf/section_classes/' . $field->id, [] );",
+      "file": "includes/classes/class-html.php",
+      "line": 429,
+      "category": "field-render",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-html.php:429",
+          "call": "$extra_classes = apply_filters( 'wapf/section_classes/' . $field->id, [] );"
+        }
+      ],
+      "rationale": "Dynamic per-section class filter; OPF render_section builds fixed section classes and only the generic section_container_classes alias is bridged."
+    },
+    {
+      "wapf_hook": "wapf/settings",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$settings = apply_filters( 'wapf/settings', $settings );",
+      "file": "includes/controllers/class-admin-controller.php",
+      "line": 846,
+      "category": "admin",
+      "status": "mappable",
+      "opf_equivalent": "opf/setting/{name} + opf_frontend_config",
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-admin-controller.php:846",
+          "call": "$settings = apply_filters( 'wapf/settings', $settings );"
+        }
+      ],
+      "rationale": "OPF reads/writes settings through OPF\\API::get_setting/has_setting and opf/setting/{name}; the WAPF whole-array admin filter has no counterpart."
+    },
+    {
+      "wapf_hook": "wapf/shorten_text_limit",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$max_length = apply_filters( 'wapf/shorten_text_limit', $max_length );",
+      "file": "includes/classes/class-helper.php",
+      "line": 123,
+      "category": "linked-products",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-helper.php:123",
+          "call": "$max_length = apply_filters( 'wapf/shorten_text_limit', $max_length );"
+        }
+      ],
+      "rationale": "WAPF admin text-truncation helper. OPF has no shortened-text admin surface."
+    },
+    {
+      "wapf_hook": "wapf/skip_add_to_cart",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$skip = apply_filters('wapf/skip_add_to_cart', false );",
+      "file": "includes/controllers/class-product-controller.php",
+      "line": 418,
+      "category": "cart",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-product-controller.php:418",
+          "call": "$skip = apply_filters('wapf/skip_add_to_cart', false );"
+        }
+      ],
+      "rationale": "WAPF skips rendering fields/add-to-cart for a product. OPF controls this through placement rules and Renderer::visible_to_viewer(); no per-request filter."
+    },
+    {
+      "wapf_hook": "wapf/skip_cart_validation",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "if( apply_filters('wapf/skip_cart_validation', false ) ) return;",
+      "file": "includes/controllers/class-product-controller.php",
+      "line": 314,
+      "category": "cart",
+      "status": "mappable",
+      "opf_equivalent": "opf_skip_validation",
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-product-controller.php:314",
+          "call": "if( apply_filters('wapf/skip_cart_validation', false ) ) return;"
+        },
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-product-controller.php:343",
+          "call": "$skip_validation = apply_filters( 'wapf/skip_cart_validation', false );"
+        }
+      ],
+      "rationale": "Alias registered on opf_skip_validation (boolean passthrough)."
+    },
+    {
+      "wapf_hook": "wapf/skip_fieldgroup_validation",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$skip_fieldgroup_validation = apply_filters( 'wapf/skip_fieldgroup_validation', $skip_fieldgroup_validation );",
+      "file": "includes/controllers/class-product-controller.php",
+      "line": 368,
+      "category": "cart",
+      "status": "mappable",
+      "opf_equivalent": "opf_skip_validation",
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-product-controller.php:368",
+          "call": "$skip_fieldgroup_validation = apply_filters( 'wapf/skip_fieldgroup_validation', $skip_fieldgroup_validation );"
+        }
+      ],
+      "rationale": "Alias registered on opf_skip_validation (boolean passthrough)."
+    },
+    {
+      "wapf_hook": "wapf/store_api/cart/data_callback",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters( 'wapf/store_api/cart/data_callback', $data, $cart_item );",
+      "file": "includes/controllers/class-product-controller.php",
+      "line": 195,
+      "category": "cart",
+      "status": "mappable",
+      "opf_equivalent": "capture_store_api",
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-product-controller.php:195",
+          "call": "return apply_filters( 'wapf/store_api/cart/data_callback', $data, $cart_item );"
+        }
+      ],
+      "rationale": "OPF captures Store API payloads in CartIntegration::capture_store_api but exposes no data callback filter; WAPF form is cart-item shaped."
+    },
+    {
+      "wapf_hook": "wapf/store_api/cart/schema_callback",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters( 'wapf/store_api/cart/schema_callback', $schema );",
+      "file": "includes/controllers/class-product-controller.php",
+      "line": 209,
+      "category": "cart",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/controllers/class-product-controller.php:209",
+          "call": "return apply_filters( 'wapf/store_api/cart/schema_callback', $schema );"
+        }
+      ],
+      "rationale": "OPF registers no Store API cart schema; block checkout consumes native WooCommerce item data."
+    },
+    {
+      "wapf_hook": "wapf/validate",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$err = apply_filters( 'wapf/validate', $err, $value, $field, $the_product_id, $clone_idx, $qty, $get_value_from_cart_item, $cart_item_data );",
+      "file": "includes/classes/class-cart.php",
+      "line": 180,
+      "category": "cart",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-cart.php:180",
+          "call": "$err = apply_filters( 'wapf/validate', $err, $value, $field, $the_product_id, $clone_idx, $qty, $get_value_from_cart_item, $cart_item_data );"
+        }
+      ],
+      "rationale": "Bridged in CartIntegration::validate_values for visible non-repeat fields; returns OPF error strings via the WAPF {error,message} contract. cart_item_data is passed as null (unavailable at that stage)."
+    },
+    {
+      "wapf_hook": "wapf/validate/file",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "$error = apply_filters('wapf/validate/file', ['error' => false], $files[$file_key][$i], $field);",
+      "file": "includes/classes/class-file-upload.php",
+      "line": 315,
+      "category": "uploads",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:315",
+          "call": "$error = apply_filters('wapf/validate/file', ['error' => false], $files[$file_key][$i], $field);"
+        }
+      ],
+      "rationale": "OPF validates upload tokens in Uploads::validate_tokens; no extension filter."
+    },
+    {
+      "wapf_hook": "wapf/yith_raq_disable_quantity_edits",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "if( apply_filters( 'wapf/yith_raq_disable_quantity_edits', true ) ) {",
+      "file": "includes/classes/integrations/class-yith-raq.php",
+      "line": 102,
+      "category": "admin",
+      "status": "absent",
+      "opf_equivalent": null,
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/integrations/class-yith-raq.php:102",
+          "call": "if( apply_filters( 'wapf/yith_raq_disable_quantity_edits', true ) ) {"
+        }
+      ],
+      "rationale": "OPF has no YITH Request-a-Quote integration."
+    },
+    {
+      "wapf_hook": "wapf_after_product_totals",
+      "kind": "do_action",
+      "kind_all": [
+        "do_action"
+      ],
+      "signature": "do_action( 'wapf_after_product_totals', $product );",
+      "file": "includes/classes/class-html.php",
+      "line": 262,
+      "category": "field-render",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "do_action",
+          "location": "includes/classes/class-html.php:262",
+          "call": "do_action( 'wapf_after_product_totals', $product );"
+        }
+      ],
+      "rationale": "Legacy action bridged in Renderer::render_totals (WAPF arg: $product)."
+    },
+    {
+      "wapf_hook": "wapf_before_product_totals",
+      "kind": "do_action",
+      "kind_all": [
+        "do_action"
+      ],
+      "signature": "do_action( 'wapf_before_product_totals', $product );",
+      "file": "includes/classes/class-html.php",
+      "line": 256,
+      "category": "field-render",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "do_action",
+          "location": "includes/classes/class-html.php:256",
+          "call": "do_action( 'wapf_before_product_totals', $product );"
+        }
+      ],
+      "rationale": "Legacy action bridged in Renderer::render_totals (WAPF arg: $product)."
+    },
+    {
+      "wapf_hook": "wapf_before_wrapper",
+      "kind": "do_action",
+      "kind_all": [
+        "do_action"
+      ],
+      "signature": "do_action( 'wapf_before_wrapper', $product );",
+      "file": "includes/classes/class-html.php",
+      "line": 235,
+      "category": "field-render",
+      "status": "mappable",
+      "opf_equivalent": null,
+      "bridged": true,
+      "occurrences": [
+        {
+          "type": "do_action",
+          "location": "includes/classes/class-html.php:235",
+          "call": "do_action( 'wapf_before_wrapper', $product );"
+        }
+      ],
+      "rationale": "Legacy action bridged in Renderer::render immediately before the wrapper (WAPF arg: $product)."
+    },
+    {
+      "wapf_hook": "wapf_upload_ajax",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters( 'wapf_upload_ajax', $enable_ajax === 'yes' );",
+      "file": "includes/classes/class-file-upload.php",
+      "line": 335,
+      "category": "uploads",
+      "status": "mappable",
+      "opf_equivalent": "opf_upload_ajax option",
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/classes/class-file-upload.php:335",
+          "call": "return apply_filters( 'wapf_upload_ajax', $enable_ajax === 'yes' );"
+        }
+      ],
+      "rationale": "OPF reads the migrated wapf_upload_ajax/opf_upload_ajax option in Uploads::modern but exposes no filter."
+    },
+    {
+      "wapf_hook": "wapf/setting/{$name}",
+      "kind": "apply_filters",
+      "kind_all": [
+        "apply_filters"
+      ],
+      "signature": "return apply_filters( \"wapf/setting/{$name}\", $the_value );",
+      "file": "includes/api/api-helpers.php",
+      "line": 23,
+      "category": "admin",
+      "status": "mappable",
+      "opf_equivalent": "opf/setting/{name}",
+      "bridged": false,
+      "occurrences": [
+        {
+          "type": "apply_filters",
+          "location": "includes/api/api-helpers.php:23",
+          "call": "return apply_filters( \"wapf/setting/{$name}\", $the_value );"
+        }
+      ],
+      "rationale": "Additional dynamic filter found by source scan (WAPF\\api\\api-helpers.php:23). Mirrors OPF\\API::get_setting() opf/setting/{name}; not auto-bridged because WordPress filters cannot wildcard a dynamic suffix.",
+      "additional_dynamic": true
+    }
+  ]
+}

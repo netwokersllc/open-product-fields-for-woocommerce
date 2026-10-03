@@ -43,6 +43,7 @@ use OPF\Service\Admin\Builder;
 use OPF\Service\Admin\CouponSettings;
 use OPF\Service\Admin\ImportPage;
 use OPF\Service\Admin\Settings;
+use OPF\Compat\WapfHooks;
 use OPF\Service\Assets;
 use OPF\Service\AeliaIntegration;
 use OPF\Service\CartIntegration;
@@ -106,6 +107,8 @@ function opf_boot(): void {
 	Settings::init();
 	CouponSettings::init();
 	MetaPrettifier::init();
+	// Backward-compatible `wapf/…` aliases for migrated third-party integrations.
+	WapfHooks::init();
 
 	if ( defined( 'WP_CLI' ) && WP_CLI ) {
 		Cli::init();

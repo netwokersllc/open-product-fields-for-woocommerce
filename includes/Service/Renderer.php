@@ -168,8 +168,12 @@ final class Renderer {
 
 		Assets::enqueue_frontend( self::registry( $groups ) );
 
-		$base_price = (float) $product->get_price( 'edit' );
+		// WAPF alias bridge: wapf/pricing/product.
+		$base_price = (float) \OPF\Compat\WapfHooks::pricing_product( (float) $product->get_price( 'edit' ), $product );
 		$gids       = [];
+
+		// WAPF alias bridge: legacy wapf_before_wrapper action.
+		\OPF\Compat\WapfHooks::before_wrapper( $product );
 
 		echo '<div class="opf-fields" data-opf-fields="' . esc_attr( (string) count( $groups ) ) . '"><div class="opf" id="opf_' . esc_attr( (string) $product->get_id() ) . '"><div class="opf-wrapper">';
 
@@ -335,6 +339,8 @@ final class Renderer {
 		if ( ! Evaluator::is_visible( $field, $values ) ) {
 			$classes[] = 'opf-hide';
 		}
+		// WAPF alias bridge: wapf/html/section_container_classes.
+		$classes = \OPF\Compat\WapfHooks::section_container_classes( $classes, $field );
 		$field_attribute = $include_field_attribute ? ' data-opf-field="' . esc_attr( $field['id'] ) . '"' : '';
 		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '"' . $field_attribute . ' style="width:' . esc_attr( (string) $field['width'] ) . '%;">';
 	}
@@ -411,6 +417,9 @@ final class Renderer {
 			$classes[] = 'opf-hide';
 		}
 
+		// WAPF alias bridge: wapf/html/field_container_classes.
+		$classes = \OPF\Compat\WapfHooks::field_container_classes( $classes, $field );
+
 		$repeat_attr = $repeat_instance ? ' data-opf-repeat-instance="1"' : ' data-opf-field="' . esc_attr( $fid ) . '"';
 		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '"' . $repeat_attr . ' style="width:' . esc_attr( (string) $field['width'] ) . '%;" for="' . esc_attr( $fid ) . '">';
 		if ( 'content_image' === $field['type'] ) {
@@ -470,6 +479,9 @@ final class Renderer {
 			return;
 		}
 
+		// WAPF alias bridge: wapf/html/field_label (filtered content, escaped default).
+		$label_content = \OPF\Compat\WapfHooks::field_label( esc_html( $field['label'] ), $field, $product );
+
 		echo '<div class="opf-field-label"><label';
 		if ( 'radio' === $field['type'] ) {
 			echo ' id="opf-label-' . esc_attr( $gid . '-' . $fid ) . '"';
@@ -477,23 +489,34 @@ final class Renderer {
 		if ( ! in_array( $field['type'], [ 'swatch', 'image_quantity', 'radio', 'checkbox', 'products' ], true ) ) {
 			echo ' for="opf-' . esc_attr( $gid . '-' . $fid ) . '"';
 		}
-		echo '><span>' . esc_html( $field['label'] ) . '</span>' . self::pricing_hint_html( $field['pricing'] ?? [], $base_price ) . ' ';
+		echo '><span>' . $label_content . '</span>' . self::pricing_hint_html( $field['pricing'] ?? [], $base_price ) . ' ';
 		if ( $field['required'] && ( $field['_opf_mark_required'] ?? true ) ) {
 			echo '<abbr class="required" title="' . esc_attr( self::required_title() ) . '">*</abbr>';
 		}
 		echo '</label>';
+		// WAPF alias bridge: wapf/html/field_description. Unfiltered values keep
+		// the original escape path so output stays byte-identical without listeners.
+		if ( '' === $field['description'] ) {
+			$description      = '';
+			$description_html = '';
+		} else {
+			$description      = \OPF\Compat\WapfHooks::field_description( $field['description'], $field );
+			$description_html = ( $description === $field['description'] )
+				? esc_html( $field['description'] )
+				: ( function_exists( 'wp_kses_post' ) ? wp_kses_post( $description ) : esc_html( $description ) );
+		}
 		// Tooltip instructions sit inside the label container, next to the
 		// label, mirroring WAPF instructions_position=tooltip (the icon is
 		// emitted inside .wapf-field-label).
-		if ( '' !== $field['description'] && 'tooltip' === ( $field['description_presentation'] ?? 'inline' ) ) {
+		if ( '' !== $description && 'tooltip' === ( $field['description_presentation'] ?? 'inline' ) ) {
 			$tid = 'opf-tt-' . esc_attr( $gid . '-' . $fid );
 			echo '<button type="button" class="opf-tooltip-trigger" aria-describedby="' . $tid . '" aria-expanded="false"><span aria-hidden="true">?</span><span class="screen-reader-text">' . esc_html( $field['label'] ) . ' help</span></button>';
-			echo '<span role="tooltip" id="' . $tid . '" class="opf-tooltip">' . esc_html( $field['description'] ) . '</span>';
+			echo '<span role="tooltip" id="' . $tid . '" class="opf-tooltip">' . $description_html . '</span>';
 		}
 		echo '</div>';
 
-		if ( '' !== $field['description'] && 'tooltip' !== ( $field['description_presentation'] ?? 'inline' ) ) {
-			echo '<div class="opf-field-description">' . esc_html( $field['description'] ) . '</div>';
+		if ( '' !== $description && 'tooltip' !== ( $field['description_presentation'] ?? 'inline' ) ) {
+			echo '<div class="opf-field-description">' . $description_html . '</div>';
 		}
 
 		echo '<div class="opf-field-input">';
@@ -615,6 +638,9 @@ final class Renderer {
 				$swatch_classes[] = 'has-pricing';
 			}
 
+			// WAPF alias bridge: wapf/html/option_wrapper_classes.
+			$swatch_classes = \OPF\Compat\WapfHooks::option_wrapper_classes( $swatch_classes, $field, $GLOBALS['product'] ?? null, $choice );
+
 			$attrs = sprintf(
 				'autocomplete="off" id="opf-%1$s-%2$s-%3$s" name="%4$s" class="opf-input input-%2$s" data-field-id="%2$s" value="%5$s" data-opf-label="%6$s" data-wapf-label="%6$s"%7$s%8$s%9$s',
 				esc_attr( $gid ),
@@ -639,9 +665,11 @@ final class Renderer {
 			}
 			$image_html = '';
 			if ( $image_swatch && ! empty( $choice['image_id'] ) && function_exists( 'wp_get_attachment_image' ) ) {
+				// WAPF alias bridge: wapf/html/image_swatch_size.
+				$image_size = \OPF\Compat\WapfHooks::image_swatch_size( 'medium', $field, $GLOBALS['product'] ?? null, $choice );
 				$image_html = (string) wp_get_attachment_image(
 					(int) $choice['image_id'],
-					'medium',
+					$image_size,
 					false,
 					[ 'class' => 'opf-swatch-image', 'alt' => (string) $choice['label'], 'loading' => 'lazy', 'decoding' => 'async' ]
 				);
@@ -1105,6 +1133,8 @@ final class Renderer {
 		if ( ! self::compat() ) {
 			return;
 		}
+		// WAPF alias bridge: legacy wapf_before_product_totals action.
+		\OPF\Compat\WapfHooks::before_product_totals( $product );
 		$mode = self::summary_mode();
 		$hidden = 'hidden' === $mode ? ' opf-totals-hidden' : '';
 		$i18n = self::i18n();
@@ -1129,6 +1159,8 @@ final class Renderer {
 			echo '<div><span>' . esc_html( $i18n['grand_total'] ) . '</span> <span class="opf-total opf-grand-total price amount"></span></div>';
 		}
 		echo '</div></div>';
+		// WAPF alias bridge: legacy wapf_after_product_totals action.
+		\OPF\Compat\WapfHooks::after_product_totals( $product );
 	}
 
 	/**

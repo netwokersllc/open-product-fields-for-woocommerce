@@ -407,9 +407,13 @@ final class CartIntegration {
 				continue;
 			}
 
-			$base     = (float) apply_filters( 'opf_cart_item_base_price', (float) $cart_item['opf_base_price'], $product, $cart_item );
 			$quantity = max( 1, (int) $cart_item['quantity'] );
+			$base     = (float) apply_filters( 'opf_cart_item_base_price', (float) $cart_item['opf_base_price'], $product, $cart_item );
+			// WAPF alias bridge: wapf/pricing/base + wapf/pricing/cart_item_base.
+			$base     = \OPF\Compat\WapfHooks::cart_base_price( $base, $product, $quantity, $cart_item );
 			$per_unit = self::addons_per_unit( $product, $cart_item[ self::ITEM_KEY ], $base, $quantity );
+			// WAPF alias bridge: wapf/pricing/cart_item_options.
+			$per_unit = \OPF\Compat\WapfHooks::cart_item_options( $per_unit, $product, $quantity, $cart_item );
 			$target   = max( 0.0, $base + $per_unit );
 
 			if ( abs( (float) $product->get_price( 'edit' ) - $target ) > 0.000001 ) {
@@ -606,7 +610,8 @@ final class CartIntegration {
 			];
 		}
 
-		return $other_data;
+		// WAPF alias bridge: wapf/cart/item_data.
+		return \OPF\Compat\WapfHooks::cart_item_data( $other_data, $cart_item );
 	}
 
 	/**
@@ -724,7 +729,7 @@ final class CartIntegration {
 						$row_display = self::display_value( $field, $row );
 						if ( '' !== $row_display ) {
 							$label = self::repeated_selection_label( $repeat_field, $section_repeat, (int) $index );
-							$out[] = [ 'label' => $label, 'value' => $row_display ];
+							$out[] = [ 'label' => $label, 'value' => $row_display, 'field' => $field ];
 						}
 					}
 					continue;
@@ -737,6 +742,7 @@ final class CartIntegration {
 					$out[] = [
 						'label' => $field['label'],
 						'value' => $value,
+						'field' => $field,
 					];
 				}
 			}
@@ -832,7 +838,20 @@ final class CartIntegration {
 		// meta on every surface but remain in _opf_fields (order-again,
 		// exports) — hidden data is suppressed from display, never lost.
 		foreach ( self::visible_selections( $product, $values, 'order' ) as $selection ) {
-			$item->add_meta_data( $selection['label'], $selection['value'] );
+			$field = is_array( $selection['field'] ?? null ) ? $selection['field'] : [];
+			// WAPF alias bridge: wapf/order/order_item_field + wapf/order_item/meta_display_value.
+			$meta_field = \OPF\Compat\WapfHooks::order_item_field(
+				[
+					'id'    => (string) ( $field['id'] ?? '' ),
+					'type'  => (string) ( $field['type'] ?? '' ),
+					'label' => (string) $selection['label'],
+					'value' => $selection['value'],
+				],
+				$cart_item,
+				$field
+			);
+			$display = \OPF\Compat\WapfHooks::meta_display_value( $meta_field['value'] ?? $selection['value'], $meta_field );
+			$item->add_meta_data( $selection['label'], $display );
 		}
 		$item->add_meta_data( '_opf_fields', wp_json_encode( $values, JSON_UNESCAPED_UNICODE ), true );
 		$item->add_meta_data( '_opf_cart_item_key', $cart_item_key, true );
@@ -888,6 +907,16 @@ final class CartIntegration {
 				// does for a fresh cart line. Addons require this unadjusted base.
 				if ( $product instanceof \WC_Product ) {
 					$cart_item_data['opf_base_price'] = (float) $product->get_price( 'edit' );
+					// WAPF alias bridge: wapf/order_again/before_cart_item_field.
+					foreach ( FieldGroups::for_product( $product ) as $entry ) {
+						$gid = (string) $entry['id'];
+						foreach ( $entry['group']->data['fields'] as $field ) {
+							if ( in_array( $field['type'], [ 'section', 'section_end', 'paragraph' ], true ) ) {
+								continue;
+							}
+							\OPF\Compat\WapfHooks::order_again_field( $order_item, $field, 0, $decoded[ $gid ][ $field['id'] ] ?? null );
+						}
+					}
 				}
 				if ( $quantity > 1 && $product instanceof \WC_Product ) {
 					foreach ( FieldGroups::for_product( $product ) as $entry ) {
@@ -1144,6 +1173,11 @@ final class CartIntegration {
 				if ( ! Evaluator::is_visible( $field, $given ) ) {
 					continue;
 				}
+				// WAPF alias bridge: wapf/validate (visible, non-repeat fields).
+				$errors = array_merge(
+					$errors,
+					\OPF\Compat\WapfHooks::validate_field( $field, $provided ? $given[ $field['id'] ] : null, $product, $product_quantity )
+				);
 				if ( 'upload' === $field['type'] ) {
 					$tokens = $provided && is_array( $given[ $field['id'] ] ) ? $given[ $field['id'] ] : [];
 					$errors = array_merge( $errors, Uploads::validate_tokens( $field, $tokens, $product->get_id(), $gid ) );
