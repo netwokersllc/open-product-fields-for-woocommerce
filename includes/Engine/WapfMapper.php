@@ -397,9 +397,28 @@ final class WapfMapper {
 				}
 			}
 			$settings['disabled_weekdays'] = array_values( array_unique( $weekdays ) );
+		} elseif ( isset( $options['disabled_days'] ) && is_scalar( $options['disabled_days'] ) && '' !== trim( (string) $options['disabled_days'] ) ) {
+			$weekdays = [];
+			foreach ( preg_split( '/\s*,\s*/', trim( (string) $options['disabled_days'] ) ) as $day ) {
+				if ( preg_match( '/^[0-6]$/', $day ) ) {
+					$weekdays[] = (int) $day;
+				} else {
+					$weekdays = [];
+					$notes[] = sprintf( 'date field "%s" has an unrecognized disabled weekday "%s"; weekday rules need review.', $label, $day );
+					$needs_review = true;
+					break;
+				}
+			}
+			if ( $weekdays || ! $needs_review ) {
+				$settings['disabled_weekdays'] = array_values( array_unique( $weekdays ) );
+			}
 		} elseif ( array_key_exists( 'disabled_days', $options ) ) {
-			$notes[] = sprintf( 'date field "%s" has malformed disabled_days; weekday rules need review.', $label );
-			$needs_review = true;
+			if ( isset( $options['disabled_days'] ) && is_scalar( $options['disabled_days'] ) && '' === trim( (string) $options['disabled_days'] ) ) {
+				$settings['disabled_weekdays'] = [];
+			} else {
+				$notes[] = sprintf( 'date field "%s" has malformed disabled_days; weekday rules need review.', $label );
+				$needs_review = true;
+			}
 		}
 		if ( isset( $options['disabled_dates'] ) && '' !== $options['disabled_dates'] ) {
 			$raw_dates = is_scalar( $options['disabled_dates'] ) ? (string) $options['disabled_dates'] : '';
