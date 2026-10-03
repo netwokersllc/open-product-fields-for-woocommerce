@@ -83,11 +83,20 @@ final class Builder {
 		$languages  = self::language_options();
 		$types      = function_exists( 'wc_get_product_types' ) ? wc_get_product_types() : [];
 		$attribute_options = [];
+		$variation_attribute_options = [];
 		if ( function_exists( 'wc_get_attribute_taxonomies' ) ) {
 			foreach ( wc_get_attribute_taxonomies() as $attribute_taxonomy ) {
 				$taxonomy = 'pa_' . $attribute_taxonomy->attribute_name;
+				// WAPF `patts` terms are `attr|slug` (attr without `pa_`), plus
+				// the `attr|*` wildcard meaning "any value of this attribute".
+				$variation_attribute_options[] = [
+					'value' => $attribute_taxonomy->attribute_name . '|*',
+					/* translators: %s: attribute label. */
+					'label' => sprintf( __( '%s: any value', 'open-product-fields-for-woocommerce' ), (string) $attribute_taxonomy->attribute_label ),
+				];
 				foreach ( (array) get_terms( [ 'taxonomy' => $taxonomy, 'hide_empty' => false, 'number' => 200 ] ) as $term ) {
 					$attribute_options[] = [ 'value' => $taxonomy . ':' . $term->term_id, 'label' => (string) $attribute_taxonomy->attribute_label . ': ' . $term->name ];
+					$variation_attribute_options[] = [ 'value' => $attribute_taxonomy->attribute_name . '|' . $term->slug, 'label' => (string) $attribute_taxonomy->attribute_label . ': ' . $term->name ];
 				}
 			}
 		}
@@ -95,6 +104,10 @@ final class Builder {
 		$selected = [
 			'product'         => [],
 			'product_not'     => [],
+			'product_var'     => [],
+			'product_var_not' => [],
+			'var_att'         => [],
+			'var_att_not'     => [],
 			'product_cat'     => [],
 			'product_cat_not' => [],
 			'product_tag'     => [],
@@ -114,6 +127,12 @@ final class Builder {
 				foreach ( $rule_group['rules'] as $rule ) {
 					if ( 'product' === $rule['subject'] && in_array( $rule['operator'], [ 'in', 'not_in' ], true ) ) {
 						$key = 'not_in' === $rule['operator'] ? 'product_not' : 'product';
+						$selected[ $key ] = array_merge( $selected[ $key ], $rule['terms'] );
+					} elseif ( 'product_var' === $rule['subject'] && in_array( $rule['operator'], [ 'in', 'not_in' ], true ) ) {
+						$key = 'not_in' === $rule['operator'] ? 'product_var_not' : 'product_var';
+						$selected[ $key ] = array_merge( $selected[ $key ], $rule['terms'] );
+					} elseif ( 'var_att' === $rule['subject'] && in_array( $rule['operator'], [ 'in', 'not_in' ], true ) ) {
+						$key = 'not_in' === $rule['operator'] ? 'var_att_not' : 'var_att';
 						$selected[ $key ] = array_merge( $selected[ $key ], $rule['terms'] );
 					} elseif ( in_array( $rule['subject'], [ 'product_cat', 'product_tag' ], true ) && in_array( $rule['operator'], [ 'in', 'not_in' ], true ) ) {
 						$key = 'not_in' === $rule['operator'] ? $rule['subject'] . '_not' : $rule['subject'];
@@ -155,6 +174,37 @@ final class Builder {
 		<p><label for="opf-placement-excluded-products"><strong><?php esc_html_e( 'Exclude product IDs', 'open-product-fields-for-woocommerce' ); ?></strong></label></p>
 		<input type="text" id="opf-placement-excluded-products" class="widefat" inputmode="numeric" pattern="\s*[1-9][0-9]*(\s*,\s*[1-9][0-9]*)*\s*" value="<?php echo esc_attr( implode( ', ', array_unique( $selected['product_not'] ) ) ); ?>">
 		<p class="description"><?php esc_html_e( 'Search by product name or ID, or enter comma-separated IDs directly. Include matches any listed product; exclude removes every listed product. For variations, use the parent product.', 'open-product-fields-for-woocommerce' ); ?></p>
+		<?php foreach ( [ 'variations' => 'product_var', 'excluded-variations' => 'product_var_not' ] as $control => $key ) : ?>
+			<p><label for="opf-placement-<?php echo esc_attr( $control ); ?>-picker"><strong><?php echo esc_html( 'product_var' === $key ? __( 'Show on variations', 'open-product-fields-for-woocommerce' ) : __( 'Hide on variations', 'open-product-fields-for-woocommerce' ) ); ?></strong></label></p>
+			<select id="opf-placement-<?php echo esc_attr( $control ); ?>-picker" class="wc-product-search" multiple="multiple" style="width:100%" data-placeholder="<?php esc_attr_e( 'Search for a variation…', 'open-product-fields-for-woocommerce' ); ?>" data-action="woocommerce_json_search_products_and_variations">
+				<?php foreach ( array_unique( $selected[ $key ] ) as $variation_id ) : ?>
+					<?php $variation_product = wc_get_product( (int) $variation_id ); ?>
+					<option value="<?php echo esc_attr( (string) $variation_id ); ?>" selected><?php echo esc_html( $variation_product ? $variation_product->get_formatted_name() : '#' . $variation_id ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		<?php endforeach; ?>
+		<p><label for="opf-placement-variations"><strong><?php esc_html_e( 'Include variation IDs', 'open-product-fields-for-woocommerce' ); ?></strong></label></p>
+		<input type="text" id="opf-placement-variations" class="widefat" inputmode="numeric" pattern="\s*[1-9][0-9]*(\s*,\s*[1-9][0-9]*)*\s*" value="<?php echo esc_attr( implode( ', ', array_unique( $selected['product_var'] ) ) ); ?>">
+		<p><label for="opf-placement-excluded-variations"><strong><?php esc_html_e( 'Exclude variation IDs', 'open-product-fields-for-woocommerce' ); ?></strong></label></p>
+		<input type="text" id="opf-placement-excluded-variations" class="widefat" inputmode="numeric" pattern="\s*[1-9][0-9]*(\s*,\s*[1-9][0-9]*)*\s*" value="<?php echo esc_attr( implode( ', ', array_unique( $selected['product_var_not'] ) ) ); ?>">
+		<p class="description"><?php esc_html_e( 'Variation rules gate the fields while the shopper picks options: included variations show this group\'s fields, excluded ones hide them. The group still needs a matching product/category rule (or no rules) to render.', 'open-product-fields-for-woocommerce' ); ?></p>
+		<p><strong><?php esc_html_e( 'Show only on variations with attribute', 'open-product-fields-for-woocommerce' ); ?></strong></p>
+		<select multiple size="5" id="opf-placement-variation-attributes" style="width:100%">
+			<?php foreach ( $variation_attribute_options as $option ) : ?>
+				<option value="<?php echo esc_attr( $option['value'] ); ?>" <?php selected( in_array( $option['value'], $selected['var_att'], true ) ); ?>>
+					<?php echo esc_html( $option['label'] ); ?>
+				</option>
+			<?php endforeach; ?>
+		</select>
+		<p><strong><?php esc_html_e( 'Hide on products offering attribute values', 'open-product-fields-for-woocommerce' ); ?></strong></p>
+		<select multiple size="5" id="opf-placement-excluded-variation-attributes" style="width:100%">
+			<?php foreach ( $variation_attribute_options as $option ) : ?>
+				<option value="<?php echo esc_attr( $option['value'] ); ?>" <?php selected( in_array( $option['value'], $selected['var_att_not'], true ) ); ?>>
+					<?php echo esc_html( $option['label'] ); ?>
+				</option>
+			<?php endforeach; ?>
+		</select>
+		<p class="description"><?php esc_html_e( 'Attribute rules use attr|value pairs; “any value” matches every filled choice of that attribute on the selected variation. Excluded pairs keep the whole group off products that offer them.', 'open-product-fields-for-woocommerce' ); ?></p>
 		<p><strong><?php esc_html_e( 'Product categories', 'open-product-fields-for-woocommerce' ); ?></strong></p>
 		<select multiple size="8" id="opf-placement-cats" style="width:100%">
 			<?php foreach ( (array) $cat_terms as $term ) : ?>

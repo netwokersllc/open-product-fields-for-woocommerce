@@ -1124,7 +1124,7 @@
 	}
 
 	function save() {
-		var invalidProductIds = Array.prototype.slice.call( document.querySelectorAll( '#opf-placement-products, #opf-placement-excluded-products' ) ).find( function ( input ) {
+		var invalidProductIds = Array.prototype.slice.call( document.querySelectorAll( '#opf-placement-products, #opf-placement-excluded-products, #opf-placement-variations, #opf-placement-excluded-variations' ) ).find( function ( input ) {
 			return ! input.checkValidity();
 		} );
 		if ( invalidProductIds ) {
@@ -1144,6 +1144,8 @@
 		}
 		var changedSubjects = {
 			product: changed( 'products' ) || changed( 'excludedProducts' ),
+			product_var: changed( 'variations' ) || changed( 'excludedVariations' ),
+			var_att: changed( 'variationAttributes' ) || changed( 'excludedVariationAttributes' ),
 			product_cat: changed( 'cats' ) || changed( 'excludedCats' ),
 			product_tag: changed( 'tags' ) || changed( 'excludedTags' ),
 			product_type: changed( 'types' ) || changed( 'excludedTypes' ),
@@ -1156,6 +1158,14 @@
 		if ( changedSubjects.product ) {
 			if ( placementAtSave.products.length ) rules.push( { subject: 'product', operator: 'in', terms: placementAtSave.products } );
 			if ( placementAtSave.excludedProducts.length ) rules.push( { subject: 'product', operator: 'not_in', terms: placementAtSave.excludedProducts } );
+		}
+		if ( changedSubjects.product_var ) {
+			if ( placementAtSave.variations.length ) rules.push( { subject: 'product_var', operator: 'in', terms: placementAtSave.variations } );
+			if ( placementAtSave.excludedVariations.length ) rules.push( { subject: 'product_var', operator: 'not_in', terms: placementAtSave.excludedVariations } );
+		}
+		if ( changedSubjects.var_att ) {
+			if ( placementAtSave.variationAttributes.length ) rules.push( { subject: 'var_att', operator: 'in', terms: placementAtSave.variationAttributes } );
+			if ( placementAtSave.excludedVariationAttributes.length ) rules.push( { subject: 'var_att', operator: 'not_in', terms: placementAtSave.excludedVariationAttributes } );
 		}
 		if ( changedSubjects.product_cat ) {
 			if ( placementAtSave.cats.length ) rules.push( { subject: 'product_cat', operator: 'in', terms: placementAtSave.cats } );
@@ -1272,6 +1282,10 @@
 		return {
 			products: productIds( '#opf-placement-products' ),
 			excludedProducts: productIds( '#opf-placement-excluded-products' ),
+			variations: productIds( '#opf-placement-variations' ),
+			excludedVariations: productIds( '#opf-placement-excluded-variations' ),
+			variationAttributes: values( '#opf-placement-variation-attributes option:checked' ),
+			excludedVariationAttributes: values( '#opf-placement-excluded-variation-attributes option:checked' ),
 			cats: values( '#opf-placement-cats option:checked' ),
 			excludedCats: values( '#opf-placement-excluded-cats option:checked' ),
 			tags: values( '#opf-placement-tags option:checked' ),
@@ -1291,7 +1305,7 @@
 	var initialPlacementSelection = null;
 	// Reuse WooCommerce's authenticated product search, retaining optional ID entry.
 	if ( window.jQuery ) {
-		[ 'products', 'excluded-products' ].forEach( function ( name ) {
+		[ 'products', 'excluded-products', 'variations', 'excluded-variations' ].forEach( function ( name ) {
 			var input = document.getElementById( 'opf-placement-' + name );
 			var picker = document.getElementById( 'opf-placement-' + name + '-picker' );
 			if ( ! input || ! picker ) return;

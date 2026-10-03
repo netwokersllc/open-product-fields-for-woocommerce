@@ -231,6 +231,10 @@ final class FieldGroups {
 	 * @return array<int,array{id:int,title:string,lang:string,group:FieldGroup}>
 	 */
 	public static function for_product( \WC_Product $product ): array {
+		// Field-level variation rules evaluate against the product currently
+		// being resolved; set it before any early (cached) return.
+		Evaluator::set_context_product( $product );
+
 		$product_id = $product->get_parent_id() ? $product->get_parent_id() : $product->get_id();
 		$logged_in  = function_exists( 'is_user_logged_in' ) && is_user_logged_in();
 		$user       = function_exists( 'wp_get_current_user' ) ? wp_get_current_user() : null;
@@ -242,7 +246,10 @@ final class FieldGroups {
 			: ( is_string( $wpml_language ) && '' !== $wpml_language ? $wpml_language : ( defined( 'ICL_LANGUAGE_CODE' ) ? (string) ICL_LANGUAGE_CODE : 'default' ) );
 		$current_lang = function_exists( 'pll_current_language' ) ? pll_current_language( 'slug' ) : '';
 		$context      = [ 'logged_in' => $logged_in, 'roles' => $roles, 'language' => $language ];
-		$cache_key    = self::cache_key_for_viewer( $product_id, $context, (string) $current_lang );
+		// Cache per concrete product (variation ids included): variation-scoped
+		// `product_var` matching differs between a parent and each of its
+		// variations, so they cannot share a placement cache entry.
+		$cache_key    = self::cache_key_for_viewer( (int) $product->get_id(), $context, (string) $current_lang );
 		// WPML package translations can change without saving an OPF group.
 		// Keep source groups cached per request, but do not persist translations.
 		// Older WordPress/cache drop-ins cannot invalidate the whole OPF group.
@@ -257,10 +264,23 @@ final class FieldGroups {
 		$get_type     = function ( $p ) {
 			return is_object( $p ) && method_exists( $p, 'get_type' ) ? $p->get_type() : 'simple';
 		};
+		// WAPF `product_var`: a variation matches its own ID, a variable
+		// parent matches when any child variation is targeted. Guarded for
+		// partial WC_Product stubs (unit tests, lightweight integrations).
+		$variation_scope = [];
+		if ( is_object( $product ) && method_exists( $product, 'is_type' ) && $product->is_type( 'variation' ) ) {
+			$variation_scope = [ (string) $product->get_id() ];
+		} elseif ( is_object( $product ) && method_exists( $product, 'is_type' ) && $product->is_type( 'variable' ) && method_exists( $product, 'get_children' ) ) {
+			$variation_scope = array_map( 'strval', (array) $product->get_children() );
+		}
 		$has_terms = [
 			'product_cat'  => wc_get_product_term_ids( $product_id, 'product_cat' ),
 			'product_tag'  => wc_get_product_term_ids( $product_id, 'product_tag' ),
 			'product_type' => [ $get_type( $type_product ) ],
+			'product_var'  => $variation_scope,
+			// WAPF `patts`: the taxonomy attribute `attr|slug` pairs the
+			// product itself defines (`*` wildcard included per attribute).
+			'var_att'      => self::variation_attribute_pairs( $type_product ),
 		];
 		if ( function_exists( 'wc_get_attribute_taxonomies' ) ) {
 			foreach ( wc_get_attribute_taxonomies() as $attribute_taxonomy ) {
@@ -274,7 +294,21 @@ final class FieldGroups {
 			if ( $current_lang && ! empty( $entry['lang'] ) && $entry['lang'] !== $current_lang ) {
 				continue;
 			}
-			if ( Evaluator::group_matches( $entry['group']->data, $has_terms, $product_id, $context ) ) {
+			$variation_rules = [];
+			if ( Evaluator::group_matches( $entry['group']->data, $has_terms, $product_id, $context, $variation_rules ) ) {
+				if ( $variation_rules ) {
+					// WAPF merge_frontend_conditions parity: group-level
+					// variation rules become per-field gates so visibility,
+					// validation and pricing follow the selected variation.
+					$group = clone $entry['group'];
+					$group->inject_variation_rules(
+						$variation_rules,
+						( is_object( $product ) && method_exists( $product, 'is_type' ) && $product->is_type( 'variation' ) )
+							? Evaluator::product_variation_context( $product )
+							: null
+					);
+					$entry['group'] = $group;
+				}
 				$matching[] = $entry;
 			}
 		}
@@ -283,6 +317,39 @@ final class FieldGroups {
 			wp_cache_set( $cache_key, $matching, 'opf_groups_for_product' );
 		}
 		return $matching;
+	}
+
+	/**
+	 * Taxonomy attribute `attr|slug` pairs a product defines, plus the `*`
+	 * wildcard per attribute. WAPF `product_has_attribute_values` non-strict
+	 * parity: variation products contribute their parent's attribute terms.
+	 *
+	 * @param \WC_Product|mixed $product Product to inspect.
+	 * @return array<int,string>
+	 */
+	private static function variation_attribute_pairs( $product ): array {
+		$pairs = [];
+		if ( ! is_object( $product ) || ! method_exists( $product, 'get_attributes' ) ) {
+			return $pairs;
+		}
+		foreach ( (array) $product->get_attributes() as $attribute ) {
+			if ( ! $attribute instanceof \WC_Product_Attribute || ! $attribute->is_taxonomy() ) {
+				continue;
+			}
+			$taxonomy = (string) $attribute->get_name();
+			if ( 0 !== strpos( $taxonomy, 'pa_' ) ) {
+				continue;
+			}
+			$attr    = substr( $taxonomy, 3 );
+			$pairs[] = $attr . '|*';
+			foreach ( (array) $attribute->get_options() as $term_id ) {
+				$term = get_term( (int) $term_id );
+				if ( $term instanceof \WP_Term ) {
+					$pairs[] = $attr . '|' . $term->slug;
+				}
+			}
+		}
+		return $pairs;
 	}
 
 	/**

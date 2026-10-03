@@ -87,6 +87,81 @@ const qtyRulePasses = ( rule, map ) => {
 	}
 };
 
+// ---------------------------------------------------------------------------
+// WAPF parity: `product_var` / `var_att` rule subjects evaluate the selected
+// product variation instead of a posted field value. The selected variation is
+// read from Woo's `.variation_id` input plus the `data-product_variations`
+// payload (or the `found_variation` object for AJAX-loaded variation sets).
+// ---------------------------------------------------------------------------
+
+let lastFoundVariation = null;
+
+const selectedAttributes = ( form ) => {
+	const attributes = {};
+	form.querySelectorAll( 'select[name^="attribute_"], input[name^="attribute_"]' ).forEach( ( input ) => {
+		attributes[ input.name ] = input.value || '';
+	} );
+	return attributes;
+};
+
+const variationContext = () => {
+	const form = document.querySelector( 'form.variations_form' );
+	if ( ! form ) {
+		return { variable: false, id: 0, attributes: {} };
+	}
+	const idInput = form.querySelector( 'input.variation_id, input[name="variation_id"]' );
+	const inputId = idInput ? parseInt( idInput.value, 10 ) || 0 : 0;
+	// WooCommerce may not have written `.variation_id` yet when we evaluate
+	// (its own handler can run after ours); fall back to the variation payload.
+	const id = inputId || ( lastFoundVariation ? Number( lastFoundVariation.id ) || 0 : 0 );
+	let attributes = null;
+	if ( lastFoundVariation && Number( lastFoundVariation.id ) === id && lastFoundVariation.attributes ) {
+		attributes = lastFoundVariation.attributes;
+	} else if ( id ) {
+		// WooCommerce renders the variation set as `data-product_variations`
+		// (underscore → dataset key `product_variations`, not `productVariations`).
+		const raw = form.getAttribute( 'data-product_variations' ) || form.dataset.product_variations;
+		if ( raw && 'false' !== raw ) {
+			try {
+				const variations = JSON.parse( raw );
+				const match = Array.isArray( variations ) ? variations.find( ( v ) => Number( v.variation_id ) === id ) : null;
+				if ( match && match.attributes ) {
+					attributes = match.attributes;
+				}
+			} catch ( error ) {
+				attributes = null;
+			}
+		}
+	}
+	return { variable: true, id, attributes: attributes || selectedAttributes( form ) };
+};
+
+const variationRulePasses = ( rule, ctx ) => {
+	if ( ! ctx.variable ) {
+		return true;
+	}
+	// WAPF: no selected variation fails every variation rule (negated too).
+	if ( ! ctx.id ) {
+		return false;
+	}
+	const terms = ( rule.terms || [] ).map( String );
+	let matched = false;
+	if ( 'product_var' === rule.subject ) {
+		matched = terms.includes( String( ctx.id ) );
+	} else {
+		matched = terms.some( ( term ) => {
+			const parts = String( term ).split( '|' );
+			if ( 2 !== parts.length || '' === parts[0] ) {
+				return false;
+			}
+			const actual = ctx.attributes[ 'attribute_pa_' + parts[0] ] ?? ctx.attributes[ 'attribute_' + parts[0] ];
+			return null !== actual && undefined !== actual && '' !== String( actual )
+				&& ( '*' === parts[1] || String( actual ) === parts[1] );
+		} );
+	}
+	return 'not_in' === rule.operator ? ! matched : matched;
+};
+
 const isVisible = ( field, values, subjectIsHidden ) => {
 	if ( ! field.conditionals || ! field.conditionals.length ) {
 		return true;
@@ -94,12 +169,20 @@ const isVisible = ( field, values, subjectIsHidden ) => {
 	let hasShow = false;
 	let showPass = false;
 	let hidePass = false;
+	let varGatePass = true;
+	let varCtx = null;
 
 	const rulePasses = ( rule ) => {
 		// WAPF isValidRule: a rule whose subject field is currently hidden
 		// always fails (hidden subjects can't vouch for a visible dependent).
 		if ( 'function' === typeof subjectIsHidden && subjectIsHidden( rule.field ) ) {
 			return false;
+		}
+		if ( 'product_var' === rule.subject || 'var_att' === rule.subject ) {
+			if ( null === varCtx ) {
+				varCtx = variationContext();
+			}
+			return variationRulePasses( rule, varCtx );
 		}
 		const value = values[ rule.field ];
 		const qtyMap = qtyMapOf( value );
@@ -140,6 +223,11 @@ const isVisible = ( field, values, subjectIsHidden ) => {
 			'any' === conditional.logic
 				? results.includes( true )
 				: ! results.includes( false );
+		if ( 'var' === conditional.action ) {
+			// Generated variation gate (WAPF merge_frontend_conditions parity).
+			varGatePass = varGatePass && passed;
+			return;
+		}
 		if ( 'hide' === conditional.action ) {
 			hidePass = hidePass || passed;
 		} else {
@@ -148,7 +236,7 @@ const isVisible = ( field, values, subjectIsHidden ) => {
 		}
 	} );
 
-	if ( hidePass ) {
+	if ( ! varGatePass || hidePass ) {
 		return false;
 	}
 	return hasShow ? showPass : true;
@@ -406,6 +494,28 @@ const initDatePicker = ( fieldEl, input ) => {
 };
 
 const init = () => {
+	// Woo variation lifecycle → notify every group so variation-scoped rules
+	// (product_var/var_att subjects, generated `var` gates) re-evaluate.
+	// Notifications are deferred to the next tick: WooCommerce writes
+	// `.variation_id` from its own `found_variation` handler, and our handler
+	// may run first, so evaluating synchronously would read a stale/empty ID.
+	if ( window.jQuery ) {
+		const notifyVariationChanged = () => {
+			window.setTimeout( () => document.dispatchEvent( new CustomEvent( 'opf:variation-changed' ) ), 0 );
+		};
+		window.jQuery( 'form.variations_form' )
+			.on( 'found_variation.opfvisibility', function ( _event, variation ) {
+				lastFoundVariation = variation && variation.variation_id
+					? { id: variation.variation_id, attributes: variation.attributes || {} }
+					: null;
+				notifyVariationChanged();
+			} )
+			.on( 'hide_variation.opfvisibility reset_data.opfvisibility', function () {
+				lastFoundVariation = null;
+				notifyVariationChanged();
+			} );
+	}
+
 	document.querySelectorAll( '[data-opf-group]' ).forEach( ( groupEl ) => {
 		const gid = groupEl.getAttribute( 'data-opf-group' );
 		const registry = REGISTRY[ gid ] || {};
@@ -949,6 +1059,7 @@ const init = () => {
 		if ( variationInput ) {
 			variationInput.addEventListener( 'change', () => applyGroupGallery( variationInput ) );
 		}
+		document.addEventListener( 'opf:variation-changed', refresh );
 
 		refresh();
 		syncChecked();

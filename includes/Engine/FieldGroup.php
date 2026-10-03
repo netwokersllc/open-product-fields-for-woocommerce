@@ -172,7 +172,7 @@ final class FieldGroup {
 				$rules[] = [
 					'subject'  => (string) ( $rule['subject'] ?? 'product' ),
 					'operator' => (string) ( $rule['operator'] ?? 'in' ),
-					'terms'    => array_map( 'strval', (array) ( $rule['terms'] ?? [] ) ),
+					'terms'    => self::normalize_rule_terms( (array) ( $rule['terms'] ?? [] ) ),
 				];
 			}
 			if ( $rules ) {
@@ -364,7 +364,21 @@ final class FieldGroup {
 			}
 			$rules = [];
 			foreach ( ( $conditional['rules'] ?? [] ) as $rule ) {
-				if ( ! is_array( $rule ) || empty( $rule['field'] ) ) {
+				if ( ! is_array( $rule ) ) {
+					continue;
+				}
+				// Variation-scoped subjects (WAPF `product_var`/`patts` field
+				// conditions) carry `subject`/`terms` instead of `field`/`value`.
+				$subject = (string) ( $rule['subject'] ?? '' );
+				if ( in_array( $subject, Evaluator::VARIATION_SUBJECTS, true ) ) {
+					$rules[] = [
+						'subject'  => $subject,
+						'operator' => 'not_in' === ( $rule['operator'] ?? 'in' ) ? 'not_in' : 'in',
+						'terms'    => self::normalize_rule_terms( (array) ( $rule['terms'] ?? [] ) ),
+					];
+					continue;
+				}
+				if ( empty( $rule['field'] ) ) {
 					continue;
 				}
 				$rules[] = [
@@ -819,6 +833,69 @@ final class FieldGroup {
 			'formula_raw' => (string) ( $pricing['formula_raw'] ?? '' ),
 			'per_unit'    => $per_unit,
 		];
+	}
+
+	/**
+	 * Normalize a placement/variation rule term list.
+	 *
+	 * Scalar terms are coerced to strings; WAPF-style select2 payloads
+	 * (`{id: ..., text: ...}`) are unwrapped to their `id`; anything else is
+	 * dropped instead of producing `strval(array)` warnings.
+	 *
+	 * @param array<int,mixed> $terms Raw terms.
+	 * @return array<int,string>
+	 */
+	private static function normalize_rule_terms( array $terms ): array {
+		$out = [];
+		foreach ( $terms as $term ) {
+			if ( is_array( $term ) ) {
+				$term = $term['id'] ?? null;
+			}
+			if ( null === $term || is_bool( $term ) || is_array( $term ) || is_object( $term ) ) {
+				continue;
+			}
+			$out[] = (string) $term;
+		}
+		return $out;
+	}
+
+	/**
+	 * Merge generated variation gates into every field of this group.
+	 *
+	 * WAPF 3.1.5 parity (Field_Groups::merge_frontend_conditions): when a
+	 * group matched partly through variation rules, the same rules gate each
+	 * rendered field so visibility, validation, and pricing follow the
+	 * selected variation. Generated `var` conditionals are stripped before
+	 * appending so re-injection stays idempotent.
+	 *
+	 * @param array<int,array{subject:string,operator:string,terms:array<int,string>}> $rules Variation rules of the matching rule group.
+	 * @param array{variable:bool,id:int,attributes:array<string,string>}|null $context Optional deterministic variation context baked into fields (`_var_ctx`). Pass it for concrete variation products; pass null when the context is request- or selection-dependent.
+	 */
+	public function inject_variation_rules( array $rules, ?array $context = null ): void {
+		foreach ( $this->data['fields'] as &$field ) {
+			$field['conditionals'] = array_values( array_filter(
+				(array) ( $field['conditionals'] ?? [] ),
+				static function ( $conditional ): bool {
+					return ! ( is_array( $conditional )
+						&& 'var' === ( $conditional['action'] ?? '' )
+						&& ! empty( $conditional['generated'] ) );
+				}
+			) );
+			if ( $rules ) {
+				$field['conditionals'][] = [
+					'action'    => 'var',
+					'logic'     => 'all',
+					'generated' => true,
+					'rules'     => array_values( $rules ),
+				];
+			}
+			if ( null !== $context ) {
+				$field['_var_ctx'] = $context;
+			} else {
+				unset( $field['_var_ctx'] );
+			}
+		}
+		unset( $field );
 	}
 
 	/**

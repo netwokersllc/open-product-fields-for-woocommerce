@@ -37,6 +37,30 @@ define( 'OPF_FILE', __FILE__ );
 define( 'OPF_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OPF_URL', plugin_dir_url( __FILE__ ) );
 
+/**
+ * Minimum platform requirements, mirroring the plugin headers above
+ * (`Requires at least`, `Requires PHP`, `WC requires at least`). The headers
+ * let WordPress block activation on unsupported installs; the runtime checks
+ * below keep the plugin inert — with an admin notice — when a site somehow
+ * runs it anyway, instead of fatalling on missing APIs.
+ */
+define( 'OPF_MIN_WP', '6.5' );
+define( 'OPF_MIN_WC', '9.0' );
+define( 'OPF_MIN_PHP', '7.4' );
+
+if ( version_compare( PHP_VERSION, OPF_MIN_PHP, '<' ) ) {
+	add_action( 'admin_notices', 'opf_php_version_notice' );
+	return;
+}
+
+// $GLOBALS lookup works whether this file is included in global scope
+// (wp-settings.php) or inside activate_plugin()'s function scope.
+$opf_wp_version = isset( $GLOBALS['wp_version'] ) ? (string) $GLOBALS['wp_version'] : '0.0';
+if ( version_compare( $opf_wp_version, OPF_MIN_WP, '<' ) ) {
+	add_action( 'admin_notices', 'opf_wp_version_notice' );
+	return;
+}
+
 require_once OPF_DIR . 'includes/Autoloader.php';
 
 use OPF\Service\Admin\Builder;
@@ -69,8 +93,22 @@ register_activation_hook( __FILE__, 'opf_activate' );
 
 /**
  * Activation defaults.
+ *
+ * Refuses activation with a readable message when the platform is
+ * unsupported; WordPress core already enforces the header minimums, this is
+ * the second line of defence for edge cases (forced activation, WP-CLI,
+ * outdated WooCommerce).
  */
 function opf_activate(): void {
+	if ( version_compare( PHP_VERSION, OPF_MIN_PHP, '<' ) ) {
+		wp_die( esc_html( sprintf( 'Open Product Fields for WooCommerce requires PHP %s or newer (running: %s). The plugin was not activated.', OPF_MIN_PHP, PHP_VERSION ) ) );
+	}
+	if ( isset( $GLOBALS['wp_version'] ) && version_compare( (string) $GLOBALS['wp_version'], OPF_MIN_WP, '<' ) ) {
+		wp_die( esc_html( sprintf( 'Open Product Fields for WooCommerce requires WordPress %s or newer (running: %s). The plugin was not activated.', OPF_MIN_WP, (string) $GLOBALS['wp_version'] ) ) );
+	}
+	if ( defined( 'WC_VERSION' ) && version_compare( (string) WC_VERSION, OPF_MIN_WC, '<' ) ) {
+		wp_die( esc_html( sprintf( 'Open Product Fields for WooCommerce requires WooCommerce %s or newer (running: %s). The plugin was not activated.', OPF_MIN_WC, (string) WC_VERSION ) ) );
+	}
 	add_option( 'opf_version', OPF_VERSION );
 	add_option( 'opf_theme_compat', 'yes' );
 }
@@ -89,6 +127,11 @@ function opf_boot(): void {
 
 	if ( ! class_exists( 'WooCommerce' ) ) {
 		add_action( 'admin_notices', 'opf_wc_missing_notice' );
+		return;
+	}
+
+	if ( ! defined( 'WC_VERSION' ) || version_compare( (string) WC_VERSION, OPF_MIN_WC, '<' ) ) {
+		add_action( 'admin_notices', 'opf_wc_version_notice' );
 		return;
 	}
 
@@ -133,4 +176,43 @@ function opf_wc_missing_notice(): void {
 	echo '<div class="notice notice-error"><p>';
 	echo esc_html__( 'Open Product Fields requires WooCommerce to be installed and active.', 'open-product-fields-for-woocommerce' );
 	echo '</p></div>';
+}
+
+/**
+ * WooCommerce version notice — the plugin stays loaded but inert.
+ */
+function opf_wc_version_notice(): void {
+	printf(
+		'<div class="notice notice-error"><p>%s</p></div>',
+		esc_html(
+			sprintf(
+				/* translators: 1: required WooCommerce version, 2: running WooCommerce version. */
+				__( 'Open Product Fields requires WooCommerce %1$s or newer; this site is running WooCommerce %2$s. The plugin is inactive until WooCommerce is updated.', 'open-product-fields-for-woocommerce' ),
+				OPF_MIN_WC,
+				defined( 'WC_VERSION' ) ? WC_VERSION : '?'
+			)
+		)
+	);
+}
+
+/**
+ * PHP version notice. Rendered before the autoloader is even required, so it
+ * must not touch plugin classes; plain English because the text domain is
+ * not loaded on this path.
+ */
+function opf_php_version_notice(): void {
+	printf(
+		'<div class="notice notice-error"><p>%s</p></div>',
+		esc_html( sprintf( 'Open Product Fields for WooCommerce requires PHP %s or newer; this site is running PHP %s. The plugin was not loaded.', OPF_MIN_PHP, PHP_VERSION ) )
+	);
+}
+
+/**
+ * WordPress version notice. Same constraints as opf_php_version_notice().
+ */
+function opf_wp_version_notice(): void {
+	printf(
+		'<div class="notice notice-error"><p>%s</p></div>',
+		esc_html( sprintf( 'Open Product Fields for WooCommerce requires WordPress %s or newer; this site is running WordPress %s. The plugin was not loaded.', OPF_MIN_WP, isset( $GLOBALS['wp_version'] ) ? (string) $GLOBALS['wp_version'] : '?' ) )
+	);
 }

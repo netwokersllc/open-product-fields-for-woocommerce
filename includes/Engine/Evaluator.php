@@ -12,11 +12,58 @@ defined( 'ABSPATH' ) || exit;
 final class Evaluator {
 
 	/**
+	 * Placement/conditional subjects evaluated against the selected product
+	 * variation instead of a posted field value:
+	 *  - `product_var` — selected variation IDs (WAPF `product_var`/`!product_var`).
+	 *  - `var_att`     — variation attribute pairs `attribute|value` with `*`
+	 *                    wildcard (WAPF `patts`/`!patts`, taxonomy attributes).
+	 */
+	public const VARIATION_SUBJECTS = [ 'product_var', 'var_att' ];
+
+	/**
+	 * Explicit variation context override (tests, non-request flows).
+	 *
+	 * @var array{variable:bool,id:int,attributes:array<string,string>}|null
+	 */
+	private static $variation_context = null;
+
+	/**
+	 * Product most recently resolved through FieldGroups::for_product().
+	 * Variation context derives from it when no explicit override is set.
+	 *
+	 * @var object|null
+	 */
+	private static $context_product = null;
+
+	/**
+	 * Record the product a field-resolution pass is running against.
+	 *
+	 * @param object|null $product WC_Product-like object or null to reset.
+	 */
+	public static function set_context_product( $product ): void {
+		self::$context_product = is_object( $product ) ? $product : null;
+	}
+
+	/**
+	 * Override the variation context used by subject rules.
+	 *
+	 * @param array{variable:bool,id:int,attributes:array<string,string>}|null $context Context or null to clear.
+	 */
+	public static function set_variation_context( ?array $context ): void {
+		self::$variation_context = $context;
+	}
+
+	/**
 	 * Should a field be shown, given current values?
 	 *
 	 * "show" conditionals: field shows if (logic applied over rules) is true.
 	 * "hide" conditionals: field hides if it is true. A field with both kinds
 	 * shows only when at least one show-conditional passes and no hide passes.
+	 *
+	 * `action => 'var'` conditionals are generated gates (WAPF
+	 * merge_frontend_conditions parity): group-level variation rules merged
+	 * into every field at resolution time. They must ALL pass — they never
+	 * participate in the show/hide OR semantics.
 	 *
 	 * @param array<string,mixed>          $field  Normalized field.
 	 * @param array<string,string|array>   $values field_id => submitted value.
@@ -29,10 +76,21 @@ final class Evaluator {
 		$has_show  = false;
 		$show_pass = false;
 		$hide_pass = false;
+		$var_ctx   = null;
 
 		foreach ( $field['conditionals'] as $conditional ) {
-			$passed = self::conditional_passes( $conditional, $values );
-			if ( 'hide' === $conditional['action'] ) {
+			if ( null === $var_ctx && self::conditional_has_variation_rules( $conditional ) ) {
+				$var_ctx = self::variation_context( $field );
+			}
+			$passed = self::conditional_passes( $conditional, $values, $var_ctx ?? [] );
+			$action = (string) ( $conditional['action'] ?? 'show' );
+			if ( 'var' === $action ) {
+				if ( ! $passed ) {
+					return false;
+				}
+				continue;
+			}
+			if ( 'hide' === $action ) {
 				$hide_pass = $hide_pass || $passed;
 			} else {
 				$has_show  = true;
@@ -47,15 +105,34 @@ final class Evaluator {
 	}
 
 	/**
+	 * Does a conditional block reference any variation-scoped subject?
+	 *
+	 * @param array<string,mixed> $conditional Normalized conditional.
+	 */
+	private static function conditional_has_variation_rules( array $conditional ): bool {
+		foreach ( (array) ( $conditional['rules'] ?? [] ) as $rule ) {
+			if ( in_array( (string) ( $rule['subject'] ?? '' ), self::VARIATION_SUBJECTS, true ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Evaluate one conditional block.
 	 *
 	 * @param array<string,mixed>        $conditional Normalized conditional.
 	 * @param array<string,string|array> $values      Current values.
+	 * @param array<string,mixed>|null   $var_ctx     Variation context (resolved lazily when null and needed).
 	 */
-	public static function conditional_passes( array $conditional, array $values ): bool {
+	public static function conditional_passes( array $conditional, array $values, ?array $var_ctx = null ): bool {
 		$results = [];
 		foreach ( $conditional['rules'] as $rule ) {
-			$results[] = self::rule_passes( $rule, $values[ $rule['field'] ] ?? '' );
+			if ( in_array( (string) ( $rule['subject'] ?? '' ), self::VARIATION_SUBJECTS, true ) ) {
+				$results[] = self::variation_rule_passes( $rule, $var_ctx ?? self::variation_context() );
+				continue;
+			}
+			$results[] = self::rule_passes( $rule, $values[ $rule['field'] ?? '' ] ?? '' );
 		}
 		if ( empty( $results ) ) {
 			return false;
@@ -189,16 +266,145 @@ final class Evaluator {
 	}
 
 	/**
+	 * Evaluate a variation-scoped rule against a resolved variation context.
+	 *
+	 * WAPF 3.1.5 frontend parity (assets/js/frontend.min.js isValidRule):
+	 *  - non-variable contexts always pass;
+	 *  - no variation selected fails every variation rule;
+	 *  - `product_var` matches the selected variation ID against `terms`;
+	 *  - `var_att` matches any `attribute|value` term against the selected
+	 *    variation's attributes (`attribute_pa_<attr>` first, then the plain
+	 *    `attribute_<attr>` key for custom attributes); `*` requires a
+	 *    non-empty value;
+	 *  - `not_in` negates the match (WAPF `!product_var`/`!patts` at field level).
+	 *
+	 * @param array<string,mixed>                        $rule Rule with subject/operator/terms.
+	 * @param array{variable:bool,id:int,attributes:array<string,string>} $ctx Variation context.
+	 */
+	public static function variation_rule_passes( array $rule, array $ctx ): bool {
+		if ( empty( $ctx['variable'] ) ) {
+			return true;
+		}
+		if ( empty( $ctx['id'] ) ) {
+			return false;
+		}
+		$terms   = array_map( 'strval', (array) ( $rule['terms'] ?? [] ) );
+		$subject = (string) ( $rule['subject'] ?? '' );
+		if ( 'product_var' === $subject ) {
+			$in = in_array( (string) (int) $ctx['id'], $terms, true )
+				|| in_array( (string) $ctx['id'], $terms, true );
+		} else {
+			$in = self::variation_attributes_match( $terms, (array) ( $ctx['attributes'] ?? [] ) );
+		}
+		return 'not_in' === ( $rule['operator'] ?? 'in' ) ? ! $in : $in;
+	}
+
+	/**
+	 * Match `attribute|value` terms against `attribute_*`-keyed variation
+	 * attributes. WAPF `patts` parity: at least one term must hit.
+	 *
+	 * @param array<int,string>          $terms      `attr|value` pairs, `*` wildcard.
+	 * @param array<string,string>       $attributes `attribute_pa_x`/`attribute_x` keyed values.
+	 */
+	private static function variation_attributes_match( array $terms, array $attributes ): bool {
+		foreach ( $terms as $term ) {
+			$parts = explode( '|', $term, 2 );
+			if ( 2 !== count( $parts ) || '' === $parts[0] ) {
+				continue;
+			}
+			$actual = $attributes[ 'attribute_pa_' . $parts[0] ] ?? $attributes[ 'attribute_' . $parts[0] ] ?? null;
+			if ( null === $actual || '' === $actual ) {
+				continue;
+			}
+			if ( '*' === $parts[1] || (string) $actual === $parts[1] ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Resolve the effective variation context: explicit override, per-field
+	 * baked context (`_var_ctx`, set by injected group rules), then the product
+	 * currently being resolved.
+	 *
+	 * @param array<string,mixed>|null $field Field being evaluated (may carry `_var_ctx`).
+	 * @return array{variable:bool,id:int,attributes:array<string,string>}
+	 */
+	private static function variation_context( ?array $field = null ): array {
+		$ctx = $field['_var_ctx'] ?? self::$variation_context;
+		if ( null !== $ctx ) {
+			return $ctx;
+		}
+		return self::product_variation_context( self::$context_product );
+	}
+
+	/**
+	 * Build the variation context for a product object.
+	 *
+	 * Variations evaluate strictly against themselves (WAPF strict mode);
+	 * variable parents read the submitted `variation_id`/`attribute_*` values
+	 * when a request supplies them; every other type is non-variable context
+	 * where variation rules pass through.
+	 *
+	 * @param object|null $product WC_Product-like object.
+	 * @return array{variable:bool,id:int,attributes:array<string,string>}
+	 */
+	public static function product_variation_context( $product ): array {
+		$type = is_object( $product ) && method_exists( $product, 'get_type' ) ? (string) $product->get_type() : '';
+		// WAPF checks the rendered product type for the `variable`/`variation`
+		// substrings, which also covers variable-subscription types.
+		if ( false === strpos( $type, 'variable' ) && false === strpos( $type, 'variation' ) ) {
+			return [ 'variable' => false, 'id' => 0, 'attributes' => [] ];
+		}
+		if ( is_object( $product ) && method_exists( $product, 'is_type' ) && $product->is_type( 'variation' ) ) {
+			$attributes = method_exists( $product, 'get_variation_attributes' )
+				? array_map( 'strval', (array) $product->get_variation_attributes() )
+				: [];
+			return [ 'variable' => true, 'id' => (int) $product->get_id(), 'attributes' => $attributes ];
+		}
+		return [
+			'variable'   => true,
+			'id'         => isset( $_POST['variation_id'] ) ? max( 0, (int) $_POST['variation_id'] ) : 0, // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			'attributes' => self::posted_variation_attributes(),
+		];
+	}
+
+	/**
+	 * Collect submitted `attribute_*` selections from the current request.
+	 * The engine stays pure-PHP testable: sanitizers degrade gracefully when
+	 * WordPress helpers are unavailable.
+	 *
+	 * @return array<string,string>
+	 */
+	private static function posted_variation_attributes(): array {
+		$attributes = [];
+		foreach ( (array) $_POST as $key => $value ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			if ( ! is_string( $key ) || 0 !== strpos( $key, 'attribute_' ) || ! is_scalar( $value ) ) {
+				continue;
+			}
+			$clean_key = function_exists( 'sanitize_key' )
+				? sanitize_key( $key )
+				: (string) preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $key ) );
+			$raw_value = function_exists( 'wp_unslash' ) ? wp_unslash( (string) $value ) : (string) $value;
+			$attributes[ $clean_key ] = function_exists( 'sanitize_text_field' ) ? sanitize_text_field( $raw_value ) : trim( $raw_value );
+		}
+		return $attributes;
+	}
+
+	/**
 	 * Does a field group's placement rules match a product?
 	 *
 	 * Empty rule_groups means "everywhere" (explicit OPF semantics — WAPF's
 	 * empty-condition fall-through-to-false footgun is deliberately not replicated).
 	 *
-	 * @param array<string,mixed> $group       Normalized group data.
-	 * @param array<string, array<int|string>> $has_terms subject => term ids the product belongs to, e.g. ['product_cat' => [1,2]]. Subjects besides 'product'/'user_*' may be 'product_cat', 'product_tag', 'product_type' (type slugs), or any 'pa_*' attribute taxonomy (term ids).
-	 * @param int                 $product_id  Current product id.
+	 * @param array<string,mixed> $group           Normalized group data.
+	 * @param array<string, array<int|string>> $has_terms subject => term ids the product belongs to, e.g. ['product_cat' => [1,2]]. Subjects besides 'product'/'user_*' may be 'product_cat', 'product_tag', 'product_type' (type slugs), any 'pa_*' attribute taxonomy (term ids), 'product_var' (variation ids in scope) or 'var_att' (`attr|value` pairs the product defines).
+	 * @param int                 $product_id      Current product id.
+	 * @param array<string,mixed> $user_context    Viewer context (logged_in/roles/language).
+	 * @param array<int,array<string,mixed>>|null $variation_rules Out: variation rules of the matching rule group (WAPF `valid_rule_group` frontend merge).
 	 */
-	public static function group_matches( array $group, array $has_terms, int $product_id, array $user_context = [] ): bool {
+	public static function group_matches( array $group, array $has_terms, int $product_id, array $user_context = [], ?array &$variation_rules = null ): bool {
 		$rule_groups = $group['rule_groups'] ?? [];
 		if ( empty( $rule_groups ) ) {
 			return true;
@@ -212,10 +418,34 @@ final class Evaluator {
 				}
 			}
 			if ( $group_ok ) {
+				$variation_rules = self::variation_rules_of( (array) ( $rule_group['rules'] ?? [] ) );
 				return true;
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Variation-scoped rules inside a placement rule list (WAPF
+	 * ConditionRuleGroup::get_variation_rules parity).
+	 *
+	 * @param array<int,array<string,mixed>> $rules Normalized rules.
+	 * @return array<int,array{subject:string,operator:string,terms:array<int,string>}>
+	 */
+	public static function variation_rules_of( array $rules ): array {
+		$out = [];
+		foreach ( $rules as $rule ) {
+			$subject = (string) ( $rule['subject'] ?? '' );
+			if ( ! in_array( $subject, self::VARIATION_SUBJECTS, true ) ) {
+				continue;
+			}
+			$out[] = [
+				'subject'  => $subject,
+				'operator' => 'not_in' === ( $rule['operator'] ?? 'in' ) ? 'not_in' : 'in',
+				'terms'    => array_values( array_map( 'strval', (array) ( $rule['terms'] ?? [] ) ) ),
+			];
+		}
+		return $out;
 	}
 
 	/**
@@ -229,6 +459,23 @@ final class Evaluator {
 
 		if ( 'product' === $subject ) {
 			$in = in_array( (string) $product_id, $rule['terms'], true );
+			return 'not_in' === $rule['operator'] ? ! $in : $in;
+		}
+
+		if ( 'product_var' === $subject ) {
+			// WAPF 3.1.5 parity quirk (class-conditions.php `check`): the
+			// `!product_var` group condition shares the positive branch —
+			// the group only renders when a scoped variation is relevant, and
+			// the merged per-field `not_in` rule performs the actual exclusion.
+			// True negation here would drop the group on the parent page and
+			// break the intended "visible except on variation X" flow.
+			return ! empty( array_intersect( array_map( 'strval', $rule['terms'] ), array_map( 'strval', (array) ( $has_terms['product_var'] ?? [] ) ) ) );
+		}
+
+		if ( 'var_att' === $subject ) {
+			// WAPF `patts`/`!patts` group check: the attribute pair must (or
+			// must not) exist among the product's configured attributes.
+			$in = ! empty( array_intersect( array_map( 'strval', $rule['terms'] ), array_map( 'strval', (array) ( $has_terms['var_att'] ?? [] ) ) ) );
 			return 'not_in' === $rule['operator'] ? ! $in : $in;
 		}
 
