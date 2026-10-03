@@ -188,12 +188,15 @@ final class FieldGroup {
 			'labels_position' => ( $data['labels_position'] ?? 'above' ) === 'below' ? 'below' : 'above',
 		];
 
-		// WAPF formula variables ride along verbatim (same shape WapfMapper emits
-		// and Calculator/CartIntegration consume); dropped on save = data loss.
-		foreach ( ( $data['variables'] ?? [] ) as $variable ) {
-			if ( is_array( $variable ) ) {
-				$normalized['variables'][] = $variable;
-			}
+		// WAPF formula variables: `[var_name]` custom variables authored in the
+		// builder or imported by WapfMapper. Normalized to WAPF's canonical
+		// {name,default,rules[]} shape with {type,field,condition,value,variable}
+		// rules (Field_Groups::sanitize parity) so authored and migrated data
+		// round-trip through the WAPF Tools exporter unchanged. The key is only
+		// emitted when variables exist, keeping variable-less groups canonical.
+		$variables = self::normalize_variables( $data['variables'] ?? [] );
+		if ( $variables ) {
+			$normalized['variables'] = $variables;
 		}
 
 		// WAPF group `layout` gallery-image rules ("Change product image"):
@@ -212,6 +215,52 @@ final class FieldGroup {
 		}
 
 		return $normalized;
+	}
+
+	/**
+	 * Normalize the group's custom-variable block.
+	 *
+	 * WAPF Extended 3.1.5 `Field_Groups` sanitization parity: each variable
+	 * carries `name` (plain key), a `default` value/formula and an ordered list
+	 * of `{type,field,condition,value,variable}` rules. Scalars are cast to
+	 * strings; malformed entries are dropped rather than persisted. Field and
+	 * variable bodies stay verbatim — Calculator/WapfMapper resolve their
+	 * `[field.*]`, `[var_*]`, `files()`, `lookuptable()` references.
+	 *
+	 * @param mixed $variables Raw variables payload.
+	 * @return array<int,array{name:string,default:string,rules:array<int,array{type:string,field:string,condition:string,value:string,variable:string}>}>
+	 */
+	private static function normalize_variables( $variables ): array {
+		$out = [];
+		foreach ( (array) $variables as $variable ) {
+			if ( ! is_array( $variable ) ) {
+				continue;
+			}
+			$name = is_scalar( $variable['name'] ?? null ) ? (string) $variable['name'] : '';
+			if ( '' === $name ) {
+				continue;
+			}
+			$rules = [];
+			foreach ( (array) ( $variable['rules'] ?? [] ) as $rule ) {
+				if ( ! is_array( $rule ) ) {
+					continue;
+				}
+				$type = is_scalar( $rule['type'] ?? null ) ? (string) $rule['type'] : 'field';
+				$rules[] = [
+					'type'      => in_array( $type, [ 'field', 'qty' ], true ) ? $type : 'field',
+					'field'     => is_scalar( $rule['field'] ?? null ) ? (string) $rule['field'] : '',
+					'condition' => is_scalar( $rule['condition'] ?? null ) ? (string) $rule['condition'] : '',
+					'value'     => is_scalar( $rule['value'] ?? null ) ? (string) $rule['value'] : '',
+					'variable'  => is_scalar( $rule['variable'] ?? null ) ? (string) $rule['variable'] : '',
+				];
+			}
+			$out[] = [
+				'name'    => $name,
+				'default' => is_scalar( $variable['default'] ?? null ) ? (string) $variable['default'] : '',
+				'rules'   => $rules,
+			];
+		}
+		return $out;
 	}
 
 	/**

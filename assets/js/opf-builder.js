@@ -721,6 +721,215 @@
 		] );
 	}
 
+	// WAPF Extended 3.1.5 custom-variable builder parity (views/admin/
+	// variable-builder.php): name (var_ prepended), standard value, and
+	// field/qty rules whose first passing rule supplies the value/formula.
+	// Shapes persist verbatim in the group model (`variables[]`), which the
+	// engine (Calculator / CartIntegration) and WapfMapper already consume.
+	var VARIABLE_RULE_TYPES = [ [ 'field', __( 'Field value changes', 'open-product-fields-for-woocommerce' ) ], [ 'qty', __( 'Product quantity changes', 'open-product-fields-for-woocommerce' ) ] ];
+	var VARIABLE_FIELD_CONDITIONS = [
+		[ '==', __( 'is equal to', 'open-product-fields-for-woocommerce' ) ],
+		[ '!=', __( 'is not equal to', 'open-product-fields-for-woocommerce' ) ],
+		[ 'empty', __( 'is empty', 'open-product-fields-for-woocommerce' ) ],
+		[ '!empty', __( 'is not empty', 'open-product-fields-for-woocommerce' ) ],
+		[ '==contains', __( 'contains', 'open-product-fields-for-woocommerce' ) ],
+		[ '!=contains', __( 'does not contain', 'open-product-fields-for-woocommerce' ) ],
+		[ 'gt', __( 'is greater than', 'open-product-fields-for-woocommerce' ) ],
+		[ 'lt', __( 'is lesser than', 'open-product-fields-for-woocommerce' ) ],
+	];
+	var VARIABLE_QTY_CONDITIONS = [
+		[ '==', __( 'is equal to', 'open-product-fields-for-woocommerce' ) ],
+		[ '!=', __( 'is not equal to', 'open-product-fields-for-woocommerce' ) ],
+		[ 'gt', __( 'is greater than', 'open-product-fields-for-woocommerce' ) ],
+		[ 'lt', __( 'is lesser than', 'open-product-fields-for-woocommerce' ) ],
+	];
+	var VARIABLE_NO_VALUE_CONDITIONS = [ 'empty', '!empty' ];
+
+	function conditionNeedValue( condition ) {
+		return VARIABLE_NO_VALUE_CONDITIONS.indexOf( condition ) === -1;
+	}
+
+	function variableRuleRow( variable, rule, index ) {
+		var isQty = 'qty' === ( rule.field === 'qty' || rule.type === 'qty' ? 'qty' : 'field' );
+		if ( isQty ) {
+			rule.type = 'qty';
+			rule.field = 'qty';
+		} else {
+			rule.type = 'field';
+		}
+
+		var typeSelect = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'When the variable changes', 'open-product-fields-for-woocommerce' ) }, VARIABLE_RULE_TYPES.map( function ( entry ) {
+			var option = el( 'option', { value: entry[ 0 ], text: entry[ 1 ] } );
+			option.selected = entry[ 0 ] === rule.type;
+			return option;
+		} ) );
+		typeSelect.addEventListener( 'change', function () {
+			rule.type = typeSelect.value;
+			if ( 'qty' === rule.type ) {
+				rule.field = 'qty';
+				if ( VARIABLE_QTY_CONDITIONS.every( function ( entry ) { return entry[ 0 ] !== rule.condition; } ) ) rule.condition = '==';
+			} else {
+				delete rule.field;
+				if ( VARIABLE_FIELD_CONDITIONS.every( function ( entry ) { return entry[ 0 ] !== rule.condition; } ) ) rule.condition = '==';
+			}
+			rerender();
+		} );
+
+		var cells = [ labeledControl( __( 'If this happens', 'open-product-fields-for-woocommerce' ), typeSelect ) ];
+
+		if ( isQty ) {
+			var qtyCondition = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Quantity condition', 'open-product-fields-for-woocommerce' ) }, VARIABLE_QTY_CONDITIONS.map( function ( entry ) {
+				var option = el( 'option', { value: entry[ 0 ], text: entry[ 1 ] } );
+				option.selected = entry[ 0 ] === rule.condition;
+				return option;
+			} ) );
+			qtyCondition.addEventListener( 'change', function () { rule.condition = qtyCondition.value; } );
+			var qtyValue = el( 'input', { class: 'opf-b-input', type: 'number', step: 'any', min: '1', value: rule.value == null ? '' : rule.value, 'aria-label': __( 'Quantity', 'open-product-fields-for-woocommerce' ) } );
+			qtyValue.addEventListener( 'input', function () { rule.value = qtyValue.value; } );
+			cells.push( labeledControl( __( 'Quantity', 'open-product-fields-for-woocommerce' ), qtyCondition ) );
+			cells.push( labeledControl( __( 'Value', 'open-product-fields-for-woocommerce' ), qtyValue ) );
+			cells.push( el( 'span', { class: 'description', text: '' } ) );
+		} else {
+			var fieldOptions = model.fields.filter( function ( candidate ) { return ! [ 'section', 'section_end' ].includes( candidate.type ); } ).map( function ( candidate ) {
+				return el( 'option', { value: candidate.id, text: ( candidate.label || candidate.id ) + ' (' + candidate.id + ')' } );
+			} );
+			if ( rule.field && ! model.fields.some( function ( candidate ) { return candidate.id === rule.field; } ) ) {
+				fieldOptions.unshift( el( 'option', { value: rule.field, text: sprintf( /* translators: %s: field id. */ __( 'Unavailable field: %s', 'open-product-fields-for-woocommerce' ), rule.field ) } ) );
+			}
+			if ( ! fieldOptions.length ) fieldOptions.push( el( 'option', { value: '', text: __( 'Add a field first', 'open-product-fields-for-woocommerce' ) } ) );
+			var fieldSelect = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Field', 'open-product-fields-for-woocommerce' ) }, fieldOptions );
+			fieldSelect.value = rule.field || '';
+			fieldSelect.addEventListener( 'change', function () { rule.field = fieldSelect.value; rule.value = ''; rerender(); } );
+			cells.push( labeledControl( __( 'This field changes', 'open-product-fields-for-woocommerce' ), fieldSelect ) );
+
+			var fieldCondition = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Field condition', 'open-product-fields-for-woocommerce' ) }, VARIABLE_FIELD_CONDITIONS.map( function ( entry ) {
+				var option = el( 'option', { value: entry[ 0 ], text: entry[ 1 ] } );
+				option.selected = entry[ 0 ] === rule.condition;
+				return option;
+			} ) );
+			fieldCondition.addEventListener( 'change', function () {
+				rule.condition = fieldCondition.value;
+				if ( ! conditionNeedValue( rule.condition ) ) rule.value = '';
+				rerender();
+			} );
+			cells.push( labeledControl( __( 'Condition', 'open-product-fields-for-woocommerce' ), fieldCondition ) );
+
+			if ( ! conditionNeedValue( rule.condition ) ) {
+				cells.push( el( 'span', { class: 'description', text: __( 'No value needed', 'open-product-fields-for-woocommerce' ) } ) );
+			} else {
+				var source = model.fields.find( function ( candidate ) { return candidate.id === rule.field; } );
+				var valueControl;
+				if ( source && [ 'select', 'radio', 'swatch', 'checkbox' ].includes( source.type ) && Array.isArray( source.choices ) && source.choices.length ) {
+					var choiceOptions = source.choices.map( function ( choice ) {
+						return el( 'option', { value: choice.slug, text: choice.label + ' (' + choice.slug + ')' } );
+					} );
+					if ( rule.value && ! source.choices.some( function ( choice ) { return choice.slug === rule.value; } ) ) {
+						choiceOptions.unshift( el( 'option', { value: rule.value, text: sprintf( /* translators: %s: stored condition value. */ __( 'Current value: %s', 'open-product-fields-for-woocommerce' ), rule.value ) } ) );
+					}
+					valueControl = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Value', 'open-product-fields-for-woocommerce' ) }, choiceOptions );
+					valueControl.value = rule.value || '';
+				} else if ( source && 'toggle' === source.type ) {
+					valueControl = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Value', 'open-product-fields-for-woocommerce' ) }, [
+						el( 'option', { value: '1', text: __( 'Checked', 'open-product-fields-for-woocommerce' ) } ),
+						el( 'option', { value: '0', text: __( 'Not checked', 'open-product-fields-for-woocommerce' ) } ),
+					] );
+					valueControl.value = rule.value || '';
+				} else {
+					valueControl = el( 'input', { class: 'opf-b-input', type: source && 'number' === source.type ? 'number' : 'text', value: rule.value == null ? '' : rule.value, 'aria-label': __( 'Value', 'open-product-fields-for-woocommerce' ) } );
+				}
+				valueControl.addEventListener( 'input', function () { rule.value = valueControl.value; } );
+				valueControl.addEventListener( 'change', function () { rule.value = valueControl.value; } );
+				cells.push( labeledControl( __( 'Value', 'open-product-fields-for-woocommerce' ), valueControl ) );
+			}
+		}
+
+		var body = el( 'input', { class: 'opf-b-input', value: rule.variable || '', placeholder: __( 'number or formula', 'open-product-fields-for-woocommerce' ), 'aria-label': __( 'Variable value', 'open-product-fields-for-woocommerce' ) } );
+		body.addEventListener( 'input', function () { rule.variable = body.value; } );
+		cells.push( labeledControl( __( 'Variable value is', 'open-product-fields-for-woocommerce' ), body ) );
+
+		var remove = el( 'button', { type: 'button', class: 'button-link opf-b-remove', text: __( '×', 'open-product-fields-for-woocommerce' ), onclick: function () {
+			variable.rules.splice( index, 1 );
+			rerender();
+		} } );
+		cells.push( remove );
+
+		return el( 'div', { class: 'opf-b-variable-rule' }, cells );
+	}
+
+	function variablesEditor() {
+		model.variables = Array.isArray( model.variables ) ? model.variables : [];
+		var wrap = el( 'div', { class: 'opf-b-variables-editor' } );
+		wrap.appendChild( el( 'strong', { text: __( 'Custom variables', 'open-product-fields-for-woocommerce' ) } ) );
+		wrap.appendChild( el( 'p', { class: 'description', text: __( 'Create dynamic variables to use with formula-based pricing. Reference them as [var_name].', 'open-product-fields-for-woocommerce' ) } ) );
+		wrap.appendChild( el( 'p', { class: 'description', text: __( 'A variable uses its standard value unless one of its rules matches; rules are checked in order and the first matching rule wins.', 'open-product-fields-for-woocommerce' ) } ) );
+
+		var list = el( 'div', { class: 'opf-b-variable-list' } );
+		model.variables.forEach( function ( variable, index ) {
+			variable.rules = Array.isArray( variable.rules ) ? variable.rules : [];
+			var header = el( 'div', { class: 'opf-b-variable-head' }, [
+				el( 'strong', { text: 'var_' + ( variable.name || '' ) } ),
+				el( 'button', { type: 'button', class: 'button', text: __( 'Duplicate', 'open-product-fields-for-woocommerce' ), onclick: function () {
+					var copy = JSON.parse( JSON.stringify( variable ) );
+					copy.name = uniqueVariableName( ( variable.name || 'variable' ) + '_copy' );
+					model.variables.splice( index + 1, 0, copy );
+					rerender();
+				} } ),
+				el( 'button', { type: 'button', class: 'button button-link-delete', text: __( 'Delete', 'open-product-fields-for-woocommerce' ), onclick: function () {
+					model.variables.splice( index, 1 );
+					rerender();
+				} } ),
+			] );
+
+			var nameInput = el( 'input', { class: 'opf-b-input', value: variable.name || '', placeholder: __( 'name', 'open-product-fields-for-woocommerce' ), 'aria-label': __( 'Variable name', 'open-product-fields-for-woocommerce' ) } );
+			nameInput.addEventListener( 'input', function () {
+				variable.name = nameInput.value.replace( /[^A-Za-z0-9_]/g, '' );
+				header.children[ 0 ].textContent = 'var_' + variable.name;
+			} );
+			var nameWrap = el( 'div', { class: 'opf-b-input-with-prepend' }, [ el( 'span', { class: 'opf-b-input-prepend', text: 'var_' } ), nameInput ] );
+
+			var defaultInput = el( 'input', { class: 'opf-b-input', value: variable.default == null ? '' : variable.default, placeholder: __( 'number or formula', 'open-product-fields-for-woocommerce' ), 'aria-label': __( 'Standard value', 'open-product-fields-for-woocommerce' ) } );
+			defaultInput.addEventListener( 'input', function () { variable.default = defaultInput.value; } );
+
+			var rulesWrap = el( 'div', { class: 'opf-b-variable-rules' }, variable.rules.map( function ( rule, ruleIndex ) {
+				return variableRuleRow( variable, rule, ruleIndex );
+			} ) );
+			var addRule = el( 'button', { type: 'button', class: 'button', text: __( '+ Add new rule', 'open-product-fields-for-woocommerce' ), onclick: function () {
+				var firstField = model.fields.filter( function ( candidate ) { return ! [ 'section', 'section_end' ].includes( candidate.type ); } )[ 0 ];
+				variable.rules.push( { type: 'field', field: firstField ? firstField.id : '', condition: '==', value: '', variable: '' } );
+				rerender();
+			} } );
+
+			list.appendChild( el( 'div', { class: 'opf-b-variable', 'data-variable-id': variable.name || '' }, [
+				header,
+				el( 'div', { class: 'opf-b-variable-settings' }, [
+					labeledControl( __( 'Variable name', 'open-product-fields-for-woocommerce' ), nameWrap ),
+					labeledControl( __( 'Standard value', 'open-product-fields-for-woocommerce' ), defaultInput ),
+				] ),
+				el( 'div', { class: 'opf-b-variable-rules-label', text: __( 'Value changes', 'open-product-fields-for-woocommerce' ) } ),
+				rulesWrap,
+				addRule,
+			] ) );
+		} );
+		wrap.appendChild( list );
+
+		var addVariable = el( 'button', { type: 'button', class: 'button button-primary', text: __( 'Add new variable', 'open-product-fields-for-woocommerce' ), onclick: function () {
+			model.variables.push( { name: uniqueVariableName( 'variable' ), default: '', rules: [] } );
+			rerender();
+		} } );
+		wrap.appendChild( addVariable );
+		return wrap;
+	}
+
+	function uniqueVariableName( base ) {
+		var taken = {};
+		( model.variables || [] ).forEach( function ( variable ) { taken[ variable.name ] = true; } );
+		var slug = String( base ).replace( /[^A-Za-z0-9_]/g, '_' ).replace( /^_+/, '' ) || 'variable';
+		var name = slug;
+		var n = 2;
+		while ( taken[ name ] ) { name = slug + '_' + n++; }
+		return name;
+	}
+
 	function fieldCard( field, index ) {
 		if ( [ 'paragraph', 'content_image', 'section', 'section_end' ].includes( field.type ) ) {
 			field.required = false;
@@ -1149,10 +1358,18 @@
 		model.fields.forEach( function ( field, i ) {
 			app.appendChild( fieldCard( field, i ) );
 		} );
+		rerenderVariables();
 		// (Re)initialise WooCommerce product pickers on products fields.
 		if ( app.querySelector( '.opf-b-product-search' ) && window.jQuery ) {
 			window.jQuery( document.body ).trigger( 'wc-enhanced-select-init' );
 		}
+	}
+
+	function rerenderVariables() {
+		var container = document.getElementById( 'opf-builder-variables' );
+		if ( ! container ) return;
+		container.innerHTML = '';
+		container.appendChild( variablesEditor() );
 	}
 
 	function save() {
@@ -1366,10 +1583,13 @@
 	] );
 
 	var app = el( 'div', { id: 'opf-builder-fields', class: 'opf-b-fields' } );
+	var variablesMount = el( 'div', { id: 'opf-builder-variables', class: 'opf-b-variables' } );
 	var frame = el( 'div', { id: 'opf-b-preview', class: 'opf-b-preview' } );
 
 	mount.appendChild( toolbar );
 	mount.appendChild( app );
+	mount.appendChild( el( 'h4', { text: __( 'Custom variables', 'open-product-fields-for-woocommerce' ) } ) );
+	mount.appendChild( variablesMount );
 	mount.appendChild( el( 'h4', { text: __( 'Preview', 'open-product-fields-for-woocommerce' ) } ) );
 	mount.appendChild( frame );
 

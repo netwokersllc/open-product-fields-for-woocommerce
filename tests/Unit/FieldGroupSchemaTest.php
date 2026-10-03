@@ -317,4 +317,50 @@ final class FieldGroupSchemaTest extends TestCase {
 
 		FieldGroup::duplicate( [ 'fields' => [ [ 'id' => 'same', 'label' => 'A' ], [ 'id' => 'same', 'label' => 'B' ] ] ] );
 	}
+
+	public function test_variables_normalize_to_wapf_canonical_shape(): void {
+		$group = FieldGroup::normalize( [
+			'fields'    => [ [ 'id' => 'size', 'type' => 'select' ] ],
+			'variables' => [
+				[
+					'name'    => 'rate',
+					'default' => 2,
+					'rules'   => [
+						[ 'type' => 'field', 'field' => 'size', 'condition' => '==', 'value' => 'lg', 'variable' => 5 ],
+						[ 'type' => 'qty', 'field' => 'qty', 'condition' => 'gt', 'value' => 3, 'variable' => '1.5' ],
+					],
+				],
+			],
+		] );
+
+		$this->assertSame(
+			[ [
+				'name'    => 'rate',
+				'default' => '2',
+				'rules'   => [
+					[ 'type' => 'field', 'field' => 'size', 'condition' => '==', 'value' => 'lg', 'variable' => '5' ],
+					[ 'type' => 'qty', 'field' => 'qty', 'condition' => 'gt', 'value' => '3', 'variable' => '1.5' ],
+				],
+			] ],
+			$group['variables']
+		);
+	}
+
+	public function test_variables_omit_key_when_absent_and_drop_malformed_entries(): void {
+		$without = FieldGroup::normalize( [ 'fields' => [] ] );
+		$this->assertArrayNotHasKey( 'variables', $without );
+
+		$group = FieldGroup::normalize( [
+			'fields'    => [],
+			'variables' => [
+				'not-an-array',
+				[ 'default' => '1', 'rules' => [] ],
+				[ 'name' => 'ok', 'default' => '1', 'rules' => [ 'malformed' ] ],
+			],
+		] );
+		$this->assertSame(
+			[ [ 'name' => 'ok', 'default' => '1', 'rules' => [] ] ],
+			$group['variables']
+		);
+	}
 }

@@ -262,6 +262,23 @@ final class Renderer {
 		$registry = [];
 		foreach ( $groups as $entry ) {
 			$gid = (string) $entry['id'];
+			// WAPF field-group carries its custom variables + field defs so the
+			// browser can expand [var_name] (and evaluate variables' own rules)
+			// while the shopper edits the form. The keys are prefixed to avoid
+			// colliding with field ids (`__opf_variables`, `__opf_fields`).
+			$variables = is_array( $entry['group']->data['variables'] ?? null ) ? $entry['group']->data['variables'] : [];
+			if ( $variables ) {
+				$registry[ $gid ]['__opf_variables'] = $variables;
+			}
+			$field_defs = [];
+			foreach ( $entry['group']->data['fields'] as $field ) {
+				if ( ! in_array( $field['type'], [ 'section', 'section_end' ], true ) ) {
+					$field_defs[] = [ 'id' => $field['id'], 'type' => $field['type'] ];
+				}
+			}
+			if ( $field_defs ) {
+				$registry[ $gid ]['__opf_formula_fields'] = $field_defs;
+			}
 			foreach ( $entry['group']->data['fields'] as $field ) {
 				$registry[ $gid ][ $field['id'] ] = [
 					'type'         => $field['type'],
@@ -326,7 +343,12 @@ final class Renderer {
 			$values[ $field['id'] ] = self::seed_value( $field, $prefill[ $field['id'] ] ?? null, $repeated );
 		}
 
-		$group_attrs = ' data-variables="[]"';
+		// WAPF parity: the group exposes its custom variables on the wrapper so
+		// the browser formula evaluator can expand [var_name]. OPF additionally
+		// ships them via the client registry; the attribute keeps integrations
+		// (and WAPF-shaped selectors) working unchanged.
+		$variables_json = wp_json_encode( is_array( $group->data['variables'] ?? null ) ? $group->data['variables'] : [] );
+		$group_attrs = ' data-variables="' . esc_attr( (string) $variables_json ) . '"';
 		// WAPF gallery-image bridge: group-level `layout.enable_gallery_images`
 		// emits data-wapf-st (swap type) + data-wapf-gi ({images,rules}) — the
 		// same attributes WAPF 3.1.5 renders on .wapf-field-group. OPF aliases

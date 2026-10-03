@@ -1896,12 +1896,12 @@ const verbatimWapfFx = (pricing) => {
   if (!raw) return true;
   return formula === raw.split('[options_total]').join('[addons]');
 };
-const choiceUnitAddon = (pricing, base, qty, addons, val, fieldValues = {}, fieldPrices = {}, formulaBase = base, qtyBased = false) => {
+const choiceUnitAddon = (pricing, base, qty, addons, val, fieldValues = {}, fieldPrices = {}, formulaBase = base, qtyBased = false, formulaOptions = {}) => {
   const t = pricing.type;
   let result = 0;
   if (t === 'fixed') result = parseFloat(pricing.amount) || 0;
   else if (t === 'percent') result = base * ((parseFloat(pricing.amount) || 0) / 100);
-  else if (t === 'formula') result = evalFormula(pricing.formula || pricing.formula_raw, formulaBase, qty, addons, val, fieldValues, null, fieldPrices);
+  else if (t === 'formula') result = evalFormula(pricing.formula || pricing.formula_raw, formulaBase, qty, addons, val, fieldValues, null, fieldPrices, formulaOptions);
   else return 0;
   if (verbatimWapfFx(pricing)) return qtyBased ? result : result / qty;
   const perUnit = pricing.per_unit !== undefined && pricing.per_unit !== null
@@ -1910,7 +1910,7 @@ const choiceUnitAddon = (pricing, base, qty, addons, val, fieldValues = {}, fiel
   return qtyBased ? (perUnit ? result * qty : result) : (perUnit ? result : result / qty);
 };
 
-const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}, fieldPrices = {}, formulaBase = base, qtyBased = false) => {
+const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}, fieldPrices = {}, formulaBase = base, qtyBased = false, formulaOptions = {}) => {
   if (def.type === 'toggle' && String(value ?? '') !== '1') return 0;
   if (def.type === 'image_quantity') {
     const quantities = value && value._opf_type === 'image_quantity' ? value.quantities || {} : {};
@@ -1920,7 +1920,7 @@ const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}
       // WAPF image-swatch-qty passes the entered count into do_pricing as
       // the value label: nr/nrq/[x] formulas consume it; the pricing type
       // decides whether the count multiplies the charge.
-      return sum + choiceUnitAddon(choice.pricing || {}, base, qty, addons, String(count), fieldValues, fieldPrices, formulaBase, qtyBased);
+      return sum + choiceUnitAddon(choice.pricing || {}, base, qty, addons, String(count), fieldValues, fieldPrices, formulaBase, qtyBased, formulaOptions);
     }, 0);
   }
   if (def.type === 'swatch' || def.type === 'select' || def.type === 'radio' || def.type === 'checkbox') {
@@ -1929,14 +1929,30 @@ const choiceOrFieldAddon = (def, value, base, qty, addons, val, fieldValues = {}
     (def.choices || []).forEach((c) => {
       if (!slugs.includes(c.slug) || c.disabled) return;
       // WAPF passes the selected choice's label as the pricing value.
-      sum += choiceUnitAddon(c.pricing || {}, base, qty, addons, String(c.label ?? ''), fieldValues, fieldPrices, formulaBase, qtyBased);
+      sum += choiceUnitAddon(c.pricing || {}, base, qty, addons, String(c.label ?? ''), fieldValues, fieldPrices, formulaBase, qtyBased, formulaOptions);
     });
     return sum;
   }
   if (!String(value || '').trim()) return 0;
-  return choiceUnitAddon(def.pricing || {}, base, qty, addons, val, fieldValues, fieldPrices, formulaBase, qtyBased);
+  return choiceUnitAddon(def.pricing || {}, base, qty, addons, val, fieldValues, fieldPrices, formulaBase, qtyBased, formulaOptions);
 };
 
+
+// WAPF custom variables for one rendered group. The client registry carries
+// them (`__opf_variables`) and the field defs rules resolve against
+// (`__opf_formula_fields`); the group's `data-variables` attribute is the
+// fallback so WAPF-rendered groups still resolve [var_*].
+const groupFormulaOptions = (groupEl, gid) => {
+  const registryGroup = (window.OPF_FIELDS || {})[gid] || {};
+  let variables = Array.isArray(registryGroup.__opf_variables) ? registryGroup.__opf_variables : null;
+  if (!variables && groupEl && typeof groupEl.getAttribute === 'function') {
+    try { variables = JSON.parse(groupEl.getAttribute('data-variables') || '[]') || []; } catch (e) { variables = []; }
+  }
+  return {
+    variables: Array.isArray(variables) ? variables : [],
+    fields: Array.isArray(registryGroup.__opf_formula_fields) ? registryGroup.__opf_formula_fields : [],
+  };
+};
 
 const writeTotals = () => {
   const totalsEl = document.querySelector('.opf-product-totals, .wapf-product-totals');
@@ -2020,6 +2036,10 @@ const writeTotals = () => {
     const gid = groupEl.getAttribute('data-opf-group');
     const values = {};
     const fields = groupEl.querySelectorAll('[data-opf-field]');
+    // WAPF custom variables for this group. Prefer the client registry; fall
+    // back to the group's data-variables attribute so WAPF-rendered groups
+    // (and integrations that only copy the attribute) still resolve [var_*].
+    const formulaOptions = groupFormulaOptions(groupEl, gid);
     const readControlValue = (element, def) => {
       if (def.type === 'image_quantity') {
         const quantities = {};
@@ -2158,7 +2178,7 @@ const writeTotals = () => {
             previousId,
             Array.isArray(previousPrice) ? (previousPrice[row.firstIndex] || 0) : previousPrice,
           ]));
-          const rowPU = choiceOrFieldAddon(def, row.rowValue, base, rowQty, addonsPU + fieldPU, typeof row.rowValue === 'string' ? row.rowValue : '', valuesForFormula(fieldEl, row.firstIndex), clonePrices, formulaBase, isQtyRepeat);
+          const rowPU = choiceOrFieldAddon(def, row.rowValue, base, rowQty, addonsPU + fieldPU, typeof row.rowValue === 'string' ? row.rowValue : '', valuesForFormula(fieldEl, row.firstIndex), clonePrices, formulaBase, isQtyRepeat, formulaOptions);
           rowPrices.push(rowPU);
           fieldPU += rowPU;
           optionsTotal += rowPU * rowQty;
@@ -2178,7 +2198,7 @@ const writeTotals = () => {
             Array.isArray(previousPrice) ? (previousPrice[sectionIndex] || 0) : previousPrice,
           ]))
           : fieldPrices;
-        const fieldPU = choiceOrFieldAddon(def, value, base, rowQty, addonsPU, value && typeof value === 'string' ? value : '', valuesForFormula(fieldEl, sectionIndex), scopedPrices, formulaBase, !!sectionQtyRepeat);
+        const fieldPU = choiceOrFieldAddon(def, value, base, rowQty, addonsPU, value && typeof value === 'string' ? value : '', valuesForFormula(fieldEl, sectionIndex), scopedPrices, formulaBase, !!sectionQtyRepeat, formulaOptions);
         if (sectionGroup) {
           const perRow = Array.isArray(fieldPrices[fid]) ? fieldPrices[fid] : [];
           perRow[sectionIndex] = fieldPU;
