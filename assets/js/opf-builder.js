@@ -10,6 +10,13 @@
 		return;
 	}
 
+	var productCats = [];
+	try {
+		productCats = JSON.parse( mount.dataset.productCats || '[]' ) || [];
+	} catch ( e ) {
+		productCats = [];
+	}
+
 	var postId = parseInt( mount.dataset.postId, 10 ) || 0;
 	var model = JSON.parse( mount.dataset.model || '{}' );
 	var nonce = mount.dataset.nonce;
@@ -19,7 +26,7 @@
 	model.fields = model.fields || [];
 	model.rule_groups = model.rule_groups || [];
 
-	var TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'image_quantity', 'paragraph', 'content_image', 'section', 'section_end' ];
+	var TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'image_quantity', 'products', 'paragraph', 'content_image', 'section', 'section_end' ];
 	var PRICING = [ 'none', 'fixed', 'percent', 'formula' ];
 	var REPEATABLE_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch' ];
 
@@ -239,6 +246,270 @@
 		] );
 	}
 
+	var PRODUCT_SUBTYPES = [ 'checkbox', 'radio', 'dropdown', 'image', 'card', 'vcard', 'card-qty', 'vcard-qty' ];
+	var PRODUCT_QTY_SUBTYPES = [ 'card-qty', 'vcard-qty' ];
+	var PRODUCT_CARD_SUBTYPES = [ 'card', 'vcard', 'card-qty', 'vcard-qty' ];
+
+	function isProductsQtySubtype( field ) {
+		return PRODUCT_QTY_SUBTYPES.indexOf( field.subtype ) !== -1;
+	}
+
+	function isProductsCardSubtype( field ) {
+		return PRODUCT_CARD_SUBTYPES.indexOf( field.subtype ) !== -1;
+	}
+
+	function productChoiceDefaults( productId, label ) {
+		return {
+			product_id: productId,
+			slug: 'p' + productId,
+			label: label || '',
+			selected: false,
+			disabled: false,
+			pricing: { type: 'none', amount: 0, formula: '' },
+			pricing_type: 'fixed',
+			quantity: { default: 0, min: 0, max: 999999 },
+		};
+	}
+
+	function productChoiceRow( field, choice, index ) {
+		var qtySubtype = isProductsQtySubtype( field );
+		var nameEl = el( 'span', { class: 'opf-b-product-name', text: ( choice.label || '#' + choice.product_id ) + ' — #' + choice.product_id } );
+		var pricing = el( 'select', { class: 'opf-b-input', 'aria-label': 'Price' }, [
+			el( 'option', { value: 'fixed', text: 'Product price' } ),
+			el( 'option', { value: 'none', text: 'Free' } ),
+		] );
+		pricing.value = choice.pricing_type || 'fixed';
+		pricing.addEventListener( 'change', function () { choice.pricing_type = pricing.value; } );
+		var cells = [ nameEl, pricing ];
+		var selected = null;
+		if ( ! qtySubtype ) {
+			selected = el( 'input', { type: 'checkbox', title: 'Preselected' } );
+			selected.checked = !! choice.selected;
+			selected.disabled = !! choice.disabled;
+			selected.addEventListener( 'change', function () { choice.selected = selected.checked; } );
+			cells.push( selected );
+		}
+		var disabled = el( 'input', { type: 'checkbox', title: 'Unavailable' } );
+		disabled.checked = !! choice.disabled;
+		disabled.addEventListener( 'change', function () {
+			choice.disabled = disabled.checked;
+			if ( selected ) {
+				selected.disabled = disabled.checked;
+				if ( choice.disabled ) {
+					choice.selected = false;
+					selected.checked = false;
+				}
+			}
+		} );
+		cells.push( disabled );
+		if ( qtySubtype ) {
+			choice.quantity = choice.quantity || { default: 0, min: 0, max: 999999 };
+			[ [ 'default', 'Default qty' ], [ 'min', 'Min qty' ], [ 'max', 'Max qty' ] ].forEach( function ( setting ) {
+				var input = el( 'input', { class: 'opf-b-input opf-b-product-qty', type: 'number', min: '0', max: '999999', value: choice.quantity[ setting[ 0 ] ], title: setting[ 1 ], placeholder: setting[ 1 ] } );
+				input.addEventListener( 'input', function () {
+					choice.quantity[ setting[ 0 ] ] = Math.max( 0, Math.min( 999999, Number( input.value ) || 0 ) );
+				} );
+				cells.push( input );
+			} );
+		}
+		var remove = el( 'button', { type: 'button', class: 'button-link opf-b-remove', text: '×', onclick: function () {
+			field.choices.splice( index, 1 );
+			rerender();
+		} } );
+		cells.push( remove );
+		return el( 'div', { class: 'opf-b-product-choice' }, cells );
+	}
+
+	function productsEditor( field ) {
+		if ( PRODUCT_SUBTYPES.indexOf( field.subtype ) === -1 ) {
+			field.subtype = 'checkbox';
+		}
+		var wrap = el( 'div', { class: 'opf-b-products-settings' } );
+
+		var subtype = el( 'select', { class: 'opf-b-input', 'aria-label': 'Display' }, PRODUCT_SUBTYPES.map( function ( t ) {
+			var option = el( 'option', { value: t, text: t } );
+			option.selected = t === field.subtype;
+			return option;
+		} ) );
+		subtype.addEventListener( 'change', function () { field.subtype = subtype.value; rerender(); } );
+		wrap.appendChild( labeledControl( 'Display', subtype ) );
+
+		var selection = el( 'select', { class: 'opf-b-input', 'aria-label': 'Product selection' }, [
+			el( 'option', { value: 'manual', text: 'Pick products manually' } ),
+			el( 'option', { value: 'category', text: 'Products from a category' } ),
+		] );
+		selection.value = field.product_selection || 'manual';
+		selection.addEventListener( 'change', function () { field.product_selection = selection.value; rerender(); } );
+		wrap.appendChild( labeledControl( 'Product selection', selection ) );
+
+		if ( 'category' === selection.value ) {
+			field.product_query = field.product_query || { query_id: 0, query_label: '', limit: 10, sort: 'date_desc', pricing_type: 'fixed' };
+			var cat = el( 'select', { class: 'opf-b-input', 'aria-label': 'Product category' }, [ el( 'option', { value: '0', text: 'Choose a category…' } ) ].concat(
+				productCats.map( function ( term ) {
+					var option = el( 'option', { value: String( term.id ), text: term.name } );
+					return option;
+				} )
+			) );
+			cat.value = String( field.product_query.query_id || 0 );
+			cat.addEventListener( 'change', function () {
+				field.product_query.query_id = parseInt( cat.value, 10 ) || 0;
+				var picked = productCats.filter( function ( term ) { return String( term.id ) === cat.value; } );
+				field.product_query.query_label = picked.length ? picked[ 0 ].name : '';
+			} );
+			wrap.appendChild( labeledControl( 'Category', cat ) );
+
+			var limit = el( 'input', { class: 'opf-b-input', type: 'number', min: '1', max: '50', value: field.product_query.limit || 10, 'aria-label': 'Maximum products' } );
+			limit.addEventListener( 'input', function () {
+				field.product_query.limit = Math.max( 1, Math.min( 50, Number( limit.value ) || 10 ) );
+			} );
+			wrap.appendChild( labeledControl( 'Maximum products (1–50)', limit ) );
+
+			var sort = el( 'select', { class: 'opf-b-input', 'aria-label': 'Sorting' }, [
+				el( 'option', { value: 'date_desc', text: 'Creation date (newest first)' } ),
+				el( 'option', { value: 'date_asc', text: 'Creation date (oldest first)' } ),
+				el( 'option', { value: 'name_asc', text: 'Title (A–Z)' } ),
+				el( 'option', { value: 'name_desc', text: 'Title (Z–A)' } ),
+			] );
+			sort.value = field.product_query.sort || 'date_desc';
+			sort.addEventListener( 'change', function () { field.product_query.sort = sort.value; } );
+			wrap.appendChild( labeledControl( 'Sorting', sort ) );
+
+			var queryPricing = el( 'select', { class: 'opf-b-input', 'aria-label': 'Price' }, [
+				el( 'option', { value: 'fixed', text: 'Product price' } ),
+				el( 'option', { value: 'none', text: 'Free' } ),
+			] );
+			queryPricing.value = field.product_query.pricing_type || 'fixed';
+			queryPricing.addEventListener( 'change', function () { field.product_query.pricing_type = queryPricing.value; } );
+			wrap.appendChild( labeledControl( 'Price', queryPricing ) );
+		} else {
+			field.choices = Array.isArray( field.choices ) ? field.choices : [];
+			var search = el( 'select', { class: 'wc-product-search opf-b-product-search', multiple: 'multiple', style: 'width:100%', 'data-action': 'woocommerce_json_search_products', 'data-placeholder': 'Search for a product…', 'data-allow_clear': 'true' } );
+			field.choices.forEach( function ( choice ) {
+				var option = el( 'option', { value: String( choice.product_id ), text: choice.label || '#' + choice.product_id } );
+				option.selected = true;
+				search.appendChild( option );
+			} );
+			search.addEventListener( 'change', function () {
+				var previous = {};
+				field.choices.forEach( function ( choice ) { previous[ choice.product_id ] = choice; } );
+				var next = [];
+				Array.prototype.forEach.call( search.selectedOptions, function ( option ) {
+					var id = parseInt( option.value, 10 ) || 0;
+					if ( ! id ) return;
+					var kept = previous[ id ] || productChoiceDefaults( id, option.text );
+					kept.label = option.text;
+					next.push( kept );
+				} );
+				field.choices = next;
+				rerender();
+			} );
+			wrap.appendChild( el( 'div', { class: 'opf-b-product-picker' }, [ search ] ) );
+			var header = el( 'div', { class: 'opf-b-choices-header', html: '<strong>Linked products</strong> <em>(product · price · default · unavailable' + ( isProductsQtySubtype( field ) ? ' · qty bounds' : '' ) + ')</em>' } );
+			var list = el( 'div', { class: 'opf-b-choices' }, field.choices.map( function ( choice, i ) {
+				return productChoiceRow( field, choice, i );
+			} ) );
+			wrap.appendChild( header );
+			wrap.appendChild( list );
+		}
+
+		if ( ! isProductsQtySubtype( field ) ) {
+			var qtyMethod = el( 'select', { class: 'opf-b-input', 'aria-label': 'Child quantity' }, [
+				el( 'option', { value: 'one', text: 'Always add 1 to the cart' } ),
+				el( 'option', { value: 'parent', text: 'Match the parent product quantity' } ),
+			] );
+			qtyMethod.value = field.qty_method || 'one';
+			qtyMethod.addEventListener( 'change', function () { field.qty_method = qtyMethod.value; } );
+			wrap.appendChild( labeledControl( 'Child quantity', qtyMethod ) );
+		} else {
+			var display = el( 'select', { class: 'opf-b-input', 'aria-label': 'Quantity controls' }, [
+				el( 'option', { value: 'default', text: 'Number input' } ),
+				el( 'option', { value: 'plus_min', text: '+/− buttons' } ),
+			] );
+			display.value = field.display || 'default';
+			display.addEventListener( 'change', function () { field.display = display.value; } );
+			wrap.appendChild( labeledControl( 'Quantity controls', display ) );
+			[ [ 'min_choices', 'Minimum total quantity' ], [ 'max_choices', 'Maximum total quantity' ] ].forEach( function ( setting ) {
+				var bound = el( 'input', { class: 'opf-b-input', type: 'number', min: '0', max: '999999', value: null === field[ setting[ 0 ] ] || undefined === field[ setting[ 0 ] ] ? '' : field[ setting[ 0 ] ], 'aria-label': setting[ 1 ] } );
+				bound.addEventListener( 'input', function () {
+					if ( '' !== bound.value ) field[ setting[ 0 ] ] = Math.max( 0, Math.min( 999999, Number( bound.value ) || 0 ) );
+					else delete field[ setting[ 0 ] ];
+				} );
+				wrap.appendChild( labeledControl( setting[ 1 ], bound ) );
+			} );
+		}
+
+		if ( isProductsCardSubtype( field ) ) {
+			var cardBox = el( 'div', { class: 'opf-b-products-card-settings' } );
+			[ [ 'items_per_row', 'Desktop columns (1–4)', 2 ], [ 'items_per_row_tablet', 'Tablet columns (1–4)', 1 ], [ 'items_per_row_mobile', 'Mobile columns (1–4)', 1 ] ].forEach( function ( setting ) {
+				var input = el( 'input', { class: 'opf-b-input', type: 'number', min: '1', max: '4', value: field[ setting[ 0 ] ] || setting[ 2 ], 'aria-label': setting[ 1 ] } );
+				input.addEventListener( 'input', function () {
+					if ( input.value ) field[ setting[ 0 ] ] = Math.max( 1, Math.min( 4, Number( input.value ) || setting[ 2 ] ) );
+					else delete field[ setting[ 0 ] ];
+				} );
+				cardBox.appendChild( labeledControl( setting[ 1 ], input ) );
+			} );
+			[ [ 'incl_img', 'Show product image' ], [ 'incl_desc', 'Show product description' ] ].forEach( function ( setting ) {
+				var toggle = el( 'input', { type: 'checkbox' } );
+				toggle.checked = false !== field[ setting[ 0 ] ];
+				toggle.addEventListener( 'change', function () { field[ setting[ 0 ] ] = toggle.checked; } );
+				cardBox.appendChild( labeledControl( setting[ 1 ], toggle ) );
+			} );
+			[ 'slot_1', 'slot_2', 'slot_3' ].forEach( function ( slotKey, slotIndex ) {
+				var slot = el( 'select', { class: 'opf-b-input', 'aria-label': 'Card slot ' + ( slotIndex + 1 ) }, [
+					el( 'option', { value: 'none', text: 'Nothing' } ),
+					el( 'option', { value: 'price', text: 'Price' } ),
+					el( 'option', { value: 'stock', text: 'Stock availability' } ),
+					el( 'option', { value: 'link', text: 'Product link' } ),
+				] );
+				slot.value = field[ slotKey ] || 'none';
+				slot.addEventListener( 'change', function () { field[ slotKey ] = slot.value; } );
+				cardBox.appendChild( labeledControl( 'Card slot ' + ( slotIndex + 1 ), slot ) );
+			} );
+			if ( 'vcard' === field.subtype || 'vcard-qty' === field.subtype ) {
+				var fit = el( 'select', { class: 'opf-b-input', 'aria-label': 'Image fit' }, [
+					el( 'option', { value: 'cover', text: 'Cover' } ),
+					el( 'option', { value: 'contain', text: 'Contain' } ),
+				] );
+				fit.value = field.img_fit || 'cover';
+				fit.addEventListener( 'change', function () { field.img_fit = fit.value; } );
+				cardBox.appendChild( labeledControl( 'Image fit', fit ) );
+			}
+			wrap.appendChild( cardBox );
+		}
+
+		if ( 'image' === field.subtype ) {
+			var labelPos = el( 'select', { class: 'opf-b-input', 'aria-label': 'Label position' }, [
+				el( 'option', { value: 'default', text: 'Below image, inside choice' } ),
+				el( 'option', { value: 'out', text: 'Below image, outside choice' } ),
+				el( 'option', { value: 'hide', text: 'Hide label visually' } ),
+				el( 'option', { value: 'tooltip', text: 'Show label on hover/focus' } ),
+			] );
+			labelPos.value = field.label_pos || 'tooltip';
+			labelPos.addEventListener( 'change', function () { field.label_pos = labelPos.value; } );
+			wrap.appendChild( labeledControl( 'Image label position', labelPos ) );
+			var itemWidth = el( 'input', { class: 'opf-b-input', type: 'number', min: '30', max: '300', value: field.item_width || 60, 'aria-label': 'Image width' } );
+			itemWidth.addEventListener( 'input', function () {
+				if ( itemWidth.value ) field.item_width = Math.max( 30, Math.min( 300, Number( itemWidth.value ) || 60 ) );
+				else delete field.item_width;
+			} );
+			wrap.appendChild( labeledControl( 'Image width (30–300 px)', itemWidth ) );
+		}
+
+		var imageZoom = el( 'input', { type: 'checkbox' } );
+		imageZoom.checked = !! field.image_zoom;
+		imageZoom.addEventListener( 'change', function () { field.image_zoom = imageZoom.checked; } );
+		wrap.appendChild( labeledControl( 'Swap/zoom the main product image on selection', imageZoom ) );
+
+		[ [ 'hide_cart', 'Hide children in the cart' ], [ 'hide_checkout', 'Hide children at checkout' ], [ 'hide_order', 'Hide children on orders/emails' ] ].forEach( function ( setting ) {
+			var toggle = el( 'input', { type: 'checkbox' } );
+			toggle.checked = !! field[ setting[ 0 ] ];
+			toggle.addEventListener( 'change', function () { field[ setting[ 0 ] ] = toggle.checked; } );
+			wrap.appendChild( labeledControl( setting[ 1 ], toggle ) );
+		} );
+
+		return wrap;
+	}
+
 	function conditionalRuleRow( field, conditional, rule ) {
 		var sources = model.fields.filter( function ( candidate ) { return candidate.id !== field.id; } );
 		var fieldOptions = sources.map( function ( candidate ) {
@@ -389,6 +660,12 @@
 		typeSel.addEventListener( 'change', function () {
 			field.type = typeSel.value;
 			if ( 'image_quantity' === field.type ) field.required = false;
+			if ( 'products' === field.type ) {
+				field.subtype = field.subtype || 'checkbox';
+				field.product_selection = field.product_selection || 'manual';
+				field.qty_method = field.qty_method || 'one';
+				delete field.repeat;
+			}
 			if ( [ 'paragraph', 'content_image', 'section', 'section_end' ].includes( field.type ) ) {
 				field.required = false;
 				field.choices = [];
@@ -447,6 +724,9 @@
 				textSettings.appendChild( labeledControl( setting[ 1 ], input ) );
 			} );
 			card.appendChild( textSettings );
+		}
+		if ( 'products' === field.type ) {
+			card.appendChild( productsEditor( field ) );
 		}
 		card.appendChild( conditionalEditor( field ) );
 		if ( REPEATABLE_TYPES.indexOf( field.type ) !== -1 || 'section' === field.type ) {
@@ -563,7 +843,7 @@
 			card.appendChild( chooseContentImage );
 		}
 
-		if ( field.choices.length || in_array( field.type, [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ], true ) ) {
+		if ( 'products' !== field.type && ( field.choices.length || in_array( field.type, [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ], true ) ) ) {
 			var addChoice = el( 'button', { type: 'button', class: 'button', text: '+ Add choice', onclick: function () {
 				var n = field.choices.length + 1;
 				var choice = { slug: 'option-' + n, label: 'Option ' + n, selected: false, disabled: false, quantity: { default: 0, min: 0, max: 999999 }, pricing: { type: 'none', amount: 0, formula: '' } };
@@ -738,6 +1018,10 @@
 		model.fields.forEach( function ( field, i ) {
 			app.appendChild( fieldCard( field, i ) );
 		} );
+		// (Re)initialise WooCommerce product pickers on products fields.
+		if ( app.querySelector( '.opf-b-product-search' ) && window.jQuery ) {
+			window.jQuery( document.body ).trigger( 'wc-enhanced-select-init' );
+		}
 	}
 
 	function save() {

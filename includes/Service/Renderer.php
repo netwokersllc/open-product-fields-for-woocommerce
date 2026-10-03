@@ -38,6 +38,7 @@ final class Renderer {
 		'checkbox' => 'checkbox',
 		'swatch'   => 'text-swatch',
 		'image_quantity' => 'image-swatch-qty',
+		'products' => 'products',
 		'upload' => 'file',
 		'paragraph' => 'content',
 		'content_image' => 'content-image',
@@ -120,7 +121,7 @@ final class Renderer {
 
 		foreach ( $groups as $entry ) {
 			$gids[] = (string) $entry['id'];
-			self::render_group( $entry['id'], $entry['title'], $entry['group'], $base_price );
+			self::render_group( $entry['id'], $entry['title'], $entry['group'], $base_price, $product );
 		}
 
 		echo '<input type="hidden" value="' . esc_attr( implode( ',', $gids ) ) . '" name="opf_field_groups"/>';
@@ -141,8 +142,10 @@ final class Renderer {
 			foreach ( $entry['group']->data['fields'] as $field ) {
 				$registry[ $gid ][ $field['id'] ] = [
 					'type'         => $field['type'],
+					'subtype'      => $field['subtype'] ?? null,
+					'qty_selector' => 'products' === $field['type'] && LinkedProducts::is_qty_subtype( $field ),
 					'repeat'       => $field['repeat'] ?? null,
-					'multiple'     => ! empty( $field['multiple'] ),
+					'multiple'     => ! empty( $field['multiple'] ) || ( 'products' === $field['type'] && in_array( $field['subtype'] ?? '', [ 'checkbox', 'image', 'card', 'vcard' ], true ) ),
 					'min_choices'  => $field['min_choices'] ?? null,
 					'max_choices'  => $field['max_choices'] ?? null,
 					'conditionals' => $field['conditionals'],
@@ -182,7 +185,7 @@ final class Renderer {
 	 * @param FieldGroup $group      Group data.
 	 * @param float      $base_price Base unit price.
 	 */
-	public static function render_group( $gid, string $title, FieldGroup $group, float $base_price ): void {
+	public static function render_group( $gid, string $title, FieldGroup $group, float $base_price, ?\WC_Product $product = null ): void {
 		// Seed conditionals with default selections.
 		$values = [];
 		foreach ( $group->data['fields'] as $field ) {
@@ -244,9 +247,9 @@ final class Renderer {
 				continue;
 			}
 			if ( ! empty( $field['repeat']['enabled'] ) ) {
-				self::render_repeated_field( $gid, $field, $values, $base_price, $section_repeat_index );
+				self::render_repeated_field( $gid, $field, $values, $base_price, $section_repeat_index, $product );
 			} else {
-				self::render_field( $gid, $field, $values, $base_price, false, $section_repeat_index, 'quantity' === $section_repeat_mode );
+				self::render_field( $gid, $field, $values, $base_price, false, $section_repeat_index, 'quantity' === $section_repeat_mode, $product );
 			}
 		}
 		while ( $section_stack ) {
@@ -286,7 +289,7 @@ final class Renderer {
 	 * @param array<string,mixed> $values     Seeded values (for conditional state).
 	 * @param float               $base_price Base unit price.
 	 */
-	private static function render_repeated_field( string $gid, array $field, array $values, float $base_price, ?int $section_repeat_index = null ): void {
+	private static function render_repeated_field( string $gid, array $field, array $values, float $base_price, ?int $section_repeat_index = null, ?\WC_Product $product = null ): void {
 		$fid = (string) $field['id'];
 		$repeat = $field['repeat'];
 		$mode = (string) ( $repeat['mode'] ?? '' );
@@ -316,7 +319,7 @@ final class Renderer {
 		$instance['_opf_source_id'] = $fid;
 		$instance['_opf_repeat_index'] = 0;
 		$instance['id'] = $fid . '-repeat-0';
-		self::render_field( $gid, $instance, $values, $base_price, true, $section_repeat_index, 'quantity' === $mode );
+		self::render_field( $gid, $instance, $values, $base_price, true, $section_repeat_index, 'quantity' === $mode, $product );
 		if ( 'button' === ( $repeat['mode'] ?? 'button' ) ) {
 			$add_label = (string) ( $repeat['add'] ?? __( 'Add another', 'open-product-fields-for-woocommerce' ) );
 			echo '</div><button type="button" class="opf-field-repeat__add">' . esc_html( $add_label ) . '</button>';
@@ -326,7 +329,7 @@ final class Renderer {
 		echo '<span class="screen-reader-text opf-field-repeat__status" aria-live="polite"></span></div>';
 	}
 
-	private static function render_field( string $gid, array $field, array $values, float $base_price, bool $repeat_instance = false, ?int $section_repeat_index = null, bool $qty_based = false ): void {
+	private static function render_field( string $gid, array $field, array $values, float $base_price, bool $repeat_instance = false, ?int $section_repeat_index = null, bool $qty_based = false, ?\WC_Product $product = null ): void {
 		$fid      = $field['id'];
 		$source_fid = (string) ( $field['_opf_source_id'] ?? $fid );
 		$name     = sprintf( 'opf[%s][%s]', $gid, $source_fid );
@@ -413,7 +416,7 @@ final class Renderer {
 		if ( 'radio' === $field['type'] ) {
 			echo ' id="opf-label-' . esc_attr( $gid . '-' . $fid ) . '"';
 		}
-		if ( ! in_array( $field['type'], [ 'swatch', 'image_quantity', 'radio', 'checkbox' ], true ) ) {
+		if ( ! in_array( $field['type'], [ 'swatch', 'image_quantity', 'radio', 'checkbox', 'products' ], true ) ) {
 			echo ' for="opf-' . esc_attr( $gid . '-' . $fid ) . '"';
 		}
 		echo '><span>' . esc_html( $field['label'] ) . '</span> ';
@@ -428,7 +431,9 @@ final class Renderer {
 
 		echo '<div class="opf-field-input">';
 
-		if ( in_array( $field['type'], [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ], true ) ) {
+		if ( 'products' === $field['type'] ) {
+			self::render_products_field( $gid, $name, $field, $product );
+		} elseif ( in_array( $field['type'], [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ], true ) ) {
 			self::render_choices( $gid, $name, $field, $base_price, $qty_based );
 		} else {
 			self::render_input( $name, $gid, $field, $qty_based );
@@ -606,6 +611,257 @@ final class Renderer {
 		}
 
 		echo '</div>';
+	}
+
+	/**
+	 * Linked-products field (WAPF `products-*` parity). Children are real
+	 * products; the rendered choice inputs submit slugs (or per-choice
+	 * quantities for the *-qty subtypes) which CartIntegration + LinkedProducts
+	 * turn into native cart lines.
+	 *
+	 * @param string              $gid     Group id.
+	 * @param string              $name    Input base name.
+	 * @param array<string,mixed> $field   Field data.
+	 * @param \WC_Product|null    $product Parent product (for query exclusion).
+	 */
+	private static function render_products_field( string $gid, string $name, array $field, ?\WC_Product $product = null ): void {
+		$fid      = $field['id'];
+		$subtype  = (string) ( $field['subtype'] ?? 'checkbox' );
+		$is_qty   = LinkedProducts::is_qty_subtype( $field );
+		$multi    = in_array( $subtype, [ 'checkbox', 'image', 'card', 'vcard' ], true );
+		$required = ! empty( $field['required'] );
+
+		if ( null === $product ) {
+			$product = $GLOBALS['product'] ?? null;
+		}
+		$choices = LinkedProducts::product_choices( $field, $product instanceof \WC_Product ? $product : null );
+		if ( ! $choices ) {
+			echo '<p class="opf-products-empty">' . esc_html__( 'No products are available for this option.', 'open-product-fields-for-woocommerce' ) . '</p>';
+			return;
+		}
+
+		// Shared per-choice input attributes (WAPF get_option_classes_and_attributes parity).
+		$input_attrs = static function ( array $choice, string $input_name, bool $checked ) use ( $gid, $fid, $field, $required ): string {
+			$attrs = sprintf(
+				'id="opf-%1$s-%2$s-%3$s" name="%4$s" class="opf-input opf-product-input input-%2$s" data-field-id="%2$s" value="%3$s" data-opf-label="%5$s" data-wapf-label="%5$s" data-opf-product-id="%6$s"',
+				esc_attr( $gid ),
+				esc_attr( $fid ),
+				esc_attr( $choice['slug'] ),
+				esc_attr( $input_name ),
+				esc_attr( $choice['label'] ),
+				esc_attr( (string) ( $choice['product_id'] ?? '' ) )
+			);
+			if ( $required ) {
+				$attrs .= ' required';
+			}
+			if ( $checked ) {
+				$attrs .= ' checked';
+			}
+			if ( 'none' !== ( $choice['pricing_type'] ?? 'none' ) ) {
+				$attrs .= sprintf( ' data-opf-pricetype="%s" data-opf-price="%s" data-wapf-pricetype="%s" data-wapf-price="%s"',
+					esc_attr( $choice['pricing_type'] ),
+					esc_attr( (string) (float) ( $choice['pricing_amount'] ?? 0 ) ),
+					esc_attr( $choice['pricing_type'] ),
+					esc_attr( (string) (float) ( $choice['pricing_amount'] ?? 0 ) ) );
+			}
+			if ( ! empty( $choice['disabled'] ) ) {
+				$attrs .= ' disabled data-disabled="1"';
+			}
+			// image_zoom: hover preview + gallery swap URL (WAPF data-zoom-url parity).
+			if ( ! empty( $field['image_zoom'] ) && ! empty( $choice['zoom_url'] ) ) {
+				$attrs .= ' data-opf-swap-image="' . esc_attr( $choice['zoom_url'] ) . '"';
+			}
+			return $attrs;
+		};
+
+		$choice_classes = static function ( array $choice, array $base = [] ): array {
+			if ( ! empty( $choice['selected'] ) ) {
+				$base[] = 'opf-checked wapf-checked';
+			}
+			if ( 'none' !== ( $choice['pricing_type'] ?? 'none' ) ) {
+				$base[] = 'has-pricing';
+			}
+			if ( ! empty( $choice['disabled'] ) || ( isset( $choice['product'] ) && ! $choice['product']->is_in_stock() ) ) {
+				$base[] = 'opf-disabled wapf-disabled';
+			}
+			return $base;
+		};
+
+		$wrapper_attrs = static function ( array $choice ) use ( $field ): string {
+			$attrs = '';
+			if ( ! empty( $field['image_zoom'] ) && ! empty( $choice['zoom_url'] ) ) {
+				$attrs .= ' data-zoom-url="' . esc_attr( $choice['zoom_url'] ) . '"';
+			}
+			return $attrs;
+		};
+
+		$hint = static function ( array $choice ): string {
+			if ( 'none' === ( $choice['pricing_type'] ?? 'none' ) || empty( $choice['pricing_amount'] ) || ! function_exists( 'wc_price' ) ) {
+				return '';
+			}
+			return ' <span class="opf-pricing-hint">(' . wc_price( (float) $choice['pricing_amount'] ) . ')</span>';
+		};
+
+		switch ( $subtype ) {
+			case 'dropdown':
+				echo '<select name="' . esc_attr( $name ) . '" id="opf-' . esc_attr( $gid . '-' . $fid ) . '" class="opf-input input-' . esc_attr( $fid ) . '" autocomplete="off"' . ( $required ? ' required' : '' ) . '>';
+				$has_default = (bool) array_filter( $choices, static fn ( $c ) => ! empty( $c['selected'] ) && empty( $c['disabled'] ) );
+				if ( ! $required || ! $has_default ) {
+					echo '<option value="">' . esc_html__( 'Choose an option', 'open-product-fields-for-woocommerce' ) . '</option>';
+				}
+				foreach ( $choices as $choice ) {
+					$disabled = ! empty( $choice['disabled'] ) || ! $choice['product']->is_in_stock();
+					echo '<option value="' . esc_attr( $choice['slug'] ) . '"'
+						. selected( ! empty( $choice['selected'] ) && ! $disabled, true, false )
+						. ' data-opf-label="' . esc_attr( $choice['label'] ) . '"'
+						. ( 'none' !== ( $choice['pricing_type'] ?? 'none' ) ? ' data-opf-pricetype="' . esc_attr( $choice['pricing_type'] ) . '" data-opf-price="' . esc_attr( (string) (float) $choice['pricing_amount'] ) . '"' : '' )
+						. ( ! empty( $field['image_zoom'] ) && ! empty( $choice['zoom_url'] ) ? ' data-opf-swap-image="' . esc_attr( $choice['zoom_url'] ) . '"' : '' )
+						. ( $disabled ? ' disabled' : '' )
+						. '>' . esc_html( $choice['label'] ) . '</option>';
+				}
+				echo '</select>';
+				return;
+
+			case 'image':
+				echo '<div class="opf-swatch-wrapper opf-image-swatch-wrapper opf-products opf-products--image" data-label-position="' . esc_attr( $field['label_pos'] ?? 'tooltip' ) . '" style="--opf-image-swatch-width:' . esc_attr( (string) ( $field['item_width'] ?? 60 ) ) . 'px;">';
+				echo '<input type="hidden" class="opf-tf-h" data-fid="' . esc_attr( $fid ) . '" value="0" name="' . esc_attr( $name ) . '" />';
+				foreach ( $choices as $choice ) {
+					$disabled = ! empty( $choice['disabled'] ) || ! $choice['product']->is_in_stock();
+					if ( $disabled ) {
+						$choice['disabled'] = true;
+					}
+					$checked  = ! empty( $choice['selected'] ) && ! $disabled;
+					$classes  = $choice_classes( $choice, [ 'opf-swatch', 'opf-swatch--image', 'opf-product-choice', 'opf-image-swatch-label--' . ( $field['label_pos'] ?? 'tooltip' ) ] );
+					if ( ! empty( $field['image_zoom'] ) ) {
+						$classes[] = 'opf-swatch--image-zoom wapf-tt-wrap';
+					}
+					if ( ! $multi ) {
+						$classes[] = 'opf-single-select';
+					}
+					echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '"' . $wrapper_attrs( $choice ) . ' data-opf-swatch-label="' . esc_attr( $choice['label'] ) . '">';
+					echo '<label>';
+					if ( 'out' !== ( $field['label_pos'] ?? 'tooltip' ) ) {
+						echo '<span class="opf-image-swatch-frame">';
+						echo '<img class="opf-swatch-image" src="' . esc_url( $choice['image'] ) . '" alt="' . esc_attr( $choice['label'] ) . '" loading="lazy" decoding="async" />';
+						if ( ! empty( $field['image_zoom'] ) && ! empty( $choice['zoom_url'] ) ) {
+							echo '<img class="opf-swatch-zoom-preview" src="' . esc_url( $choice['zoom_url'] ) . '" alt="" aria-hidden="true" loading="lazy" decoding="async" />';
+						}
+						echo '</span>';
+					}
+					echo '<span class="opf-image-swatch-label">' . esc_html( $choice['label'] ) . $hint( $choice ) . '</span>';
+					echo '<input type="' . ( $multi ? 'checkbox' : 'radio' ) . '" ' . $input_attrs( $choice, $name . ( $multi ? '[]' : '' ), $checked ) . ' />';
+					echo '</label>';
+					echo '</div>';
+				}
+				echo '</div>';
+				return;
+
+			case 'card':
+			case 'vcard':
+			case 'card-qty':
+			case 'vcard-qty':
+				$vertical = in_array( $subtype, [ 'vcard', 'vcard-qty' ], true );
+				echo '<style>.field-' . esc_html( $fid ) . ' .opf-card-wrap{--opf-cols:' . esc_html( (string) ( $field['items_per_row'] ?? 2 ) ) . ';--opf-cols-t:' . esc_html( (string) ( $field['items_per_row_tablet'] ?? 1 ) ) . ';--opf-cols-m:' . esc_html( (string) ( $field['items_per_row_mobile'] ?? 1 ) ) . ';}</style>';
+				echo '<div class="opf-card-wrap opf-products opf-products--' . esc_attr( $subtype ) . '">';
+				if ( ! $is_qty ) {
+					echo '<input type="hidden" class="opf-tf-h" data-fid="' . esc_attr( $fid ) . '" value="0" name="' . esc_attr( $name ) . '" />';
+				}
+				foreach ( $choices as $choice ) {
+					$disabled = ! empty( $choice['disabled'] ) || ! $choice['product']->is_in_stock();
+					if ( $disabled ) {
+						$choice['disabled'] = true;
+					}
+					$checked = ! empty( $choice['selected'] ) && ! $disabled;
+					$classes = $choice_classes( $choice, [ 'opf-card', 'opf-product-choice' ] );
+					if ( $is_qty ) {
+						$classes[] = 'is-qty-select';
+					}
+					if ( $vertical ) {
+						$classes[] = 'opf-card--vertical';
+						$classes[] = 'opf-card--fit-' . ( $field['img_fit'] ?? 'cover' );
+					}
+					echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '"' . $wrapper_attrs( $choice ) . '>';
+					echo '<div class="opf-card-inner">';
+					if ( ! $is_qty ) {
+						echo '<input type="' . ( $multi ? 'checkbox' : 'radio' ) . '" ' . $input_attrs( $choice, $name . ( $multi ? '[]' : '' ), $checked ) . ' />';
+					}
+					if ( ! empty( $field['incl_img'] ) ) {
+						echo '<div class="opf-card-img"><img class="opf-swatch-image" src="' . esc_url( $choice['image'] ) . '" alt="' . esc_attr( $choice['label'] ) . '" loading="lazy" decoding="async" />';
+						if ( ! empty( $field['image_zoom'] ) && ! empty( $choice['zoom_url'] ) ) {
+							echo '<img class="opf-swatch-zoom-preview" src="' . esc_url( $choice['zoom_url'] ) . '" alt="" aria-hidden="true" loading="lazy" decoding="async" />';
+						}
+						echo '</div>';
+					}
+					echo '<div class="opf-card-body">';
+					echo '<div class="opf-card-row"><div class="opf-card-title"><span>' . esc_html( $choice['label'] ) . '</span></div>';
+					echo self::product_slot_info( $field, $choice, 'slot_1' );
+					echo '</div>';
+					if ( ! empty( $field['incl_desc'] ) && '' !== (string) $choice['desc'] ) {
+						echo '<div class="opf-card-row"><div class="opf-card-desc">' . esc_html( wp_trim_words( wp_strip_all_tags( $choice['desc'] ), 20 ) ) . '</div></div>';
+					}
+					if ( $is_qty ) {
+						$q       = $choice['quantity'] ?? [ 'default' => 0, 'min' => 0, 'max' => 999999 ];
+						$default = $disabled ? 0 : (int) $q['default'];
+						$max     = isset( $field['max_choices'] ) ? min( (int) $q['max'], (int) $field['max_choices'] ) : (int) $q['max'];
+						echo '<div class="opf-card-row"><div class="opf-card-qty opf-qty' . ( 'plus_min' === ( $field['display'] ?? '' ) ? ' apf-plusmin' : '' ) . '">';
+						if ( 'plus_min' === ( $field['display'] ?? '' ) ) {
+							echo '<button type="button" tabindex="-1" aria-label="' . esc_attr__( 'Reduce', 'open-product-fields-for-woocommerce' ) . '" class="button apf-minus opf-qty-minus">−</button>';
+						}
+						echo '<input type="number" step="1" value="' . esc_attr( (string) $default ) . '" min="' . esc_attr( (string) (int) $q['min'] ) . '" max="' . esc_attr( (string) $max ) . '" name="' . esc_attr( $name . '[' . $choice['slug'] . ']' ) . '" class="opf-input opf-qty is-qty input-' . esc_attr( $fid ) . '_' . esc_attr( $choice['slug'] ) . '" data-field-id="' . esc_attr( $fid ) . '" data-choice-slug="' . esc_attr( $choice['slug'] ) . '" data-no-zero="1"' . ( $disabled ? ' disabled data-disabled="1"' : '' ) . ( ! empty( $field['image_zoom'] ) && ! empty( $choice['zoom_url'] ) ? ' data-opf-swap-image="' . esc_attr( $choice['zoom_url'] ) . '"' : '' ) . ' />';
+						if ( 'plus_min' === ( $field['display'] ?? '' ) ) {
+							echo '<button type="button" tabindex="-1" aria-label="' . esc_attr__( 'Increase', 'open-product-fields-for-woocommerce' ) . '" class="button apf-plus opf-qty-plus">+</button>';
+						}
+						echo '</div></div>';
+					}
+					$slot_2 = self::product_slot_info( $field, $choice, 'slot_2' );
+					$slot_3 = self::product_slot_info( $field, $choice, 'slot_3' );
+					if ( '' !== $slot_2 || '' !== $slot_3 ) {
+						echo '<div class="opf-card-row">' . $slot_2 . $slot_3 . '</div>';
+					}
+					echo '</div></div></div>';
+				}
+				echo '</div>';
+				return;
+
+			default: // checkbox + radio
+				echo '<div class="opf-checkboxes opf-products opf-products--' . esc_attr( $subtype ) . ' wapf-checkboxes">';
+				echo '<input type="hidden" class="opf-tf-h" data-fid="' . esc_attr( $fid ) . '" value="0" name="' . esc_attr( $name ) . '" />';
+				foreach ( $choices as $choice ) {
+					$disabled = ! empty( $choice['disabled'] ) || ! $choice['product']->is_in_stock();
+					if ( $disabled ) {
+						$choice['disabled'] = true;
+					}
+					$checked = ! empty( $choice['selected'] ) && ! $disabled;
+					$classes = $choice_classes( $choice, [ 'opf-swatch', 'opf-product-choice', 'wapf-input-label-wrap' ] );
+					if ( ! $multi ) {
+						$classes[] = 'opf-single-select';
+					}
+					echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '"' . $wrapper_attrs( $choice ) . '>';
+					echo '<label class="opf-input-label wapf-input-label">';
+					echo '<input type="' . ( 'checkbox' === $subtype ? 'checkbox' : 'radio' ) . '" ' . $input_attrs( $choice, $name . ( 'checkbox' === $subtype ? '[]' : '' ), $checked ) . ' />';
+					echo '<span class="opf-label-text wapf-label-text">' . esc_html( $choice['label'] ) . $hint( $choice ) . '</span>';
+					echo '</label>';
+					echo '</div>';
+				}
+				echo '</div>';
+		}
+	}
+
+	/**
+	 * Card slot content (price/stock/link) — WAPF Html::get_cart_info parity.
+	 */
+	private static function product_slot_info( array $field, array $choice, string $key ): string {
+		$piece = (string) ( $field[ $key ] ?? 'none' );
+		if ( 'none' === $piece || empty( $choice[ $piece ] ) ) {
+			return '';
+		}
+		$html = '<div class="opf-card-info wapf-card-info opf-card-' . esc_attr( $piece ) . '">';
+		if ( 'link' === $piece ) {
+			$html .= '<a href="' . esc_url( $choice['link'] ) . '" target="_blank" rel="noopener">' . esc_html__( 'Details', 'open-product-fields-for-woocommerce' ) . '</a>';
+		} else {
+			$html .= wp_kses_post( (string) $choice[ $piece ] );
+		}
+		return $html . '</div>';
 	}
 
 	/**
@@ -811,7 +1067,7 @@ final class Renderer {
 		if ( 'toggle' === $field['type'] ) {
 			return (string) ( $field['default'] ?? '0' );
 		}
-		if ( in_array( $field['type'], [ 'swatch', 'select', 'radio', 'checkbox' ], true ) ) {
+		if ( in_array( $field['type'], [ 'swatch', 'select', 'radio', 'checkbox', 'products' ], true ) ) {
 			$selected = [];
 			foreach ( $field['choices'] as $choice ) {
 				if ( $choice['selected'] && ! $choice['disabled'] ) {

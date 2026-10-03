@@ -366,6 +366,114 @@
 	margin-top: 0.5rem;
 	font-size: 0.9em;
 }
+/* Linked products (WAPF `products-*` parity). Children are real WooCommerce
+   products rendered inside the parent form. */
+.opf-products .opf-product-choice { margin: 0.15rem 0; }
+.opf-products-empty { opacity: 0.7; }
+
+.opf-card-wrap {
+	display: grid;
+	grid-template-columns: repeat(var(--opf-cols, 2), minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+@media (max-width: 900px) {
+	.opf-card-wrap { grid-template-columns: repeat(var(--opf-cols-t, 1), minmax(0, 1fr)); }
+}
+
+@media (max-width: 768px) {
+	.opf-card-wrap { grid-template-columns: repeat(var(--opf-cols-m, 1), minmax(0, 1fr)); }
+}
+
+.opf-card {
+	position: relative;
+	border: 1px solid rgb(0 0 0 / 0.14);
+	border-radius: 0.375rem;
+	background: #fff;
+	transition: box-shadow 120ms ease;
+}
+
+.opf-card.opf-checked {
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
+}
+
+.opf-card.opf-disabled { opacity: 0.5; }
+.opf-card.opf-disabled input { pointer-events: none; }
+
+/* Non-qty cards: the hidden input spans the whole card so clicking anywhere
+   toggles it (WAPF card-input parity). */
+.opf-card > .opf-card-inner > input[type="checkbox"],
+.opf-card > .opf-card-inner > input[type="radio"] {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	opacity: 0;
+	cursor: pointer;
+	z-index: 1;
+}
+
+.opf-card-inner { padding: 0.6rem; }
+
+.opf-card-img {
+	position: relative;
+	margin: -0.6rem -0.6rem 0.5rem;
+	overflow: hidden;
+	border-radius: 0.375rem 0.375rem 0 0;
+}
+
+.opf-card-img img {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+.opf-card--vertical .opf-card-inner {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+
+.opf-card--fit-cover .opf-card-img img { object-fit: cover; }
+.opf-card--fit-contain .opf-card-img img { object-fit: contain; }
+
+.opf-card-body { display: grid; gap: 0.3rem; }
+
+.opf-card-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.opf-card-title { font-weight: 600; }
+.opf-card-desc { font-size: 0.85em; opacity: 0.75; }
+.opf-card-info { font-size: 0.85em; white-space: nowrap; }
+.opf-card-stock { opacity: 0.75; }
+.opf-card-price .amount { font-weight: 600; }
+
+.opf-card-qty input[type="number"] {
+	width: 4.5rem;
+	text-align: center;
+}
+
+.opf-card-qty.apf-plusmin {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+}
+
+.apf-plusmin .opf-qty-minus,
+.apf-plusmin .opf-qty-plus {
+	width: 1.9rem;
+	height: 1.9rem;
+	padding: 0;
+	line-height: 1;
+	cursor: pointer;
+}
+
 /* Upload controls inherit the host theme's typography and colors. */
 .opf-upload { padding: 1rem; border: 1px dashed currentColor; border-radius: .35rem; }
 .opf-upload__files > div { display: flex; gap: 1rem; align-items: center; justify-content: space-between; margin-top: .5rem; }
