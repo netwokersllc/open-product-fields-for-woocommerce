@@ -2075,13 +2075,48 @@ const writeTotals = () => {
 
   const productTotal = base * qty;
   const grand = Math.max(0, productTotal + optionsTotal);
+
+  // Shop-context display multiplier (Renderer::tax_display_factor). Multiplying
+  // the raw totals by it makes the on-page preview match
+  // wc_get_price_to_display() — tax-inclusive catalogs, customer tax location
+  // and VAT exemption included — without touching cart/order math.
+  const rawTaxFactor = parseFloat(totalsEl.getAttribute('data-opf-tax-factor'));
+  const taxFactor = Number.isFinite(rawTaxFactor) && rawTaxFactor > 0 ? rawTaxFactor : 1;
+  const productDisplay = productTotal * taxFactor;
+  const optionsDisplay = optionsTotal * taxFactor;
+  const grandDisplay = grand * taxFactor;
+
   const fmtEl = (el, amount) => {
     if (!el) return;
     el.innerHTML = fmtMoney(amount * rate);
   };
-  fmtEl(totalsEl.querySelector('.opf-product-total, .wapf-product-total'), productTotal);
-  fmtEl(totalsEl.querySelector('.opf-options-total, .wapf-options-total'), optionsTotal);
-  fmtEl(totalsEl.querySelector('.opf-grand-total, .wapf-grand-total'), grand);
+  fmtEl(totalsEl.querySelector('.opf-product-total, .wapf-product-total'), productDisplay);
+  fmtEl(totalsEl.querySelector('.opf-options-total, .wapf-options-total'), optionsDisplay);
+  fmtEl(totalsEl.querySelector('.opf-grand-total, .wapf-grand-total'), grandDisplay);
+
+  // Native DOM event the production theme consumes: quantity.js reads
+  // `detail.displayed.final` (falling back to `detail.final`); field-accordion.js
+  // only needs the event. `displayed` holds the WooCommerce-displayed totals,
+  // `base`/`options`/`final` the raw shop-currency totals.
+  try {
+    if (typeof document.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+      document.dispatchEvent(new CustomEvent('opf:pricing', {
+        detail: {
+          base: productTotal,
+          options: optionsTotal,
+          final: grand,
+          quantity: qty,
+          displayed: {
+            base: productDisplay,
+            options: optionsDisplay,
+            final: grandDisplay,
+          },
+        },
+      }));
+    }
+  } catch (e) {
+    // A consumer-side failure must never break the totals render.
+  }
 };
 
 const initTotals = () => {

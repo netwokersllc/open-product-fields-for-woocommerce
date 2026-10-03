@@ -164,7 +164,7 @@ final class Renderer {
 	 *
 	 * @param \WC_Product $product Product.
 	 */
-	private static function tax_multiplier( \WC_Product $product ): float {
+	public static function tax_multiplier( \WC_Product $product ): float {
 		$multiplier = 1.0;
 		if ( $product->is_taxable() ) {
 			$customer = function_exists( 'WC' ) && WC() && ! empty( WC()->customer ) ? WC()->customer : null;
@@ -1307,8 +1307,11 @@ final class Renderer {
 		// WAPF parity (class-html.php product totals): data-tax carries the REAL
 		// product tax multiplier — the theme/legacy consumers multiply raw prices
 		// by it. 1 for non-taxable, VAT-exempt, or missing tax context.
+		// data-opf-tax-factor carries the customer-facing display factor (exempt/
+		// location aware) so the frontend preview matches wc_get_price_to_display.
 		$data_tax = self::tax_multiplier( $product );
-		echo '<div class="opf-product-totals' . esc_attr( $hidden ) . '" style="' . ( 'hidden' === $mode ? 'display:none;' : '' ) . '" data-product-id="' . esc_attr( (string) $product->get_id() ) . '" data-product-type="' . esc_attr( $product->get_type() ) . '" data-product-price="' . esc_attr( (string) $product->get_price() ) . '" data-tax="' . esc_attr( (string) $data_tax ) . '"><div class="opf--inner">';
+		$tax_factor = self::tax_display_factor( $product );
+		echo '<div class="opf-product-totals' . esc_attr( $hidden ) . '" style="' . ( 'hidden' === $mode ? 'display:none;' : '' ) . '" data-product-id="' . esc_attr( (string) $product->get_id() ) . '" data-product-type="' . esc_attr( $product->get_type() ) . '" data-product-price="' . esc_attr( (string) $product->get_price() ) . '" data-tax="' . esc_attr( (string) $data_tax ) . '" data-opf-tax-factor="' . esc_attr( (string) $tax_factor ) . '"><div class="opf--inner">';
 		if ( 'three' === $mode ) {
 			echo '<div><span>' . esc_html( $i18n['product_total'] ) . '</span> <span class="opf-total opf-product-total price amount"></span></div>';
 			echo '<div><span>' . esc_html( $i18n['options_total'] ) . '</span> <span class="opf-total opf-options-total price amount"></span></div>';
@@ -1323,6 +1326,23 @@ final class Renderer {
 		echo '</div></div>';
 		// WAPF alias bridge: legacy wapf_after_product_totals action.
 		\OPF\Compat\WapfHooks::after_product_totals( $product );
+	}
+
+	/**
+	 * Shop-context display multiplier: the amount `wc_get_price_to_display()`
+	 * returns for a unit price of 1. Handles tax-exclusive and tax-inclusive
+	 * catalogs as well as the customer's location / VAT-exempt session. The
+	 * frontend multiplies its raw option totals by this so the on-page preview
+	 * matches the cart/order display instead of showing the untaxed amount.
+	 *
+	 * @param \WC_Product $product Product.
+	 */
+	public static function tax_display_factor( \WC_Product $product ): float {
+		if ( ! function_exists( 'wc_get_price_to_display' ) ) {
+			return 1.0;
+		}
+		$factor = (float) wc_get_price_to_display( $product, [ 'qty' => 1, 'price' => 1, 'display_context' => 'shop' ] );
+		return $factor > 0 ? $factor : 1.0;
 	}
 
 	/**

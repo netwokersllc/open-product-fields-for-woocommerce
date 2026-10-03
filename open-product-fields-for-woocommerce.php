@@ -76,6 +76,7 @@ use OPF\Service\FieldGroups;
 use OPF\Service\Importer;
 use OPF\Service\LinkedProducts;
 use OPF\Service\MetaPrettifier;
+use OPF\Service\ProductPriceDisplay;
 use OPF\Service\Renderer;
 use OPF\Service\Rest;
 use OPF\Service\Uploads;
@@ -136,6 +137,7 @@ function opf_boot(): void {
 	}
 
 	Renderer::init();
+	ProductPriceDisplay::init();
 	CartIntegration::init();
 	LinkedProducts::init();
 	Assets::init();
