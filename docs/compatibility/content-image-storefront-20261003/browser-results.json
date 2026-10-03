@@ -1,0 +1,411 @@
+{
+  "time": "2026-10-03T08:18:32.316Z",
+  "base": "http://127.0.0.1:8241",
+  "checks": [
+    {
+      "label": "1280 url source URL matches",
+      "pass": true
+    },
+    {
+      "label": "1280 url loaded real PNG",
+      "pass": true
+    },
+    {
+      "label": "1280 url responsive image stays inside viewport",
+      "pass": true
+    },
+    {
+      "label": "1280 url OPF has escaped accessible alt",
+      "pass": true
+    },
+    {
+      "label": "1280 url OPF lazy async loading",
+      "pass": true
+    },
+    {
+      "label": "1280 attachment source URL matches",
+      "pass": true
+    },
+    {
+      "label": "1280 attachment loaded real PNG",
+      "pass": true
+    },
+    {
+      "label": "1280 attachment responsive image stays inside viewport",
+      "pass": true
+    },
+    {
+      "label": "1280 attachment OPF has escaped accessible alt",
+      "pass": true
+    },
+    {
+      "label": "1280 attachment OPF lazy async loading",
+      "pass": true
+    },
+    {
+      "label": "1280 hostile unsafe import is omitted by OPF",
+      "pass": true
+    },
+    {
+      "label": "1280 hostile WAPF raw stored URL exposes event attribute",
+      "pass": true
+    },
+    {
+      "label": "1280 quoted unsafe import is omitted by OPF",
+      "pass": true
+    },
+    {
+      "label": "1280 quoted WAPF raw stored URL exposes event attribute",
+      "pass": true
+    },
+    {
+      "label": "1280 attachment srcset matches WordPress reference",
+      "pass": true
+    },
+    {
+      "label": "1280 informative images create no submitted OPF controls",
+      "pass": true
+    },
+    {
+      "label": "1280 no uncaught browser error",
+      "pass": true
+    },
+    {
+      "label": "390 url source URL matches",
+      "pass": true
+    },
+    {
+      "label": "390 url loaded real PNG",
+      "pass": true
+    },
+    {
+      "label": "390 url responsive image stays inside viewport",
+      "pass": true
+    },
+    {
+      "label": "390 url OPF has escaped accessible alt",
+      "pass": true
+    },
+    {
+      "label": "390 url OPF lazy async loading",
+      "pass": true
+    },
+    {
+      "label": "390 attachment source URL matches",
+      "pass": true
+    },
+    {
+      "label": "390 attachment loaded real PNG",
+      "pass": true
+    },
+    {
+      "label": "390 attachment responsive image stays inside viewport",
+      "pass": true
+    },
+    {
+      "label": "390 attachment OPF has escaped accessible alt",
+      "pass": true
+    },
+    {
+      "label": "390 attachment OPF lazy async loading",
+      "pass": true
+    },
+    {
+      "label": "390 hostile unsafe import is omitted by OPF",
+      "pass": true
+    },
+    {
+      "label": "390 hostile WAPF raw stored URL exposes event attribute",
+      "pass": true
+    },
+    {
+      "label": "390 quoted unsafe import is omitted by OPF",
+      "pass": true
+    },
+    {
+      "label": "390 quoted WAPF raw stored URL exposes event attribute",
+      "pass": true
+    },
+    {
+      "label": "390 attachment srcset matches WordPress reference",
+      "pass": true
+    },
+    {
+      "label": "390 informative images create no submitted OPF controls",
+      "pass": true
+    },
+    {
+      "label": "390 no uncaught browser error",
+      "pass": true
+    },
+    {
+      "label": "loaded URL PNG response bytes match actual Media Library file",
+      "pass": true
+    },
+    {
+      "label": "1280 wapf selected attachment PNG response bytes match Media Library asset",
+      "pass": true
+    },
+    {
+      "label": "1280 opf selected attachment PNG response bytes match Media Library asset",
+      "pass": true
+    },
+    {
+      "label": "390 wapf selected attachment PNG response bytes match Media Library asset",
+      "pass": true
+    },
+    {
+      "label": "390 opf selected attachment PNG response bytes match Media Library asset",
+      "pass": true
+    }
+  ],
+  "observations": {
+    "390": {
+      "url": {
+        "wapf": {
+          "html": "<img decoding=\"async\" src=\"http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=one&amp;second=two\" data-field-id=\"opi_url\" id=\"wapf-15078-opi_url\">",
+          "src": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=one&second=two",
+          "currentSrc": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=one&second=two",
+          "srcset": null,
+          "sizes": null,
+          "alt": null,
+          "loading": null,
+          "decoding": "async",
+          "naturalWidth": 800,
+          "naturalHeight": 400,
+          "width": 320,
+          "onerror": null
+        },
+        "opf": {
+          "html": "<img src=\"http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=one&amp;second=two\" alt=\"Image label &amp; &quot;quoted&quot; &lt;b&gt;text&lt;/b&gt;\" loading=\"lazy\" decoding=\"async\" style=\"max-width:100%;height:auto;\">",
+          "src": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=one&second=two",
+          "currentSrc": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=one&second=two",
+          "srcset": null,
+          "sizes": null,
+          "alt": "Image label & \"quoted\" <b>text</b>",
+          "loading": "lazy",
+          "decoding": "async",
+          "naturalWidth": 800,
+          "naturalHeight": 400,
+          "width": 330,
+          "onerror": null
+        }
+      },
+      "attachment": {
+        "wapf": {
+          "html": "<img loading=\"lazy\" decoding=\"async\" width=\"800\" height=\"400\" src=\"http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png\" class=\"attachment-full size-full\" alt=\"Media alt &amp; &quot;quoted&quot;\" data-field-id=\"opi_attachment\" id=\"wapf-15078-opi_attachment\" srcset=\"http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png 800w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-300x150.png 300w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-768x384.png 768w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-600x300.png 600w\" sizes=\"auto, (max-width: 800px) 100vw, 800px\">",
+          "src": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png",
+          "currentSrc": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-600x300.png",
+          "srcset": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png 800w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-300x150.png 300w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-768x384.png 768w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-600x300.png 600w",
+          "sizes": "auto, (max-width: 800px) 100vw, 800px",
+          "alt": "Media alt & \"quoted\"",
+          "loading": "lazy",
+          "decoding": "async",
+          "naturalWidth": 320,
+          "naturalHeight": 160,
+          "width": 320,
+          "onerror": null
+        },
+        "opf": {
+          "html": "<img width=\"800\" height=\"400\" src=\"http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png\" class=\"attachment-full size-full\" alt=\"Image label &amp; &quot;quoted&quot; &lt;b&gt;text&lt;/b&gt;\" loading=\"lazy\" decoding=\"async\" srcset=\"http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png 800w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-300x150.png 300w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-768x384.png 768w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-600x300.png 600w\" sizes=\"auto, (max-width: 800px) 100vw, 800px\">",
+          "src": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png",
+          "currentSrc": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-600x300.png",
+          "srcset": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png 800w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-300x150.png 300w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-768x384.png 768w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-600x300.png 600w",
+          "sizes": "auto, (max-width: 800px) 100vw, 800px",
+          "alt": "Image label & \"quoted\" <b>text</b>",
+          "loading": "lazy",
+          "decoding": "async",
+          "naturalWidth": 330,
+          "naturalHeight": 165,
+          "width": 330,
+          "onerror": null
+        }
+      },
+      "hostile": {
+        "wapf": {
+          "html": "<img decoding=\"async\" src=\"javascript:alert(1)\" onerror=\"window.opfImageInjected=1\" data-field-id=\"opi_hostile\" id=\"wapf-15078-opi_hostile\">",
+          "src": "javascript:alert(1)",
+          "currentSrc": "javascript:alert(1)",
+          "srcset": null,
+          "sizes": null,
+          "alt": null,
+          "loading": null,
+          "decoding": "async",
+          "naturalWidth": 0,
+          "naturalHeight": 0,
+          "width": 16,
+          "onerror": "window.opfImageInjected=1"
+        },
+        "opf": null
+      },
+      "quoted": {
+        "wapf": {
+          "html": "<img decoding=\"async\" src=\"http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=\" onerror=\"window.opfImageInjected=2\" data-field-id=\"opi_quoted\" id=\"wapf-15078-opi_quoted\">",
+          "src": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=",
+          "currentSrc": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=",
+          "srcset": null,
+          "sizes": null,
+          "alt": null,
+          "loading": null,
+          "decoding": "async",
+          "naturalWidth": 800,
+          "naturalHeight": 400,
+          "width": 320,
+          "onerror": "window.opfImageInjected=2"
+        },
+        "opf": null
+      },
+      "accessibility": "- img \"Image label & \\\"quoted\\\" <b>text</b>\"",
+      "errors": []
+    },
+    "1280": {
+      "url": {
+        "wapf": {
+          "html": "<img decoding=\"async\" src=\"http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=one&amp;second=two\" data-field-id=\"opi_url\" id=\"wapf-15078-opi_url\">",
+          "src": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=one&second=two",
+          "currentSrc": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=one&second=two",
+          "srcset": null,
+          "sizes": null,
+          "alt": null,
+          "loading": null,
+          "decoding": "async",
+          "naturalWidth": 800,
+          "naturalHeight": 400,
+          "width": 299.59375,
+          "onerror": null
+        },
+        "opf": {
+          "html": "<img src=\"http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=one&amp;second=two\" alt=\"Image label &amp; &quot;quoted&quot; &lt;b&gt;text&lt;/b&gt;\" loading=\"lazy\" decoding=\"async\" style=\"max-width:100%;height:auto;\">",
+          "src": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=one&second=two",
+          "currentSrc": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=one&second=two",
+          "srcset": null,
+          "sizes": null,
+          "alt": "Image label & \"quoted\" <b>text</b>",
+          "loading": "lazy",
+          "decoding": "async",
+          "naturalWidth": 800,
+          "naturalHeight": 400,
+          "width": 309.59375,
+          "onerror": null
+        }
+      },
+      "attachment": {
+        "wapf": {
+          "html": "<img loading=\"lazy\" decoding=\"async\" width=\"800\" height=\"400\" src=\"http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png\" class=\"attachment-full size-full\" alt=\"Media alt &amp; &quot;quoted&quot;\" data-field-id=\"opi_attachment\" id=\"wapf-15078-opi_attachment\" srcset=\"http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png 800w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-300x150.png 300w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-768x384.png 768w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-600x300.png 600w\" sizes=\"auto, (max-width: 800px) 100vw, 800px\">",
+          "src": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png",
+          "currentSrc": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-300x150.png",
+          "srcset": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png 800w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-300x150.png 300w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-768x384.png 768w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-600x300.png 600w",
+          "sizes": "auto, (max-width: 800px) 100vw, 800px",
+          "alt": "Media alt & \"quoted\"",
+          "loading": "lazy",
+          "decoding": "async",
+          "naturalWidth": 300,
+          "naturalHeight": 150,
+          "width": 299.59375,
+          "onerror": null
+        },
+        "opf": {
+          "html": "<img width=\"800\" height=\"400\" src=\"http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png\" class=\"attachment-full size-full\" alt=\"Image label &amp; &quot;quoted&quot; &lt;b&gt;text&lt;/b&gt;\" loading=\"lazy\" decoding=\"async\" srcset=\"http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png 800w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-300x150.png 300w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-768x384.png 768w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-600x300.png 600w\" sizes=\"auto, (max-width: 800px) 100vw, 800px\">",
+          "src": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png",
+          "currentSrc": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-600x300.png",
+          "srcset": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png 800w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-300x150.png 300w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-768x384.png 768w, http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-600x300.png 600w",
+          "sizes": "auto, (max-width: 800px) 100vw, 800px",
+          "alt": "Image label & \"quoted\" <b>text</b>",
+          "loading": "lazy",
+          "decoding": "async",
+          "naturalWidth": 310,
+          "naturalHeight": 155,
+          "width": 309.59375,
+          "onerror": null
+        }
+      },
+      "hostile": {
+        "wapf": {
+          "html": "<img decoding=\"async\" src=\"javascript:alert(1)\" onerror=\"window.opfImageInjected=1\" data-field-id=\"opi_hostile\" id=\"wapf-15078-opi_hostile\">",
+          "src": "javascript:alert(1)",
+          "currentSrc": "javascript:alert(1)",
+          "srcset": null,
+          "sizes": null,
+          "alt": null,
+          "loading": null,
+          "decoding": "async",
+          "naturalWidth": 0,
+          "naturalHeight": 0,
+          "width": 16,
+          "onerror": "window.opfImageInjected=1"
+        },
+        "opf": null
+      },
+      "quoted": {
+        "wapf": {
+          "html": "<img decoding=\"async\" src=\"http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=\" onerror=\"window.opfImageInjected=2\" data-field-id=\"opi_quoted\" id=\"wapf-15078-opi_quoted\">",
+          "src": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=",
+          "currentSrc": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=",
+          "srcset": null,
+          "sizes": null,
+          "alt": null,
+          "loading": null,
+          "decoding": "async",
+          "naturalWidth": 800,
+          "naturalHeight": 400,
+          "width": 299.59375,
+          "onerror": "window.opfImageInjected=2"
+        },
+        "opf": null
+      },
+      "accessibility": "- img \"Image label & \\\"quoted\\\" <b>text</b>\"",
+      "errors": []
+    }
+  },
+  "network": [
+    {
+      "width": 1280,
+      "url": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=one&second=two",
+      "status": 200,
+      "contentType": "image/png",
+      "sha256": "93252cac1717875c2f9933b715c5e4e70e89be537cc61325462eac7e097ce0aa"
+    },
+    {
+      "width": 1280,
+      "url": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=",
+      "status": 200,
+      "contentType": "image/png",
+      "sha256": "93252cac1717875c2f9933b715c5e4e70e89be537cc61325462eac7e097ce0aa"
+    },
+    {
+      "width": 1280,
+      "url": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-300x150.png",
+      "status": 200,
+      "contentType": "image/png",
+      "sha256": "738068a357217a9887fc1bc93dc44536a5442a7a19dac78aae680375757a9ee9"
+    },
+    {
+      "width": 1280,
+      "url": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-600x300.png",
+      "status": 200,
+      "contentType": "image/png",
+      "sha256": "b0054372e36929d45ef89f46d991ec9a5cfb4d3f7c0c5aab22bbd587424fcdd8"
+    },
+    {
+      "width": 390,
+      "url": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=one&second=two",
+      "status": 200,
+      "contentType": "image/png",
+      "sha256": "93252cac1717875c2f9933b715c5e4e70e89be537cc61325462eac7e097ce0aa"
+    },
+    {
+      "width": 390,
+      "url": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=",
+      "status": 200,
+      "contentType": "image/png",
+      "sha256": "93252cac1717875c2f9933b715c5e4e70e89be537cc61325462eac7e097ce0aa"
+    },
+    {
+      "width": 390,
+      "url": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-600x300.png",
+      "status": 200,
+      "contentType": "image/png",
+      "sha256": "b0054372e36929d45ef89f46d991ec9a5cfb4d3f7c0c5aab22bbd587424fcdd8"
+    }
+  ]
+}

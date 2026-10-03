@@ -1,0 +1,28 @@
+{
+    "remaining_posts": [],
+    "remaining_files": [],
+    "fixture_option": false,
+    "baseline": {
+        "posts": 1027,
+        "active_plugins": [
+            "advanced-product-fields-for-woocommerce-extended\/advanced-product-fields-for-woocommerce-extended.php",
+            "open-product-fields-for-woocommerce\/open-product-fields-for-woocommerce.php",
+            "sqlite-database-integration\/load.php",
+            "woocommerce\/woocommerce.php"
+        ],
+        "home": "http:\/\/127.0.0.1:8241",
+        "siteurl": "http:\/\/127.0.0.1:8241"
+    },
+    "after": {
+        "posts": 1027,
+        "active_plugins": [
+            "advanced-product-fields-for-woocommerce-extended\/advanced-product-fields-for-woocommerce-extended.php",
+            "open-product-fields-for-woocommerce\/open-product-fields-for-woocommerce.php",
+            "sqlite-database-integration\/load.php",
+            "woocommerce\/woocommerce.php"
+        ],
+        "home": "http:\/\/127.0.0.1:8241",
+        "siteurl": "http:\/\/127.0.0.1:8241"
+    },
+    "restored": true
+}

@@ -1,0 +1,163 @@
+{
+    "posts": [
+        15078,
+        15079,
+        15080
+    ],
+    "files": [
+        "/tmp/opf-image-wp/wp-content/uploads/2026/10/opf-informative-image-proof.png",
+        "/tmp/opf-image-wp/wp-content/uploads/2026/10/opf-informative-image-proof-300x150.png",
+        "/tmp/opf-image-wp/wp-content/uploads/2026/10/opf-informative-image-proof-150x150.png",
+        "/tmp/opf-image-wp/wp-content/uploads/2026/10/opf-informative-image-proof-768x384.png",
+        "/tmp/opf-image-wp/wp-content/uploads/2026/10/opf-informative-image-proof-300x300.png",
+        "/tmp/opf-image-wp/wp-content/uploads/2026/10/opf-informative-image-proof-600x300.png",
+        "/tmp/opf-image-wp/wp-content/uploads/2026/10/opf-informative-image-proof-100x100.png"
+    ],
+    "baseline": {
+        "posts": 1027,
+        "active_plugins": [
+            "advanced-product-fields-for-woocommerce-extended/advanced-product-fields-for-woocommerce-extended.php",
+            "open-product-fields-for-woocommerce/open-product-fields-for-woocommerce.php",
+            "sqlite-database-integration/load.php",
+            "woocommerce/woocommerce.php"
+        ],
+        "home": "http://127.0.0.1:8241",
+        "siteurl": "http://127.0.0.1:8241"
+    },
+    "product": 15078,
+    "page": 15080,
+    "group": 15079,
+    "attachment": 15077,
+    "url": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png",
+    "source_sha256": "93252cac1717875c2f9933b715c5e4e70e89be537cc61325462eac7e097ce0aa",
+    "ids": [
+        "image-label-quoted-b-text-b",
+        "image-label-quoted-b-text-b-2",
+        "image-label-quoted-b-text-b-3",
+        "image-label-quoted-b-text-b-4"
+    ],
+    "mapping": {
+        "group": {
+            "schema": 2,
+            "fields": [
+                {
+                    "id": "image-label-quoted-b-text-b",
+                    "label": "Image label & \"quoted\" <b>text</b>",
+                    "description": "",
+                    "type": "content_image",
+                    "required": false,
+                    "width": 100,
+                    "css_class": "",
+                    "placeholder": "",
+                    "choices": [],
+                    "pricing": {
+                        "type": "none",
+                        "amount": 0,
+                        "formula": "",
+                        "formula_raw": "",
+                        "per_unit": true
+                    },
+                    "conditionals": [],
+                    "image_url": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png?probe=one&second=two"
+                },
+                {
+                    "id": "image-label-quoted-b-text-b-2",
+                    "label": "Image label & \"quoted\" <b>text</b>",
+                    "description": "",
+                    "type": "content_image",
+                    "required": false,
+                    "width": 100,
+                    "css_class": "",
+                    "placeholder": "",
+                    "choices": [],
+                    "pricing": {
+                        "type": "none",
+                        "amount": 0,
+                        "formula": "",
+                        "formula_raw": "",
+                        "per_unit": true
+                    },
+                    "conditionals": [],
+                    "image_url": "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png",
+                    "image_id": 15077
+                },
+                {
+                    "id": "image-label-quoted-b-text-b-3",
+                    "label": "Image label & \"quoted\" <b>text</b>",
+                    "description": "",
+                    "type": "content_image",
+                    "required": false,
+                    "width": 100,
+                    "css_class": "",
+                    "placeholder": "",
+                    "choices": [],
+                    "pricing": {
+                        "type": "none",
+                        "amount": 0,
+                        "formula": "",
+                        "formula_raw": "",
+                        "per_unit": true
+                    },
+                    "conditionals": [],
+                    "image_url": ""
+                },
+                {
+                    "id": "image-label-quoted-b-text-b-4",
+                    "label": "Image label & \"quoted\" <b>text</b>",
+                    "description": "",
+                    "type": "content_image",
+                    "required": false,
+                    "width": 100,
+                    "css_class": "",
+                    "placeholder": "",
+                    "choices": [],
+                    "pricing": {
+                        "type": "none",
+                        "amount": 0,
+                        "formula": "",
+                        "formula_raw": "",
+                        "per_unit": true
+                    },
+                    "conditionals": [],
+                    "image_url": ""
+                }
+            ],
+            "rule_groups": [
+                {
+                    "rules": [
+                        {
+                            "subject": "product",
+                            "operator": "in",
+                            "terms": [
+                                "15078"
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "mark_required": true,
+            "labels_position": "above"
+        },
+        "notes": [
+            "field \"Image label & \"quoted\" <b>text</b>\" uses a site-local image attachment ID; verify or remap the attachment on the destination site."
+        ],
+        "needs_review": true
+    },
+    "runtime": {
+        "wp": "7.1.2",
+        "wc": "11.1.0",
+        "php": "8.5.11",
+        "extended": "3.1.5",
+        "opf_renderer_sha256": "141bf2dbf98e9b76a7798cf40d5ec47f0c61622a5c280eef889dc940f6d07c00",
+        "reference_img_sha256": "68b8da28e3d2e5de4a07490551e4ab0303e419fd141044332eaa7ebf7289eb3f"
+    },
+    "asset_sha256": {
+        "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof.png": "93252cac1717875c2f9933b715c5e4e70e89be537cc61325462eac7e097ce0aa",
+        "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-300x150.png": "738068a357217a9887fc1bc93dc44536a5442a7a19dac78aae680375757a9ee9",
+        "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-150x150.png": "cd86a1822f6b97ee6337c938b58fa491590758dde00703048d139dffacd7f2d5",
+        "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-768x384.png": "57f0ad9772fa64ff1295e411f853612d916bc5dbcc73f06e92eaec72052ef62a",
+        "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-300x300.png": "c0a2e6fee897d7ac94520b56ea8973d7f116ef730097271907b0793a9a3de2ef",
+        "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-600x300.png": "b0054372e36929d45ef89f46d991ec9a5cfb4d3f7c0c5aab22bbd587424fcdd8",
+        "http://127.0.0.1:8241/wp-content/uploads/2026/10/opf-informative-image-proof-100x100.png": "69dfc0bc2617f94396d2f14ddf658158a91e44b49c71bff6e6619eccba980b6f"
+    }
+}
