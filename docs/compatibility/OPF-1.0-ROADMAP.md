@@ -101,10 +101,16 @@ The upload field and Ajax UI advanced from `gap` to `partial` on the public
 branch after a reviewed private-storage foundation landed. Disposable
 Chromium/WooCommerce evidence covers upload and removal UX, ownership and file
 validation, classic and Store API carts, checkout/order persistence, protected
-downloads, and cleanup. WAPF builder controls and import/export fidelity,
-thumbnail previews, upload order-again, guest session-loss recovery, and
-broader platform/storage compatibility remain open; see [upload foundation
-evidence](UPLOAD-FOUNDATION-EVIDENCE-2026-10-01.md).
+downloads, and cleanup. A 2026-10-03 authenticated real Order again run passed
+37/37 checks and proved that a completed-order upload token is rejected in the
+new session; private bytes remain bound to the original order. WAPF Extended
+3.1.5 source comparison indicates its public file reference restores, but the
+WAPF route was not runtime-tested. A safe authenticated OPF copy/reissue flow
+is still needed before that behavior can match. Builder controls and
+import/export fidelity, thumbnail previews, guest session-loss recovery, and
+broader platform/storage compatibility also remain open; see [upload
+foundation evidence](UPLOAD-FOUNDATION-EVIDENCE-2026-10-01.md) and [Order again
+evidence](UPLOAD-ORDER-AGAIN-EVIDENCE-2026-10-03.md).
 The 2026-10-02 upload security audit also fixed checkout retries after a
 draft/pending order had claimed the upload. Disposable WooCommerce checks prove
 same-owner retry and rebind, preserved order-item download metadata, live-order
@@ -129,16 +135,26 @@ WAPF Free 1.7.1 source confirms the same textarea sanitation and cart item-data
 contract. Defaults/placeholders and import/export remain open in their separate
 scopes. See [textarea lifecycle evidence](TEXTAREA-NEWLINE-EVIDENCE.md).
 
-`WAPF-FIELD-URL` remains `partial` after its new native lifecycle implementation
-and a served-source compatibility audit. The lifecycle passes admin, browser,
-classic/Store API cart, checkout, order/email, and order-again checks, but the
-audit found accepted WAPF/browser URLs that OPF rejects (internationalized
-hosts and paths, spaces, safe custom protocols, opaque URLs, and shortened HTTP
-forms), plus an invalid IPv4 URL that OPF accepts. Do not count this as parity
-until URL canonicalization matches the native browser/WAPF contract while
-retaining the explicitly tested markup/executable-scheme protections. See
-[URL lifecycle](URL-FIELD-LIFECYCLE-EVIDENCE.md) and
-[compatibility audit](URL-FIELD-COMPATIBILITY-EVIDENCE.md).
+`WAPF-FIELD-URL` remains `partial` after its native parser and lifecycle update.
+Real WAPF Free/Extended templates and Chromium/WooCommerce tests passed 185/185
+commerce checks and 35/35 actual Order again checks across 19 URL values,
+including admin REST save/reload, browser validity, classic and Store API,
+checkout, persisted orders, and native defaults. The private vendored WHATWG
+parser now accepts tested IDN/path/query, path-space, opaque mailto/tel/urn,
+shortened HTTP, and WordPress-allowed protocols while rejecting unsafe schemes
+and malformed hosts. Direct Store API add followed by page navigation still
+left the cart block visually empty even though Store API cart data, checkout,
+order confirmation and Order again values were correct. Broader protocol and
+supported-version coverage remains open. See [native URL proof](URL-FIELD-NATIVE-PARITY.md)
+and the earlier [compatibility audit](URL-FIELD-COMPATIBILITY-EVIDENCE.md).
+
+`WAPF-FIELD-CONTENT-IMAGE` remains `partial`. The 2026-10-03 real Chromium
+storefront comparison passed 39/39 desktop/mobile checks for direct URLs,
+Media Library attachments, responsive source selection, loaded bytes,
+accessibility names and no submitted controls. OPF uses the field label as an
+attachment alt while WAPF uses the Media Library alt. Admin Media Library
+save/reload, conditional visibility, and broader version coverage are not yet
+proved. See [image storefront proof](CONTENT-IMAGE-STOREFRONT-PROOF.md).
 
 `WAPF-PRICE-QUANTITY-FLAT` moved from `partial` to `supported with documented
 difference`: OPF expresses native WAPF Pro `qt` as a fixed per-unit choice and
@@ -150,7 +166,7 @@ The evidence compares native WAPF Extended 3.1.5 with WooCommerce 11.1.0 and
 does not claim other versions. See [quantity-flat lifecycle evidence](WAPF-PRICE-QUANTITY-FLAT-EVIDENCE-2026-10-02.md),
 [browser results](qfl-order-again-browser-results.json), and proof commits
 `ccd63b7` + `6d39b24`. This moves one row from partial to documented difference;
-strict accepted-supported progress remains **9/131**.
+strict accepted-supported progress currently remains **12/131 (9.2%)**.
 
 FOX is now `partial` because the existing WOOCS adapter passes an official
 FOX API contract test. WAPF's registry and FOX's own compatibility instructions
