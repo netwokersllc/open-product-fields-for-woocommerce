@@ -26,7 +26,7 @@ Extended plugin as inactive 3.1.5 with no update currently exposed in its
 update registry. The available-source audit is complete; this live-site check
 does not change the audited version boundary.
 
-## Progress now — 2026-10-02
+## Progress now — 2026-10-03
 
 The 131 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 “All versions” rows. Current recorded status:
@@ -34,9 +34,9 @@ The 131 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 | Status | Rows | Meaning for the gate |
 | --- | ---: | --- |
 | Baseline supported | 1 | Promising baseline only; not accepted as proof |
-| Supported | 9 | Select, radio, email, and generic cart/order lifecycle have executed behavior and commerce evidence |
-| Supported with documented difference | 10 | Includes the native toggle lifecycle and quantity-flat pricing; differences need explicit non-regression review and acceptance |
-| Partial | 110 | Material parity or proof remains; 15 prior supported claims were withdrawn after source/test audit; both upload rows now have a private-storage foundation but still lack builder/import/export parity and additional lifecycle proof |
+| Supported | 12 | Includes verified text, textarea, email, select, radio, paragraph shortcode, and cart/order lifecycle behavior |
+| Supported with documented difference | 10 | Includes quantity-flat pricing; remaining differences need explicit non-regression review and acceptance |
+| Partial | 107 | Material parity or proof remains; both upload rows have a private-storage foundation but still lack builder/import/export parity and additional lifecycle proof |
 | Gap | 1 | Known absent in the current OPF tree |
 | Needs audit | 0 | Available source, marketing claims, and every published release delta are mapped; exact release details remain scoped to partial rows |
 | **Total** | **131** | **G1 complete for available evidence; G2 remains open** |
@@ -67,9 +67,10 @@ pricing-hint path remain unverified. Neither row counts as supported.
 A fresh evidence review removed 15 stale `supported` claims. Five rows remained
 after that review; email later advanced separately based on new lifecycle
 evidence. See [the supported-row audit](SUPPORTED-ROW-AUDIT-2026-10-01.md).
-Current strict progress is **9/131 accepted supported rows (6.9%)**. This
-denominator correction reclassifies one OPF-only release check; it is not feature
-completion. The select
+Current strict progress is **12/131 accepted supported rows (9.2%)**. The
+shortcode row advanced after real WAPF 3.1.5/OPF render, import/export, and
+browser evidence confirmed imported behavior is preserved; OPF's native opt-out
+is additive. The select
 and radio rows advanced from baseline-supported after the source-matched
 required-choice lifecycle passed in Chromium, WAPF Free, classic and Store API
 commerce, persisted orders, and order-again. See
