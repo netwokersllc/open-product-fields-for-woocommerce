@@ -347,6 +347,16 @@ const init = () => {
 				instance.querySelectorAll( '.opf-image-quantity__input' ).forEach( ( input ) => { quantities[ input.dataset.choiceSlug ] = Math.max( 0, parseInt( input.value, 10 ) || 0 ); } );
 				return { _opf_type: 'image_quantity', quantities };
 			}
+			if ( 'products' === def.type ) {
+				if ( def.qty_selector ) {
+					const quantities = {};
+					instance.querySelectorAll( 'input.opf-qty.is-qty' ).forEach( ( input ) => { quantities[ input.dataset.choiceSlug ] = Math.max( 0, parseInt( input.value, 10 ) || 0 ); } );
+					return { _opf_type: 'products', quantities };
+				}
+				if ( def.multiple ) {
+					return Array.from( instance.querySelectorAll( '.opf-product-input:checked' ) ).map( ( input ) => input.value );
+				}
+			}
 			if ( def.type === 'toggle' ) {
 				const checkbox = instance.querySelector( 'input[type="checkbox"]' );
 				return checkbox && checkbox.checked ? '1' : '0';
@@ -594,6 +604,15 @@ const init = () => {
 					inputs.forEach( ( input ) => input.setCustomValidity( '' ) );
 					if ( enabledInputs.length ) enabledInputs[0].setCustomValidity( message );
 				}
+				if ( 'products' === def.type && def.qty_selector ) {
+					const inputs = Array.from( fieldEl.querySelectorAll( 'input.opf-qty.is-qty' ) );
+					const enabledInputs = inputs.filter( ( input ) => ! input.disabled );
+					const quantities = {};
+					enabledInputs.forEach( ( input ) => { quantities[ input.dataset.choiceSlug ] = input.value; } );
+					const message = visible ? imageQuantityLimitMessage( def, quantities ) : '';
+					inputs.forEach( ( input ) => input.setCustomValidity( '' ) );
+					if ( enabledInputs.length ) enabledInputs[0].setCustomValidity( message );
+				}
 
 				// Accordion header: mostrar la elección actual
 				const accValue = fieldEl.querySelector( '.acc-value' );
@@ -614,7 +633,7 @@ const init = () => {
 		const syncChecked = () => {
 			// Legacy theme integration keys swatch styling off `opf-checked`
 			// on the .opf-swatch wrapper, exactly as the legacy JS did.
-			groupEl.querySelectorAll( '.opf-swatch' ).forEach( ( swatch ) => {
+			groupEl.querySelectorAll( '.opf-swatch, .opf-card' ).forEach( ( swatch ) => {
 				const input = swatch.querySelector( 'input' );
 				if ( ! input ) {
 					return;
@@ -654,14 +673,139 @@ const init = () => {
 			if ( input.type === 'radio' || input.type === 'checkbox' ) {
 				syncChecked();
 			}
+			if ( fieldDefs[ fid ] && 'products' === fieldDefs[ fid ].type ) {
+				refreshProductSwap( fieldEl );
+			}
 			updateRequiredRepeaters();
 			refresh();
+		} );
+
+		// Linked-products +/− steppers (qty_selector 'plus_min' display mode).
+		groupEl.addEventListener( 'click', ( event ) => {
+			const button = event.target.closest( '.opf-qty-minus, .opf-qty-plus' );
+			if ( ! button ) {
+				return;
+			}
+			const wrap = button.closest( '.opf-card-qty' );
+			const input = wrap && wrap.querySelector( 'input[type="number"]' );
+			if ( ! input || input.disabled ) {
+				return;
+			}
+			const step = parseInt( input.step, 10 ) || 1;
+			const min = input.min === '' ? -Infinity : parseInt( input.min, 10 );
+			const max = input.max === '' ? Infinity : parseInt( input.max, 10 );
+			const delta = button.classList.contains( 'opf-qty-plus' ) ? step : -step;
+			input.value = Math.min( max, Math.max( min, ( parseInt( input.value, 10 ) || 0 ) + delta ) );
+			input.dispatchEvent( new Event( 'input', { bubbles: true } ) );
 		} );
 
 		refresh();
 		syncChecked();
 		quantitySyncers.forEach( ( sync ) => sync() );
 	} );
+};
+
+// ---------------------------------------------------------------------------
+// Linked products: swap the main WooCommerce gallery image with the selected
+// child product's image (WAPF "swap main image" parity). The original image
+// state is captured on first swap and restored when nothing is selected.
+// ---------------------------------------------------------------------------
+const gallerySwap = ( () => {
+	let saved = null;
+	const capture = () => {
+		const root = document.querySelector( '.woocommerce-product-gallery' );
+		const img = root && root.querySelector( '.wp-post-image' );
+		if ( ! img ) {
+			return null;
+		}
+		const link = img.closest( 'a' );
+		const thumb = root.querySelector( '.flex-control-thumbs li:first-child img' );
+		return {
+			root,
+			img,
+			link,
+			thumb,
+			src: img.getAttribute( 'src' ),
+			srcset: img.getAttribute( 'srcset' ),
+			sizes: img.getAttribute( 'sizes' ),
+			dataSrc: img.getAttribute( 'data-src' ),
+			dataLarge: img.getAttribute( 'data-large_image' ),
+			href: link ? link.getAttribute( 'href' ) : null,
+			thumbSrc: thumb ? thumb.getAttribute( 'src' ) : null,
+		};
+	};
+	const apply = ( state, url ) => {
+		state.img.setAttribute( 'src', url );
+		state.img.setAttribute( 'srcset', url );
+		state.img.setAttribute( 'sizes', '100vw' );
+		state.img.setAttribute( 'data-src', url );
+		state.img.setAttribute( 'data-large_image', url );
+		if ( state.link ) {
+			state.link.setAttribute( 'href', url );
+			state.link.setAttribute( 'data-large_image', url );
+		}
+		if ( state.thumb ) {
+			state.thumb.setAttribute( 'src', url );
+		}
+		if ( window.jQuery ) {
+			window.jQuery( state.root ).trigger( 'woocommerce_gallery_init_zoom' );
+		}
+	};
+	return {
+		swap( url ) {
+			if ( ! saved ) {
+				saved = capture();
+			}
+			if ( saved ) {
+				apply( saved, url );
+			}
+		},
+		restore() {
+			if ( ! saved ) {
+				return;
+			}
+			const state = saved;
+			state.img.setAttribute( 'src', state.src );
+			if ( state.srcset ) state.img.setAttribute( 'srcset', state.srcset ); else state.img.removeAttribute( 'srcset' );
+			if ( state.sizes ) state.img.setAttribute( 'sizes', state.sizes ); else state.img.removeAttribute( 'sizes' );
+			if ( state.dataSrc ) state.img.setAttribute( 'data-src', state.dataSrc ); else state.img.removeAttribute( 'data-src' );
+			if ( state.dataLarge ) state.img.setAttribute( 'data-large_image', state.dataLarge ); else state.img.removeAttribute( 'data-large_image' );
+			if ( state.link && state.href ) state.link.setAttribute( 'href', state.href );
+			if ( state.thumb && state.thumbSrc ) state.thumb.setAttribute( 'src', state.thumbSrc );
+			if ( window.jQuery ) {
+				window.jQuery( state.root ).trigger( 'woocommerce_gallery_init_zoom' );
+			}
+			saved = null;
+		},
+	};
+} )();
+
+const refreshProductSwap = ( fieldEl ) => {
+	let url = '';
+	for ( const el of fieldEl.querySelectorAll( '[data-opf-swap-image]' ) ) {
+		const tag = el.tagName.toLowerCase();
+		if ( 'option' === tag ) {
+			if ( el.selected ) {
+				url = el.dataset.opfSwapImage;
+				break;
+			}
+			continue;
+		}
+		if ( 'number' === el.type ) {
+			if ( parseInt( el.value, 10 ) > 0 ) {
+				url = el.dataset.opfSwapImage;
+				break;
+			}
+		} else if ( el.checked ) {
+			url = el.dataset.opfSwapImage;
+			break;
+		}
+	}
+	if ( url ) {
+		gallerySwap.swap( url );
+	} else {
+		gallerySwap.restore();
+	}
 };
 
 if ( document.readyState === 'loading' ) {

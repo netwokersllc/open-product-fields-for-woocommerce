@@ -49,6 +49,7 @@ use OPF\Service\CartIntegration;
 use OPF\Service\Cli;
 use OPF\Service\FieldGroups;
 use OPF\Service\Importer;
+use OPF\Service\LinkedProducts;
 use OPF\Service\MetaPrettifier;
 use OPF\Service\Renderer;
 use OPF\Service\Rest;
@@ -88,6 +89,7 @@ function opf_boot(): void {
 
 	Renderer::init();
 	CartIntegration::init();
+	LinkedProducts::init();
 	Assets::init();
 	WoocsIntegration::init();
 	WpmlIntegration::init();

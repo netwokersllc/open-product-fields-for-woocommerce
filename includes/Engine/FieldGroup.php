@@ -27,7 +27,18 @@ final class FieldGroup {
 	/**
 	 * Supported field types.
 	 */
-	public const FIELD_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'image_quantity', 'upload', 'paragraph', 'content_image', 'section', 'section_end' ];
+	public const FIELD_TYPES = [ 'text', 'textarea', 'email', 'url', 'number', 'date', 'toggle', 'select', 'radio', 'checkbox', 'swatch', 'image_quantity', 'upload', 'paragraph', 'content_image', 'section', 'section_end', 'products' ];
+
+	/**
+	 * Linked-products subtypes (WAPF `products-*` field types).
+	 */
+	public const PRODUCTS_SUBTYPES = [ 'checkbox', 'radio', 'dropdown', 'image', 'card', 'vcard', 'card-qty', 'vcard-qty' ];
+
+	/**
+	 * Product-choice pricing types (WAPF `pricing_type` on product choices).
+	 * `fixed` = the child product's own price; `none` = free child line.
+	 */
+	public const PRODUCTS_PRICING_TYPES = [ 'fixed', 'none' ];
 
 	/**
 	 * Supported pricing types.
@@ -147,6 +158,7 @@ final class FieldGroup {
 			if ( 'section' === $field['type'] ) $repeated_sections[] = ! empty( $field['repeat']['enabled'] ) || in_array( true, $repeated_sections, true );
 			if ( 'section_end' === $field['type'] ) array_pop( $repeated_sections );
 			if ( 'upload' === $field['type'] && in_array( true, $repeated_sections, true ) ) throw new \InvalidArgumentException( 'Upload fields cannot be inside repeated sections yet.' );
+			if ( 'products' === $field['type'] && in_array( true, $repeated_sections, true ) ) throw new \InvalidArgumentException( 'Products fields cannot be inside repeated sections.' );
 			$fields[] = $field;
 		}
 
@@ -185,25 +197,54 @@ final class FieldGroup {
 	 */
 	public static function normalize_field( array $field ): array {
 		$type = (string) ( $field['type'] ?? 'text' );
+		// WAPF writes products fields as type `products-<subtype>`; accept that
+		// spelling as well as type `products` + separate `subtype` key.
+		$products_subtype = '';
+		if ( str_starts_with( $type, 'products-' ) ) {
+			$products_subtype = substr( $type, strlen( 'products-' ) );
+			$type             = 'products';
+		}
 		if ( ! in_array( $type, self::FIELD_TYPES, true ) ) {
 			$type = 'text';
 		}
+		if ( 'products' === $type ) {
+			if ( '' === $products_subtype ) {
+				$products_subtype = (string) ( $field['subtype'] ?? 'checkbox' );
+				$products_subtype = preg_replace( '/^products-/', '', $products_subtype );
+			}
+			if ( ! in_array( $products_subtype, self::PRODUCTS_SUBTYPES, true ) ) {
+				$products_subtype = 'checkbox';
+			}
+		}
+		$products_qty_subtype = in_array( $products_subtype, [ 'card-qty', 'vcard-qty' ], true );
 
 		$choices = [];
 		foreach ( ( $field['choices'] ?? [] ) as $choice ) {
-			if ( ! is_array( $choice ) || ( $choice['label'] ?? '' ) === '' ) {
+			if ( ! is_array( $choice ) ) {
+				continue;
+			}
+			if ( 'products' === $type ) {
+				// Manual product choices reference a real product; the label
+				// falls back to the product name at render time.
+				$product_id = $choice['product_id'] ?? null;
+				if ( ( is_int( $product_id ) || ( is_string( $product_id ) && ctype_digit( $product_id ) ) ) && (int) $product_id > 0 ) {
+					$choice['product_id'] = (int) $product_id;
+				} else {
+					continue;
+				}
+			} elseif ( ( $choice['label'] ?? '' ) === '' ) {
 				continue;
 			}
 			$pricing   = is_array( $choice['pricing'] ?? null ) ? $choice['pricing'] : [];
 			$disabled = (bool) ( $choice['disabled'] ?? false );
 			$normalized_choice = [
 				'slug'     => (string) ( $choice['slug'] ?? '' ),
-				'label'    => (string) $choice['label'],
+				'label'    => (string) ( $choice['label'] ?? '' ),
 				'selected' => ! $disabled && (bool) ( $choice['selected'] ?? false ),
 				'disabled' => $disabled,
 				'pricing'  => self::normalize_pricing( $pricing ),
 			];
-			if ( 'image_quantity' === ( $field['type'] ?? '' ) ) {
+			if ( 'image_quantity' === ( $field['type'] ?? '' ) || ( 'products' === $type && $products_qty_subtype ) ) {
 				$quantity_settings = is_array( $choice['quantity'] ?? null ) ? $choice['quantity'] : [];
 				$minimum = max( 0, min( 999999, (int) ( $quantity_settings['min'] ?? 0 ) ) );
 				$maximum = max( $minimum, min( 999999, (int) ( $quantity_settings['max'] ?? 999999 ) ) );
@@ -212,6 +253,14 @@ final class FieldGroup {
 					'min' => $minimum,
 					'max' => $maximum,
 				];
+			}
+			if ( 'products' === $type ) {
+				$normalized_choice['product_id'] = (int) $choice['product_id'];
+				$pricing_type = (string) ( $choice['pricing_type'] ?? 'fixed' );
+				$normalized_choice['pricing_type'] = in_array( $pricing_type, self::PRODUCTS_PRICING_TYPES, true ) ? $pricing_type : 'fixed';
+				if ( '' === $normalized_choice['slug'] ) {
+					$normalized_choice['slug'] = 'p' . $normalized_choice['product_id'];
+				}
 			}
 			$image = $choice['image'] ?? null;
 			if ( is_string( $image ) ) {
@@ -370,6 +419,78 @@ final class FieldGroup {
 				throw new \InvalidArgumentException( 'Image quantity minimum total cannot exceed maximum total.' );
 			}
 		}
+		if ( 'products' === $type ) {
+			$normalized['subtype'] = $products_subtype;
+			// Children are native cart lines priced by their own product data;
+			// the field itself never carries an addon price.
+			$normalized['pricing'] = self::normalize_pricing( [] );
+			$selection = (string) ( $field['product_selection'] ?? 'manual' );
+			$normalized['product_selection'] = in_array( $selection, [ 'manual', 'category' ], true ) ? $selection : 'manual';
+			$qty_method = (string) ( $field['qty_method'] ?? 'one' );
+			$normalized['qty_method'] = in_array( $qty_method, [ 'one', 'parent' ], true ) ? $qty_method : 'one';
+			foreach ( [ 'hide_cart', 'hide_checkout', 'hide_order' ] as $key ) {
+				$normalized[ $key ] = (bool) ( $field[ $key ] ?? false );
+			}
+			$image_zoom = $field['image_zoom'] ?? false;
+			if ( ! in_array( $image_zoom, [ true, false, 0, 1, '0', '1' ], true ) ) {
+				throw new \InvalidArgumentException( 'Products image zoom setting must be boolean.' );
+			}
+			$normalized['image_zoom'] = in_array( $image_zoom, [ true, 1, '1' ], true );
+			if ( 'category' === $normalized['product_selection'] ) {
+				$query = is_array( $field['product_query'] ?? null ) ? $field['product_query'] : [];
+				$sort  = (string) ( $query['sort'] ?? 'date_desc' );
+				$pricing_type = (string) ( $query['pricing_type'] ?? 'fixed' );
+				$normalized['product_query'] = [
+					'query_id'     => max( 0, (int) ( $query['query_id'] ?? 0 ) ),
+					'query_label'  => (string) ( $query['query_label'] ?? '' ),
+					'limit'        => max( 1, min( 50, (int) ( $query['limit'] ?? 10 ) ) ),
+					'sort'         => in_array( $sort, [ 'name_asc', 'name_desc', 'date_desc', 'date_asc' ], true ) ? $sort : 'date_desc',
+					'pricing_type' => in_array( $pricing_type, self::PRODUCTS_PRICING_TYPES, true ) ? $pricing_type : 'fixed',
+				];
+				$normalized['choices'] = [];
+			}
+			if ( $products_qty_subtype ) {
+				foreach ( [ 'min_choices', 'max_choices' ] as $key ) {
+					if ( ! array_key_exists( $key, $field ) || '' === $field[ $key ] || null === $field[ $key ] ) {
+						continue;
+					}
+					$normalized[ $key ] = self::bounded_integer( $field[ $key ], 0, 999999, 'Products ' . $key );
+				}
+				if ( isset( $normalized['min_choices'], $normalized['max_choices'] ) && $normalized['min_choices'] > $normalized['max_choices'] ) {
+					throw new \InvalidArgumentException( 'Products minimum total quantity cannot exceed maximum total quantity.' );
+				}
+				$display = (string) ( $field['display'] ?? 'default' );
+				$normalized['display'] = in_array( $display, [ 'default', 'plus_min' ], true ) ? $display : 'default';
+			}
+			if ( 'image' === $products_subtype ) {
+				$label_pos = (string) ( $field['label_pos'] ?? 'tooltip' );
+				if ( ! in_array( $label_pos, [ 'default', 'out', 'hide', 'tooltip' ], true ) ) {
+					throw new \InvalidArgumentException( 'Products image label position must be default, out, hide, or tooltip.' );
+				}
+				$normalized['label_pos'] = $label_pos;
+				$normalized['item_width'] = self::bounded_integer( $field['item_width'] ?? 60, 30, 300, 'Products image width' );
+			}
+			if ( in_array( $products_subtype, [ 'card', 'vcard', 'card-qty', 'vcard-qty' ], true ) ) {
+				$normalized['items_per_row']        = self::bounded_integer( $field['items_per_row'] ?? 2, 1, 4, 'Products desktop columns' );
+				$normalized['items_per_row_tablet'] = self::bounded_integer( $field['items_per_row_tablet'] ?? 1, 1, 4, 'Products tablet columns' );
+				$normalized['items_per_row_mobile'] = self::bounded_integer( $field['items_per_row_mobile'] ?? 1, 1, 4, 'Products mobile columns' );
+				foreach ( [ 'incl_img', 'incl_desc' ] as $key ) {
+					$value = $field[ $key ] ?? true;
+					if ( ! in_array( $value, [ true, false, 0, 1, '0', '1' ], true ) ) {
+						throw new \InvalidArgumentException( sprintf( 'Products %s must be boolean.', $key ) );
+					}
+					$normalized[ $key ] = in_array( $value, [ true, 1, '1' ], true );
+				}
+				foreach ( [ 'slot_1', 'slot_2', 'slot_3' ] as $key ) {
+					$slot = (string) ( $field[ $key ] ?? 'none' );
+					$normalized[ $key ] = in_array( $slot, [ 'none', 'price', 'stock', 'link' ], true ) ? $slot : 'none';
+				}
+				if ( in_array( $products_subtype, [ 'vcard', 'vcard-qty' ], true ) ) {
+					$fit = (string) ( $field['img_fit'] ?? 'cover' );
+					$normalized['img_fit'] = in_array( $fit, [ 'cover', 'contain' ], true ) ? $fit : 'cover';
+				}
+			}
+		}
 		if ( 'content_image' === $type ) {
 			$normalized['required'] = false;
 			$normalized['choices'] = [];
@@ -390,6 +511,9 @@ final class FieldGroup {
 			$normalized['pricing'] = self::normalize_pricing( [] );
 		}
 		$repeat = RepeaterField::normalize( $field['repeat'] ?? [] );
+		if ( 'products' === $type && $repeat ) {
+			throw new \InvalidArgumentException( 'Products fields cannot repeat.' );
+		}
 		if ( 'upload' === $type && $repeat ) {
 			throw new \InvalidArgumentException( 'Upload fields cannot repeat yet.' );
 		}

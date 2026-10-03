@@ -49,10 +49,18 @@ final class Builder {
 	public static function render_builder( \WP_Post $post ): void {
 		$group = \OPF\Service\FieldGroups::group_from_post( $post );
 		$model = $group ? $group->data : [ 'schema' => \OPF\Engine\FieldGroup::SCHEMA, 'fields' => [], 'rule_groups' => [], 'mark_required' => true, 'labels_position' => 'above' ];
+		$cat_terms = get_terms( [ 'taxonomy' => 'product_cat', 'hide_empty' => false, 'number' => 500 ] );
+		$product_cats = [];
+		if ( ! is_wp_error( $cat_terms ) ) {
+			foreach ( (array) $cat_terms as $term ) {
+				$product_cats[] = [ 'id' => (int) $term->term_id, 'name' => (string) $term->name ];
+			}
+		}
 		?>
 		<div id="opf-builder-app"
 			data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>"
 			data-model="<?php echo esc_attr( (string) wp_json_encode( $model, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ) ); ?>"
+			data-product-cats="<?php echo esc_attr( (string) wp_json_encode( $product_cats, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ) ); ?>"
 			data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
 			data-rest="<?php echo esc_url( esc_url_raw( rest_url( 'opf/v1/groups' ) ) ); ?>"
 			data-preview-rest="<?php echo esc_url( esc_url_raw( rest_url( 'opf/v1/preview' ) ) ); ?>">

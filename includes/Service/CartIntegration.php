@@ -119,6 +119,12 @@ final class CartIntegration {
 			return false;
 		}
 
+		// Child lines inserted by LinkedProducts bypass OPF validation (the
+		// selection was already validated on the parent's add).
+		if ( LinkedProducts::adding() ) {
+			return $passed;
+		}
+
 		// Escape hatch for automated E2E traffic (parity with the legacy
 		// wapf/skip_cart_validation filters).
 		if ( apply_filters( 'opf_skip_validation', false ) ) {
@@ -161,7 +167,7 @@ final class CartIntegration {
 	 * @param int   $variation_id   Variation id.
 	 */
 	public static function attach( array $cart_item_data, int $product_id, int $variation_id = 0 ): array {
-		if ( self::$splitting_quantity_repeats ) {
+		if ( self::$splitting_quantity_repeats || LinkedProducts::adding() ) {
 			return $cart_item_data;
 		}
 
@@ -234,7 +240,7 @@ final class CartIntegration {
 	 * @param array  $cart_item_data Submitted cart item data.
 	 */
 	public static function split_quantity_repeat_cart_item( $cart_item_key, $product_id, $quantity, $variation_id, $variation, $cart_item_data ): void {
-		if ( self::$splitting_quantity_repeats || (int) $quantity < 1 || ! function_exists( 'WC' ) || ! WC()->cart ) {
+		if ( self::$splitting_quantity_repeats || LinkedProducts::adding() || (int) $quantity < 1 || ! function_exists( 'WC' ) || ! WC()->cart ) {
 			return;
 		}
 
@@ -491,7 +497,7 @@ final class CartIntegration {
 			}
 
 			foreach ( $group->data['fields'] as $field ) {
-				if ( in_array( $field['type'], [ 'paragraph', 'section', 'section_end' ], true ) ) {
+				if ( in_array( $field['type'], [ 'paragraph', 'section', 'section_end', 'products' ], true ) ) {
 					continue;
 				}
 				$fid = $field['id'];
@@ -616,6 +622,12 @@ final class CartIntegration {
 
 			foreach ( $group->data['fields'] as $field ) {
 				if ( in_array( $field['type'], [ 'section', 'section_end' ], true ) ) {
+					continue;
+				}
+				// Linked products display as their own cart lines carrying an
+				// "Included with" note — the parent line doesn't list them
+				// (WAPF should_use_cart_field parity).
+				if ( 'products' === $field['type'] ) {
 					continue;
 				}
 				$fid = $field['id'];
@@ -744,6 +756,7 @@ final class CartIntegration {
 			$item->add_meta_data( $selection['label'], $selection['value'] );
 		}
 		$item->add_meta_data( '_opf_fields', wp_json_encode( $values, JSON_UNESCAPED_UNICODE ), true );
+		$item->add_meta_data( '_opf_cart_item_key', $cart_item_key, true );
 		$snapshot = \OPF\API::field_snapshot_for_product( $product, $values );
 		$item->add_meta_data( '_opf_fields_snapshot', wp_json_encode( $snapshot, JSON_UNESCAPED_UNICODE ), true );
 	}
@@ -758,7 +771,10 @@ final class CartIntegration {
 	public static function hidden_order_meta( array $keys ): array {
 		$keys[] = '_opf_fields';
 		$keys[] = '_opf_fields_snapshot';
+		$keys[] = '_opf_cart_item_key';
 		$keys[] = '_opf_uploads';
+		$keys[] = '_opf_child';
+		$keys[] = '_opf_child_full';
 		// Otros plugins que ensucian el display de órdenes
 		$keys = array_merge( $keys, [
 			'_nova_start_url',
@@ -929,6 +945,9 @@ final class CartIntegration {
 	 * @param bool                $structured Whether this is a stored cart/order value.
 	 */
 	private static function sanitize_value( array $field, $value, bool $structured = false ) {
+		if ( 'products' === $field['type'] ) {
+			return LinkedProducts::sanitize_value( $field, $value, $structured );
+		}
 		if ( 'upload' === $field['type'] ) {
 			return Uploads::tokens( $value );
 		}
@@ -1057,6 +1076,15 @@ final class CartIntegration {
 				if ( 'image_quantity' === $field['type'] ) {
 					$submitted = $provided && is_array( $given[ $field['id'] ] ) ? $given[ $field['id'] ] : [];
 					$errors = array_merge( $errors, self::validate_image_quantity( $field, $submitted ) );
+					continue;
+				}
+				if ( 'products' === $field['type'] ) {
+					$errors = array_merge( $errors, LinkedProducts::validate_field(
+						$field,
+						$provided ? $given[ $field['id'] ] : null,
+						$product_quantity,
+						$product
+					) );
 					continue;
 				}
 				$value    = $provided && ! is_array( $given[ $field['id'] ] ) ? (string) $given[ $field['id'] ] : null;
