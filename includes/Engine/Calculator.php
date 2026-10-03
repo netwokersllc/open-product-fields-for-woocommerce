@@ -726,18 +726,24 @@ final class Calculator {
 				$prev         = $tables[ $table_name ];
 				$traversal    = [];
 				for ( $k = 1; $k < count( $args ); $k++ ) {
-					$arg = trim( (string) $args[ $k ] );
-					if ( strlen( $arg ) < 6 ) {
-						$value = $arg;
-					} else {
-						$field_id = strtolower( $arg );
-						if ( ! array_key_exists( $field_id, $field_values ) ) {
-							return 0;
-						}
+					$arg      = trim( (string) $args[ $k ] );
+					$field_id = strtolower( $arg );
+					if ( array_key_exists( $field_id, $field_values ) ) {
+						// Field-id dims resolve first regardless of length:
+						// WAPF's <6-char literal heuristic only works because
+						// WAPF ids are always >=6 chars, while imported OPF
+						// ids can be shorter and would silently become
+						// literals under WAPF's rule.
 						$value = self::formula_field_label( $field_id, $field_values, $field_labels );
 						if ( '' === $value ) {
 							return 0;
 						}
+					} elseif ( strlen( $arg ) < 6 ) {
+						$value = $arg;
+					} else {
+						// >=6-char arg that is not a submitted field id —
+						// WAPF's missing-field path resolves to 0.
+						return 0;
 					}
 					if ( ! is_array( $prev ) ) {
 						return 0;

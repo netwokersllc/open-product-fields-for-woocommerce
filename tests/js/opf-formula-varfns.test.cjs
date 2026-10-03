@@ -69,6 +69,14 @@ test('lookuptable() traverses WAPF nested tables with nearest-axis rounding', ()
   delete context.window.wapf_lookup_tables;
 });
 
+test('lookuptable() resolves short imported field ids (mapper slugified ids)', () => {
+  // Imported OPF ids can be <6 chars; a submitted field id wins over the
+  // <6-char literal heuristic (which only held because WAPF ids are >=6).
+  assert.equal(context.evaluate('lookuptable(cutting;width;height)', 10, 1, 0, '', { width: '15', height: '5' }, null, {}, OPTS), 200);
+  assert.equal(context.evaluate('lookuptable(cutting;15;5)', 10, 1, 0, '', { width: '15', height: '5' }, null, {}, OPTS), 200);
+  assert.equal(context.evaluate('lookuptable(cutting;width;height)', 10, 1, 0, '', { width: '', height: '5' }, null, {}, OPTS), 0);
+});
+
 test('[var_name] custom variables resolve WAPF-style', () => {
   assert.equal(ev('[var_fee]*2'), 3);
   assert.equal(ev('[var_dyn]'), 2.5);

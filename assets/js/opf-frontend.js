@@ -1799,14 +1799,20 @@ const evalFormula = (formula, price, qty, addons, val, fieldValues = {}, todayOv
             let failed = false;
             for (let k = 1; k < args.length; k++) {
               const arg = String(args[k]).trim();
+              const fid = arg.toLowerCase();
               let v;
-              if (arg.length < 6) {
-                v = arg;
-              } else {
-                const fid = arg.toLowerCase();
-                if (!fieldValues || !Object.prototype.hasOwnProperty.call(fieldValues, fid)) { failed = true; break; }
+              if (fieldValues && Object.prototype.hasOwnProperty.call(fieldValues, fid)) {
+                // Field-id dims resolve first regardless of length: WAPF's
+                // <6-char literal heuristic only works because WAPF ids are
+                // always >=6 chars; imported OPF ids can be shorter.
                 v = formulaFieldLabel(fid, fieldValues);
                 if (v === '') { failed = true; break; }
+              } else if (arg.length < 6) {
+                v = arg;
+              } else {
+                // >=6-char arg that is not a submitted field id — WAPF's
+                // missing-field path resolves to 0.
+                failed = true; break;
               }
               if (prev == null || typeof prev !== 'object') { failed = true; break; }
               const n = lookupNearestKey(v, prev);

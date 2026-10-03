@@ -1826,6 +1826,20 @@ final class WapfMapper {
 	}
 
 	/**
+	 * Render a WAPF pricing amount as a safe decimal literal for formulas.
+	 * Fixed decimals (no exponent) so the Calculator tokenizer always accepts it.
+	 *
+	 * @param mixed $amount Raw pricing_amount from the WAPF export.
+	 */
+	private static function pricing_amount_literal( $amount ): string {
+		$literal = rtrim( rtrim( sprintf( '%.10F', (float) $amount ), '0' ), '.' );
+		if ( '' === $literal || '-' === $literal ) {
+			$literal .= '0';
+		}
+		return $literal;
+	}
+
+	/**
 	 * WP-independent slugify (mirrors sanitize_title for latin/extended-latin).
 	 *
 	 * @param string $text Text to slugify.

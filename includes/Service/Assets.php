@@ -74,6 +74,20 @@ final class Assets {
 				. 'window.OPF_I18N = ' . wp_json_encode( self::frontend_i18n(), JSON_UNESCAPED_UNICODE ) . ';'
 			);
 		}
+		// WAPF lookup-table parity: WAPF injects `var wapf_lookup_tables` from
+		// its `wapf/lookup_tables` filter so lookuptable() previews resolve
+		// client-side. OPF exposes the same tables under its own global —
+		// `opf_lookup_tables` first, WAPF's filter as the migration fallback —
+		// which the evaluator merges ahead of opts.lookupTables.
+		$lookup_tables = (array) apply_filters( 'opf_lookup_tables', [], [] );
+		if ( ! $lookup_tables ) {
+			$lookup_tables = (array) apply_filters( 'wapf/lookup_tables', [] );
+		}
+		if ( $lookup_tables ) {
+			wp_print_inline_script_tag(
+				'window.OPF_LOOKUP_TABLES = ' . wp_json_encode( $lookup_tables, JSON_UNESCAPED_UNICODE ) . ';'
+			);
+		}
 		if ( Renderer::compat() || null !== WoocsIntegration::frontend_config() ) {
 			// Theme integration reads this global for price formatting (opf_config; wapf_config fallback lives in the theme JS).
 			wp_print_inline_script_tag(

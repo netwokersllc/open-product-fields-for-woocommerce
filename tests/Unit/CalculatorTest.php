@@ -348,6 +348,22 @@ final class CalculatorTest extends TestCase {
 	}
 
 	/**
+	 * Imported OPF field ids can be shorter than six chars (the mapper
+	 * slugifies labels); a submitted field id always wins over WAPF's
+	 * <6-char literal heuristic, which only holds because WAPF's own ids
+	 * are always >=6 chars.
+	 */
+	public function test_lookuptable_resolves_short_imported_field_ids(): void {
+		$tables  = [ 'cutting' => [ 10 => [ 5 => 100, 20 => 150 ], 30 => [ 5 => 200, 20 => 300 ] ] ];
+		$options = [ 'lookup_tables' => $tables ];
+		$values  = [ 'width' => '15', 'height' => '5' ];
+		$this->assertSame( 200.0, Calculator::evaluate_formula( 'lookuptable(cutting;width;height)', 0.0, 1, 0.0, '', null, $values, 0, [], [], $options ) );
+		// Short literals stay literal when no field of that id is submitted.
+		$this->assertSame( 200.0, Calculator::evaluate_formula( 'lookuptable(cutting;15;5)', 0.0, 1, 0.0, '', null, $values, 0, [], [], $options ) );
+		$this->assertSame( 0.0, Calculator::evaluate_formula( 'lookuptable(cutting;width;height)', 0.0, 1, 0.0, '', null, [ 'width' => '', 'height' => '5' ], 0, [], [], $options ) );
+	}
+
+	/**
 	 * WAPF Helper::evaluate_variables parity: [var_name] resolves the first
 	 * matching variable's first passing rule else its default, recursively;
 	 * names are case-sensitive; unknown variables resolve to 0.

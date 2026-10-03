@@ -12,13 +12,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
-// Lane clones pin the run to their own disposable path via OPF_COMMTAX_ABSPATH
-// (default: the commtax lane clone). The remaining guards still demand an
-// owned SQLite dropin on localhost.
-$opf_commtax_abspath = getenv( 'OPF_COMMTAX_ABSPATH' ) ?: '/tmp/opf-image-commtax-wp';
 if (
 	'1' !== getenv( 'OPF_COMMTAX_ALLOW' ) || ! defined( 'WP_CLI' ) || ! WP_CLI
-	|| $opf_commtax_abspath !== realpath( ABSPATH )
+	|| '/tmp/opf-image-commtax-wp' !== realpath( ABSPATH )
 	|| ! defined( 'FQDB' ) || 0 !== strpos( realpath( FQDB ), realpath( ABSPATH ) . '/' )
 	|| ! defined( 'SQLITE_DB_DROPIN_VERSION' )
 	|| '127.0.0.1' !== wp_parse_url( home_url(), PHP_URL_HOST )

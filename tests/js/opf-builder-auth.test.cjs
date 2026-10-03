@@ -17,6 +17,7 @@ async function savePlacement( access ) {
 			appendChild( child ) { this.children.push( child ); return child; },
 			setAttribute( key, value ) { this.attributes[ key ] = value; if ( 'id' === key ) elements[ value ] = this; },
 			addEventListener( type, callback ) { this.listeners[ type ] = callback; },
+			querySelector() { return null; },
 		};
 		return node;
 	};
