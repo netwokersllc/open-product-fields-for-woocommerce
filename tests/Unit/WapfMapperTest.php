@@ -163,10 +163,13 @@ final class WapfMapperTest extends TestCase {
 		$this->assertSame( [ 'default' => 0, 'min' => 0, 'max' => 5 ], $field['choices'][1]['quantity'] );
 		$this->assertSame( 481, $field['choices'][0]['image_id'] );
 		$this->assertSame( 'fixed', $field['choices'][0]['pricing']['type'] );
-		$this->assertTrue( $mapped['needs_review'], 'Image media, layout, and weight features not represented by OPF need review.' );
+		// WAPF-COMMERCE-WEIGHT: choice options.weight is preserved verbatim for
+		// the qty_selector multiply path (no longer a dropped-feature note).
+		$this->assertSame( '0.25', $field['choices'][0]['weight'] );
+		$this->assertTrue( $mapped['needs_review'], 'Image media and layout features not represented by OPF need review.' );
 		$this->assertStringContainsString( 'image swatch', implode( ' ', $mapped['notes'] ) );
 		$this->assertStringContainsString( 'label position', implode( ' ', $mapped['notes'] ) );
-		$this->assertStringContainsString( 'weight metadata', implode( ' ', $mapped['notes'] ) );
+		$this->assertStringNotContainsString( 'weight', implode( ' ', $mapped['notes'] ) );
 	}
 
 	public function test_image_quantity_import_preserves_wapf_default_maximum(): void {

@@ -222,6 +222,8 @@ namespace {
 			public function get_type() { return (string) $this->data['type']; }
 			public function is_purchasable() { return (bool) $this->data['purchasable']; }
 			public function is_in_stock() { return (bool) $this->data['in_stock']; }
+			public function is_taxable() { return 'none' !== ( $this->data['tax_status'] ?? 'taxable' ); }
+			public function get_tax_class( $context = 'view' ) { return (string) ( $this->data['tax_class'] ?? '' ); }
 			public function has_enough_stock( $qty ) { return null === $this->data['stock'] || $qty <= $this->data['stock']; }
 			public function is_sold_individually() { return (bool) $this->data['sold_individually']; }
 			public function get_image_id() { return (int) $this->data['image_id']; }

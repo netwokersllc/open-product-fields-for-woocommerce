@@ -19,9 +19,13 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// Lane clones pin the run to their own disposable path via OPF_COMMTAX_ABSPATH
+// (default: the commtax lane clone). The remaining guards still demand an
+// owned SQLite dropin on localhost with OPF active.
+$opf_commtax_abspath = getenv( 'OPF_COMMTAX_ABSPATH' ) ?: '/tmp/opf-image-commtax-wp';
 if (
 	'1' !== getenv( 'OPF_COMMTAX_ALLOW' ) || ! defined( 'WP_CLI' ) || ! WP_CLI
-	|| '/tmp/opf-image-commtax-wp' !== realpath( ABSPATH )
+	|| $opf_commtax_abspath !== realpath( ABSPATH )
 	|| ! defined( 'FQDB' ) || 0 !== strpos( realpath( FQDB ), realpath( ABSPATH ) . '/' )
 	|| ! defined( 'SQLITE_DB_DROPIN_VERSION' )
 	|| '127.0.0.1' !== wp_parse_url( home_url(), PHP_URL_HOST )
@@ -262,7 +266,9 @@ $expected_incl_tax = array_sum( WC_Tax::calc_inclusive_tax( 120.0, $incl_rates )
 $check( 'inclusive mode: merged gross line 120 taxed 10% inside', abs( (float) $item['line_tax'] - $expected_incl_tax ) < 0.02, 'got ' . $item['line_tax'] . ' expected ' . $expected_incl_tax );
 update_option( 'woocommerce_prices_include_tax', 'no' );
 
-// Display-side audit: data-tax is hardcoded 1 vs WAPF's per-product multiplier.
+// Display-side audit: data-tax carries the real product multiplier (WAPF
+// Helper::get_tax_multiplier parity), and fixed/formula hints follow the
+// shop tax display setting (WAPF maybe_add_tax parity).
 update_option( 'opf_theme_compat', 'yes' );
 update_option( 'opf_price_summary_mode', 'three' );
 $GLOBALS['product'] = wc_get_product( $p_std );
@@ -270,20 +276,37 @@ ob_start();
 \OPF\Service\Renderer::render();
 $rendered = (string) ob_get_clean();
 $data_tax = preg_match( '/data-tax="([^"]*)"/', $rendered, $m ) ? $m[1] : null;
-$wapf_multiplier = 1.1; // Helper::get_tax_multiplier equivalent for a 10% taxable product.
-$check( 'BUG-DOC: opf totals data-tax is always 1 (dead conditional) while WAPF would emit 1.1', '1' === $data_tax, 'data-tax=' . var_export( $data_tax, true ) . ' wapf-equivalent=' . $wapf_multiplier );
+$check( 'totals data-tax emits the real product multiplier (1.1 = WAPF get_tax_multiplier)', '1.1' === $data_tax, 'data-tax=' . var_export( $data_tax, true ) );
 $data_price = preg_match( '/data-product-price="([^"]*)"/', $rendered, $m ) ? $m[1] : null;
 $check( 'totals data-product-price carries raw (excl) price', null !== $data_price && abs( (float) $data_price - 100.0 ) < 0.001, 'got ' . var_export( $data_price, true ) );
-$hint = \OPF\Service\Renderer::pricing_hint_html( [ 'type' => 'fixed', 'amount' => 10 ], 100.0 );
-$check( 'BUG-DOC: pricing hint renders raw amount, no tax display conversion (WAPF maybe_add_tax)', false !== strpos( $hint, '10' ) && false === strpos( $hint, '11' ), 'hint=' . wp_strip_all_tags( $hint ) );
+$GLOBALS['product'] = wc_get_product( $p_none );
+ob_start();
+\OPF\Service\Renderer::render();
+$rendered_nt = (string) ob_get_clean();
+$data_tax_nt = preg_match( '/data-tax="([^"]*)"/', $rendered_nt, $m ) ? $m[1] : null;
+$check( 'non-taxable product emits data-tax 1', '1' === $data_tax_nt, 'data-tax=' . var_export( $data_tax_nt, true ) );
 unset( $GLOBALS['product'] );
 
+$std_product = wc_get_product( $p_std );
+update_option( 'woocommerce_tax_display_shop', 'excl' );
+$hint = \OPF\Service\Renderer::pricing_hint_html( [ 'type' => 'fixed', 'amount' => 10 ], 100.0, $std_product );
+$check( 'excl shop display: fixed hint stays 10', false !== strpos( $hint, '10' ) && false === strpos( $hint, '11' ), 'hint=' . wp_strip_all_tags( $hint ) );
+update_option( 'woocommerce_tax_display_shop', 'incl' );
+$hint = \OPF\Service\Renderer::pricing_hint_html( [ 'type' => 'fixed', 'amount' => 10 ], 100.0, $std_product );
+$check( 'incl shop display: fixed hint converts 10 -> 11 (WAPF maybe_add_tax)', false !== strpos( $hint, '11' ), 'hint=' . wp_strip_all_tags( $hint ) );
+$hint = \OPF\Service\Renderer::pricing_hint_html( [ 'type' => 'formula', 'amount' => 0, 'formula' => '10' ], 100.0, $std_product );
+$check( 'incl shop display: formula hint converts 10 -> 11', false !== strpos( $hint, '11' ), 'hint=' . wp_strip_all_tags( $hint ) );
+$hint = \OPF\Service\Renderer::pricing_hint_html( [ 'type' => 'percent', 'amount' => 50 ], 100.0, $std_product );
+$check( 'percent hint stays percent-derived (50), never tax-adjusted (not 55)', false !== strpos( $hint, '50' ) && false === strpos( $hint, '55' ), 'hint=' . wp_strip_all_tags( $hint ) );
+update_option( 'woocommerce_tax_display_shop', 'excl' );
+
 // === WEIGHT ===================================================================
-WP_CLI::log( '-- WAPF-COMMERCE-WEIGHT: OPF gap documentation --' );
+WP_CLI::log( '-- WAPF-COMMERCE-WEIGHT: implemented + live cart proof --' );
 
 $p_w = $mk( 'commtax opf weight', '50', [ 'weight' => '2.0' ] );
+$p_v = $mk( 'commtax opf virtual weight', '50', [ 'virtual' => true ] );
 
-// OPF schema does not retain WAPF-style weight options anywhere.
+// Schema keeps WAPF-style weight options at field and choice level.
 $raw_field = [
 	'id' => 'selw', 'label' => 'Packaging', 'type' => 'select',
 	'options' => [ 'weight' => '1' ],
@@ -293,26 +316,70 @@ $raw_field = [
 	],
 ];
 $normalized = \OPF\Engine\FieldGroup::normalize_field( $raw_field );
-$field_json = wp_json_encode( $normalized );
-$check( 'OPF field schema drops field-level weight metadata', false === strpos( (string) $field_json, 'weight' ), $field_json );
-$calc_reflection = new ReflectionClass( \OPF\Engine\Calculator::class );
-$builtin_fn = $calc_reflection->getMethod( 'builtin_formula_functions' );
-$builtin_fn->setAccessible( true );
-$builtin_functions = (array) $builtin_fn->invoke( null );
-$check( 'Calculator has no weight formula function', ! array_key_exists( 'weight', $builtin_functions ), implode( ',', array_keys( $builtin_functions ) ) );
+$check( 'field weight metadata preserved verbatim', '1' === ( $normalized['weight'] ?? null ), wp_json_encode( $normalized['weight'] ?? null ) );
+$check( 'choice weights preserved verbatim', '0.5' === ( $normalized['choices'][0]['weight'] ?? null ) && '[qty]' === ( $normalized['choices'][1]['weight'] ?? null ) );
 
-$g_w = $mk_group( 'commtax opf weight group', [ $p_w ], [
+// Calculator::field_weight substitutes [qty]/[x] and floatvals like WAPF 3.1.5.
+$check( '[qty] choice weight evaluates to line quantity', 3.0 === \OPF\Engine\Calculator::field_weight( $normalized, 'heavy', 3 ) );
+$numw_norm = \OPF\Engine\FieldGroup::normalize_field( [ 'id' => 'numw', 'label' => 'Units', 'type' => 'number', 'options' => [ 'weight' => '[x]*0.5' ] ] );
+$check( 'weight expression is floatval substitution, not arithmetic', 4.0 === \OPF\Engine\Calculator::field_weight( $numw_norm, '4', 1 ) );
+
+$g_w = $mk_group( 'commtax opf weight group', [ $p_w, $p_v ], [
 	[ 'id' => 'selw', 'label' => 'Packaging', 'type' => 'select',
 	  'choices' => [
-		[ 'slug' => 'light', 'label' => 'Light', 'pricing' => [ 'type' => 'fixed', 'amount' => 5, 'per_unit' => true ] ],
-		[ 'slug' => 'heavy', 'label' => 'Heavy', 'pricing' => [ 'type' => 'fixed', 'amount' => 10, 'per_unit' => true ] ],
+		[ 'slug' => 'light', 'label' => 'Light', 'pricing' => [ 'type' => 'fixed', 'amount' => 5, 'per_unit' => true ], 'options' => [ 'weight' => '0.5' ] ],
+		[ 'slug' => 'heavy', 'label' => 'Heavy', 'pricing' => [ 'type' => 'fixed', 'amount' => 10, 'per_unit' => true ], 'options' => [ 'weight' => '[qty]' ] ],
+		[ 'slug' => 'neg', 'label' => 'Negative', 'options' => [ 'weight' => '-10' ] ],
 	  ] ],
+	[ 'id' => 'numw', 'label' => 'Units of cable', 'type' => 'number', 'options' => [ 'weight' => '[x]' ] ],
 ] );
-$key = $add_opf( $p_w, 3, $g_w, [ 'selw' => 'light' ] );
+$key = $add_opf( $p_w, 3, $g_w, [ 'selw' => 'light', 'numw' => '4' ] );
 WC()->cart->calculate_totals();
 $item = WC()->cart->get_cart_item( $key );
-$check( 'GAP: OPF cart item weight stays at product base (2.0), WAPF would be 2.5', abs( (float) $item['data']->get_weight() - 2.0 ) < 0.0001, 'got ' . $item['data']->get_weight() );
-$check( 'cart contents weight = 3 x 2.0 = 6.0', abs( (float) WC()->cart->get_cart_contents_weight() - 6.0 ) < 0.0001, 'got ' . WC()->cart->get_cart_contents_weight() );
+$check( 'cart item stores canonical base weight (2.0)', isset( $item['opf_base_weight'] ) && abs( (float) $item['opf_base_weight'] - 2.0 ) < 0.0001, 'got ' . var_export( $item['opf_base_weight'] ?? null, true ) );
+$check( 'item weight = base 2.0 + choice 0.5 + [x]=4 => 6.5 (WAPF parity)', abs( (float) $item['data']->get_weight() - 6.5 ) < 0.0001, 'got ' . $item['data']->get_weight() );
+$check( 'cart contents weight = 3 x 6.5 = 19.5', abs( (float) WC()->cart->get_cart_contents_weight() - 19.5 ) < 0.0001, 'got ' . WC()->cart->get_cart_contents_weight() );
+
+// Re-anchored on opf_base_weight: repeated totals passes never double-add.
+WC()->cart->calculate_totals();
+$item = WC()->cart->get_cart_item( $key );
+$check( 'repeated totals pass keeps merged weight 6.5 (idempotent)', abs( (float) $item['data']->get_weight() - 6.5 ) < 0.0001, 'got ' . $item['data']->get_weight() );
+
+// [qty] substitutes the cart line quantity.
+$key = $add_opf( $p_w, 3, $g_w, [ 'selw' => 'heavy' ] );
+WC()->cart->calculate_totals();
+$item = WC()->cart->get_cart_item( $key );
+$check( '[qty] choice weight = base 2.0 + line qty 3 => 5.0', abs( (float) $item['data']->get_weight() - 5.0 ) < 0.0001, 'got ' . $item['data']->get_weight() );
+
+// Virtual products keep weight off entirely (WAPF parity).
+$key = $add_opf( $p_v, 1, $g_w, [ 'selw' => 'light' ] );
+WC()->cart->calculate_totals();
+$item = WC()->cart->get_cart_item( $key );
+$check( 'virtual product weight untouched', 0.0 === (float) $item['data']->get_weight() || '' === $item['data']->get_weight(), 'got ' . var_export( $item['data']->get_weight(), true ) );
+
+// Negative sums floor at zero (WAPF parity).
+$key = $add_opf( $p_w, 1, $g_w, [ 'selw' => 'neg' ] );
+WC()->cart->calculate_totals();
+$item = WC()->cart->get_cart_item( $key );
+$check( 'negative weight sum floors at 0', 0.0 === (float) $item['data']->get_weight(), 'got ' . $item['data']->get_weight() );
+
+// Order-again restores the weight context: the merged weight recomputes.
+$order_id = WC()->checkout()->create_order( [ 'payment_method' => 'bacs', 'billing_email' => 'commtax-opf-weight@example.test' ] );
+$order = is_wp_error( $order_id ) ? null : wc_get_order( $order_id );
+if ( $order ) {
+	$created['orders'][] = $order->get_id();
+	$line = array_values( $order->get_items() )[0] ?? null;
+	$check( 'weight order line keeps _opf_fields', $line instanceof WC_Order_Item_Product && '' !== (string) $line->get_meta( '_opf_fields' ) );
+	$oa_data = OPF\Service\CartIntegration::restore_order_again( [], $line, $order );
+	WC()->cart->empty_cart();
+	$oa_key = WC()->cart->add_to_cart( $p_w, 1, 0, [], $oa_data );
+	WC()->cart->calculate_totals();
+	$oa_item = WC()->cart->get_cart_item( $oa_key );
+	$check( 'order-again recomputes merged weight (base 2.0 - 10 floored = 0)', $oa_item && 0.0 === (float) $oa_item['data']->get_weight(), 'got ' . ( $oa_item ? $oa_item['data']->get_weight() : 'n/a' ) );
+} else {
+	$check( 'weight order created', false );
+	WC()->cart->empty_cart();
+}
 
 // === COUPON-SCOPE ==============================================================
 WP_CLI::log( '-- WAPF-PRICE-COUPON-SCOPE: math equivalence + live cart --' );

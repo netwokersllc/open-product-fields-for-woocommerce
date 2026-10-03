@@ -40,6 +40,9 @@ final class CartIntegration {
 		add_action( 'woocommerce_add_to_cart', [ __CLASS__, 'split_quantity_repeat_cart_item' ], 10, 6 );
 		add_filter( 'woocommerce_get_cart_item_from_session', [ __CLASS__, 'restore_from_session' ], 10, 2 );
 		add_action( 'woocommerce_before_calculate_totals', [ __CLASS__, 'apply_prices' ], 20, 1 );
+		// WAPF maybe_calculate_weight parity: option weights merge into the
+		// cart item product's weight so shipping sees the combined mass.
+		add_action( 'woocommerce_before_calculate_totals', [ __CLASS__, 'apply_weights' ], 30, 1 );
 		add_filter( 'woocommerce_get_item_data', [ __CLASS__, 'display_item_data' ], 10, 2 );
 		add_action( 'woocommerce_checkout_create_order_line_item', [ __CLASS__, 'persist_order_item' ], 10, 4 );
 		add_filter( 'woocommerce_order_again_cart_item_data', [ __CLASS__, 'restore_order_again' ], 10, 3 );
@@ -216,7 +219,7 @@ final class CartIntegration {
 		}
 		if ( empty( $values ) ) {
 			if ( $restored ) {
-				unset( $cart_item_data[ self::ITEM_KEY ], $cart_item_data['opf_base_price'] );
+				unset( $cart_item_data[ self::ITEM_KEY ], $cart_item_data['opf_base_price'], $cart_item_data['opf_base_weight'] );
 			}
 			return $cart_item_data;
 		}
@@ -224,6 +227,9 @@ final class CartIntegration {
 
 		$cart_item_data[ self::ITEM_KEY ] = $values;
 		$cart_item_data['opf_base_price'] = (float) $product->get_price( 'edit' );
+		// Canonical product weight at add time; apply_weights re-anchors on
+		// every totals pass so repeated recalculation cannot double-add.
+		$cart_item_data['opf_base_weight'] = is_callable( [ $product, 'get_weight' ] ) ? (float) $product->get_weight() : 0.0;
 
 		return $cart_item_data;
 	}
@@ -330,6 +336,7 @@ final class CartIntegration {
 				$clone_data = $cart_item_data;
 				$clone_data[ self::ITEM_KEY ] = $clone_group['values'];
 				$clone_data['opf_base_price'] = (float) ( $item['opf_base_price'] ?? 0.0 );
+				$clone_data['opf_base_weight'] = (float) ( $item['opf_base_weight'] ?? 0.0 );
 				unset( $clone_data['opf_fields_raw'] );
 				$previous_line_quantities = [];
 				foreach ( $cart->get_cart() as $existing_key => $existing_item ) {
@@ -383,6 +390,13 @@ final class CartIntegration {
 			? $current
 			: (float) ( $values['opf_base_price'] ?? $current );
 
+		// Same re-anchor for weight: the session-restored product object is a
+		// fresh fetch, so its weight is the canonical catalog value again.
+		$current_weight = $product instanceof \WC_Product && is_callable( [ $product, 'get_weight' ] ) ? $product->get_weight() : '';
+		$cart_item['opf_base_weight'] = '' !== $current_weight && null !== $current_weight
+			? (float) $current_weight
+			: (float) ( $values['opf_base_weight'] ?? 0.0 );
+
 		return $cart_item;
 	}
 
@@ -422,6 +436,92 @@ final class CartIntegration {
 				$recursing = false;
 			}
 		}
+	}
+
+	/**
+	 * Merge option weights into the cart item product — WAPF 3.1.5
+	 * Extended_Controller::maybe_calculate_weight parity. The merged weight is
+	 * what WC_Cart::get_cart_contents_weight() and shipping packages read.
+	 *
+	 * Where WAPF adds the delta once per request on top of the current weight,
+	 * OPF anchors on the stored canonical base (`opf_base_weight`, re-derived
+	 * from the session-restored product), so repeated totals passes in one
+	 * request stay idempotent and `[qty]` expressions follow quantity changes.
+	 *
+	 * @param \WC_Cart $cart Cart.
+	 */
+	public static function apply_weights( \WC_Cart $cart ): void {
+		foreach ( $cart->get_cart() as $cart_item ) {
+			if ( empty( $cart_item[ self::ITEM_KEY ] ) || ! isset( $cart_item['opf_base_weight'] ) ) {
+				continue;
+			}
+			$product = $cart_item['data'] ?? null;
+			if ( ! $product instanceof \WC_Product || ( is_callable( [ $product, 'get_virtual' ] ) && $product->get_virtual() ) ) {
+				continue;
+			}
+			$additional = self::addon_weight( $product, $cart_item[ self::ITEM_KEY ], max( 1, (int) $cart_item['quantity'] ) );
+			$target     = max( 0.0, (float) $cart_item['opf_base_weight'] + $additional );
+			$current    = is_callable( [ $product, 'get_weight' ] ) ? (float) $product->get_weight() : null;
+			if ( ( null === $current || abs( $current - $target ) > 0.000001 ) && is_callable( [ $product, 'set_weight' ] ) ) {
+				$product->set_weight( (string) $target );
+			}
+		}
+	}
+
+	/**
+	 * Sum option weights for one cart line, in the store's weight unit.
+	 * Fields hidden by conditional evaluation contribute nothing — WAPF never
+	 * records them as cart fields, so they never reach weight math.
+	 *
+	 * @param \WC_Product           $product  Product.
+	 * @param array<int|string, array<string, mixed>> $values gid => fid => value(s).
+	 * @param int                   $quantity Line quantity.
+	 */
+	private static function addon_weight( \WC_Product $product, array $values, int $quantity ): float {
+		$weight = 0.0;
+
+		foreach ( FieldGroups::for_product( $product ) as $entry ) {
+			$gid   = (string) $entry['id'];
+			$group = $entry['group'];
+			if ( ! isset( $values[ $gid ] ) ) {
+				continue;
+			}
+			$group_values    = (array) $values[ $gid ];
+			$section_repeats = self::section_repeat_context( $group->data['fields'] );
+
+			foreach ( $group->data['fields'] as $field ) {
+				if ( in_array( $field['type'], [ 'paragraph', 'content_image', 'section', 'section_end', 'products' ], true ) ) {
+					continue;
+				}
+				$fid = $field['id'];
+				if ( ! array_key_exists( $fid, $group_values ) ) {
+					continue;
+				}
+				$weight_field = $field;
+				if ( empty( $weight_field['repeat']['enabled'] ) && isset( $section_repeats[ $fid ] ) ) {
+					$weight_field['repeat'] = $section_repeats[ $fid ];
+				}
+				if ( ! empty( $weight_field['repeat']['enabled'] ) ) {
+					$instance_field = $weight_field;
+					unset( $instance_field['repeat'] );
+					$rows = is_array( $group_values[ $fid ] ) ? $group_values[ $fid ] : [ $group_values[ $fid ] ];
+					foreach ( $rows as $row_index => $row_value ) {
+						$clone_values = self::values_for_clone( $group->data['fields'], $group_values, $section_repeats, (int) $row_index );
+						if ( ! Evaluator::is_visible( $field, $clone_values ) ) {
+							continue;
+						}
+						$weight += Calculator::field_weight( $instance_field, $row_value, $quantity );
+					}
+					continue;
+				}
+				if ( ! Evaluator::is_visible( $field, $group_values ) ) {
+					continue;
+				}
+				$weight += Calculator::field_weight( $weight_field, $group_values[ $fid ], $quantity );
+			}
+		}
+
+		return $weight;
 	}
 
 	/**

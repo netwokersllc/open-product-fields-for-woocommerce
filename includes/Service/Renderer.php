@@ -94,17 +94,27 @@ final class Renderer {
 	/**
 	 * Signed price hint HTML for a pricing block, e.g. "+ $5.00".
 	 *
-	 * @param array<string,mixed> $pricing Normalized pricing.
+	 * WAPF 3.1.5 Helper::format_pricing_hint parity: percent hints stay a
+	 * percent-derived figure (WAPF adjust_addon_price never tax-adjusts
+	 * percent types), while fixed and formula amounts are converted through
+	 * the store's shop tax display rules — wc_get_price_to_display for a
+	 * positive, taxable product price. Negative and empty amounts render
+	 * verbatim exactly like WAPF's maybe_add_tax early return.
+	 *
+	 * @param array<string,mixed> $pricing    Normalized pricing.
+	 * @param float               $base_price Product base unit price.
+	 * @param \WC_Product|null    $product    Product (tax class + customer tax context).
 	 */
-	public static function pricing_hint_html( array $pricing, float $base_price ): string {
+	public static function pricing_hint_html( array $pricing, float $base_price, ?\WC_Product $product = null ): string {
 		if ( ! self::show_price_hints() ) {
 			return '';
 		}
 		if ( empty( $pricing ) || 'none' === ( $pricing['type'] ?? 'none' ) ) {
 			return '';
 		}
+		$type   = (string) $pricing['type'];
 		$amount = 0.0;
-		switch ( $pricing['type'] ) {
+		switch ( $type ) {
 			case 'fixed':
 				$amount = (float) $pricing['amount'];
 				break;
@@ -117,8 +127,57 @@ final class Renderer {
 			default:
 				return '';
 		}
+		// WAPF `wapf/html/pricing_hint/amount` parity: currency converters can
+		// rewrite the raw amount before tax/display adjustment.
+		$amount = (float) apply_filters( 'opf_pricing_hint_amount', $amount, $product, $type, 'product' );
+		if ( 'percent' !== $type ) {
+			$amount = self::hint_price_with_tax( $product, $amount );
+		}
 		$sign = $amount < 0 ? '-' : '+';
 		return ' <span class="opf-pricing-hint">' . $sign . ' ' . wc_price( abs( $amount ) ) . '</span>';
+	}
+
+	/**
+	 * WAPF 3.1.5 Helper::maybe_add_tax($product, $price, 'shop') verbatim:
+	 * empty or negative amounts and a missing tax context render untouched;
+	 * otherwise the amount is run through wc_get_price_to_display so the hint
+	 * follows woocommerce_tax_display_shop + prices-entered-with-tax.
+	 *
+	 * @param \WC_Product|null $product Product.
+	 * @param float            $amount  Amount to convert.
+	 */
+	private static function hint_price_with_tax( ?\WC_Product $product, float $amount ): float {
+		$with_tax = $amount;
+		if ( empty( $amount ) || $amount < 0 || ! $product instanceof \WC_Product ) {
+			return (float) apply_filters( 'opf_pricing_price_with_tax', $with_tax, $amount, $product, 'shop' );
+		}
+		if ( function_exists( 'wc_tax_enabled' ) && wc_tax_enabled() && function_exists( 'wc_get_price_to_display' ) ) {
+			$with_tax = (float) wc_get_price_to_display( $product, [ 'qty' => 1, 'price' => $amount ] );
+		}
+		return (float) apply_filters( 'opf_pricing_price_with_tax', $with_tax, $amount, $product, 'shop' );
+	}
+
+	/**
+	 * WAPF 3.1.5 Helper::get_tax_multiplier verbatim: the real rate applied to
+	 * the product (1 + summed WC_Tax::calc_tax on $1), 1 for non-taxable
+	 * products and VAT-exempt customers. Missing Woo context degrades to 1.
+	 *
+	 * @param \WC_Product $product Product.
+	 */
+	private static function tax_multiplier( \WC_Product $product ): float {
+		$multiplier = 1.0;
+		if ( $product->is_taxable() ) {
+			$customer = function_exists( 'WC' ) && WC() && ! empty( WC()->customer ) ? WC()->customer : null;
+			if ( $customer && $customer->get_is_vat_exempt() ) {
+				return 1.0;
+			}
+			if ( class_exists( '\WC_Tax' ) ) {
+				$tax_rates  = \WC_Tax::get_rates( $product->get_tax_class() );
+				$taxes      = \WC_Tax::calc_tax( 1, $tax_rates );
+				$multiplier = 1 + array_sum( $taxes );
+			}
+		}
+		return (float) $multiplier;
 	}
 
 	/**
@@ -559,7 +618,7 @@ final class Renderer {
 		if ( ! in_array( $field['type'], [ 'swatch', 'image_quantity', 'radio', 'checkbox', 'products' ], true ) ) {
 			echo ' for="opf-' . esc_attr( $gid . '-' . $fid ) . '"';
 		}
-		echo '><span>' . $label_content . '</span>' . self::pricing_hint_html( $field['pricing'] ?? [], $base_price ) . ' ';
+		echo '><span>' . $label_content . '</span>' . self::pricing_hint_html( $field['pricing'] ?? [], $base_price, $product ) . ' ';
 		if ( $field['required'] && ( $field['_opf_mark_required'] ?? true ) ) {
 			echo '<abbr class="required" title="' . esc_attr( self::required_title() ) . '">*</abbr>';
 		}
@@ -594,7 +653,7 @@ final class Renderer {
 		if ( 'products' === $field['type'] ) {
 			self::render_products_field( $gid, $name, $field, $product );
 		} elseif ( in_array( $field['type'], [ 'swatch', 'image_quantity', 'select', 'radio', 'checkbox' ], true ) ) {
-			self::render_choices( $gid, $name, $field, $base_price, $qty_based );
+			self::render_choices( $gid, $name, $field, $base_price, $qty_based, $product );
 		} else {
 			self::render_input( $name, $gid, $field, $qty_based );
 		}
@@ -611,7 +670,7 @@ final class Renderer {
 	 * @param array<string,mixed> $field      Field data.
 	 * @param float               $base_price Base unit price.
 	 */
-	private static function render_choices( string $gid, string $name, array $field, float $base_price, bool $qty_based = false ): void {
+	private static function render_choices( string $gid, string $name, array $field, float $base_price, bool $qty_based = false, ?\WC_Product $product = null ): void {
 		$fid = $field['id'];
 		if ( 'image_quantity' === $field['type'] ) {
 			echo '<div class="opf-image-quantity">';
@@ -650,7 +709,7 @@ final class Renderer {
 					}
 					echo '</span>';
 				}
-				echo '<span>' . $label . self::pricing_hint_html( $choice['pricing'] ?? [], $base_price ) . '</span><input type="number" class="opf-input opf-image-quantity__input is-qty input-' . esc_attr( $fid ) . ' input-' . esc_attr( $fid ) . '_' . esc_attr( $choice['slug'] ) . '" name="' . esc_attr( $name . '[' . $choice['slug'] . ']' ) . '" value="' . esc_attr( (string) $q['default'] ) . '" min="' . esc_attr( (string) $q['min'] ) . '" max="' . esc_attr( (string) $q['max'] ) . '" step="1" data-field-id="' . esc_attr( $fid ) . '" data-choice-slug="' . esc_attr( $choice['slug'] ) . '"' . ( ! empty( $choice['disabled'] ) ? ' disabled' : '' ) . ' /></label>';
+				echo '<span>' . $label . self::pricing_hint_html( $choice['pricing'] ?? [], $base_price, $product ) . '</span><input type="number" class="opf-input opf-image-quantity__input is-qty input-' . esc_attr( $fid ) . ' input-' . esc_attr( $fid ) . '_' . esc_attr( $choice['slug'] ) . '" name="' . esc_attr( $name . '[' . $choice['slug'] . ']' ) . '" value="' . esc_attr( (string) $q['default'] ) . '" min="' . esc_attr( (string) $q['min'] ) . '" max="' . esc_attr( (string) $q['max'] ) . '" step="1" data-field-id="' . esc_attr( $fid ) . '" data-choice-slug="' . esc_attr( $choice['slug'] ) . '"' . ( ! empty( $choice['disabled'] ) ? ' disabled' : '' ) . ' /></label>';
 			}
 			echo '</div>';
 			return;
@@ -669,7 +728,7 @@ final class Renderer {
 				$choice_selected = $choice['selected'] && ! $choice['disabled'];
 				echo '<option value="' . esc_attr( $choice['slug'] ) . '"' . selected( $choice_selected, true, false ) . self::pricing_attrs( $choice['pricing'], $qty_based ) . ( ! empty( $choice['disabled'] ) ? ' disabled' : '' ) . '>'
 					. esc_html( $choice['label'] )
-					. strip_tags( self::pricing_hint_html( $choice['pricing'], $base_price ) )
+					. strip_tags( self::pricing_hint_html( $choice['pricing'], $base_price, $product ) )
 					. '</option>';
 			}
 			echo '</select>';
@@ -801,7 +860,7 @@ final class Renderer {
 				echo '</span>';
 			}
 			$label_class = $image_swatch ? ' class="opf-image-swatch-label"' : '';
-			echo '<span' . $label_class . '>' . esc_html( $choice['label'] ) . self::pricing_hint_html( $choice['pricing'], $base_price ) . ' </span>';
+			echo '<span' . $label_class . '>' . esc_html( $choice['label'] ) . self::pricing_hint_html( $choice['pricing'], $base_price, $product ) . ' </span>';
 			echo '<input type="' . ( $multi ? 'checkbox' : 'radio' ) . '" ' . $attrs . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput -- pre-escaped.
 			echo '</label>';
 			echo '</div>';
@@ -1245,14 +1304,10 @@ final class Renderer {
 		$mode = self::summary_mode();
 		$hidden = 'hidden' === $mode ? ' opf-totals-hidden' : '';
 		$i18n = self::i18n();
-		$data_tax = 1;
-		if (
-			function_exists( 'wc_prices_include_tax' )
-			&& ! wc_prices_include_tax()
-			&& get_option( 'woocommerce_tax_display_shop' ) === 'excl'
-		) {
-			$data_tax = 1;
-		}
+		// WAPF parity (class-html.php product totals): data-tax carries the REAL
+		// product tax multiplier — the theme/legacy consumers multiply raw prices
+		// by it. 1 for non-taxable, VAT-exempt, or missing tax context.
+		$data_tax = self::tax_multiplier( $product );
 		echo '<div class="opf-product-totals' . esc_attr( $hidden ) . '" style="' . ( 'hidden' === $mode ? 'display:none;' : '' ) . '" data-product-id="' . esc_attr( (string) $product->get_id() ) . '" data-product-type="' . esc_attr( $product->get_type() ) . '" data-product-price="' . esc_attr( (string) $product->get_price() ) . '" data-tax="' . esc_attr( (string) $data_tax ) . '"><div class="opf--inner">';
 		if ( 'three' === $mode ) {
 			echo '<div><span>' . esc_html( $i18n['product_total'] ) . '</span> <span class="opf-total opf-product-total price amount"></span></div>';

@@ -321,6 +321,12 @@ final class FieldGroup {
 				'disabled' => $disabled,
 				'pricing'  => self::normalize_pricing( $pricing ),
 			];
+			// WAPF choice weight (options.choices[].options.weight): a small
+			// expression evaluated per selection — [qty] and [x] tokens.
+			$choice_weight = self::normalize_weight( $choice['weight'] ?? ( $choice['options']['weight'] ?? null ) );
+			if ( null !== $choice_weight ) {
+				$normalized_choice['weight'] = $choice_weight;
+			}
 			if ( 'image_quantity' === ( $field['type'] ?? '' ) || ( 'products' === $type && $products_qty_subtype ) ) {
 				$quantity_settings = is_array( $choice['quantity'] ?? null ) ? $choice['quantity'] : [];
 				$minimum = max( 0, min( 999999, (int) ( $quantity_settings['min'] ?? 0 ) ) );
@@ -432,6 +438,13 @@ final class FieldGroup {
 			'hide_checkout' => ! empty( $field['hide_checkout'] ) || ! empty( $field['options']['hide_checkout'] ),
 			'hide_order'    => ! empty( $field['hide_order'] ) || ! empty( $field['options']['hide_order'] ),
 		];
+		// WAPF "Extra weight" field option (options.weight): kept verbatim for
+		// Calculator::field_weight. Dropping it on save was the WAPF-COMMERCE-
+		// WEIGHT data-loss gap.
+		$field_weight = self::normalize_weight( $field['weight'] ?? ( $field['options']['weight'] ?? null ) );
+		if ( null !== $field_weight ) {
+			$normalized['weight'] = $field_weight;
+		}
 		if ( 'toggle' === $type ) {
 			if ( array_key_exists( 'message', $field ) ) {
 				if ( ! is_scalar( $field['message'] ) ) {
@@ -779,6 +792,22 @@ final class FieldGroup {
 			}
 		}
 		return $normalized;
+	}
+
+	/**
+	 * Normalize a WAPF weight expression ('0.5', '[qty]', '[x]', '-10', or a
+	 * composite like '[x]*0.5'). WAPF stores it verbatim and floatvals the
+	 * token-substituted string at cart time; anything non-scalar or empty is
+	 * dropped. Bounded to keep POST payloads sane.
+	 *
+	 * @param mixed $value Raw weight option.
+	 */
+	private static function normalize_weight( $value ): ?string {
+		if ( ! is_scalar( $value ) ) {
+			return null;
+		}
+		$weight = trim( substr( trim( (string) $value ), 0, 255 ) );
+		return '' === $weight ? null : $weight;
 	}
 
 	/** Validate bounded integer field settings. */

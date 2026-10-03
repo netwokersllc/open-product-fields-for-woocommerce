@@ -261,6 +261,10 @@ final class WapfMapper {
 					'content_format' => $content_format,
 					'process_shortcodes' => $process_shortcodes,
 					'repeat' => $repeat,
+					// WAPF-COMMERCE-WEIGHT: field-level options.weight survives
+					// the import verbatim; Calculator::field_weight substitutes
+					// [qty]/[x] and floatvals exactly like WAPF 3.1.5.
+					'weight' => self::map_weight( $wapf_field ),
 				], $image_swatch_settings, $color_swatch_settings, $selection_limits, $quantity_limits, $date_settings, $upload_settings, $products_settings, $toggle_settings, $text_settings )
 			);
 			if ( 'paragraph' === $field['type'] ) {
@@ -683,6 +687,12 @@ final class WapfMapper {
 				'disabled' => (bool) ( $choice['disabled'] ?? false ),
 				'pricing'  => $pricing,
 			];
+			// WAPF-COMMERCE-WEIGHT: choice options.weight (all choice-bearing
+			// types) keeps its verbatim expression for Calculator::field_weight.
+			$choice_weight = is_array( $choice['options'] ?? null ) ? ( $choice['options']['weight'] ?? null ) : null;
+			if ( is_scalar( $choice_weight ) && '' !== trim( (string) $choice_weight ) ) {
+				$mapped_choice['weight'] = trim( (string) $choice_weight );
+			}
 			if ( 'image-swatch-qty' === ( $wapf_field['type'] ?? '' ) ) {
 				$choice_options = is_array( $choice['options'] ?? null ) ? $choice['options'] : [];
 				$minimum = 0;
@@ -711,10 +721,8 @@ final class WapfMapper {
 					$needs_review = true;
 				}
 				$mapped_choice['quantity'] = [ 'default' => max( $minimum, min( $maximum, $default ) ), 'min' => max( 0, min( 999999, $minimum ) ), 'max' => max( max( 0, min( 999999, $minimum ) ), min( 999999, $maximum ) ) ];
-				if ( isset( $choice_options['weight'] ) && '' !== $choice_options['weight'] && 0.0 !== (float) $choice_options['weight'] ) {
-					$notes[] = sprintf( 'image quantity choice "%s" has WAPF weight metadata; OPF does not preserve choice-driven product weight.', $choice['label'] ?? $slug );
-					$needs_review = true;
-				}
+				// Choice weight is mapped above for every choice type, so the
+				// qty_selector multiply path reaches Calculator::field_weight.
 			}
 			if ( is_string( $choice['image'] ?? null ) ) {
 				$mapped_choice['image'] = $choice['image'];
@@ -737,6 +745,23 @@ final class WapfMapper {
 			$choices[] = $mapped_choice;
 		}
 		return $choices;
+	}
+
+	/**
+	 * Field-level WAPF "Extra weight" option (options.weight). The expression
+	 * is kept verbatim — [qty]/[x] substitution and floatval happen at cart
+	 * time exactly like WAPF 3.1.5. Returns null when unset so normalize()
+	 * simply omits the key.
+	 *
+	 * @param array<string,mixed> $wapf_field WAPF field.
+	 */
+	private static function map_weight( array $wapf_field ): ?string {
+		$weight = $wapf_field['options']['weight'] ?? null;
+		if ( ! is_scalar( $weight ) ) {
+			return null;
+		}
+		$weight = trim( (string) $weight );
+		return '' === $weight ? null : $weight;
 	}
 
 	/** Map the installed WAPF Extended image-swatch display settings. */
