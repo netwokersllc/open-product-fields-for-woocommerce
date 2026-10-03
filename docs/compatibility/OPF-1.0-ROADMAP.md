@@ -34,12 +34,19 @@ The 131 Free/Pro/Extended ledger rows are the 1.0 edition scope, including three
 | Status | Rows | Meaning for the gate |
 | --- | ---: | --- |
 | Baseline supported | 1 | Promising baseline only; not accepted as proof |
-| Supported | 67 | Strict supported rows; documented differences are not counted as supported |
+| Supported | 58 | Strict supported rows; documented differences are not counted as supported |
 | Supported with documented difference | 10 | Differences remain unaccepted for the strict parity measure |
-| Partial | 48 | Material parity or proof remains; see each ledger row for exact gap and evidence |
+| Partial | 57 | Material parity or proof remains; see each ledger row for exact gap and evidence |
 | Gap | 5 | Quantity-card conditionals, card main-image changes, image+quantity zoom, variation targeting, and minimum platform |
 | Needs audit | 0 | — |
-| **Total** | **131** | **G1 complete for available evidence; G2 in progress — strict supported: 67/131 (51.1%); 77/131 (58.8%) if all 10 documented differences are later accepted** |
+| **Total** | **131** | **G1 complete for available evidence; G2 in progress — strict supported: 58/131 (44.3%); 68/131 (51.9%) if all 10 documented differences are later accepted** |
+
+Fresh acceptance review downgraded nine previously `supported` rows to
+`partial`: advanced formulas, tax behavior, product-price display, price hints,
+hide-values/PDF behavior, WPML, and WOOCS/Aelia/FOX integrations. Their row
+notes cited unresolved behavior or only fake/API-contract coverage; these do
+not satisfy the release objective's real lifecycle requirement. The earlier
+67/131 figure was therefore overstated.
 
 Progress notes — 2026-10-03 (parallel lanes): linked-products field shipped
 (`LinkedProducts` service, qty sync, Store API `opf.childItem`, order-again
@@ -80,7 +87,7 @@ pricing-hint path remain unverified. Neither row counts as supported.
 A fresh evidence review removed 15 stale `supported` claims at that point in
 time; later implementation commits advanced rows based on additional evidence.
 See [the supported-row audit](SUPPORTED-ROW-AUDIT-2026-10-01.md).
-Current strict progress is **67/131 supported rows (51.1%)**. The
+Current strict progress is **58/131 supported rows (44.3%)**. The
 shortcode row advanced after real WAPF 3.1.5/OPF render, import/export, and
 browser evidence confirmed imported behavior is preserved; OPF's native opt-out
 is additive. The select
