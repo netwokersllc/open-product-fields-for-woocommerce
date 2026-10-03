@@ -51,6 +51,9 @@ final class CartIntegration {
 		// Hide internal OPF meta from admin/customer order item display.
 		add_filter( 'woocommerce_hidden_order_itemmeta', [ __CLASS__, 'hidden_order_meta' ] );
 		add_filter( 'woocommerce_store_api_add_to_cart_data', [ __CLASS__, 'capture_store_api' ], 10, 2 );
+
+		// Edit-in-cart (WAPF-INTERACTION-CART-EDIT): links, prefill, replace.
+		CartEdit::init();
 	}
 
 	/**
@@ -1056,7 +1059,21 @@ final class CartIntegration {
 		}
 
 		if ( $native ) {
-			$raw = array_replace_recursive( is_array( $raw ) ? $raw : [], $native );
+			// Native transport produces upload tokens for fields the shopper
+			// just chose files for. Cart-edit prefill may also post existing
+			// tokens through hidden `opf[gid][fid][]` inputs — index-wise
+			// `array_replace_recursive` would silently overwrite kept files
+			// with new ones, so upload token lists union instead. `tokens()`
+			// dedupes and `validate_tokens` still fails closed on 'invalid'.
+			$raw = is_array( $raw ) ? $raw : [];
+			foreach ( $native as $native_gid => $native_fields ) {
+				foreach ( (array) $native_fields as $native_fid => $native_tokens ) {
+					$existing = isset( $raw[ $native_gid ][ $native_fid ] ) && is_array( $raw[ $native_gid ][ $native_fid ] )
+						? $raw[ $native_gid ][ $native_fid ]
+						: [];
+					$raw[ $native_gid ][ $native_fid ] = array_values( array_unique( array_merge( $existing, (array) $native_tokens ) ) );
+				}
+			}
 		}
 		if ( ! is_array( $raw ) ) {
 			return [];

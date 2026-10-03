@@ -1064,11 +1064,128 @@ const init = () => {
 		refresh();
 		syncChecked();
 		quantitySyncers.forEach( ( sync ) => sync() );
+
+		// ---------------------------------------------------------------
+		// Cart-edit (WAPF-INTERACTION-CART-EDIT): repeating-SECTION clone
+		// prefill. Field-level repeats render every stored row server-side,
+		// but a section instance wraps many fields, so the renderer ships
+		// rows 1..N as a `data-opf-edit-rows` fid=>value payload — the same
+		// contract WAPF's `data-edit-cart` uses. Rows are created through
+		// the same add/quantity-sync paths as user clicks so names, labels
+		// and indexes stay canonical.
+		const setEditInstanceValue = ( instance, def, value ) => {
+			const changed = [];
+			if ( 'image_quantity' === def.type || ( 'products' === def.type && def.qty_selector ) ) {
+				const quantities = value && typeof value === 'object' && value.quantities ? value.quantities : ( value || {} );
+				instance.querySelectorAll( 'image_quantity' === def.type ? '.opf-image-quantity__input' : 'input.opf-qty.is-qty' ).forEach( ( input ) => {
+					const slug = input.dataset.choiceSlug;
+					if ( slug in quantities ) {
+						input.value = String( Math.max( 0, parseInt( quantities[ slug ], 10 ) || 0 ) );
+						changed.push( input );
+					}
+				} );
+				return changed;
+			}
+			if ( 'products' === def.type ) {
+				const productInputs = Array.from( instance.querySelectorAll( '.opf-product-input' ) );
+				if ( productInputs.length ) {
+					const wanted = new Set( ( Array.isArray( value ) ? value : [ value ] ).map( String ) );
+					productInputs.forEach( ( input ) => {
+						const on = wanted.has( String( input.value ) );
+						if ( input.checked !== on ) { input.checked = on; changed.push( input ); }
+					} );
+					return changed;
+				}
+			}
+			if ( 'toggle' === def.type ) {
+				const checkbox = instance.querySelector( 'input[type="checkbox"]' );
+				if ( checkbox ) { checkbox.checked = '1' === String( value ); changed.push( checkbox ); }
+				return changed;
+			}
+			if ( [ 'checkbox', 'swatch' ].includes( def.type ) && ( 'checkbox' === def.type || def.multiple ) ) {
+				const wanted = new Set( ( Array.isArray( value ) ? value : [ value ] ).map( String ) );
+				instance.querySelectorAll( 'input[type="checkbox"]' ).forEach( ( input ) => {
+					const on = wanted.has( String( input.value ) );
+					if ( input.checked !== on ) { input.checked = on; changed.push( input ); }
+				} );
+				return changed;
+			}
+			if ( 'radio' === def.type || ( 'swatch' === def.type && ! def.multiple ) ) {
+				instance.querySelectorAll( 'input[type="radio"]' ).forEach( ( input ) => {
+					const on = String( input.value ) === String( value );
+					if ( input.checked !== on ) { input.checked = on; changed.push( input ); }
+				} );
+				return changed;
+			}
+			const select = instance.querySelector( 'select' );
+			if ( select ) {
+				select.value = Array.isArray( value ) ? String( value[0] ?? '' ) : String( value );
+				changed.push( select );
+				return changed;
+			}
+			const input = instance.querySelector( 'input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]), textarea' );
+			if ( input && 'file' !== input.type ) {
+				input.value = null === value || undefined === value ? '' : String( value );
+				changed.push( input );
+			}
+			return changed;
+		};
+		groupEl.querySelectorAll( '[data-opf-edit-rows]' ).forEach( ( repeater ) => {
+			let rows = [];
+			try { rows = JSON.parse( repeater.dataset.opfEditRows || '[]' ) || []; } catch ( error ) { rows = []; }
+			if ( ! Array.isArray( rows ) || ! rows.length ) return;
+			const rowsEl = repeater.querySelector( ':scope > .opf-field-repeat__rows' );
+			if ( ! rowsEl ) return;
+			rows.forEach( ( row, rowIndex ) => {
+				const add = repeater.querySelector( ':scope > .opf-field-repeat__add' );
+				let instance = null;
+				if ( add ) {
+					// Button mode: create the clone through the real add
+					// handler (respects the configured max via its guard).
+					if ( add.disabled ) return;
+					add.click();
+					const list = rowsEl.querySelectorAll( ':scope > [data-opf-repeat-instance]' );
+					instance = list[ list.length - 1 ];
+				} else {
+					// Quantity mode: quantitySyncers already created the clone.
+					const list = rowsEl.querySelectorAll( ':scope > [data-opf-repeat-instance]' );
+					instance = list[ rowIndex + 1 ];
+				}
+				if ( ! instance ) return;
+				Object.entries( row || {} ).forEach( ( [ fid, value ] ) => {
+					const fieldEl = instance.querySelector( '[data-opf-field="' + fid + '"]' );
+					if ( ! fieldEl || null === value || undefined === value ) return;
+					const def = fieldDefs[ fid ] || registry[ fid ] || { type: 'text' };
+					setEditInstanceValue( fieldEl, def, value ).forEach( ( input ) => {
+						input.dispatchEvent( new Event( 'input', { bubbles: true } ) );
+					} );
+				} );
+			} );
+		} );
+		updateRequiredRepeaters();
+		refresh();
 		// Initial gallery eval mirrors WAPF: first visible input seeds 'last'
 		// mode and default selections can match a rule on page load.
 		applyGroupGallery( null );
 	} );
 };
+
+// Cart-edit upload prefill: server-rendered `.opf-upload__file` rows keep
+// the line's session-owned tokens in hidden inputs. Removing a row is a
+// purely client-side drop (cart-bound records reject the REST DELETE), so
+// the token simply isn't resubmitted and the orphaned private upload is
+// reaped by the hourly cleanup.
+document.addEventListener( 'click', ( event ) => {
+	const button = event.target.closest( '[data-opf-upload-remove]' );
+	if ( ! button ) {
+		return;
+	}
+	const row = button.closest( '.opf-upload__file' );
+	if ( row ) {
+		row.remove();
+		button.closest( '.opf-upload' ).dispatchEvent( new Event( 'input', { bubbles: true } ) );
+	}
+} );
 
 // ---------------------------------------------------------------------------
 // Main WooCommerce gallery image swap.

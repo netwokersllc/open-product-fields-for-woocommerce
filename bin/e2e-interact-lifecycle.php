@@ -214,6 +214,11 @@ if ( 'setup' === $phase ) {
 	$pwd = wp_generate_password( 24 );
 	wp_set_password( $pwd, $cust );
 
+	// The cart-edit browser surface check needs the opt-in enabled.
+	$edit_opt_existed = false !== get_option( 'opf_edit_cart', false );
+	$edit_opt_prev    = get_option( 'opf_edit_cart', null );
+	update_option( 'opf_edit_cart', 'yes' );
+
 	$state = [
 		'repeat_pid' => $repeat_pid, 'repeat_gid' => $repeat_gid,
 		'var_pid' => $var_pid, 'var_gid' => $var_gid, 'var_red' => $var_red, 'var_blue' => $var_blue,
@@ -223,6 +228,7 @@ if ( 'setup' === $phase ) {
 		'book_pid' => $book_pid, 'book_gid' => $book_gid,
 		'checkout_page' => $checkout_page, 'customer' => $cust,
 		'mu_baseline' => $mu_baseline,
+		'edit_opt_existed' => $edit_opt_existed, 'edit_opt_prev' => $edit_opt_prev,
 	];
 	update_option( 'opf_ix_e2e_state', $state );
 	file_put_contents( $dir . '/state.json', wp_json_encode( array_merge( $state, [ 'customer_user' => 'opf_ix_customer', 'customer_pass' => $pwd ] ) ) );
@@ -255,6 +261,8 @@ if ( 'cleanup' === $phase ) {
 		wp_delete_user( (int) $state['customer'] );
 	}
 	delete_option( 'opf_ix_e2e_state' );
+	if ( ! empty( $state['edit_opt_existed'] ) ) { update_option( 'opf_edit_cart', $state['edit_opt_prev'] ); }
+	else { delete_option( 'opf_edit_cart' ); }
 	if ( file_exists( $mu_file ) ) { unlink( $mu_file ); }
 	ix_check( 'mu type-simulation removed', ! file_exists( $mu_file ) );
 	$mu_after = is_dir( $mu_dir ) ? count( glob( $mu_dir . '/*.php' ) ) : 0;
@@ -489,9 +497,10 @@ ix_check( 'WAPF bookings integration file ships dormant', file_exists( $wapf_bas
 /* --- CART-EDIT surface check ------------------------------------------- */
 
 $settings_src = file_get_contents( OPF_DIR . 'includes/Service/Admin/Settings.php' );
-ix_check( 'OPF exposes no edit-cart setting (gap)', false === strpos( $settings_src, 'edit_cart' ) && false === strpos( $settings_src, 'cart_edit' ) );
+ix_check( 'OPF exposes an opt-in edit-cart setting', false !== strpos( $settings_src, 'opf_edit_cart' ) );
 $ci_src = file_get_contents( OPF_DIR . 'includes/Service/CartIntegration.php' );
-ix_check( 'OPF has no _opf_edit/_edit cart item handling', false === strpos( $ci_src, '_opf_edit' ) && false === strpos( $ci_src, "'_edit'" ) );
+ix_check( 'OPF wires the CartEdit service into cart integration', false !== strpos( $ci_src, 'CartEdit::init' ) );
+ix_check( 'OPF ships the edit-cart service', class_exists( 'OPF\\Service\\CartEdit' ) );
 
 // write machine-readable results
 file_put_contents( $dir . '/server-results.json', wp_json_encode( $results, JSON_PRETTY_PRINT ) );

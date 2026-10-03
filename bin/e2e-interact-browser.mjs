@@ -185,10 +185,12 @@ if (await resetLink.count()) {
 	check('clear resets variation selection', await attrSel.inputValue() === '');
 }
 
-/* ---------------- CART-EDIT (absence surface) ---------------- */
-await page.goto(`${base}/cart/`, { waitUntil: 'domcontentloaded' });
-const editLinks = await page.locator('.woocommerce-cart-form a[href*="edit"], .wc-block-cart a[href*="edit"]').count();
-check('OPF cart exposes no per-item edit links (gap documented)', editLinks === 0, editLinks);
+/* ---------------- CART-EDIT (implemented surface) ---------------- */
+// Implemented by the cartedit lane; the fixture enables opf_edit_cart so the
+// OPF cart line above must expose its edit link on the block cart.
+await page.goto(`${base}/cart/`, { waitUntil: 'networkidle' });
+const editLinks = await page.locator('.wc-block-cart a.opf-edit-cartitem, .woocommerce-cart-form a.opf-edit-cartitem').count();
+check('OPF cart exposes per-item edit links when enabled', editLinks > 0, editLinks);
 
 fs.writeFileSync(`${dir}/browser-results.json`, JSON.stringify({ checks, pageErrors: errors }, null, 2));
 const failed = checks.filter(c => !c.pass);

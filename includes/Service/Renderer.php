@@ -233,12 +233,18 @@ final class Renderer {
 
 		// WAPF alias bridge: legacy wapf_before_wrapper action.
 		\OPF\Compat\WapfHooks::before_wrapper( $product );
+		// Cart-edit prefill (WAPF-INTERACTION-CART-EDIT): stored values for the
+		// line being edited feed field defaults + conditional seeds. Null on a
+		// plain product page — renders identically to before.
+		$edit_context = class_exists( CartEdit::class ) ? CartEdit::for_product( $product ) : null;
+		$edit_values  = $edit_context ? $edit_context['values'] : null;
+		$edit_qty     = $edit_context ? max( 1, (int) ( $edit_context['item']['quantity'] ?? 1 ) ) : 1;
 
 		echo '<div class="opf-fields" data-opf-fields="' . esc_attr( (string) count( $groups ) ) . '"><div class="opf" id="opf_' . esc_attr( (string) $product->get_id() ) . '"><div class="opf-wrapper">';
 
 		foreach ( $groups as $entry ) {
 			$gids[] = (string) $entry['id'];
-			self::render_group( $entry['id'], $entry['title'], $entry['group'], $base_price, $product );
+			self::render_group( $entry['id'], $entry['title'], $entry['group'], $base_price, $product, $edit_values[ (string) $entry['id'] ] ?? null, $edit_qty );
 		}
 
 		echo '<input type="hidden" value="' . esc_attr( implode( ',', $gids ) ) . '" name="opf_field_groups"/>';
@@ -301,12 +307,23 @@ final class Renderer {
 	 * @param string     $title      Group title.
 	 * @param FieldGroup $group      Group data.
 	 * @param float      $base_price Base unit price.
+	 * @param \WC_Product|null $product  Product.
+	 * @param array|null $prefill    Cart-edit stored values `fid => value` (null = normal render).
+	 * @param int        $edit_qty   Edited cart line quantity (quantity-mode row padding).
 	 */
-	public static function render_group( $gid, string $title, FieldGroup $group, float $base_price, ?\WC_Product $product = null ): void {
-		// Seed conditionals with default selections.
+	public static function render_group( $gid, string $title, FieldGroup $group, float $base_price, ?\WC_Product $product = null, ?array $prefill = null, int $edit_qty = 1 ): void {
+		$group_fields = $group->data['fields'];
+		// fid => repeat mode for fields nested inside a repeating section
+		// (mirrors CartIntegration::section_repeat_context semantics).
+		$section_repeat_fids = self::section_repeat_fids( $group_fields );
+
+		// Seed conditionals with the stored edit values when editing; a
+		// repeated field's seed is its first row so Evaluator keeps its
+		// scalar/list contract.
 		$values = [];
-		foreach ( $group->data['fields'] as $field ) {
-			$values[ $field['id'] ] = self::default_value( $field );
+		foreach ( $group_fields as $field ) {
+			$repeated = ! empty( $field['repeat']['enabled'] ) || isset( $section_repeat_fids[ $field['id'] ] );
+			$values[ $field['id'] ] = self::seed_value( $field, $prefill[ $field['id'] ] ?? null, $repeated );
 		}
 
 		$group_attrs = ' data-variables="[]"';
@@ -327,7 +344,7 @@ final class Renderer {
 		$section_repeat_index = null;
 		$section_repeat_mode = null;
 		$mark_required = ! isset( $group->data['mark_required'] ) || ! empty( $group->data['mark_required'] );
-		foreach ( $group->data['fields'] as $field ) {
+		foreach ( $group_fields as $index => $field ) {
 			// Group layout flag (WAPF mark_required): when off, required
 			// fields render without the asterisk but stay validated.
 			$field['_opf_mark_required'] = $mark_required;
@@ -342,7 +359,14 @@ final class Renderer {
 					if ( '' !== $field['css_class'] ) {
 						$classes[] = $field['css_class'];
 					}
-					echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-opf-field="' . esc_attr( $field['id'] ) . '" data-opf-repeat="' . esc_attr( $repeat_mode ) . '" data-opf-section-repeat="1" data-opf-repeat-max="' . esc_attr( (string) ( $repeat['max'] ?? 10000 ) ) . '">';
+					// Cart-edit: section clones beyond the server-rendered
+					// first instance are created + filled by frontend JS
+					// (WAPF `data-edit-cart` parity).
+					$edit_rows = null !== $prefill
+						? self::section_edit_rows( $group_fields, $index, $prefill, 'quantity' === $repeat_mode ? $edit_qty : 0 )
+						: [];
+					$edit_rows_attr = $edit_rows ? ' data-opf-edit-rows="' . esc_attr( (string) wp_json_encode( $edit_rows ) ) . '"' : '';
+					echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-opf-field="' . esc_attr( $field['id'] ) . '" data-opf-repeat="' . esc_attr( $repeat_mode ) . '" data-opf-section-repeat="1" data-opf-repeat-max="' . esc_attr( (string) ( $repeat['max'] ?? 10000 ) ) . '"' . $edit_rows_attr . '>';
 					echo '<div class="opf-field-repeat__rows"><div data-opf-repeat-instance="1">';
 					if ( '' !== $field['label'] ) {
 						echo '<div class="opf-section-repeat__label"><span>' . esc_html( $field['label'] ) . '</span></div>';
@@ -380,9 +404,16 @@ final class Renderer {
 				continue;
 			}
 			if ( ! empty( $field['repeat']['enabled'] ) ) {
-				self::render_repeated_field( $gid, $field, $values, $base_price, $section_repeat_index, $product );
+				$repeat_rows = self::edit_rows_for( $prefill[ $field['id'] ] ?? null, 'quantity' === ( $field['repeat']['mode'] ?? '' ) ? $edit_qty : 0 );
+				self::render_repeated_field( $gid, $field, $values, $base_price, $section_repeat_index, $product, $repeat_rows );
 			} else {
-				self::render_field( $gid, $field, $values, $base_price, false, $section_repeat_index, 'quantity' === $section_repeat_mode, $product );
+				// Inside a repeating section the stored value is row-indexed;
+				// instance 0 renders with row 0's value (WAPF `$value` parity).
+				$stored = null !== $section_repeat_index
+					? self::row_at( $prefill[ $field['id'] ] ?? null, 0 )
+					: ( $prefill[ $field['id'] ] ?? null );
+				$render_field = null === $stored ? $field : self::with_prefill( $field, $stored );
+				self::render_field( $gid, $render_field, $values, $base_price, false, $section_repeat_index, 'quantity' === $section_repeat_mode, $product );
 			}
 		}
 		while ( $section_stack ) {
@@ -482,7 +513,7 @@ final class Renderer {
 	 * @param array<string,mixed> $values     Seeded values (for conditional state).
 	 * @param float               $base_price Base unit price.
 	 */
-	private static function render_repeated_field( string $gid, array $field, array $values, float $base_price, ?int $section_repeat_index = null, ?\WC_Product $product = null ): void {
+	private static function render_repeated_field( string $gid, array $field, array $values, float $base_price, ?int $section_repeat_index = null, ?\WC_Product $product = null, ?array $edit_rows = null ): void {
 		$fid = (string) $field['id'];
 		$repeat = $field['repeat'];
 		$mode = (string) ( $repeat['mode'] ?? '' );
@@ -508,11 +539,17 @@ final class Renderer {
 		}
 		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-opf-field="' . esc_attr( $fid ) . '" data-opf-repeat="' . esc_attr( $mode ) . '" data-opf-repeat-max="' . esc_attr( (string) ( $repeat['max'] ?? 10000 ) ) . '" style="width:' . esc_attr( (string) $field['width'] ) . '%;">';
 		echo '<div class="opf-field-repeat__rows">';
-		$instance = $field;
-		$instance['_opf_source_id'] = $fid;
-		$instance['_opf_repeat_index'] = 0;
-		$instance['id'] = $fid . '-repeat-0';
-		self::render_field( $gid, $instance, $values, $base_price, true, $section_repeat_index, 'quantity' === $mode, $product );
+		// Cart-edit: every stored row renders as a real instance (null = the
+		// standard single default instance). `update()`/`syncQuantity` in the
+		// frontend re-index names, labels and remove buttons on init.
+		$rows = null === $edit_rows || ! $edit_rows ? [ null ] : array_values( $edit_rows );
+		foreach ( $rows as $row_index => $row_value ) {
+			$instance = null === $row_value ? $field : self::with_prefill( $field, $row_value );
+			$instance['_opf_source_id'] = $fid;
+			$instance['_opf_repeat_index'] = $row_index;
+			$instance['id'] = $fid . '-repeat-' . $row_index;
+			self::render_field( $gid, $instance, $values, $base_price, true, $section_repeat_index, 'quantity' === $mode, $product );
+		}
 		if ( 'button' === ( $repeat['mode'] ?? 'button' ) ) {
 			$add_label = (string) ( $repeat['add'] ?? __( 'Add another', 'open-product-fields-for-woocommerce' ) );
 			echo '</div><button type="button" class="opf-field-repeat__add">' . esc_html( $add_label ) . '</button>';
@@ -896,6 +933,24 @@ final class Renderer {
 			return;
 		}
 
+		// Cart-edit: restore the line's stored selection onto the live choices.
+		$prefill_products = $field['_opf_prefill_products'] ?? null;
+		if ( null !== $prefill_products ) {
+			if ( $is_qty ) {
+				$quantities = is_array( $prefill_products ) ? ( $prefill_products['quantities'] ?? $prefill_products ) : [];
+				foreach ( $choices as $i => $choice ) {
+					$slug = (string) ( $choice['slug'] ?? '' );
+					$choices[ $i ]['quantity'] = array_merge( [ 'default' => 0, 'min' => 0, 'max' => 999999 ], (array) ( $choice['quantity'] ?? [] ) );
+					$choices[ $i ]['quantity']['default'] = (int) ( $quantities[ $slug ] ?? 0 );
+				}
+			} else {
+				$slugs = array_map( 'strval', (array) $prefill_products );
+				foreach ( $choices as $i => $choice ) {
+					$choices[ $i ]['selected'] = in_array( (string) ( $choice['slug'] ?? '' ), $slugs, true );
+				}
+			}
+		}
+
 		// Shared per-choice input attributes (WAPF get_option_classes_and_attributes parity).
 		$input_attrs = static function ( array $choice, string $input_name, bool $checked ) use ( $gid, $fid, $field, $required ): string {
 			$attrs = sprintf(
@@ -1199,10 +1254,22 @@ final class Renderer {
 		switch ( $field['type'] ) {
 			case 'upload':
 				$modern = Uploads::modern();
+				// Cart-edit: the line's session-owned tokens come back as
+				// hidden inputs + file rows; validate_tokens re-verifies
+				// owner/product/group/field on resubmit (fail closed).
+				$existing = array_values( array_filter( (array) ( $field['_opf_prefill_tokens'] ?? [] ), static function ( $t ) {
+					return is_string( $t ) && 1 === preg_match( '/^[a-f0-9]{64}$/', $t );
+				} ) );
 				echo '<div class="opf-upload" data-opf-upload="' . ( $modern ? 'modern' : 'native' ) . '" data-opf-upload-name="' . esc_attr( $name ) . '" data-opf-upload-group="' . esc_attr( $gid ) . '" data-opf-upload-field="' . esc_attr( $field['id'] ) . '" data-opf-upload-limit="' . esc_attr( (string) Uploads::max_files( $field ) ) . '" data-opf-upload-url="' . esc_url( rest_url( 'opf/v1/uploads' ) ) . '">';
 				echo '<input type="hidden" name="opf_upload_native_nonce" value="' . esc_attr( wp_create_nonce( 'opf_upload_native' ) ) . '" />';
-				echo '<input type="file" class="opf-upload__input" id="opf-' . esc_attr( $gid . '-' . $field['id'] ) . '" name="opf_upload[' . esc_attr( $gid ) . '][' . esc_attr( $field['id'] ) . '][]"' . ( $field['accepted_types'] ? ' accept="' . esc_attr( '.' . implode( ',.', $field['accepted_types'] ) ) . '"' : '' ) . ( $field['multiple'] ? ' multiple' : '' ) . ( $field['required'] ? ' required' : '' ) . ' />';
-				echo '<div class="opf-upload__files"></div><div class="opf-upload__status" role="status" aria-live="polite"></div></div>';
+				echo '<input type="file" class="opf-upload__input" id="opf-' . esc_attr( $gid . '-' . $field['id'] ) . '" name="opf_upload[' . esc_attr( $gid ) . '][' . esc_attr( $field['id'] ) . '][]"' . ( $field['accepted_types'] ? ' accept="' . esc_attr( '.' . implode( ',.', $field['accepted_types'] ) ) . '"' : '' ) . ( $field['multiple'] ? ' multiple' : '' ) . ( $field['required'] && ! $existing ? ' required' : '' ) . ' />';
+				echo '<div class="opf-upload__files">';
+				foreach ( $existing as $token ) {
+					$record = Uploads::record( (string) $token );
+					$fname  = is_array( $record ) && '' !== (string) ( $record['name'] ?? '' ) ? (string) $record['name'] : __( 'Uploaded file', 'open-product-fields-for-woocommerce' );
+					echo '<div class="opf-upload__file opf-upload__file--existing"><input type="hidden" name="' . esc_attr( $name . '[]' ) . '" value="' . esc_attr( (string) $token ) . '" data-opf-upload-token="1" /><span>' . esc_html( $fname ) . '</span><button type="button" class="opf-upload__remove" data-opf-upload-remove="1" aria-label="' . esc_attr( sprintf( /* translators: %s: file name. */ __( 'Remove %s', 'open-product-fields-for-woocommerce' ), $fname ) ) . '">' . esc_html__( 'Remove', 'open-product-fields-for-woocommerce' ) . '</button></div>';
+				}
+				echo '</div><div class="opf-upload__status" role="status" aria-live="polite"></div></div>';
 				break;
 			case 'textarea':
 				echo '<textarea ' . $shared . '>' . esc_html( (string) ( $field['default'] ?? '' ) ) . '</textarea>'; // phpcs:ignore WordPress.Security.EscapeOutput -- pre-escaped.
@@ -1247,7 +1314,9 @@ final class Renderer {
 					$date_attrs .= ' data-opf-date-site-epoch="' . esc_attr( (string) $current->getTimestamp() ) . '"';
 					$date_attrs .= ' data-opf-date-timezone="' . esc_attr( function_exists( 'wp_timezone_string' ) ? wp_timezone_string() : 'UTC' ) . '"';
 				}
-				echo '<input type="date" value="" ' . $shared . $date_attrs . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
+				// Cart-edit prefills via `_opf_prefill`; authored defaults are
+				// handled by the date picker bootstrap.
+				echo '<input type="date" value="' . esc_attr( (string) ( $field['_opf_prefill'] ?? '' ) ) . '" ' . $shared . $date_attrs . ' />'; // phpcs:ignore WordPress.Security.EscapeOutput
 				break;
 			case 'toggle':
 				echo '<input type="hidden" name="' . esc_attr( $name ) . '" value="0" />';
@@ -1343,6 +1412,234 @@ final class Renderer {
 		}
 		$factor = (float) wc_get_price_to_display( $product, [ 'qty' => 1, 'price' => 1, 'display_context' => 'shop' ] );
 		return $factor > 0 ? $factor : 1.0;
+	}
+
+	/* ------------------------------------------------------------------
+	 * Cart-edit prefill helpers (WAPF-INTERACTION-CART-EDIT).
+	 * Stored cart values (`opf_fields`) reuse the sanitized submit shape, so
+	 * overlaying them onto a field definition lets the unchanged render
+	 * functions emit `value=`/`selected`/`checked` exactly like a normal
+	 * authored default.
+	 * ------------------------------------------------------------------ */
+
+	/**
+	 * Conditional seed for one field: the stored edit value when present
+	 * (first row for repeated fields), else the authored default. Wrapper
+	 * types flatten to their slug/quantity map so Evaluator keeps its
+	 * scalar-or-flat-list contract.
+	 *
+	 * @param array<string,mixed> $field    Field data.
+	 * @param mixed               $stored   Stored edit value or null.
+	 * @param bool                $repeated Field repeats or lives in a repeating section.
+	 * @return string|array
+	 */
+	private static function seed_value( array $field, $stored, bool $repeated ) {
+		if ( null === $stored ) {
+			return self::default_value( $field );
+		}
+		if ( $repeated ) {
+			$stored = self::row_at( $stored, 0 );
+			if ( null === $stored ) {
+				return self::default_value( $field );
+			}
+		}
+		if ( is_array( $stored ) && isset( $stored['_opf_type'] ) && is_array( $stored['quantities'] ?? null ) ) {
+			return $stored['quantities']; // image_quantity / products qty selector.
+		}
+		return is_array( $stored ) || is_scalar( $stored ) ? $stored : '';
+	}
+
+	/** Row `$index` of a row-indexed stored value, or the value itself. */
+	private static function row_at( $stored, int $index ) {
+		if ( is_array( $stored ) && array_key_exists( $index, $stored ) ) {
+			return $stored[ $index ];
+		}
+		return null === $stored ? null : ( 0 === $index && ! is_array( $stored ) ? $stored : null );
+	}
+
+	/**
+	 * Stored rows for a repeated field: list form, padded to `$qty` with the
+	 * last row for quantity mode (split cart lines store one row per merged
+	 * unit group — identical units legitimately share that row).
+	 *
+	 * @return array<int,mixed>|null Null when nothing stored.
+	 */
+	private static function edit_rows_for( $stored, int $qty ): ?array {
+		if ( null === $stored ) {
+			return null;
+		}
+		$rows = is_array( $stored ) ? array_values( $stored ) : [ $stored ];
+		if ( $qty > count( $rows ) && $rows ) {
+			$last = end( $rows );
+			while ( count( $rows ) < $qty ) {
+				$rows[] = $last;
+			}
+		}
+		return $rows;
+	}
+
+	/**
+	 * fid => repeat mode for fields nested inside a repeating section.
+	 * Mirrors CartIntegration::section_repeat_context() (kept private: the
+	 * render path needs the mode, not the config).
+	 *
+	 * @param array<int,array<string,mixed>> $fields Normalized group fields.
+	 * @return array<string,string>
+	 */
+	private static function section_repeat_fids( array $fields ): array {
+		$context = [];
+		$stack   = [];
+		$active  = [];
+		foreach ( $fields as $field ) {
+			if ( 'section_end' === ( $field['type'] ?? '' ) ) {
+				array_pop( $stack );
+				$active = $stack ? end( $stack ) : [];
+				continue;
+			}
+			if ( 'section' === ( $field['type'] ?? '' ) ) {
+				$repeat = ! empty( $field['repeat']['enabled'] ) ? $field['repeat'] : $active;
+				$stack[] = $repeat;
+				$active  = $repeat;
+				continue;
+			}
+			if ( $active ) {
+				$context[ (string) $field['id'] ] = (string) ( $active['mode'] ?? 'button' );
+			}
+		}
+		return $context;
+	}
+
+	/**
+	 * Field ids directly inside the section that starts at `$section_index`
+	 * (depth-aware; nested section bodies are skipped by level tracking but
+	 * their ids still belong to the outer row payload when not repeatable).
+	 *
+	 * @param array<int,array<string,mixed>> $fields        Group fields.
+	 * @param int                            $section_index Index of the opening `section` field.
+	 * @return array<int,string>
+	 */
+	private static function section_inner_fids( array $fields, int $section_index ): array {
+		$fids  = [];
+		$depth = 0;
+		for ( $i = $section_index + 1; $i < count( $fields ); $i++ ) {
+			$type = (string) ( $fields[ $i ]['type'] ?? '' );
+			if ( 'section' === $type ) {
+				$depth++;
+				continue;
+			}
+			if ( 'section_end' === $type ) {
+				if ( 0 === $depth ) {
+					break;
+				}
+				$depth--;
+				continue;
+			}
+			$fids[] = (string) ( $fields[ $i ]['id'] ?? '' );
+		}
+		return array_values( array_filter( $fids, 'strlen' ) );
+	}
+
+	/**
+	 * `data-opf-edit-rows` payload for a repeating section: rows 1..N as
+	 * ordered `fid => value` maps (row 0 is server-rendered). For
+	 * quantity-mode sections rows pad to the cart line quantity.
+	 *
+	 * @param array<int,array<string,mixed>> $fields        Group fields.
+	 * @param int                            $section_index Opening section index.
+	 * @param array<string,mixed>            $prefill       Stored values fid => value.
+	 * @param int                            $qty           Quantity-mode row target (0 = button mode).
+	 * @return array<int,array<string,mixed>>
+	 */
+	private static function section_edit_rows( array $fields, int $section_index, array $prefill, int $qty ): array {
+		$fids = self::section_inner_fids( $fields, $section_index );
+		if ( ! $fids ) {
+			return [];
+		}
+		$row_count = $qty > 0 ? $qty : 1;
+		$by_fid    = [];
+		foreach ( $fids as $fid ) {
+			$stored = $prefill[ $fid ] ?? null;
+			if ( null === $stored ) {
+				$by_fid[ $fid ] = [];
+				continue;
+			}
+			$rows = is_array( $stored ) ? array_values( $stored ) : [ $stored ];
+			$row_count = max( $row_count, count( $rows ) );
+			$by_fid[ $fid ] = $rows;
+		}
+		if ( $row_count < 2 ) {
+			return [];
+		}
+		$out = [];
+		for ( $i = 1; $i < $row_count; $i++ ) {
+			$row = [];
+			foreach ( $by_fid as $fid => $rows ) {
+				if ( array_key_exists( $i, $rows ) ) {
+					$row[ $fid ] = $rows[ $i ];
+				} elseif ( $rows ) {
+					$row[ $fid ] = end( $rows ); // quantity-mode padding mirrors edit_rows_for().
+				}
+			}
+			$out[] = $row;
+		}
+		return $out;
+	}
+
+	/**
+	 * Overlay one stored edit value onto a field definition so the existing
+	 * render functions emit it as the field's current value.
+	 *
+	 * @param array<string,mixed> $field Field data.
+	 * @param mixed               $value Stored value (scalar, slug list, quantities wrapper, tokens).
+	 */
+	private static function with_prefill( array $field, $value ): array {
+		switch ( $field['type'] ) {
+			case 'text':
+			case 'url':
+			case 'email':
+			case 'number':
+			case 'textarea':
+				$field['default'] = is_scalar( $value ) ? (string) $value : '';
+				break;
+			case 'date':
+				// render_input emits `_opf_prefill` for date (the authored
+				// default stays the field's real default elsewhere).
+				$field['_opf_prefill'] = is_scalar( $value ) ? (string) $value : '';
+				break;
+			case 'toggle':
+				$field['default'] = '1' === (string) $value ? '1' : '0';
+				break;
+			case 'select':
+			case 'radio':
+			case 'checkbox':
+			case 'swatch':
+				$slugs = array_map( 'strval', (array) $value );
+				foreach ( $field['choices'] as $i => $choice ) {
+					$field['choices'][ $i ]['selected'] = in_array( (string) ( $choice['slug'] ?? '' ), $slugs, true );
+				}
+				break;
+			case 'image_quantity':
+				$quantities = is_array( $value ) ? ( $value['quantities'] ?? $value ) : [];
+				foreach ( $field['choices'] as $i => $choice ) {
+					$slug = (string) ( $choice['slug'] ?? '' );
+					if ( isset( $field['choices'][ $i ]['quantity'] ) ) {
+						$field['choices'][ $i ]['quantity']['default'] = (int) ( $quantities[ $slug ] ?? 0 );
+					}
+				}
+				break;
+			case 'products':
+				// Stash for render_products_field: choices resolve at render
+				// time (manual ids AND category-mode live queries), so the
+				// overlay applies to the expanded list, not authored data.
+				$field['_opf_prefill_products'] = $value;
+				break;
+			case 'upload':
+				// Session-owned private tokens ride back through hidden
+				// inputs; validate_tokens re-checks owner/scope on resubmit.
+				$field['_opf_prefill_tokens'] = Uploads::tokens( $value );
+				break;
+		}
+		return $field;
 	}
 
 	/**

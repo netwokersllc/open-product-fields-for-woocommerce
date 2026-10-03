@@ -61,6 +61,15 @@ final class Settings {
 				'default' => 'yes',
 				'autoload' => false,
 			],
+			[
+				'title' => __( 'Edit cart', 'open-product-fields-for-woocommerce' ),
+				'desc' => __( 'Enable editing from cart.', 'open-product-fields-for-woocommerce' ),
+				'desc_tip' => __( 'When enabled, users can edit product options from their cart.', 'open-product-fields-for-woocommerce' ),
+				'id' => 'opf_edit_cart',
+				'type' => 'checkbox',
+				'default' => 'no',
+				'autoload' => false,
+			],
 			[ 'type' => 'sectionend', 'id' => 'opf_product_fields' ],
 		];
 	}
