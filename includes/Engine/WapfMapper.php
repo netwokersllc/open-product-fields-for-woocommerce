@@ -180,6 +180,8 @@ final class WapfMapper {
 			$image_swatch_settings = in_array( $wapf_type, [ 'image-swatch', 'multi-image-swatch' ], true ) ? self::map_image_swatch_settings( $wapf_field, $notes, $needs_review ) : [];
 			$color_swatch_settings = in_array( $wapf_type, [ 'color-swatch', 'multi-color-swatch' ], true ) ? self::map_color_swatch_settings( $wapf_field, $notes, $needs_review ) : [];
 			$selection_limits = in_array( $wapf_type, [ 'multi-text-swatch', 'multi-image-swatch', 'multi-color-swatch' ], true ) ? self::map_swatch_selection_limits( $wapf_field, $notes, $needs_review ) : [];
+			$checkbox_limits = 'checkboxes' === $wapf_type ? self::map_checkbox_limits( $wapf_field, $notes, $needs_review ) : [];
+			$text_validation = in_array( $wapf_type, [ 'text', 'textarea' ], true ) ? self::map_text_validation( $wapf_field, $notes, $needs_review ) : [];
 			$quantity_limits = 'image-swatch-qty' === $wapf_type ? self::map_image_quantity_limits( $wapf_field, $notes, $needs_review ) : [];
 			$content = '';
 			$image_url = '';
@@ -265,7 +267,7 @@ final class WapfMapper {
 					// the import verbatim; Calculator::field_weight substitutes
 					// [qty]/[x] and floatvals exactly like WAPF 3.1.5.
 					'weight' => self::map_weight( $wapf_field ),
-				], $image_swatch_settings, $color_swatch_settings, $selection_limits, $quantity_limits, $date_settings, $upload_settings, $products_settings, $toggle_settings, $text_settings )
+				], $image_swatch_settings, $color_swatch_settings, $selection_limits, $checkbox_limits, $text_validation, $quantity_limits, $date_settings, $upload_settings, $products_settings, $toggle_settings, $text_settings )
 			);
 			if ( 'paragraph' === $field['type'] ) {
 				if ( ! empty( $wapf_field['required'] ) ) {
@@ -670,6 +672,21 @@ final class WapfMapper {
 						// *[qty] compensation factor means the author intended
 						// per-unit scaling.
 						$pricing = [ 'type' => 'formula', 'amount' => 0.0, 'formula' => $formula, 'formula_raw' => $formula_raw, 'per_unit' => self::formula_had_qty_factor( $formula_raw ) ];
+					}
+					break;
+				case 'nr':
+				case 'nrq':
+				case 'char':
+				case 'charq':
+					// WAPF value-based pricing: amount × field value / character
+					// count (class-fields.php:290-297). nr/char are flat per line;
+					// nrq/charq scale per unit. Expressed as OPF [x]/len() formulas.
+					$value_pricing = self::map_value_pricing( $ptype, (float) $amt );
+					if ( null === $value_pricing ) {
+						$notes[] = sprintf( 'choice "%s" %s pricing could not be translated; imported without pricing.', $choice['label'] ?? $slug, $ptype );
+						$needs_review = true;
+					} else {
+						$pricing = $value_pricing;
 					}
 					break;
 				case 'none':
@@ -1128,6 +1145,42 @@ final class WapfMapper {
 	}
 
 	/**
+	 * Map WAPF `checkboxes` min_choices/max_choices into OPF's flat keys.
+	 *
+	 * WAPF stores the keys both top-level (raw Tools payload) and inside the
+	 * parsed field `options`; accept either shape. Bounds mirror the multi-swatch
+	 * importer (int 1..10000, min <= max).
+	 *
+	 * @param array<string,mixed> $wapf_field Source field.
+	 * @param string[]            $notes      Import notes.
+	 * @param bool                $needs_review Review flag.
+	 * @return array<string,int>
+	 */
+	private static function map_checkbox_limits( array $wapf_field, array &$notes, bool &$needs_review ): array {
+		$options  = is_array( $wapf_field['options'] ?? null ) ? $wapf_field['options'] : [];
+		$settings = [];
+		$label    = (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' );
+		foreach ( [ 'min_choices', 'max_choices' ] as $key ) {
+			$raw = array_key_exists( $key, $options ) ? $options[ $key ] : ( $wapf_field[ $key ] ?? null );
+			if ( null === $raw || '' === $raw ) {
+				continue;
+			}
+			if ( ( is_int( $raw ) || ( is_string( $raw ) && ctype_digit( $raw ) ) ) && (int) $raw >= 1 && (int) $raw <= 10000 ) {
+				$settings[ $key ] = (int) $raw;
+			} else {
+				$notes[] = sprintf( 'checkbox field "%s" has an invalid %s value; selection limit needs review.', $label, $key );
+				$needs_review = true;
+			}
+		}
+		if ( isset( $settings['min_choices'], $settings['max_choices'] ) && $settings['min_choices'] > $settings['max_choices'] ) {
+			$notes[] = sprintf( 'checkbox field "%s" has min_choices greater than max_choices; selection limits need review.', $label );
+			unset( $settings['min_choices'], $settings['max_choices'] );
+			$needs_review = true;
+		}
+		return $settings;
+	}
+
+	/**
 	 * Map WAPF `products` choices: manual selections reference products by ID,
 	 * quantity subtypes carry per-choice default/min/max under `options`.
 	 *
@@ -1207,6 +1260,48 @@ final class WapfMapper {
 	}
 
 	/**
+	 * Map WAPF text/textarea minlength/maxlength/pattern into OPF's flat keys.
+	 * WAPF stores these raw and only renders them as native constraints.
+	 *
+	 * @param array<string,mixed> $wapf_field Source field.
+	 * @param string[]            $notes      Import notes.
+	 * @param bool                $needs_review Review flag.
+	 * @return array<string,int|string>
+	 */
+	private static function map_text_validation( array $wapf_field, array &$notes, bool &$needs_review ): array {
+		$options  = is_array( $wapf_field['options'] ?? null ) ? $wapf_field['options'] : [];
+		$settings = [];
+		$label    = (string) ( $wapf_field['label'] ?? $wapf_field['id'] ?? '?' );
+		foreach ( [ 'minlength', 'maxlength' ] as $key ) {
+			$raw = array_key_exists( $key, $options ) ? $options[ $key ] : ( $wapf_field[ $key ] ?? null );
+			if ( null === $raw || '' === $raw ) {
+				continue;
+			}
+			if ( ( is_int( $raw ) || ( is_string( $raw ) && ctype_digit( $raw ) ) ) && (int) $raw >= 1 && (int) $raw <= 1000000 ) {
+				$settings[ $key ] = (int) $raw;
+			} else {
+				$notes[] = sprintf( 'text field "%s" has an invalid %s value; text length limit needs review.', $label, $key );
+				$needs_review = true;
+			}
+		}
+		if ( 'text' === ( $wapf_field['type'] ?? '' ) ) {
+			$raw_pattern = array_key_exists( 'pattern', $options ) ? $options['pattern'] : ( $wapf_field['pattern'] ?? null );
+			if ( is_scalar( $raw_pattern ) ) {
+				$pattern = trim( (string) $raw_pattern );
+				if ( '' !== $pattern ) {
+					if ( strlen( $pattern ) <= 2048 ) {
+						$settings['pattern'] = $pattern;
+					} else {
+						$notes[] = sprintf( 'text field "%s" has an over-long pattern; text validation needs review.', $label );
+						$needs_review = true;
+					}
+				}
+			}
+		}
+		return $settings;
+	}
+
+	/**
 	 * WAPF formula → OPF formula.
 	 *
 	 * WAPF normally divides formula results by product quantity, so formulas
@@ -1233,7 +1328,7 @@ final class WapfMapper {
 		$probe = str_replace( [ '[price]', '[qty]', '[addons]', '[val]', '[x]' ], '1', $formula );
 		$probe = preg_replace( '/\[(?:field|price)\.[a-zA-Z0-9_-]+\]/i', '1', $probe );
 		$probe = preg_replace( '/\[var_[a-zA-Z0-9_-]+\]/', '1', $probe );
-		$probe = preg_replace( '/\b(?:checked|files|sumQty)\s*\(\s*[a-zA-Z0-9_-]+\s*\)/i', '1', $probe );
+		$probe = preg_replace( '/\b(?:checked|files|sumQty|len)\s*\(\s*[a-zA-Z0-9_-]+\s*\)/i', '1', $probe );
 		// lookuptable requires a named table argument; a numeric-first call
 		// (lookuptable(1;2)) is not valid lookup usage and stays rejected.
 		$probe = preg_replace( '/\blookuptable\s*\(\s*[a-zA-Z_][^()]*\)/i', '1', $probe );
@@ -1289,7 +1384,7 @@ final class WapfMapper {
 				}
 				// Installed WAPF Extended 3.1.5 extend/formulas.php and the
 				// public formula-functions-reference define these numeric calls.
-				if ( ! preg_match( '/^(?:min|max|round|abs|floor|ceil|sqrt|pow|sin|cos|tan)\s*\(/i', substr( $probe, $offset ), $match ) ) {
+				if ( ! preg_match( '/^(?:min|max|round|abs|floor|ceil|sqrt|pow|sin|cos|tan|len)\s*\(/i', substr( $probe, $offset ), $match ) ) {
 					return false;
 				}
 				$frames[] = true;
@@ -1310,6 +1405,38 @@ final class WapfMapper {
 			}
 		}
 		return ! $frames;
+	}
+
+	/**
+	 * WAPF value-based pricing (`nr`/`nrq` number, `char`/`charq` character
+	 * count) → OPF `[x]`/`len([x])` formula pricing.
+	 *
+	 * WAPF: nr/char are flat per line (result/qty for a normal field); nrq/charq
+	 * always scale with quantity. `[x]`/`[val]` is the submitted value and
+	 * `len([x])` measures the submitted text (Calculator parity).
+	 *
+	 * @param string $ptype  WAPF pricing type.
+	 * @param float  $amount Per-value amount.
+	 * @return array<string,mixed>|null Pricing block, or null when the type is
+	 *                                   not value-based / the expression failed.
+	 */
+	private static function map_value_pricing( string $ptype, float $amount ): ?array {
+		if ( ! in_array( $ptype, [ 'nr', 'nrq', 'char', 'charq' ], true ) ) {
+			return null;
+		}
+		$expression = in_array( $ptype, [ 'char', 'charq' ], true ) ? 'len([x])' : '[x]';
+		$expression .= ' * ' . (string) (float) $amount;
+		$formula = self::normalize_formula( $expression );
+		if ( null === $formula ) {
+			return null;
+		}
+		return [
+			'type'        => 'formula',
+			'amount'      => 0.0,
+			'formula'     => $formula,
+			'formula_raw' => $formula,
+			'per_unit'    => in_array( $ptype, [ 'nrq', 'charq' ], true ),
+		];
 	}
 
 	/**
@@ -1344,6 +1471,17 @@ final class WapfMapper {
 					return [ 'type' => 'formula', 'amount' => 0.0, 'formula' => $formula, 'formula_raw' => $formula_raw, 'per_unit' => self::formula_had_qty_factor( $formula_raw ) ];
 				}
 				$notes[] = sprintf( 'field "%s" formula could not be translated: %s', $label, (string) ( $pricing['amount'] ?? '' ) );
+				$needs_review = true;
+				return [ 'type' => 'none', 'amount' => 0.0, 'formula' => '' ];
+			case 'nr':
+			case 'nrq':
+			case 'char':
+			case 'charq':
+				$value_pricing = self::map_value_pricing( $type, $amt );
+				if ( null !== $value_pricing ) {
+					return $value_pricing;
+				}
+				$notes[] = sprintf( 'field "%s" %s pricing could not be translated; imported without pricing.', $label, $type );
 				$needs_review = true;
 				return [ 'type' => 'none', 'amount' => 0.0, 'formula' => '' ];
 		}

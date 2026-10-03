@@ -110,14 +110,15 @@ if ( 'setup' === $phase ) {
 			[ 'id' => 'note', 'type' => 'paragraph', 'label' => 'Note', 'content' => 'Line one & <b>not bold</b> ©' ],
 			[ 'id' => 'richtxt', 'type' => 'paragraph', 'label' => 'Rich note', 'content' => '<strong>Bold ok</strong> <script>alert(1)</script>', 'content_format' => 'html' ],
 			[ 'id' => 'site', 'type' => 'url', 'label' => 'Website', 'required' => true ],
-			[ 'id' => 'cbx', 'type' => 'checkbox', 'label' => 'Plain checkboxes',
+			[ 'id' => 'cbx', 'type' => 'checkbox', 'label' => 'Plain checkboxes', 'min_choices' => 1, 'max_choices' => 2,
 				'choices' => [
 					[ 'slug' => 'x', 'label' => 'X', 'pricing' => [ 'type' => 'fixed', 'amount' => 1 ] ],
 					[ 'slug' => 'y', 'label' => 'Y' ],
+					[ 'slug' => 'w', 'label' => 'W' ],
 					[ 'slug' => 'z', 'label' => 'Z', 'disabled' => true ],
 				] ],
 			[ 'id' => 'num', 'type' => 'number', 'label' => 'Plain number' ],
-			[ 'id' => 'mintext', 'type' => 'text', 'label' => 'Validated text' ],
+			[ 'id' => 'mintext', 'type' => 'text', 'label' => 'Validated text', 'minlength' => 3, 'maxlength' => 5, 'pattern' => '[a-z]+' ],
 		],
 		'rule_groups' => [ [ 'rules' => [ [ 'subject' => 'product', 'operator' => 'in', 'terms' => [ (string) $pid ] ] ] ] ],
 	], [ 'title' => 'OPF fieldb lifecycle', 'status' => 'publish' ] );
@@ -223,13 +224,9 @@ if ( 'render' === $phase ) {
 	if ( preg_match( '/<input type="text"[^>]*name="opf\[' . $gid . '\]\[mintext\]"[^>]*>/', $html, $m ) ) {
 		$txt_html = $m[0];
 	}
-	fieldb_observe( 'opf text input markup (gap evidence)', $txt_html );
-	fieldb_report( 'text field renders no minlength/maxlength/pattern attrs (documents Extended gap)', '' !== $txt_html && ! preg_match( '/\b(minlength|maxlength|pattern)=/', $txt_html ) );
-	$cbx_wrapper = '';
-	if ( preg_match( '/<div class="opf-swatch-wrapper"[^>]*>/', $html, $m ) ) {
-		$cbx_wrapper = $m[0];
-	}
-	fieldb_report( 'checkbox wrapper has no min/max-choices attrs (documents Extended gap)', ! preg_match( '/data-(min|max)-choices/', (string) preg_replace( '/.*field-cbx/s', 'field-cbx', $html ) ) );
+	fieldb_observe( 'opf text input markup', $txt_html );
+	fieldb_report( 'text field renders WAPF minlength/maxlength/pattern attrs', '' !== $txt_html && false !== strpos( $txt_html, 'minlength="3"' ) && false !== strpos( $txt_html, 'maxlength="5"' ) && false !== strpos( $txt_html, 'pattern="[a-z]+"' ) );
+	fieldb_report( 'checkbox wrapper emits min/max-choices attrs', false !== strpos( $html, 'data-min-choices="1"' ) && false !== strpos( $html, 'data-max-choices="2"' ) );
 	fieldb_report( 'disabled checkbox choice rendered disabled', (bool) preg_match( '/value="z"[^>]*disabled|disabled[^>]*value="z"/', $html ) );
 	$GLOBALS['product'] = null;
 	file_put_contents( $report_file, wp_json_encode( $GLOBALS['fieldb_report'], JSON_PRETTY_PRINT ) );
@@ -272,7 +269,7 @@ if ( 'importexport' === $phase ) {
 		}
 	}
 	fieldb_observe( 'imported checkbox keys', $cb_imported ? array_keys( $cb_imported ) : null );
-	fieldb_report( 'imported checkbox lost WAPF min_choices/max_choices (documents gap)', $cb_imported && ! isset( $cb_imported['min_choices'] ) && ! isset( $cb_imported['max_choices'] ) );
+	fieldb_report( 'imported checkbox maps WAPF min_choices/max_choices', $cb_imported && 1 === (int) ( $cb_imported['min_choices'] ?? 0 ) && 2 === (int) ( $cb_imported['max_choices'] ?? 0 ) );
 	$num_imported = null;
 	foreach ( $mapped['group']['fields'] as $f ) {
 		if ( 'number' === $f['type'] ) {
@@ -294,8 +291,8 @@ if ( 'importexport' === $phase ) {
 		] ],
 	] );
 	$nrq_choice = $nrq_mapped['group']['fields'][0]['choices'][0] ?? [];
-	fieldb_report( 'WAPF nrq choice pricing flagged unsupported on import (fail-closed, no silent repricing)',
-		'none' === (string) ( $nrq_choice['pricing']['type'] ?? '' ) && ! empty( $nrq_mapped['needs_review'] ) && (bool) preg_grep( '/nrq/', $nrq_mapped['notes'] ), $nrq_mapped['notes'] );
+	fieldb_report( 'WAPF nrq choice pricing maps to value-based [x] formula',
+		'formula' === (string) ( $nrq_choice['pricing']['type'] ?? '' ) && '[x] * 2' === ( $nrq_choice['pricing']['formula'] ?? '' ) && true === (bool) ( $nrq_choice['pricing']['per_unit'] ?? false ) && ! preg_grep( '/nrq.*not supported/i', $nrq_mapped['notes'] ), $nrq_mapped['notes'] );
 
 	// OPF -> WAPF export. Repeated-section clone settings cannot export at this
 	// HEAD (fail-closed) — record that, then export a repeat-less variant so the
@@ -315,9 +312,11 @@ if ( 'importexport' === $phase ) {
 		OPF\Service\WapfExporter::build_payload( $export_data );
 		fieldb_report( 'export of fixture group incl. paragraphs', false, 'no exception thrown' );
 	} catch ( \InvalidArgumentException $e ) {
-		fieldb_observe( 'export refuses paragraph content (fail-closed parity boundary)', $e->getMessage() );
+		// Paragraph content and text-validation keys both fail closed in the
+		// exporter (not owned by this lane) until an export-mapping lane lands.
+		fieldb_observe( 'export fail-closed boundary (paragraph content / text-validation keys)', $e->getMessage() );
 	}
-	$export_data['fields'] = array_values( array_filter( $export_data['fields'], static fn( $f ) => ! in_array( $f['id'], [ 'note', 'richtxt' ], true ) ) );
+	$export_data['fields'] = array_values( array_filter( $export_data['fields'], static fn( $f ) => ! in_array( $f['id'], [ 'note', 'richtxt', 'mintext' ], true ) ) );
 	$payload = OPF\Service\WapfExporter::build_payload( $export_data );
 	file_put_contents( $out . '/opf-exported-wapf-payload.json', wp_json_encode( $payload, JSON_PRETTY_PRINT ) );
 	$exported = [];
@@ -522,8 +521,12 @@ $resp = $dispatch( 'cart/add-item', [ 'id' => $pid, 'quantity' => 1, 'opf_fields
 fieldb_report( 'Store API accepts allowed non-http scheme', $resp->get_status() < 400 );
 $cart->empty_cart();
 
-// 6) plain checkboxes: no limits in OPF (gap) + disabled choice rejection.
-fieldb_report( 'classic accepts 2 checkbox selections (no limit keys exist)', $classic_validate( $val( [ 'cbx' => [ 'x', 'y' ] ] ) ) );
+// 6) checkboxes: WAPF min/max limits + disabled choice rejection.
+fieldb_report( 'classic accepts 2 checkbox selections', $classic_validate( $val( [ 'cbx' => [ 'x', 'y' ] ] ) ) );
+fieldb_report( 'classic accepts empty optional checkbox below min=1 (WAPF optional-min)', $classic_validate( $val( [] ) ) );
+$resp = $dispatch( 'cart/add-item', [ 'id' => $pid, 'quantity' => 1, 'opf_fields' => $val( [ 'cbx' => [ 'x', 'y', 'w' ] ] ) ] );
+fieldb_report( 'checkbox over max=2 rejected server-side', $resp->get_status() >= 400 );
+$cart->empty_cart();
 $resp = $dispatch( 'cart/add-item', [ 'id' => $pid, 'quantity' => 1, 'opf_fields' => $val( [ 'cbx' => [ 'z' ] ] ) ] );
 fieldb_report( 'forged disabled checkbox choice rejected', $resp->get_status() >= 400 );
 $cart->empty_cart();
@@ -537,13 +540,13 @@ $cart->empty_cart();
 $resp = $dispatch( 'cart/add-item', [ 'id' => $pid, 'quantity' => 1, 'opf_fields' => $val( [ 'sectext' => [] ] ) ] );
 fieldb_report( 'required field inside visible section enforced', $resp->get_status() >= 400 );
 $cart->empty_cart();
-$resp = $dispatch( 'cart/add-item', [ 'id' => $pid, 'quantity' => 1, 'opf_fields' => $val( [ 'gate' => '0', 'sectext' => [] ] ) ] );
-fieldb_observe( 'required field inside HIDDEN conditional section (OPF rejects; WAPF merges section conditions and skips)', $resp->get_status() );
-$cart->empty_cart();
-$resp = $dispatch( 'cart/add-item', [ 'id' => $pid, 'quantity' => 1, 'opf_fields' => $val( [ 'gate' => '0', 'sectext' => [ 'forged' ] ] ) ] );
-$line = reset( $cart->cart_contents );
-fieldb_observe( 'forged value inside hidden section: status + persisted value', [ 'status' => $resp->get_status(), 'stored' => $line['opf_fields'][ $gid ]['sectext'] ?? null ] );
-$cart->empty_cart();
+	$resp = $dispatch( 'cart/add-item', [ 'id' => $pid, 'quantity' => 1, 'opf_fields' => $val( [ 'gate' => '0', 'sectext' => [] ] ) ] );
+	fieldb_report( 'required child of hidden section skipped (section condition propagated)', $resp->get_status() < 400 );
+	$cart->empty_cart();
+	$resp = $dispatch( 'cart/add-item', [ 'id' => $pid, 'quantity' => 1, 'opf_fields' => $val( [ 'gate' => '0', 'sectext' => [ 'forged' ] ] ) ] );
+	$line = reset( $cart->cart_contents );
+	fieldb_report( 'forged value inside hidden section accepted but not persisted', $resp->get_status() < 400 && ! isset( $line['opf_fields'][ $gid ]['sectext'] ) );
+	$cart->empty_cart();
 $resp = $dispatch( 'cart/add-item', [ 'id' => $pid, 'quantity' => 1, 'opf_fields' => $val( [ 'sectext' => [ 'a', 'b', 'c', 'd' ] ] ) ] );
 fieldb_report( 'button section repeat over max=3 rejected', $resp->get_status() >= 400 );
 $cart->empty_cart();
@@ -591,8 +594,9 @@ $cart->calculate_totals();
 fieldb_report( 'order again retains composite price', abs( 17.5 - (float) $cart->get_total( 'edit' ) ) < 0.001 );
 $cart->empty_cart();
 
-// 9) text/number absence of constraints (server-side gap documentation).
-fieldb_report( 'text with no server constraints accepts any string (documents gap)', $classic_validate( $val( [ 'mintext' => 'x' ] ) ) );
+// 9) text/number constraints: WAPF renders text attrs but never enforces them
+// server-side, so a wrong-length/pattern value is still accepted.
+fieldb_report( 'text length/pattern values are browser-only (WAPF parity, server accepts)', $classic_validate( $val( [ 'mintext' => 'x' ] ) ) );
 $resp = $dispatch( 'cart/add-item', [ 'id' => $pid, 'quantity' => 1, 'opf_fields' => $val( [ 'num' => 'not-a-number' ] ) ] );
 $line = reset( $cart->cart_contents );
 fieldb_observe( 'number non-numeric submission result', [ 'status' => $resp->get_status(), 'stored' => $line['opf_fields'][ $gid ]['num'] ?? null ] );

@@ -725,6 +725,39 @@ final class FieldGroup {
 			}
 		}
 
+		if ( 'checkbox' === $type ) {
+			// WAPF `checkboxes` serializes min_choices/max_choices as flat keys
+			// (class-field-groups.php:284-290) and enforces the max server-side.
+			// Mirror the multi-swatch bounds (int 1..10000, min <= max).
+			foreach ( [ 'min_choices', 'max_choices' ] as $key ) {
+				if ( ! array_key_exists( $key, $field ) || '' === $field[ $key ] || null === $field[ $key ] ) {
+					continue;
+				}
+				$normalized[ $key ] = self::bounded_integer( $field[ $key ], 1, 10000, 'Checkbox ' . $key );
+			}
+			if ( isset( $normalized['min_choices'], $normalized['max_choices'] ) && $normalized['min_choices'] > $normalized['max_choices'] ) {
+				throw new \InvalidArgumentException( 'Checkbox minimum choices cannot exceed maximum choices.' );
+			}
+		}
+
+		if ( in_array( $type, [ 'text', 'textarea' ], true ) ) {
+			// WAPF renders minlength/maxlength/pattern as native constraints but
+			// never validates them server-side (class-html.php:748-756). OPF stores
+			// the same raw keys and emits the same attrs.
+			foreach ( [ 'minlength', 'maxlength' ] as $key ) {
+				if ( ! array_key_exists( $key, $field ) || '' === $field[ $key ] || null === $field[ $key ] ) {
+					continue;
+				}
+				$normalized[ $key ] = self::bounded_integer( $field[ $key ], 1, 1000000, ucfirst( $type ) . ' ' . $key );
+			}
+			if ( 'text' === $type && array_key_exists( 'pattern', $field ) && is_scalar( $field['pattern'] ) ) {
+				$pattern = trim( (string) $field['pattern'] );
+				if ( '' !== $pattern && strlen( $pattern ) <= 2048 ) {
+					$normalized['pattern'] = $pattern;
+				}
+			}
+		}
+
 		if ( 'date' === $type ) {
 			foreach ( [ 'allow_past', 'allow_future' ] as $key ) {
 				$value = $field[ $key ] ?? true;

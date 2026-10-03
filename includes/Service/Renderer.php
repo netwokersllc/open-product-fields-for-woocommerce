@@ -795,7 +795,7 @@ final class Renderer {
 		if ( $color_swatch ) {
 			$wrapper_attrs .= ' data-color-layout="' . esc_attr( $field['color_layout'] ) . '"';
 		}
-		if ( 'swatch' === $field['type'] && $multi ) {
+		if ( $multi && in_array( $field['type'], [ 'swatch', 'checkbox' ], true ) ) {
 			if ( isset( $field['min_choices'] ) ) {
 				$wrapper_attrs .= ' data-min-choices="' . esc_attr( (string) $field['min_choices'] ) . '"';
 			}
@@ -1233,6 +1233,25 @@ final class Renderer {
 	}
 
 	/**
+	 * WAPF text-length/regex native constraints (class-html.php:748-756).
+	 * Rendered only; WAPF does not enforce these server-side.
+	 *
+	 * @param array<string,mixed> $field Field data.
+	 */
+	private static function text_validation_attrs( array $field ): string {
+		$attrs = '';
+		foreach ( [ 'minlength', 'maxlength' ] as $key ) {
+			if ( isset( $field[ $key ] ) ) {
+				$attrs .= ' ' . $key . '="' . esc_attr( (string) $field[ $key ] ) . '"';
+			}
+		}
+		if ( ! empty( $field['pattern'] ) ) {
+			$attrs .= ' pattern="' . esc_attr( (string) $field['pattern'] ) . '"';
+		}
+		return $attrs;
+	}
+
+	/**
 	 * Text-like inputs.
 	 *
 	 * @param string              $name  Input name.
@@ -1250,6 +1269,7 @@ final class Renderer {
 			esc_attr( $name )
 		);
 		$shared .= self::pricing_attrs( $field['pricing'] ?? [], $qty_based );
+		$shared .= self::text_validation_attrs( $field );
 
 		switch ( $field['type'] ) {
 			case 'upload':

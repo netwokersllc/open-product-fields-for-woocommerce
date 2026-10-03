@@ -1093,4 +1093,79 @@ final class WapfMapperTest extends TestCase {
 		$this->assertTrue( $mapped['needs_review'], 'lookuptable depends on runtime tables and stays review-flagged' );
 		$this->assertStringContainsString( 'lookuptable(', implode( ' ', $mapped['notes'] ) );
 	}
+
+	public function test_checkboxes_min_and_max_choices_map_from_options_and_flat_keys(): void {
+		$from_options = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'extras', 'label' => 'Extras', 'type' => 'checkboxes',
+			'options' => [ 'min_choices' => 1, 'max_choices' => 2, 'choices' => [ [ 'slug' => 'a', 'label' => 'A' ] ] ],
+		] ] ] )['group']['fields'][0];
+		$this->assertSame( [ 1, 2 ], [ $from_options['min_choices'], $from_options['max_choices'] ] );
+
+		// Raw Tools payload stores the limits top-level.
+		$flat = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'extras', 'label' => 'Extras', 'type' => 'checkboxes',
+			'min_choices' => '2', 'max_choices' => '3', 'choices' => [ [ 'slug' => 'a', 'label' => 'A' ] ],
+		] ] ] )['group']['fields'][0];
+		$this->assertSame( [ 2, 3 ], [ $flat['min_choices'], $flat['max_choices'] ] );
+	}
+
+	public function test_inconsistent_checkbox_limits_are_dropped_with_review(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'extras', 'label' => 'Extras', 'type' => 'checkboxes',
+			'min_choices' => 4, 'max_choices' => 2, 'choices' => [ [ 'slug' => 'a', 'label' => 'A' ] ],
+		] ] ] );
+		$field = $mapped['group']['fields'][0];
+		$this->assertArrayNotHasKey( 'min_choices', $field );
+		$this->assertArrayNotHasKey( 'max_choices', $field );
+		$this->assertTrue( $mapped['needs_review'] );
+	}
+
+	public function test_text_validation_keys_map_from_flat_and_options_shapes(): void {
+		$flat = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'txt', 'label' => 'Text', 'type' => 'text',
+			'minlength' => 3, 'maxlength' => 5, 'pattern' => '[a-z]+',
+		] ] ] )['group']['fields'][0];
+		$this->assertSame( [ 3, 5, '[a-z]+' ], [ $flat['minlength'], $flat['maxlength'], $flat['pattern'] ] );
+
+		$nested = WapfMapper::map( [ 'fields' => [ [
+			'id' => 'area', 'label' => 'Area', 'type' => 'textarea',
+			'options' => [ 'minlength' => '2', 'maxlength' => '9' ],
+		] ] ] )['group']['fields'][0];
+		$this->assertSame( [ 2, 9 ], [ $nested['minlength'], $nested['maxlength'] ] );
+		$this->assertArrayNotHasKey( 'pattern', $nested );
+	}
+
+	public function test_nrq_and_charq_map_to_value_based_formula_pricing(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [
+			// nrq on an image quantity choice consumes the entered count per unit.
+			[ 'id' => 'prints', 'label' => 'Prints', 'type' => 'image-swatch-qty',
+				'options' => [ 'choices' => [ [ 'slug' => 'one', 'label' => 'One', 'pricing_type' => 'nrq', 'pricing_amount' => 2 ] ] ] ],
+			// charq on a text field consumes the character count per unit.
+			[ 'id' => 'note', 'label' => 'Note', 'type' => 'text',
+				'pricing' => [ 'enabled' => true, 'type' => 'charq', 'amount' => 0.5 ] ],
+		] ] );
+		$choice_pricing = $mapped['group']['fields'][0]['choices'][0]['pricing'];
+		$this->assertSame( 'formula', $choice_pricing['type'] );
+		$this->assertSame( '[x] * 2', $choice_pricing['formula'] );
+		$this->assertTrue( $choice_pricing['per_unit'] );
+
+		$field_pricing = $mapped['group']['fields'][1]['pricing'];
+		$this->assertSame( 'formula', $field_pricing['type'] );
+		$this->assertSame( 'len([x]) * 0.5', $field_pricing['formula'] );
+		$this->assertTrue( $field_pricing['per_unit'] );
+		$this->assertSame( [], preg_grep( '/nrq|charq.*not supported/i', $mapped['notes'] ) );
+	}
+
+	public function test_nr_and_char_map_to_flat_per_line_formula_pricing(): void {
+		$mapped = WapfMapper::map( [ 'fields' => [
+			[ 'id' => 'qty', 'label' => 'Qty', 'type' => 'number',
+				'pricing' => [ 'enabled' => true, 'type' => 'nr', 'amount' => 3 ] ],
+			[ 'id' => 'note', 'label' => 'Note', 'type' => 'textarea',
+				'pricing' => [ 'enabled' => true, 'type' => 'char', 'amount' => 1 ] ],
+		] ] );
+		$this->assertSame( '[x] * 3', $mapped['group']['fields'][0]['pricing']['formula'] );
+		$this->assertFalse( $mapped['group']['fields'][0]['pricing']['per_unit'] );
+		$this->assertSame( 'len([x]) * 1', $mapped['group']['fields'][1]['pricing']['formula'] );
+		$this->assertFalse( $mapped['group']['fields'][1]['pricing']['per_unit'] );
+	}
 }

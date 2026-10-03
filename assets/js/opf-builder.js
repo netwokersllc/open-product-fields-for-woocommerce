@@ -817,6 +817,26 @@
 			} );
 			card.appendChild( textSettings );
 		}
+		if ( [ 'text', 'textarea' ].indexOf( field.type ) !== -1 ) {
+			var validationSettings = el( 'div', { class: 'opf-b-constraints' } );
+			[ [ 'minlength', __( 'Minimum length', 'open-product-fields-for-woocommerce' ) ], [ 'maxlength', __( 'Maximum length', 'open-product-fields-for-woocommerce' ) ] ].forEach( function ( setting ) {
+				var input = el( 'input', { class: 'opf-b-input', type: 'number', min: '1', step: '1', value: field[ setting[ 0 ] ] == null ? '' : String( field[ setting[ 0 ] ] ), 'aria-label': setting[ 1 ] } );
+				input.addEventListener( 'input', function () {
+					if ( input.value ) field[ setting[ 0 ] ] = Number( input.value );
+					else delete field[ setting[ 0 ] ];
+				} );
+				validationSettings.appendChild( labeledControl( setting[ 1 ], input ) );
+			} );
+			if ( 'text' === field.type ) {
+				var patternInput = el( 'input', { class: 'opf-b-input', type: 'text', value: field.pattern || '', placeholder: '[a-z]+', 'aria-label': __( 'HTML5 validation regex', 'open-product-fields-for-woocommerce' ) } );
+				patternInput.addEventListener( 'input', function () {
+					if ( patternInput.value ) field.pattern = patternInput.value;
+					else delete field.pattern;
+				} );
+				validationSettings.appendChild( labeledControl( __( 'HTML5 validation regex', 'open-product-fields-for-woocommerce' ), patternInput ) );
+			}
+			card.appendChild( validationSettings );
+		}
 		if ( 'products' === field.type ) {
 			card.appendChild( productsEditor( field ) );
 		}
@@ -954,6 +974,18 @@
 			card.appendChild( list );
 			card.appendChild( addChoice );
 			card.appendChild( bulkChoiceImport( field, list ) );
+		}
+		if ( 'checkbox' === field.type ) {
+			var checkboxLimits = el( 'div', { class: 'opf-b-constraints' } );
+			[ [ 'min_choices', __( 'Minimum choices', 'open-product-fields-for-woocommerce' ) ], [ 'max_choices', __( 'Maximum choices', 'open-product-fields-for-woocommerce' ) ] ].forEach( function ( setting ) {
+				var input = el( 'input', { class: 'opf-b-input', type: 'number', min: '1', max: '10000', step: '1', value: field[ setting[ 0 ] ] == null ? '' : String( field[ setting[ 0 ] ] ), 'aria-label': setting[ 1 ] } );
+				input.addEventListener( 'input', function () {
+					if ( input.value ) field[ setting[ 0 ] ] = Number( input.value );
+					else delete field[ setting[ 0 ] ];
+				} );
+				checkboxLimits.appendChild( labeledControl( setting[ 1 ], input ) );
+			} );
+			card.appendChild( checkboxLimits );
 		}
 		if ( 'image_quantity' === field.type ) {
 			[ [ 'min_choices', __( 'Minimum total quantity', 'open-product-fields-for-woocommerce' ) ], [ 'max_choices', __( 'Maximum total quantity', 'open-product-fields-for-woocommerce' ) ] ].forEach( function ( setting ) {

@@ -156,6 +156,8 @@ final class CartIntegration {
 			? self::sanitize_submitted( $product, $cart_item_data[ self::ITEM_KEY ], true )
 			: self::collect_submitted( $product, self::$store_api_raw );
 		self::$store_api_raw = null; // Consumed: never leak into the next add.
+		// Non-visible (conditional) values never validate, price or persist.
+		$values = self::drop_hidden_values( $product, $values );
 		$errors = self::validate_values( $product, $values, $quantity );
 
 		foreach ( $errors as $error ) {
@@ -200,19 +202,10 @@ final class CartIntegration {
 		$values = $restored
 			? self::sanitize_submitted( $product, $cart_item_data[ self::ITEM_KEY ], true )
 			: self::collect_submitted( $product, $raw );
-		// Native hidden toggles are disabled in the browser. Apply the same rule
-		// to forged payloads before cart/order persistence.
-		foreach ( FieldGroups::for_product( $product ) as $entry ) {
-			$gid = (string) $entry['id'];
-			$given = $values[ $gid ] ?? [];
-			$section_repeats = self::section_repeat_context( $entry['group']->data['fields'] );
-			foreach ( $entry['group']->data['fields'] as $field ) {
-				if ( 'toggle' === $field['type'] && empty( $field['repeat']['enabled'] ) && ! isset( $section_repeats[ $field['id'] ] ) && ! Evaluator::is_visible( $field, $given ) ) {
-					unset( $values[ $gid ][ $field['id'] ] );
-				}
-			}
-			if ( isset( $values[ $gid ] ) && ! $values[ $gid ] ) { unset( $values[ $gid ] ); }
-		}
+		// Hidden fields/sections are disabled in the browser (mirroring WAPF's
+		// conditional handler). Apply the same rule to forged payloads before
+		// cart/order persistence and pricing, including per-row repeats.
+		$values = self::drop_hidden_values( $product, $values );
 		$upload_errors = Uploads::validate_product( $product, $values );
 		if ( $upload_errors ) {
 			if ( defined( 'REST_REQUEST' ) && REST_REQUEST && class_exists( \Automattic\WooCommerce\StoreApi\Exceptions\RouteException::class ) ) {
@@ -1271,7 +1264,7 @@ final class CartIntegration {
 					$rows = $provided && is_array( $given[ $field['id'] ] ) ? $given[ $field['id'] ] : [];
 					foreach ( $rows as $row_index => $row ) {
 						$clone_values = self::values_for_clone( $group->data['fields'], $given, $section_repeats, (int) $row_index );
-						if ( Evaluator::is_visible( $field, $clone_values ) ) {
+						if ( self::field_visibility( $field, $group->data['fields'], $clone_values ) ) {
 							$errors = array_merge( $errors, FieldValue::validate_choices( $field, $row ) );
 						}
 					}
@@ -1282,12 +1275,12 @@ final class CartIntegration {
 						$product_quantity,
 						static function ( int $row_index ) use ( $field, $group, $given, $section_repeats ): bool {
 							$clone_values = self::values_for_clone( $group->data['fields'], $given, $section_repeats, $row_index );
-							return Evaluator::is_visible( $field, $clone_values );
+							return self::field_visibility( $field, $group->data['fields'], $clone_values );
 						}
 					) );
 					continue;
 				}
-				if ( ! Evaluator::is_visible( $field, $given ) ) {
+				if ( ! self::field_visibility( $field, $group->data['fields'], $given ) ) {
 					continue;
 				}
 				// WAPF alias bridge: wapf/validate (visible, non-repeat fields).
@@ -1302,6 +1295,20 @@ final class CartIntegration {
 				}
 				if ( in_array( $field['type'], [ 'select', 'radio', 'checkbox', 'swatch' ], true ) && $provided ) {
 					$errors = array_merge( $errors, FieldValue::validate_choices( $field, $given[ $field['id'] ] ) );
+				}
+				if ( 'checkbox' === $field['type'] && $provided ) {
+					$submitted_value = $given[ $field['id'] ];
+					$count = is_array( $submitted_value ) ? count( $submitted_value ) : 1;
+					// WAPF enforces the max on any submitted value; the min binds
+					// only once a value exists (empty optional is accepted, empty
+					// required is covered by the required check). See
+					// validate_multiple_choice_field() in WAPF class-cart.php.
+					if ( isset( $field['max_choices'] ) && $count > $field['max_choices'] ) {
+						$errors[] = sprintf( '"%s" requires a maximum of %d choices.', $field['label'], $field['max_choices'] );
+					}
+					if ( isset( $field['min_choices'] ) && $count < $field['min_choices'] ) {
+						$errors[] = sprintf( '"%s" requires a minimum of %d choices.', $field['label'], $field['min_choices'] );
+					}
 				}
 				if ( 'image_quantity' === $field['type'] ) {
 					$submitted = $provided && is_array( $given[ $field['id'] ] ) ? $given[ $field['id'] ] : [];
@@ -1387,5 +1394,106 @@ final class CartIntegration {
 			$values[ $field['id'] ] = is_array( $rows ) && array_key_exists( $row_index, $rows ) ? $rows[ $row_index ] : null;
 		}
 		return $values;
+	}
+
+	/**
+	 * Drop conditionally-hidden values before validation, pricing and persist.
+	 *
+	 * Visibility follows WAPF's merged-section semantics: a field inside a
+	 * hidden section is hidden, and repeated fields/sections are filtered per
+	 * row. This mirrors the browser (hidden controls are disabled) so forged
+	 * payloads cannot smuggle values into a cart/order.
+	 *
+	 * @param \WC_Product                            $product Product.
+	 * @param array<int|string, array<string,mixed>> $values  Sanitized values.
+	 * @return array<int|string, array<string,mixed>>
+	 */
+	private static function drop_hidden_values( \WC_Product $product, array $values ): array {
+		foreach ( FieldGroups::for_product( $product ) as $entry ) {
+			$gid = (string) $entry['id'];
+			if ( empty( $values[ $gid ] ) || ! is_array( $values[ $gid ] ) ) {
+				continue;
+			}
+			$fields = $entry['group']->data['fields'];
+			$given  = $values[ $gid ];
+			$section_repeats = self::section_repeat_context( $fields );
+
+			foreach ( $fields as $field ) {
+				if ( in_array( $field['type'], [ 'paragraph', 'content_image', 'section', 'section_end' ], true ) ) {
+					continue;
+				}
+				$fid = $field['id'];
+				if ( ! array_key_exists( $fid, $given ) ) {
+					continue;
+				}
+				$repeat_field = $field;
+				if ( empty( $repeat_field['repeat']['enabled'] ) && isset( $section_repeats[ $fid ] ) ) {
+					$repeat_field['repeat'] = $section_repeats[ $fid ];
+				}
+				if ( empty( $repeat_field['repeat']['enabled'] ) ) {
+					if ( ! self::field_visibility( $field, $fields, $given ) ) {
+						unset( $values[ $gid ][ $fid ] );
+					}
+					continue;
+				}
+				if ( ! is_array( $given[ $fid ] ) ) {
+					if ( ! self::field_visibility( $field, $fields, $given ) ) {
+						unset( $values[ $gid ][ $fid ] );
+					}
+					continue;
+				}
+				$kept = [];
+				foreach ( $given[ $fid ] as $row_index => $row ) {
+					$clone_values = self::values_for_clone( $fields, $given, $section_repeats, (int) $row_index );
+					if ( self::field_visibility( $field, $fields, $clone_values ) ) {
+						$kept[ $row_index ] = $row;
+					}
+				}
+				if ( $kept ) {
+					$values[ $gid ][ $fid ] = $kept;
+				} else {
+					unset( $values[ $gid ][ $fid ] );
+				}
+			}
+			if ( empty( $values[ $gid ] ) ) {
+				unset( $values[ $gid ] );
+			}
+		}
+		return $values;
+	}
+
+	/**
+	 * Effective visibility for a field: its own conditionals AND every enclosing
+	 * section's conditionals. WAPF merges section conditions into enclosed
+	 * fields at parse time (class-field-groups.php:463-537); OPF evaluates the
+	 * enclosing sections directly.
+	 *
+	 * @param array<string,mixed>            $field  Field definition.
+	 * @param array<int,array<string,mixed>> $fields Whole group field list.
+	 * @param array<string,mixed>            $values Current values.
+	 */
+	private static function field_visibility( array $field, array $fields, array $values ): bool {
+		if ( ! Evaluator::is_visible( $field, $values ) ) {
+			return false;
+		}
+		$ancestors = [];
+		foreach ( $fields as $candidate ) {
+			if ( (string) $candidate['id'] === (string) $field['id'] ) {
+				break;
+			}
+			if ( 'section_end' === $candidate['type'] ) {
+				array_pop( $ancestors );
+				continue;
+			}
+			if ( 'section' === $candidate['type'] ) {
+				$ancestors[] = $candidate;
+			}
+		}
+		foreach ( $ancestors as $section ) {
+			if ( ! Evaluator::is_visible( $section, $values ) ) {
+				return false;
+			}
+		}
+		return true;
 	}
 }

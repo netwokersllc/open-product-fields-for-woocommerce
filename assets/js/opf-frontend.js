@@ -925,26 +925,22 @@ const init = () => {
 			groupEl.querySelectorAll( '[data-opf-field]' ).forEach( ( fieldEl ) => {
 				const fid = fieldEl.getAttribute( 'data-opf-field' );
 				const def = fieldDefs[ fid ] || {};
-				const visible = isVisible( def, valuesForField( fieldEl ), subjectIsHidden );
+				// A field inside a hidden section is hidden too. Ancestors are
+				// processed first (document order), so their [hidden] is current.
+				const ancestorHidden = !! ( fieldEl.parentElement && fieldEl.parentElement.closest( '[data-opf-field][hidden]' ) );
+				const visible = ! ancestorHidden && isVisible( def, valuesForField( fieldEl ), subjectIsHidden );
 				fieldEl.classList.toggle( 'opf-field--hidden', ! visible );
 				fieldEl.classList.toggle( 'opf-hide', ! visible );
 				fieldEl.toggleAttribute( 'hidden', ! visible );
-				// Hidden required toggles must not block native form validation or submit
-				// their hidden false value. Re-enable both controls when shown again.
-				if ( 'toggle' === def.type ) {
-					fieldEl.querySelectorAll( 'input' ).forEach( ( input ) => { input.disabled = ! visible; } );
-				}
-				// WAPF disables .wapf-input inside conditionally hidden fields so
-				// stale values are not submitted; mirror for qty selector fields
-				// (products-*/image_quantity) while preserving authored-disabled.
-				if ( [ 'products', 'image_quantity' ].includes( def.type ) && ( def.conditionals || [] ).length ) {
-					fieldEl.querySelectorAll( 'input, select, textarea' ).forEach( ( input ) => {
-						if ( 'hidden' === input.type || input.dataset.disabled ) {
-							return;
-						}
-						input.disabled = ! visible;
-					} );
-				}
+				// Hidden controls must not block native form validation or submit
+				// stale values, matching WAPF's conditional handler. Author-disabled
+				// choices stay disabled once the field is shown again.
+				fieldEl.querySelectorAll( 'input, select, textarea' ).forEach( ( input ) => {
+					if ( undefined === input.dataset.opfDisabledOrig ) {
+						input.dataset.opfDisabledOrig = input.disabled ? '1' : '0';
+					}
+					input.disabled = ! visible || '1' === input.dataset.opfDisabledOrig;
+				} );
 				if ( 'image_quantity' === def.type ) {
 					const inputs = Array.from( fieldEl.querySelectorAll( '.opf-image-quantity__input' ) );
 					const enabledInputs = inputs.filter( ( input ) => ! input.disabled );
@@ -1008,7 +1004,7 @@ const init = () => {
 			} else if ( 'date' === input.type ) {
 				input.setCustomValidity( '' );
 			}
-			if ( input.type === 'checkbox' && input.name.endsWith( '[]' ) && fieldDefs[ fid ] && fieldDefs[ fid ].type === 'swatch' ) {
+			if ( input.type === 'checkbox' && input.name.endsWith( '[]' ) && fieldDefs[ fid ] && [ 'swatch', 'checkbox' ].includes( fieldDefs[ fid ].type ) ) {
 				const maxChoices = Number( fieldDefs[ fid ].max_choices || 0 );
 				const choiceScope = input.closest( '[data-opf-repeat-instance]' ) || fieldEl;
 				const checked = choiceScope.querySelectorAll( 'input:checked' ).length;

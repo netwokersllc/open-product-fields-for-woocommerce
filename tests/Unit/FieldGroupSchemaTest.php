@@ -238,6 +238,41 @@ final class FieldGroupSchemaTest extends TestCase {
 		] );
 	}
 
+	public function test_checkbox_selection_limits_are_normalized_and_bounded(): void {
+		$field = FieldGroup::normalize_field( [
+			'id' => 'extras', 'type' => 'checkbox',
+			'min_choices' => '1', 'max_choices' => 2,
+			'choices' => [ [ 'slug' => 'a', 'label' => 'A' ] ],
+		] );
+
+		$this->assertSame( [ 1, 2 ], [ $field['min_choices'], $field['max_choices'] ] );
+	}
+
+	public function test_checkbox_selection_limits_must_be_consistent(): void {
+		$this->expectException( InvalidArgumentException::class );
+		FieldGroup::normalize_field( [
+			'id' => 'extras', 'type' => 'checkbox',
+			'min_choices' => 3, 'max_choices' => 2,
+		] );
+	}
+
+	public function test_text_validation_keys_are_normalized_and_bounded(): void {
+		$field = FieldGroup::normalize_field( [
+			'id' => 'code', 'type' => 'text',
+			'minlength' => '3', 'maxlength' => 5, 'pattern' => '[a-z]+',
+		] );
+		$this->assertSame( [ 3, 5, '[a-z]+' ], [ $field['minlength'], $field['maxlength'], $field['pattern'] ] );
+
+		$textarea = FieldGroup::normalize_field( [
+			'id' => 'bio', 'type' => 'textarea', 'minlength' => 2, 'maxlength' => 40,
+		] );
+		$this->assertSame( [ 2, 40 ], [ $textarea['minlength'], $textarea['maxlength'] ] );
+
+		$other = FieldGroup::normalize_field( [ 'id' => 'qty', 'type' => 'number', 'minlength' => 3, 'pattern' => 'x' ] );
+		$this->assertArrayNotHasKey( 'minlength', $other );
+		$this->assertArrayNotHasKey( 'pattern', $other );
+	}
+
 	public function test_duplicate_remaps_internal_field_references_and_formula_tokens(): void {
 		$result = FieldGroup::duplicate(
 			[
