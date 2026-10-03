@@ -196,7 +196,74 @@ final class FieldGroup {
 			}
 		}
 
+		// WAPF group `layout` gallery-image rules ("Change product image"):
+		// enable_gallery_images + swap_type ('rules'|'last') + gallery_images[]
+		// of {source,id,url,values:[{field,value}]}. Stored verbatim under
+		// `layout` so OPF↔WAPF tooling can carry it 1:1; `gallery` flat key is
+		// accepted as a friendly input alias.
+		$layout_input = is_array( $data['layout'] ?? null ) ? $data['layout'] : [];
+		foreach ( [ 'enable_gallery_images', 'swap_type', 'gallery_images' ] as $key ) {
+			if ( array_key_exists( $key, $layout_input ) ) {
+				$normalized['layout'][ $key ] = $layout_input[ $key ];
+			}
+		}
+		if ( isset( $normalized['layout'] ) || isset( $data['gallery'] ) ) {
+			$normalized['layout'] = self::normalize_gallery_layout( $normalized['layout'] ?? [], $data['gallery'] ?? null );
+		}
+
 		return $normalized;
+	}
+
+	/**
+	 * Normalize the WAPF `layout` gallery-image block.
+	 *
+	 * @param array<string,mixed> $layout   Raw layout fragment.
+	 * @param array<string,mixed>|null $alias Optional flat `gallery` alias.
+	 * @return array<string,mixed>
+	 */
+	private static function normalize_gallery_layout( array $layout, ?array $alias ): array {
+		if ( is_array( $alias ) ) {
+			$layout = array_merge( $layout, [
+				'enable_gallery_images' => $alias['enabled'] ?? $alias['enable_gallery_images'] ?? $layout['enable_gallery_images'] ?? null,
+				'swap_type'             => $alias['swap_type'] ?? $layout['swap_type'] ?? null,
+				'gallery_images'        => $alias['images'] ?? $alias['gallery_images'] ?? $layout['gallery_images'] ?? null,
+			] );
+		}
+
+		$enabled = $layout['enable_gallery_images'] ?? false;
+		$out = [
+			'enable_gallery_images' => in_array( $enabled, [ true, 1, '1' ], true ),
+			'swap_type'             => 'rules',
+		];
+		if ( isset( $layout['swap_type'] ) ) {
+			$out['swap_type'] = 'last' === $layout['swap_type'] ? 'last' : 'rules';
+		}
+
+		$out['gallery_images'] = [];
+		foreach ( (array) ( $layout['gallery_images'] ?? [] ) as $gallery_image ) {
+			if ( ! is_array( $gallery_image ) ) {
+				continue;
+			}
+			$values = [];
+			foreach ( (array) ( $gallery_image['values'] ?? [] ) as $value ) {
+				if ( ! is_array( $value ) || ! isset( $value['field'] ) ) {
+					continue;
+				}
+				$values[] = [
+					'field' => (string) $value['field'],
+					'value' => (string) ( $value['value'] ?? '*' ),
+				];
+			}
+			$source = (string) ( $gallery_image['source'] ?? 'upload' );
+			$out['gallery_images'][] = [
+				'source' => in_array( $source, [ 'upload', 'product' ], true ) ? $source : 'upload',
+				'url'    => is_scalar( $gallery_image['url'] ?? null ) ? (string) $gallery_image['url'] : '',
+				'id'     => is_scalar( $gallery_image['id'] ?? null ) ? (string) $gallery_image['id'] : '',
+				'values' => $values,
+			];
+		}
+
+		return $out;
 	}
 
 	/**
@@ -441,6 +508,14 @@ final class FieldGroup {
 			$normalized['multiple'] = false;
 			$normalized['required'] = false;
 			$normalized['pricing'] = self::normalize_pricing( [] );
+			// WAPF `large_image` on image-swatch-qty (3.2.1 exposes it in the
+			// builder; 3.1.5 already emits data-zoom-url for the serialized
+			// option) → OPF canonical `image_zoom`. Both spellings accepted.
+			$image_zoom = $field['image_zoom'] ?? $field['large_image'] ?? ( $field['options']['large_image'] ?? false );
+			if ( ! in_array( $image_zoom, [ true, false, 0, 1, '0', '1' ], true ) ) {
+				throw new \InvalidArgumentException( 'Image quantity zoom setting must be boolean.' );
+			}
+			$normalized['image_zoom'] = in_array( $image_zoom, [ true, 1, '1' ], true );
 			foreach ( [ 'min_choices', 'max_choices' ] as $key ) {
 				if ( ! array_key_exists( $key, $field ) || '' === $field[ $key ] || null === $field[ $key ] ) {
 					continue;

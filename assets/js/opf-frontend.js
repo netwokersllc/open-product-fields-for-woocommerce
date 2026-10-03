@@ -34,7 +34,60 @@ const imageQuantityLimitMessage = ( def, quantities ) => {
 	return '';
 };
 
-const isVisible = ( field, values ) => {
+// WAPF qty-selector conditional semantics (installed Extended 3.1.5,
+// Fields::is_valid_rule + frontend isValidRule): a qty-selector field value
+// is the map of submitted quantities; rules see only positive entries.
+// `empty`/`!empty` mean "no/any positive quantity", `is`/`contains` match a
+// submitted quantity (WAPF's rule value is a number input for qty fields;
+// OPF additionally accepts a choice slug carrying a positive quantity as a
+// documented superset), and `greater`/`less` compare the positive-quantity
+// total. Zero or disabled-out quantities never satisfy a rule.
+const qtyMapOf = ( value ) => {
+	if ( ! value || 'object' !== typeof value || Array.isArray( value ) ) {
+		return null;
+	}
+	if ( value.quantities && 'object' === typeof value.quantities
+		&& [ 'products', 'image_quantity', 'quantity' ].includes( value._opf_type ) ) {
+		return value.quantities;
+	}
+	return null;
+};
+
+const qtyRulePasses = ( rule, map ) => {
+	const expect = String( rule.value ?? '' );
+	const positive = {};
+	let total = 0;
+	Object.entries( map || {} ).forEach( ( [ slug, qty ] ) => {
+		const n = Number( qty );
+		if ( Number.isFinite( n ) && n > 0 ) {
+			positive[ slug ] = n;
+			total += n;
+		}
+	} );
+	const has = Object.keys( positive ).length > 0;
+	const numeric = '' !== expect && ! Number.isNaN( Number( expect ) );
+	switch ( rule.operator ) {
+		case 'empty':
+			return ! has;
+		case 'not_empty':
+			return has;
+		case 'is':
+		case 'contains':
+			return ( numeric && Object.values( positive ).includes( Number( expect ) ) )
+				|| ( '' !== expect && Object.prototype.hasOwnProperty.call( positive, expect ) );
+		case 'is_not':
+		case 'not_contains':
+			return ! qtyRulePasses( { ...rule, operator: 'contains' }, map );
+		case 'greater':
+			return numeric && total > Number( expect );
+		case 'less':
+			return numeric && total < Number( expect );
+		default:
+			return false;
+	}
+};
+
+const isVisible = ( field, values, subjectIsHidden ) => {
 	if ( ! field.conditionals || ! field.conditionals.length ) {
 		return true;
 	}
@@ -43,7 +96,16 @@ const isVisible = ( field, values ) => {
 	let hidePass = false;
 
 	const rulePasses = ( rule ) => {
+		// WAPF isValidRule: a rule whose subject field is currently hidden
+		// always fails (hidden subjects can't vouch for a visible dependent).
+		if ( 'function' === typeof subjectIsHidden && subjectIsHidden( rule.field ) ) {
+			return false;
+		}
 		const value = values[ rule.field ];
+		const qtyMap = qtyMapOf( value );
+		if ( qtyMap ) {
+			return qtyRulePasses( rule, qtyMap );
+		}
 		const actual = Array.isArray( value )
 			? value.flat( Infinity ).map( String ).filter( ( item ) => item.trim() !== '' ).join( ', ' )
 			: String( value ?? '' );
@@ -589,11 +651,171 @@ const init = () => {
 			}
 		} );
 
+		// WAPF isValidRule resolves a hidden conditional subject to false. The
+		// lookup reads the live DOM class so chained conditionals settle the
+		// same way WAPF's sequential .each() pass does.
+		const subjectIsHidden = ( fid ) => {
+			const el = groupEl.querySelector( '[data-opf-field="' + fid + '"]' );
+			return !! el && ( el.classList.contains( 'opf-hide' ) || el.classList.contains( 'opf-field--hidden' ) || el.hasAttribute( 'hidden' ) );
+		};
+
+		// ------------------------------------------------------------------
+		// WAPF gallery-image rules (data-opf-gi/data-wapf-gi + data-opf-st).
+		// ------------------------------------------------------------------
+		const galleryPayload = ( () => {
+			const raw = groupEl.getAttribute( 'data-opf-gi' ) || groupEl.getAttribute( 'data-wapf-gi' );
+			if ( ! raw ) {
+				return null;
+			}
+			try {
+				return JSON.parse( raw );
+			} catch ( error ) {
+				return null;
+			}
+		} )();
+		const gallerySwapType = groupEl.getAttribute( 'data-opf-st' ) || groupEl.getAttribute( 'data-wapf-st' ) || 'rules';
+		const galleryImages = {};
+		if ( galleryPayload && Array.isArray( galleryPayload.images ) ) {
+			galleryPayload.images.forEach( ( img ) => { galleryImages[ String( img.image_id ) ] = img; } );
+		}
+		let lastGalleryFid = null;
+		const galleryFidOf = ( input ) => {
+			if ( ! input ) {
+				return null;
+			}
+			if ( input.dataset && input.dataset.fieldId ) {
+				return input.dataset.fieldId;
+			}
+			const container = input.closest ? input.closest( '[data-opf-field]' ) : null;
+			return container ? container.getAttribute( 'data-opf-field' ) : null;
+		};
+		const galleryActualValue = ( fid ) => {
+			if ( subjectIsHidden( fid ) ) {
+				return undefined;
+			}
+			const fieldEl = groupEl.querySelector( '[data-opf-field="' + fid + '"]' );
+			if ( ! fieldEl ) {
+				return undefined;
+			}
+			if ( undefined !== values[ fid ] ) {
+				return values[ fid ];
+			}
+			return readFieldValue( fieldEl, fieldDefs[ fid ] || registry[ fid ] || {} );
+		};
+		// Mirrors WAPF's value match: getFieldValue → array indexOf or loose ==;
+		// qty-selector fields compare against the positive quantity list.
+		const galleryValueMatches = ( expected, actual ) => {
+			const qtyMap = qtyMapOf( actual );
+			if ( qtyMap ) {
+				return Object.values( qtyMap )
+					.map( Number )
+					.filter( ( n ) => n > 0 )
+					.map( String )
+					.includes( String( expected ) );
+			}
+			if ( Array.isArray( actual ) ) {
+				return actual.flat( Infinity ).map( String ).includes( String( expected ) );
+			}
+			return String( actual ?? '' ) === String( expected );
+		};
+		const matchGalleryRule = ( rules, changedFid ) => {
+			const reversed = Array.isArray( rules ) ? [ ...rules ].reverse() : [];
+			for ( const rule of reversed ) {
+				let ok = true;
+				for ( const row of rule.values || [] ) {
+					if ( '*' === String( row.value ) ) {
+						continue; // Wildcard rows skip both checks (WAPF-faithful).
+					}
+					if ( 'last' === gallerySwapType && String( row.field ) !== String( changedFid ) ) {
+						ok = false;
+						break;
+					}
+					const actual = galleryActualValue( String( row.field ) );
+					if ( undefined === actual || ! galleryValueMatches( row.value, actual ) ) {
+						ok = false;
+						break;
+					}
+				}
+				if ( ok ) {
+					return rule;
+				}
+			}
+			return null;
+		};
+		// WAPF merges form.cart's product_variations into its image map so a
+		// rule-less state can fall back to the selected variation image
+		// (C(variation.image_id) in 3.1.5). Mirror via jQuery data.
+		const variationImageProps = () => {
+			if ( ! window.jQuery ) {
+				return null;
+			}
+			const form = window.jQuery( 'form.cart' );
+			if ( ! form.length ) {
+				return null;
+			}
+			const variations = form.data( 'product_variations' );
+			const vid = form.find( 'input[name="variation_id"]' ).val();
+			if ( ! vid || ! Array.isArray( variations ) ) {
+				return null;
+			}
+			const match = variations.find( ( item ) => String( item.variation_id ) === String( vid ) );
+			if ( ! match || ! match.image ) {
+				return null;
+			}
+			return Object.assign( {}, match.image, {
+				image_id: String( match.image_id || match.image.image_id || '' ),
+			} );
+		};
+		// WAPF guards C() with `v != i` so repeated evals do not re-trigger
+		// woocommerce_gallery_init_zoom; keep an equivalent applied-key guard.
+		let appliedGalleryKey = null;
+		const applyGalleryOnce = ( key, applyFn ) => {
+			if ( appliedGalleryKey === key ) {
+				return;
+			}
+			appliedGalleryKey = key;
+			applyFn();
+		};
+		const applyGroupGallery = ( changedInput ) => {
+			const changedFid = galleryFidOf( changedInput );
+			if ( changedFid ) {
+				lastGalleryFid = changedFid;
+			}
+			if ( galleryPayload && Array.isArray( galleryPayload.rules ) && galleryPayload.rules.length ) {
+				const effectiveFid = lastGalleryFid || ( () => {
+					const first = groupEl.querySelector( '.opf-input:not([type="hidden"])' );
+					return galleryFidOf( first );
+				} )();
+				const rule = matchGalleryRule( galleryPayload.rules, effectiveFid );
+				if ( rule ) {
+					const image = galleryImages[ String( rule.image ) ];
+					if ( image ) {
+						applyGalleryOnce( 'gi:' + String( rule.image ), () => gallerySwap.swapProps( image ) );
+						return;
+					}
+				}
+			}
+			// OPF field-level image_zoom swap (data-opf-swap-image): keeps card
+			// selections driving the main image when no group rule matched.
+			const url = fieldSwapUrl( groupEl );
+			if ( url ) {
+				applyGalleryOnce( 'field:' + url, () => gallerySwap.swap( url ) );
+				return;
+			}
+			// WAPF no-match fallback: selected variation image, then original.
+			const variation = variationImageProps();
+			if ( variation && variation.src ) {
+				applyGalleryOnce( 'var:' + variation.image_id, () => gallerySwap.swapProps( variation ) );
+				return;
+			}
+			applyGalleryOnce( 'orig', () => gallerySwap.restore() );
+		};
+
 		const refresh = () => {
 			groupEl.querySelectorAll( '[data-opf-field]' ).forEach( ( fieldEl ) => {
 				const fid = fieldEl.getAttribute( 'data-opf-field' );
 				const def = fieldDefs[ fid ] || {};
-				const visible = isVisible( def, valuesForField( fieldEl ) );
+				const visible = isVisible( def, valuesForField( fieldEl ), subjectIsHidden );
 				fieldEl.classList.toggle( 'opf-field--hidden', ! visible );
 				fieldEl.classList.toggle( 'opf-hide', ! visible );
 				fieldEl.toggleAttribute( 'hidden', ! visible );
@@ -601,6 +823,17 @@ const init = () => {
 				// their hidden false value. Re-enable both controls when shown again.
 				if ( 'toggle' === def.type ) {
 					fieldEl.querySelectorAll( 'input' ).forEach( ( input ) => { input.disabled = ! visible; } );
+				}
+				// WAPF disables .wapf-input inside conditionally hidden fields so
+				// stale values are not submitted; mirror for qty selector fields
+				// (products-*/image_quantity) while preserving authored-disabled.
+				if ( [ 'products', 'image_quantity' ].includes( def.type ) && ( def.conditionals || [] ).length ) {
+					fieldEl.querySelectorAll( 'input, select, textarea' ).forEach( ( input ) => {
+						if ( 'hidden' === input.type || input.dataset.disabled ) {
+							return;
+						}
+						input.disabled = ! visible;
+					} );
 				}
 				if ( 'image_quantity' === def.type ) {
 					const inputs = Array.from( fieldEl.querySelectorAll( '.opf-image-quantity__input' ) );
@@ -635,6 +868,10 @@ const init = () => {
 					}
 				}
 			} );
+			// WAPF fires wapf/dependencies after every conditional pass and the
+			// gallery engine re-evaluates then (with the last-changed field for
+			// 'last' swap type); mirror that by re-evaluating here too.
+			applyGroupGallery( null );
 		};
 
 		const syncChecked = () => {
@@ -680,11 +917,11 @@ const init = () => {
 			if ( input.type === 'radio' || input.type === 'checkbox' ) {
 				syncChecked();
 			}
-			if ( fieldDefs[ fid ] && 'products' === fieldDefs[ fid ].type ) {
-				refreshProductSwap( fieldEl );
-			}
 			updateRequiredRepeaters();
 			refresh();
+			// WAPF evaluates gallery rules on every field change (and again on
+			// wapf/dependencies); OPF mirrors both triggers here.
+			applyGroupGallery( input );
 		} );
 
 		// Linked-products +/− steppers (qty_selector 'plus_min' display mode).
@@ -706,19 +943,54 @@ const init = () => {
 			input.dispatchEvent( new Event( 'input', { bubbles: true } ) );
 		} );
 
+		// WAPF re-evaluates all gallery rules on variation_id change (the
+		// variation lives outside the field group, so it needs its own hook).
+		const variationInput = document.querySelector( 'input[name="variation_id"]' );
+		if ( variationInput ) {
+			variationInput.addEventListener( 'change', () => applyGroupGallery( variationInput ) );
+		}
+
 		refresh();
 		syncChecked();
 		quantitySyncers.forEach( ( sync ) => sync() );
+		// Initial gallery eval mirrors WAPF: first visible input seeds 'last'
+		// mode and default selections can match a rule on page load.
+		applyGroupGallery( null );
 	} );
 };
 
 // ---------------------------------------------------------------------------
-// Linked products: swap the main WooCommerce gallery image with the selected
-// child product's image (WAPF "swap main image" parity). The original image
-// state is captured on first swap and restored when nothing is selected.
+// Main WooCommerce gallery image swap.
+//
+// Two drivers, evaluated per group in this order:
+//  1. WAPF gallery-image rules — group-level data-opf-gi/data-wapf-gi
+//     {images,rules} + data-opf-st/data-wapf-st swap type, mirroring installed
+//     Extended 3.1.5's frontend engine: rules are checked in reverse order
+//     (last authored rule wins), every {field,value} pair must match ('*'
+//     skips a value), a hidden subject field fails the rule, and 'last' swap
+//     type only honours rows on the triggering field. No match restores the
+//     originally captured image.
+//  2. Field-level data-opf-swap-image (OPF image_zoom extension): first
+//     checked/selected/qty>0 carrier in the group supplies the URL.
+// The original image state (img/link/thumb attribute sets) is captured on
+// first swap and restored when nothing is selected.
 // ---------------------------------------------------------------------------
 const gallerySwap = ( () => {
+	// Attribute sets WAPF copies onto .wp-post-image (w + m maps in 3.1.5).
+	const SWAP_ATTRS = [ 'src', 'height', 'width', 'title', 'srcset', 'alt', 'sizes' ];
+	const SWAP_DATA = {
+		'data-src': 'full_src',
+		'data-caption': 'caption',
+		'data-large_image': 'full_src',
+		'data-large_image_width': 'full_src_w',
+		'data-large_image_height': 'full_src_h',
+	};
 	let saved = null;
+	const snapshot = ( el ) => {
+		const attrs = {};
+		el.getAttributeNames().forEach( ( n ) => { attrs[ n ] = el.getAttribute( n ); } );
+		return attrs;
+	};
 	const capture = () => {
 		const root = document.querySelector( '.woocommerce-product-gallery' );
 		const img = root && root.querySelector( '.wp-post-image' );
@@ -732,39 +1004,63 @@ const gallerySwap = ( () => {
 			img,
 			link,
 			thumb,
-			src: img.getAttribute( 'src' ),
-			srcset: img.getAttribute( 'srcset' ),
-			sizes: img.getAttribute( 'sizes' ),
-			dataSrc: img.getAttribute( 'data-src' ),
-			dataLarge: img.getAttribute( 'data-large_image' ),
-			href: link ? link.getAttribute( 'href' ) : null,
-			thumbSrc: thumb ? thumb.getAttribute( 'src' ) : null,
+			attrs: snapshot( img ),
+			linkAttrs: link ? snapshot( link ) : null,
+			thumbAttrs: thumb ? snapshot( thumb ) : null,
 		};
 	};
-	const apply = ( state, url ) => {
-		state.img.setAttribute( 'src', url );
-		state.img.setAttribute( 'srcset', url );
-		state.img.setAttribute( 'sizes', '100vw' );
-		state.img.setAttribute( 'data-src', url );
-		state.img.setAttribute( 'data-large_image', url );
+	const apply = ( state, props ) => {
+		SWAP_ATTRS.forEach( ( key ) => {
+			if ( undefined !== props[ key ] && null !== props[ key ] ) {
+				state.img.setAttribute( key, props[ key ] );
+			}
+		} );
+		if ( ! props.srcset ) {
+			state.img.setAttribute( 'srcset', '' );
+		}
+		Object.keys( SWAP_DATA ).forEach( ( attr ) => {
+			const prop = props[ SWAP_DATA[ attr ] ];
+			if ( undefined === prop || null === prop ) {
+				state.img.removeAttribute( attr );
+			} else {
+				state.img.setAttribute( attr, prop );
+			}
+		} );
 		if ( state.link ) {
-			state.link.setAttribute( 'href', url );
-			state.link.setAttribute( 'data-large_image', url );
+			state.link.setAttribute( 'href', props.full_src || props.src || '' );
+			state.link.setAttribute( 'data-large_image', props.full_src || props.src || '' );
 		}
 		if ( state.thumb ) {
-			state.thumb.setAttribute( 'src', url );
+			state.thumb.removeAttribute( 'srcset' );
+			state.thumb.setAttribute( 'src', props.thumb_src || props.src || '' );
 		}
 		if ( window.jQuery ) {
 			window.jQuery( state.root ).trigger( 'woocommerce_gallery_init_zoom' );
 		}
 	};
+	const restoreEl = ( el, attrs ) => {
+		el.getAttributeNames().forEach( ( n ) => {
+			if ( ! ( n in attrs ) ) {
+				el.removeAttribute( n );
+			}
+		} );
+		Object.entries( attrs ).forEach( ( [ n, v ] ) => el.setAttribute( n, v ) );
+	};
+	const ensure = () => {
+		if ( ! saved ) {
+			saved = capture();
+		}
+		return saved;
+	};
 	return {
 		swap( url ) {
-			if ( ! saved ) {
-				saved = capture();
+			if ( ensure() ) {
+				apply( saved, { src: url, srcset: url, sizes: '100vw', full_src: url, thumb_src: url } );
 			}
-			if ( saved ) {
-				apply( saved, url );
+		},
+		swapProps( props ) {
+			if ( ensure() ) {
+				apply( saved, props );
 			}
 		},
 		restore() {
@@ -772,47 +1068,39 @@ const gallerySwap = ( () => {
 				return;
 			}
 			const state = saved;
-			state.img.setAttribute( 'src', state.src );
-			if ( state.srcset ) state.img.setAttribute( 'srcset', state.srcset ); else state.img.removeAttribute( 'srcset' );
-			if ( state.sizes ) state.img.setAttribute( 'sizes', state.sizes ); else state.img.removeAttribute( 'sizes' );
-			if ( state.dataSrc ) state.img.setAttribute( 'data-src', state.dataSrc ); else state.img.removeAttribute( 'data-src' );
-			if ( state.dataLarge ) state.img.setAttribute( 'data-large_image', state.dataLarge ); else state.img.removeAttribute( 'data-large_image' );
-			if ( state.link && state.href ) state.link.setAttribute( 'href', state.href );
-			if ( state.thumb && state.thumbSrc ) state.thumb.setAttribute( 'src', state.thumbSrc );
+			saved = null;
+			restoreEl( state.img, state.attrs );
+			if ( state.link && state.linkAttrs ) {
+				restoreEl( state.link, state.linkAttrs );
+			}
+			if ( state.thumb && state.thumbAttrs ) {
+				restoreEl( state.thumb, state.thumbAttrs );
+			}
 			if ( window.jQuery ) {
 				window.jQuery( state.root ).trigger( 'woocommerce_gallery_init_zoom' );
 			}
-			saved = null;
 		},
 	};
 } )();
 
-const refreshProductSwap = ( fieldEl ) => {
-	let url = '';
-	for ( const el of fieldEl.querySelectorAll( '[data-opf-swap-image]' ) ) {
+const fieldSwapUrl = ( groupEl ) => {
+	for ( const el of groupEl.querySelectorAll( '[data-opf-swap-image]' ) ) {
 		const tag = el.tagName.toLowerCase();
 		if ( 'option' === tag ) {
 			if ( el.selected ) {
-				url = el.dataset.opfSwapImage;
-				break;
+				return el.dataset.opfSwapImage;
 			}
 			continue;
 		}
 		if ( 'number' === el.type ) {
 			if ( parseInt( el.value, 10 ) > 0 ) {
-				url = el.dataset.opfSwapImage;
-				break;
+				return el.dataset.opfSwapImage;
 			}
 		} else if ( el.checked ) {
-			url = el.dataset.opfSwapImage;
-			break;
+			return el.dataset.opfSwapImage;
 		}
 	}
-	if ( url ) {
-		gallerySwap.swap( url );
-	} else {
-		gallerySwap.restore();
-	}
+	return '';
 };
 
 if ( document.readyState === 'loading' ) {

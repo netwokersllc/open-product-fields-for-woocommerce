@@ -21,7 +21,7 @@ final class WapfExporter {
 	 * @return array<string,mixed>
 	 */
 	public static function build_payload( array $group ): array {
-		self::assert_keys( $group, [ 'schema', 'fields', 'rule_groups', 'mark_required', 'labels_position' ], 'group' );
+		self::assert_keys( $group, [ 'schema', 'fields', 'rule_groups', 'mark_required', 'labels_position', 'layout' ], 'group' );
 		foreach ( ( $group['fields'] ?? [] ) as $field ) {
 			if ( is_array( $field ) ) {
 			self::assert_keys( $field, array_merge( [ 'id', 'label', 'description', 'type', 'required', 'width', 'css_class', 'placeholder', 'choices', 'pricing', 'conditionals', 'description_presentation', 'hide_cart', 'hide_checkout', 'hide_order', 'content', 'content_format', 'process_shortcodes', 'image_url', 'image_id', 'swatch_style', 'multiple', 'min_choices', 'max_choices', 'color_layout', 'color_size', 'color_label_pos', 'image_zoom', 'label_pos', 'grid_layout', 'item_width', 'items_per_row', 'items_per_row_tablet', 'items_per_row_mobile', 'allow_past', 'allow_future', 'min_date', 'max_date', 'disabled_weekdays', 'disabled_dates', 'cutoff_time' ], in_array( $field['type'] ?? '', [ 'toggle', 'text', 'textarea', 'email', 'url', 'number' ], true ) ? array_merge( 'toggle' === ( $field['type'] ?? '' ) ? [ 'message' ] : [], [ 'default' ] ) : [] ), 'field' );
@@ -74,14 +74,40 @@ final class WapfExporter {
 				$conditions[] = [ 'rules' => $rules ];
 			}
 		}
+		$layout = [
+			'labels_position'       => $group['labels_position'],
+			'instructions_position' => 'field',
+			'mark_required'         => $group['mark_required'],
+		];
+		// WAPF group gallery-image rules ("Change product image") ride in the
+		// same layout block WAPF Tools reads on import.
+		if ( ! empty( $group['layout'] ) && is_array( $group['layout'] ) ) {
+			$gallery_layout = $group['layout'];
+			$layout['enable_gallery_images'] = ! empty( $gallery_layout['enable_gallery_images'] );
+			$layout['swap_type']             = in_array( $gallery_layout['swap_type'] ?? 'rules', [ 'rules', 'last' ], true ) ? $gallery_layout['swap_type'] : 'rules';
+			$layout['gallery_images']        = [];
+			foreach ( (array) ( $gallery_layout['gallery_images'] ?? [] ) as $gallery_image ) {
+				if ( ! is_array( $gallery_image ) ) {
+					continue;
+				}
+				$images = [];
+				foreach ( (array) ( $gallery_image['values'] ?? [] ) as $value ) {
+					if ( is_array( $value ) && isset( $value['field'] ) ) {
+						$images[] = [ 'field' => (string) $value['field'], 'value' => (string) ( $value['value'] ?? '*' ) ];
+					}
+				}
+				$layout['gallery_images'][] = [
+					'source' => in_array( $gallery_image['source'] ?? 'upload', [ 'upload', 'product' ], true ) ? $gallery_image['source'] : 'upload',
+					'url'    => (string) ( $gallery_image['url'] ?? '' ),
+					'id'     => (string) ( $gallery_image['id'] ?? '' ),
+					'values' => $images,
+				];
+			}
+		}
 		return [
 			'fields'    => $fields,
 			'conditions' => $conditions,
-			'layout'    => [
-				'labels_position'       => $group['labels_position'],
-				'instructions_position' => 'field',
-				'mark_required'         => $group['mark_required'],
-			],
+			'layout'    => $layout,
 			'variables' => [],
 		];
 	}
@@ -192,6 +218,8 @@ final class WapfExporter {
 			}
 		}
 		if ( 'image_quantity' === $type ) {
+			// WAPF `large_image` on image-swatch-qty = OPF `image_zoom`.
+			$out['large_image'] = ! empty( $field['image_zoom'] );
 			foreach ( [ 'min_choices', 'max_choices' ] as $key ) {
 				if ( isset( $field[ $key ] ) ) {
 					$out[ $key ] = $field[ $key ];

@@ -250,7 +250,19 @@ final class Renderer {
 			$values[ $field['id'] ] = self::default_value( $field );
 		}
 
-		echo '<div class="opf-field-group label-' . esc_attr( 'above' === $group->data['labels_position'] ? 'above' : 'below' ) . '" data-group="' . esc_attr( (string) $gid ) . '" data-variables="[]" data-opf-group="' . esc_attr( (string) $gid ) . '">';
+		$group_attrs = ' data-variables="[]"';
+		// WAPF gallery-image bridge: group-level `layout.enable_gallery_images`
+		// emits data-wapf-st (swap type) + data-wapf-gi ({images,rules}) — the
+		// same attributes WAPF 3.1.5 renders on .wapf-field-group. OPF aliases
+		// ride alongside so integrations can pick either spelling.
+		$gallery_rules = self::gallery_image_rules( $group->data['layout'] ?? null );
+		if ( null !== $gallery_rules ) {
+			$gallery_json = self::attr_json( $gallery_rules['payload'] );
+			$group_attrs .= ' data-wapf-st="' . esc_attr( $gallery_rules['swap_type'] ) . '" data-wapf-gi="' . $gallery_json . '"'
+				. ' data-opf-st="' . esc_attr( $gallery_rules['swap_type'] ) . '" data-opf-gi="' . $gallery_json . '"';
+		}
+
+		echo '<div class="opf-field-group label-' . esc_attr( 'above' === $group->data['labels_position'] ? 'above' : 'below' ) . '" data-group="' . esc_attr( (string) $gid ) . '"' . $group_attrs . ' data-opf-group="' . esc_attr( (string) $gid ) . '">';
 
 		$section_stack = [];
 		$section_repeat_index = null;
@@ -325,6 +337,64 @@ final class Renderer {
 		}
 
 		echo '</div>';
+	}
+
+	/**
+	 * Build the WAPF `data-wapf-gi` payload for a group layout, or null when
+	 * gallery images are disabled/unusable. Mirrors
+	 * FieldGroup::get_gallery_image_rules() (installed Extended 3.1.5):
+	 * rules keep {values:[{field,value}],image:id}; `images` collects
+	 * wc_get_product_attachment_props() rows keyed by attachment id.
+	 *
+	 * @param array<string,mixed>|null $layout Normalized group layout.
+	 * @return array<string,mixed>|null
+	 */
+	private static function gallery_image_rules( ?array $layout ): ?array {
+		if ( empty( $layout['enable_gallery_images'] ) || empty( $layout['gallery_images'] ) || ! is_array( $layout['gallery_images'] ) ) {
+			return null;
+		}
+		$images = [];
+		$rules  = [];
+		foreach ( $layout['gallery_images'] as $gallery_image ) {
+			if ( ! is_array( $gallery_image ) || empty( $gallery_image['id'] ) || empty( $gallery_image['values'] ) ) {
+				continue;
+			}
+			$image_id = (string) $gallery_image['id'];
+			$rules[]  = [
+				'values' => array_map( static function ( $value ) {
+					return [ 'field' => (string) ( $value['field'] ?? '' ), 'value' => (string) ( $value['value'] ?? '*' ) ];
+				}, (array) $gallery_image['values'] ),
+				'image'  => $image_id,
+			];
+			if ( ! isset( $images[ $image_id ] ) && function_exists( 'wc_get_product_attachment_props' ) ) {
+				$props = wc_get_product_attachment_props( (int) $image_id );
+				if ( is_array( $props ) && ! empty( $props['src'] ) ) {
+					$images[ $image_id ] = array_merge( $props, [ 'image_id' => $image_id ] );
+				}
+			}
+		}
+		if ( ! $rules || ! $images ) {
+			return null;
+		}
+		return [
+			// WAPF keeps {images,rules} in data-wapf-gi and the swap type in
+			// data-wapf-st; `payload` preserves that exact attribute shape.
+			'payload'   => [
+				'images' => array_values( $images ),
+				'rules'  => $rules,
+			],
+			'swap_type' => in_array( $layout['swap_type'] ?? 'rules', [ 'rules', 'last' ], true ) ? $layout['swap_type'] : 'rules',
+		];
+	}
+
+	/**
+	 * JSON-encode a payload for a data attribute (WAPF
+	 * `Util::to_html_attribute_string` parity: compact JSON, attribute-escaped).
+	 *
+	 * @param array<string,mixed> $data Payload.
+	 */
+	private static function attr_json( array $data ): string {
+		return esc_attr( (string) wp_json_encode( $data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) );
 	}
 
 	/** Render the opening wrapper for a WAPF-compatible section marker. */
@@ -548,11 +618,39 @@ final class Renderer {
 			foreach ( $field['choices'] as $choice ) {
 				$q = $choice['quantity'];
 				$label = esc_html( $choice['label'] );
-				echo '<label class="opf-image-quantity__choice">';
-				if ( ! empty( $choice['image'] ) ) {
-					echo '<img src="' . esc_url( $choice['image'] ) . '" alt="' . $label . '" loading="lazy" />';
+				// WAPF large_image parity: the image wrapper carries
+				// wapf-tt-wrap + data-zoom-url (full attachment src) and OPF's
+				// CSS zoom preview provides the hover/focus enlargement.
+				$zoom_url = '';
+				if ( ! empty( $field['image_zoom'] ) ) {
+					$zoom_url = ! empty( $choice['image_id'] ) && function_exists( 'wp_get_attachment_image_url' )
+						? (string) wp_get_attachment_image_url( (int) $choice['image_id'], 'full' )
+						: (string) ( $choice['image'] ?? '' );
 				}
-				echo '<span>' . $label . self::pricing_hint_html( $choice['pricing'] ?? [], $base_price ) . '</span><input type="number" class="opf-input opf-image-quantity__input" name="' . esc_attr( $name . '[' . $choice['slug'] . ']' ) . '" value="' . esc_attr( (string) $q['default'] ) . '" min="' . esc_attr( (string) $q['min'] ) . '" max="' . esc_attr( (string) $q['max'] ) . '" step="1" data-field-id="' . esc_attr( $fid ) . '" data-choice-slug="' . esc_attr( $choice['slug'] ) . '"' . ( ! empty( $choice['disabled'] ) ? ' disabled' : '' ) . ' /></label>';
+				$img_html = '';
+				if ( ! empty( $choice['image'] ) || ! empty( $choice['image_id'] ) ) {
+					$src = ! empty( $choice['image'] )
+						? $choice['image']
+						: ( function_exists( 'wp_get_attachment_image_url' ) ? (string) wp_get_attachment_image_url( (int) $choice['image_id'], 'medium' ) : '' );
+					if ( '' !== $src ) {
+						$img_html = '<img class="opf-swatch-image" src="' . esc_url( $src ) . '" alt="' . $label . '" loading="lazy" decoding="async" />';
+					}
+				}
+				echo '<label class="opf-image-quantity__choice">';
+				if ( '' !== $img_html ) {
+					$img_wrap_classes = 'opf-image-quantity__img';
+					$img_wrap_attrs = '';
+					if ( '' !== $zoom_url ) {
+						$img_wrap_classes .= ' opf-swatch--image-zoom wapf-tt-wrap';
+						$img_wrap_attrs    = ' data-zoom-url="' . esc_url( $zoom_url ) . '"';
+					}
+					echo '<span class="' . esc_attr( $img_wrap_classes ) . '"' . $img_wrap_attrs . '>' . $img_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped above.
+					if ( '' !== $zoom_url ) {
+						echo '<img class="opf-swatch-zoom-preview" src="' . esc_url( $zoom_url ) . '" alt="" aria-hidden="true" loading="lazy" decoding="async" />';
+					}
+					echo '</span>';
+				}
+				echo '<span>' . $label . self::pricing_hint_html( $choice['pricing'] ?? [], $base_price ) . '</span><input type="number" class="opf-input opf-image-quantity__input is-qty input-' . esc_attr( $fid ) . ' input-' . esc_attr( $fid ) . '_' . esc_attr( $choice['slug'] ) . '" name="' . esc_attr( $name . '[' . $choice['slug'] . ']' ) . '" value="' . esc_attr( (string) $q['default'] ) . '" min="' . esc_attr( (string) $q['min'] ) . '" max="' . esc_attr( (string) $q['max'] ) . '" step="1" data-field-id="' . esc_attr( $fid ) . '" data-choice-slug="' . esc_attr( $choice['slug'] ) . '"' . ( ! empty( $choice['disabled'] ) ? ' disabled' : '' ) . ' /></label>';
 			}
 			echo '</div>';
 			return;
@@ -622,8 +720,13 @@ final class Renderer {
 					$swatch_classes[] = 'opf-swatch--image';
 				}
 			}
+			$choice_zoom_url = '';
 			if ( $image_swatch && ! empty( $field['image_zoom'] ) && ( ! empty( $choice['image'] ) || ! empty( $choice['image_id'] ) ) ) {
 				$swatch_classes[] = 'opf-swatch--image-zoom';
+				$swatch_classes[] = 'wapf-tt-wrap';
+				$choice_zoom_url = ! empty( $choice['image_id'] ) && function_exists( 'wp_get_attachment_image_url' )
+					? (string) wp_get_attachment_image_url( (int) $choice['image_id'], 'full' )
+					: (string) ( $choice['image'] ?? '' );
 			}
 			if ( $image_swatch ) {
 				$swatch_classes[] = 'opf-image-swatch-label--' . $field['label_pos'];
@@ -655,6 +758,9 @@ final class Renderer {
 			);
 
 			$choice_label_attr = $image_swatch ? ' data-opf-swatch-label="' . esc_attr( $choice['label'] ) . '"' : '';
+			if ( '' !== $choice_zoom_url ) {
+				$choice_label_attr .= ' data-zoom-url="' . esc_url( $choice_zoom_url ) . '"';
+			}
 			if ( $color_swatch ) {
 				$choice_label_attr .= ' data-opf-swatch-label="' . esc_attr( $choice['label'] ) . '" data-color-label-position="' . esc_attr( $field['color_label_pos'] ) . '"';
 			}
@@ -678,13 +784,8 @@ final class Renderer {
 				$image_html = '<img class="opf-swatch-image" src="' . esc_url( $choice['image'] ) . '" alt="' . esc_attr( $choice['label'] ) . '" loading="lazy" decoding="async" />';
 			}
 			$zoom_html = '';
-			if ( $image_swatch && ! empty( $field['image_zoom'] ) ) {
-				$zoom_url = ! empty( $choice['image_id'] ) && function_exists( 'wp_get_attachment_image_url' )
-					? wp_get_attachment_image_url( (int) $choice['image_id'], 'full' )
-					: (string) ( $choice['image'] ?? '' );
-				if ( is_string( $zoom_url ) && '' !== $zoom_url ) {
-					$zoom_html = '<img class="opf-swatch-zoom-preview" src="' . esc_url( $zoom_url ) . '" alt="" aria-hidden="true" loading="lazy" decoding="async" />';
-				}
+			if ( '' !== $choice_zoom_url ) {
+				$zoom_html = '<img class="opf-swatch-zoom-preview" src="' . esc_url( $choice_zoom_url ) . '" alt="" aria-hidden="true" loading="lazy" decoding="async" />';
 			}
 			$image_frame = $image_swatch && 'out' !== $field['label_pos'] && ( '' !== $image_html || '' !== $zoom_html );
 			if ( $image_frame ) {
@@ -882,7 +983,13 @@ final class Renderer {
 						echo '<input type="' . ( $multi ? 'checkbox' : 'radio' ) . '" ' . $input_attrs( $choice, $name . ( $multi ? '[]' : '' ), $checked ) . ' />';
 					}
 					if ( ! empty( $field['incl_img'] ) ) {
-						echo '<div class="opf-card-img"><img class="opf-swatch-image" src="' . esc_url( $choice['image'] ) . '" alt="' . esc_attr( $choice['label'] ) . '" loading="lazy" decoding="async" />';
+						$card_img_classes = 'opf-card-img';
+						if ( ! empty( $field['image_zoom'] ) && ! empty( $choice['zoom_url'] ) ) {
+							// Hover/focus enlargement (documented WAPF 3.2.1
+							// linked-product zoom parity via OPF's CSS preview).
+							$card_img_classes .= ' opf-swatch--image-zoom wapf-tt-wrap';
+						}
+						echo '<div class="' . esc_attr( $card_img_classes ) . '"><img class="opf-swatch-image" src="' . esc_url( $choice['image'] ) . '" alt="' . esc_attr( $choice['label'] ) . '" loading="lazy" decoding="async" />';
 						if ( ! empty( $field['image_zoom'] ) && ! empty( $choice['zoom_url'] ) ) {
 							echo '<img class="opf-swatch-zoom-preview" src="' . esc_url( $choice['zoom_url'] ) . '" alt="" aria-hidden="true" loading="lazy" decoding="async" />';
 						}
@@ -903,7 +1010,7 @@ final class Renderer {
 						if ( 'plus_min' === ( $field['display'] ?? '' ) ) {
 							echo '<button type="button" tabindex="-1" aria-label="' . esc_attr__( 'Reduce', 'open-product-fields-for-woocommerce' ) . '" class="button apf-minus opf-qty-minus">−</button>';
 						}
-						echo '<input type="number" step="1" value="' . esc_attr( (string) $default ) . '" min="' . esc_attr( (string) (int) $q['min'] ) . '" max="' . esc_attr( (string) $max ) . '" name="' . esc_attr( $name . '[' . $choice['slug'] . ']' ) . '" class="opf-input opf-qty is-qty input-' . esc_attr( $fid ) . '_' . esc_attr( $choice['slug'] ) . '" data-field-id="' . esc_attr( $fid ) . '" data-choice-slug="' . esc_attr( $choice['slug'] ) . '" data-no-zero="1"' . ( $disabled ? ' disabled data-disabled="1"' : '' ) . ( ! empty( $field['image_zoom'] ) && ! empty( $choice['zoom_url'] ) ? ' data-opf-swap-image="' . esc_attr( $choice['zoom_url'] ) . '"' : '' ) . ' />';
+						echo '<input type="number" step="1" value="' . esc_attr( (string) $default ) . '" min="' . esc_attr( (string) (int) $q['min'] ) . '" max="' . esc_attr( (string) $max ) . '" name="' . esc_attr( $name . '[' . $choice['slug'] . ']' ) . '" class="opf-input opf-qty is-qty input-' . esc_attr( $fid ) . ' input-' . esc_attr( $fid ) . '_' . esc_attr( $choice['slug'] ) . '" data-field-id="' . esc_attr( $fid ) . '" data-choice-slug="' . esc_attr( $choice['slug'] ) . '" data-no-zero="1"' . ( $disabled ? ' disabled data-disabled="1"' : '' ) . ( ! empty( $field['image_zoom'] ) && ! empty( $choice['zoom_url'] ) ? ' data-opf-swap-image="' . esc_attr( $choice['zoom_url'] ) . '"' : '' ) . ' />';
 						if ( 'plus_min' === ( $field['display'] ?? '' ) ) {
 							echo '<button type="button" tabindex="-1" aria-label="' . esc_attr__( 'Increase', 'open-product-fields-for-woocommerce' ) . '" class="button apf-plus opf-qty-plus">+</button>';
 						}
@@ -1170,6 +1277,20 @@ final class Renderer {
 	 * @return string|array
 	 */
 	private static function default_value( array $field ) {
+		// Quantity-selector fields submit a quantity map, not selectable slugs;
+		// seed conditionals with the same `{_opf_type, quantities}` shape the
+		// client registry and request space use so `empty`/`!empty` evaluate
+		// "no/any positive quantity" identically on the server and in the DOM.
+		if ( ( 'products' === $field['type'] && LinkedProducts::is_qty_subtype( $field ) ) || 'image_quantity' === $field['type'] ) {
+			$quantities = [];
+			foreach ( $field['choices'] as $choice ) {
+				$quantities[ (string) $choice['slug'] ] = (int) ( $choice['quantity']['default'] ?? 0 );
+			}
+			return [
+				'_opf_type'  => 'image_quantity' === $field['type'] ? 'image_quantity' : 'products',
+				'quantities' => $quantities,
+			];
+		}
 		if ( in_array( $field['type'], [ 'text', 'url' ], true ) ) {
 			return (string) ( $field['default'] ?? '' );
 		}

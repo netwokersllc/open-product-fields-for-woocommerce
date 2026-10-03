@@ -66,10 +66,26 @@ final class Evaluator {
 	/**
 	 * Evaluate a single rule against a value.
 	 *
+	 * Quantity maps (`{slug: qty}` assoc arrays, or structured
+	 * `{_opf_type, quantities}` product/image-quantity values) get WAPF
+	 * qty-selector semantics instead of the generic string comparisons:
+	 * zero/negative quantities are invisible, `empty` means "no positive
+	 * quantity", `is`/`contains` mean "a positive quantity equals N" (WAPF's
+	 * `in_array`/`indexOf` against the submitted quantity list — its admin
+	 * forces a number input for these) with a documented OPF superset that
+	 * also accepts "choice slug has a positive quantity", and `greater`/`less`
+	 * compare the total of positive quantities. Sequential arrays keep their
+	 * existing slug-list semantics, so non-qty multi-choice fields are
+	 * unaffected.
+	 *
 	 * @param array<string,mixed> $rule  Normalized rule.
 	 * @param string|array        $value Current value.
 	 */
 	public static function rule_passes( array $rule, $value ): bool {
+		$qty_map = self::qty_map( $value );
+		if ( null !== $qty_map ) {
+			return self::qty_rule_passes( $rule, $qty_map );
+		}
 		$actual = is_array( $value ) ? implode( ', ', $value ) : (string) $value;
 		$expect = (string) ( $rule['value'] ?? '' );
 
@@ -90,6 +106,83 @@ final class Evaluator {
 				return '' === trim( $actual );
 			case 'not_empty':
 				return '' !== trim( $actual );
+			default:
+				return false;
+		}
+	}
+
+	/**
+	 * Is a submitted value a quantity map? Accepts both the raw posted
+	 * `{slug: qty}` assoc array (request space) and the structured
+	 * `{_opf_type: 'products'|'image_quantity'|'quantity', quantities: {...}}`
+	 * value carried by the client registry and stored cart items.
+	 *
+	 * Sequential arrays are regular slug lists and return null; empty arrays
+	 * are treated as qty maps of nothing (a qty field with all-zero values is
+	 * indistinguishable from an untouched one, matching WAPF's zero-filtering).
+	 *
+	 * @param mixed $value Submitted value.
+	 * @return array<string,mixed>|null
+	 */
+	public static function qty_map( $value ): ?array {
+		if ( ! is_array( $value ) ) {
+			return null;
+		}
+		if ( isset( $value['quantities'] ) && is_array( $value['quantities'] ) && in_array( (string) ( $value['_opf_type'] ?? '' ), [ 'products', 'image_quantity', 'quantity' ], true ) ) {
+			return $value['quantities'];
+		}
+		if ( [] === $value ) {
+			return null;
+		}
+		$keys = array_keys( $value );
+		if ( $keys === range( 0, count( $value ) - 1 ) ) {
+			return null; // Sequential slug list, not a qty map.
+		}
+		foreach ( $value as $slug => $qty ) {
+			if ( ! is_scalar( $qty ) ) {
+				return null;
+			}
+		}
+		return $value;
+	}
+
+	/**
+	 * WAPF qty-selector rule semantics over a `{slug: qty}` map.
+	 *
+	 * @param array<string,mixed>  $rule    Normalized rule.
+	 * @param array<string,mixed>  $qty_map slug => submitted quantity.
+	 */
+	private static function qty_rule_passes( array $rule, array $qty_map ): bool {
+		$expect   = (string) ( $rule['value'] ?? '' );
+		$positive = [];
+		foreach ( $qty_map as $slug => $qty ) {
+			if ( is_numeric( $qty ) && (float) $qty > 0 ) {
+				$positive[ (string) $slug ] = (float) $qty;
+			}
+		}
+		$total = array_sum( $positive );
+
+		switch ( $rule['operator'] ) {
+			case 'empty':
+				return [] === $positive;
+			case 'not_empty':
+				return [] !== $positive;
+			case 'is':
+			case 'contains':
+				// WAPF `==`/`==contains` on qty fields matches a submitted
+				// quantity (its rule value is a number input); OPF superset
+				// also accepts a choice slug carrying a positive quantity.
+				if ( is_numeric( $expect ) && in_array( (float) $expect, $positive, true ) ) {
+					return true;
+				}
+				return '' !== $expect && isset( $positive[ $expect ] );
+			case 'is_not':
+			case 'not_contains':
+				return ! self::qty_rule_passes( [ 'field' => $rule['field'], 'operator' => 'contains', 'value' => $expect ], $qty_map );
+			case 'greater':
+				return is_numeric( $expect ) && $total > (float) $expect;
+			case 'less':
+				return is_numeric( $expect ) && $total < (float) $expect;
 			default:
 				return false;
 		}

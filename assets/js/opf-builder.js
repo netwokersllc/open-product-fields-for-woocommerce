@@ -325,6 +325,14 @@
 		return PRODUCT_CARD_SUBTYPES.indexOf( field.subtype ) !== -1;
 	}
 
+	// WAPF Extended 3.1.5 registers only `empty` (no quantity) and `!empty`
+	// (any quantity) as conditional rules whose subject is a quantity-enabled
+	// child-product card. The 3.1.6 changelog adds options without publishing
+	// their keys; until those are known the WAPF 3.1.5 surface is offered.
+	function isProductsQtyRuleSource( candidate ) {
+		return !! candidate && 'products' === candidate.type && isProductsQtySubtype( candidate );
+	}
+
 	function productChoiceDefaults( productId, label ) {
 		return {
 			product_id: productId,
@@ -597,10 +605,21 @@
 			rerender();
 		} );
 
-		var operatorLabels = [
-			[ 'is', __( 'Is', 'open-product-fields-for-woocommerce' ) ], [ 'is_not', __( 'Is not', 'open-product-fields-for-woocommerce' ) ], [ 'contains', __( 'Contains', 'open-product-fields-for-woocommerce' ) ], [ 'not_contains', __( 'Does not contain', 'open-product-fields-for-woocommerce' ) ],
-			[ 'greater', __( 'Is greater than', 'open-product-fields-for-woocommerce' ) ], [ 'less', __( 'Is less than', 'open-product-fields-for-woocommerce' ) ], [ 'empty', __( 'Is empty', 'open-product-fields-for-woocommerce' ) ], [ 'not_empty', __( 'Is not empty', 'open-product-fields-for-woocommerce' ) ],
-		];
+		var source = sources.find( function ( candidate ) { return candidate.id === rule.field; } );
+		var qtySource = isProductsQtyRuleSource( source );
+		var operatorLabels = qtySource
+			? [
+				[ 'empty', __( 'No quantity', 'open-product-fields-for-woocommerce' ) ],
+				[ 'not_empty', __( 'Any quantity', 'open-product-fields-for-woocommerce' ) ],
+			]
+			: [
+				[ 'is', __( 'Is', 'open-product-fields-for-woocommerce' ) ], [ 'is_not', __( 'Is not', 'open-product-fields-for-woocommerce' ) ], [ 'contains', __( 'Contains', 'open-product-fields-for-woocommerce' ) ], [ 'not_contains', __( 'Does not contain', 'open-product-fields-for-woocommerce' ) ],
+				[ 'greater', __( 'Is greater than', 'open-product-fields-for-woocommerce' ) ], [ 'less', __( 'Is less than', 'open-product-fields-for-woocommerce' ) ], [ 'empty', __( 'Is empty', 'open-product-fields-for-woocommerce' ) ], [ 'not_empty', __( 'Is not empty', 'open-product-fields-for-woocommerce' ) ],
+			];
+		if ( qtySource && in_array( rule.operator, [ 'empty', 'not_empty' ], true ) === false ) {
+			rule.operator = 'empty';
+			rule.value = '';
+		}
 		var operatorSelect = el( 'select', { class: 'opf-b-input', 'aria-label': __( 'Condition operator', 'open-product-fields-for-woocommerce' ) }, operatorLabels.map( function ( item ) {
 			var option = el( 'option', { value: item[ 0 ], text: item[ 1 ] } );
 			option.selected = item[ 0 ] === rule.operator;
@@ -612,7 +631,6 @@
 			rerender();
 		} );
 
-		var source = sources.find( function ( candidate ) { return candidate.id === rule.field; } );
 		var valueControl = null;
 		if ( ! in_array( rule.operator, [ 'empty', 'not_empty' ], true ) ) {
 			if ( source && in_array( source.type, [ 'select', 'radio', 'swatch', 'checkbox' ], true ) && source.choices.length ) {
@@ -954,6 +972,10 @@
 					card.appendChild( labeledControl( choice.label + ' — ' + setting[ 1 ], input ) );
 				} );
 			} );
+			var iqZoom = el( 'input', { type: 'checkbox', 'data-opf-image-setting': 'image_zoom' } );
+			iqZoom.checked = !! field.image_zoom;
+			iqZoom.addEventListener( 'change', function () { field.image_zoom = iqZoom.checked; } );
+			card.appendChild( labeledControl( __( 'Enlarge image on hover and keyboard focus', 'open-product-fields-for-woocommerce' ), iqZoom ) );
 		}
 		if ( 'swatch' === field.type ) {
 			var imageSettings = el( 'div', { class: 'opf-b-image-swatch-settings' } );

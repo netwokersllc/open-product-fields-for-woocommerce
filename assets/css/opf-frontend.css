@@ -261,6 +261,26 @@
 	display: block;
 }
 
+/* Image+quantity and product-card zoom wrappers reuse the same preview
+ * surface (WAPF renders a tooltip div; OPF keeps the inline preview image,
+ * a documented presentation difference — the data-zoom-url contract is
+ * preserved). Keep the wrapper inline so it does not disturb choice/card
+ * layout, and let the absolutely-positioned preview escape overflow-safe
+ * card containers. */
+.opf-image-quantity__img {
+	display: inline-block;
+	line-height: 0;
+}
+
+.opf-card-img.opf-swatch--image-zoom {
+	overflow: visible;
+}
+
+.opf-image-quantity__img .opf-swatch-zoom-preview,
+.opf-card-img .opf-swatch-zoom-preview {
+	width: min(220px, 70vw);
+}
+
 @media (max-width: 900px) {
 	.opf-image-swatch-wrapper[data-grid-layout="flexible"] {
 		grid-template-columns: repeat(var(--opf-image-swatch-cols-tablet, 3), minmax(0, 1fr));
