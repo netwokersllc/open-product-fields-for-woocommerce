@@ -52,7 +52,7 @@ final class Builder {
 		?>
 		<div id="opf-builder-app"
 			data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>"
-			data-model="<?php echo esc_attr( (string) wp_json_encode( $model, JSON_UNESCAPED_UNICODE ) ); ?>"
+			data-model="<?php echo esc_attr( (string) wp_json_encode( $model, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ) ); ?>"
 			data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
 			data-rest="<?php echo esc_url( esc_url_raw( rest_url( 'opf/v1/groups' ) ) ); ?>"
 			data-preview-rest="<?php echo esc_url( esc_url_raw( rest_url( 'opf/v1/preview' ) ) ); ?>">
